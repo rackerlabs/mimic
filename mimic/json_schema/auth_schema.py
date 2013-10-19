@@ -11,19 +11,19 @@ get_token = {
             "expires": ((datetime.now() + timedelta(1)).
                         strftime(('%Y-%m-%dT%H:%M:%S.999-05:00'))),
             "tenant": {
-                "id": "829409",
-                "name": "829409"},
+                "id": "851153",
+                "name": "851153"},
             "RAX-AUTH:authenticatedBy": ["PASSWORD"]},
         "serviceCatalog": [
             {"name": "cloudServersOpenStack",
              "endpoints": [{"region": "ORD",
-                            "tenantId": "829409",
-                            "publicURL": "http://localhost:8080/v2/829409/servers"}],
+                            "tenantId": "851153",
+                            "publicURL": "http://localhost:8080/v2/851153/servers"}],
              "type": "compute"},
             {"name": "cloudLoadBalancers",
              "endpoints": [{"region": "ORD",
-                            "tenantId": "829409",
-                            "publicURL": "http://localhost:8080/v2/829409/loadbalancers"}],
+                            "tenantId": "851153",
+                            "publicURL": "http://localhost:8080/v2/851153/loadbalancers"}],
              "type": "rax:load-balancer"}]}}
 
 
@@ -39,4 +39,28 @@ def get_user_token(expires_in):
              "expires": ((datetime.now() + timedelta(seconds=int(expires_in))).
                          strftime(('%Y-%m-%dT%H:%M:%S.999-05:00')))}
             }
-        }
+    }
+
+
+def get_endpoints():
+    return {"endpoints": [{"tenantId": "851153",
+                           "region": "ORD",
+                           "id": 19,
+                           "publicURL": "http://192.168.0.3:8909/v2/851153",
+                           "name": "cloudLoadBalancers",
+                           "type": "rax:load-balancer"},
+                          {"tenantId": "851153",
+                           "region": "ORD",
+                           "id": 86,
+                           "publicURL": "http://192.168.0.3:8909/v2/851153",
+                           "name": "autoscale",
+                           "type": "rax:autoscale"},
+                          {"tenantId": "851153",
+                           "region": "ORD",
+                           "id": 303,
+                           "publicURL": "http://192.168.0.3:8909/v2/851153/",
+                           "versionInfo": "http://192.168.0.3:8909/v2",
+                           "versionList": "http://192.168.0.3:8909/",
+                           "name": "cloudServersOpenStack",
+                           "versionId": "2",
+                           "type": "compute"}]}
