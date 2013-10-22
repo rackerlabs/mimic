@@ -4,11 +4,11 @@ Defines get token from Auth and create, delete, get servers and get images and f
 import json
 from twisted.web.server import Request
 
-from mimic.json_schema.auth_schema import (get_token, get_user,
-                                           get_user_token, get_endpoints)
-from mimic.json_schema.canned_responses import (get_server, get_limit,
-                                                create_server_example,
-                                                get_image, get_flavor)
+from mimic.canned_responses.auth import (get_token, get_user,
+                                         get_user_token, get_endpoints)
+from mimic.canned_responses.nova import (get_server, get_limit,
+                                         create_server_example,
+                                         get_image, get_flavor)
 from mimic.rest.mimicapp import MimicApp
 
 Request.defaultContentType = 'application/json'
