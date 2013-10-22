@@ -1,0 +1,5 @@
+*.project
+*.pydev*
+.DS_Store
+*.pyc
+dropin.cache
