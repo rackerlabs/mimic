@@ -82,3 +82,16 @@ def get_limit():
                           "maxTotalFloatingIps": -1,
                           "maxTotalInstances": 200,
                           "maxTotalRAMSize": 256000}}}
+
+
+def list_server(tenant_id, server_name):
+    """
+    Canned response for the list servers.
+    """
+    return {'id': 'server_id',
+            'name': server_name,
+            "links": [{
+                      "href": "http://localhost:8909/v2/{0}/servers/".format(tenant_id),
+                      "rel": "self"},
+                      {"href": "http://localhost:8909/v2/{0}/servers".format(tenant_id),
+                       "rel": "bookmark"}]}

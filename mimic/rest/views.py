@@ -1,14 +1,17 @@
 """
 Defines get token from Auth and create, delete, get servers and get images and flavors.
 """
+from twisted.python import log
+
 import json
+import re
 from twisted.web.server import Request
 
 from mimic.canned_responses.auth import (get_token, get_user,
                                          get_user_token, get_endpoints)
 from mimic.canned_responses.nova import (get_server, get_limit,
                                          create_server_example,
-                                         get_image, get_flavor)
+                                         get_image, get_flavor, list_server)
 from mimic.rest.mimicapp import MimicApp
 
 Request.defaultContentType = 'application/json'
@@ -21,6 +24,8 @@ class Mimic(object):
     """
     app = MimicApp()
     cache = {}
+    group_cache = {}
+    server_cache = {}
 
     @app.route('/v2.0/tokens', methods=['POST'])
     def get_service_catalog_and_token(self, request):
@@ -61,9 +66,18 @@ class Mimic(object):
     @app.route('/v2/<string:tenant_id>/servers', methods=['POST'])
     def create_server(self, request, tenant_id):
         """
-        Returns a generic get server response, with status 'ACTIVE'
+        Returns a generic create server response, with status 'ACTIVE'.
         """
         request.setResponseCode(202)
+        content = json.loads(request.content.read())
+        group_id = content['server']['metadata']['rax:auto_scaling_group_id']
+        server_name = content['server']['name']
+        if self.group_cache.get(group_id):
+            self.group_cache[group_id]['count'] += 1
+        else:
+            server_name = re.sub('-as........', '', server_name)
+            self.group_cache[group_id] = {'server_name': server_name, 'count': 1}
+        log.msg(self.group_cache)
         return json.dumps(create_server_example(tenant_id))
 
     @app.route('/v2/<string:tenant_id>/servers/<string:server_id>', methods=['GET'])
@@ -77,6 +91,24 @@ class Mimic(object):
             self.cache[server_id] = server_id
             request.setResponseCode(200)
             return json.dumps(get_server(tenant_id, server_id))
+
+    @app.route('/v2/<string:tenant_id>/servers', methods=['GET'])
+    def list_servers(self, request, tenant_id):
+        """
+        Returns number of servers that were created by the mocks, with the given name.
+        """
+        if 'name' in request.args:
+            server_name = request.args['name'][0]
+            log.msg(server_name)
+        self.server_cache = {v['server_name']: v['count'] for v in self.group_cache.values()}
+        log.msg(self.server_cache)
+        request.setResponseCode(200)
+        if self.server_cache.get(server_name):
+            return json.dumps({'servers': [list_server(tenant_id, server_name)
+                               for _ in range(self.server_cache[server_name])]})
+        else:
+            log.msg(self.server_cache.get(server_name))
+        return json.dumps({'servers': []})
 
     @app.route('/v2/<string:tenant_id>/servers/<string:server_id>', methods=['DELETE'])
     def delete_server(self, request, tenant_id, server_id):
