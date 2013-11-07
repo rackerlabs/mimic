@@ -23,9 +23,6 @@ class Mimic(object):
     Rest endpoints for mocked Auth.
     """
     app = MimicApp()
-    cache = {}
-    # group_cache = {}
-    # server_cache = {}
     s_cache = {}
 
     @app.route('/v2.0/tokens', methods=['POST'])
@@ -82,12 +79,11 @@ class Mimic(object):
         """
         Returns a generic get server response, with status 'ACTIVE'
         """
-        if self.cache.get(server_id):
-            return request.setResponseCode(404)
-        else:
-            self.cache[server_id] = server_id
+        if self.s_cache.get(server_id):
             request.setResponseCode(200)
             return json.dumps(get_server(tenant_id, server_id))
+        else:
+            return request.setResponseCode(404)
 
     @app.route('/v2/<string:tenant_id>/servers', methods=['GET'])
     def list_servers(self, request, tenant_id):
