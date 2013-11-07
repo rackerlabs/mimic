@@ -4,14 +4,14 @@ Defines get token from Auth and create, delete, get servers and get images and f
 from twisted.python import log
 
 import json
-import re
+
 from twisted.web.server import Request
 
 from mimic.canned_responses.auth import (get_token, get_user,
                                          get_user_token, get_endpoints)
 from mimic.canned_responses.nova import (get_server, get_limit,
                                          create_server_example,
-                                         get_image, get_flavor, list_server)
+                                         get_image, get_flavor)
 from mimic.rest.mimicapp import MimicApp
 
 Request.defaultContentType = 'application/json'
@@ -24,8 +24,9 @@ class Mimic(object):
     """
     app = MimicApp()
     cache = {}
-    group_cache = {}
-    server_cache = {}
+    # group_cache = {}
+    # server_cache = {}
+    s_cache = {}
 
     @app.route('/v2.0/tokens', methods=['POST'])
     def get_service_catalog_and_token(self, request):
@@ -70,15 +71,11 @@ class Mimic(object):
         """
         request.setResponseCode(202)
         content = json.loads(request.content.read())
-        group_id = content['server']['metadata']['rax:auto_scaling_group_id']
-        server_name = content['server']['name']
-        if self.group_cache.get(group_id):
-            self.group_cache[group_id]['count'] += 1
-        else:
-            server_name = re.sub('-as........', '', server_name)
-            self.group_cache[group_id] = {'server_name': server_name, 'count': 1}
-        log.msg(self.group_cache)
-        return json.dumps(create_server_example(tenant_id))
+        response = create_server_example(tenant_id)
+        self.s_cache[response['server']['id']] = content['server']
+        self.s_cache[response['server']['id']].update(id=response['server']['id'])
+        log.msg(self.s_cache)
+        return json.dumps(response)
 
     @app.route('/v2/<string:tenant_id>/servers/<string:server_id>', methods=['GET'])
     def get_server(self, request, tenant_id, server_id):
@@ -100,21 +97,19 @@ class Mimic(object):
         if 'name' in request.args:
             server_name = request.args['name'][0]
             log.msg(server_name)
-        self.server_cache = {v['server_name']: v['count'] for v in self.group_cache.values()}
-        log.msg(self.server_cache)
+
+        servers_list = [value for value in self.s_cache.values() if server_name in value['name']]
+        log.msg(servers_list)
         request.setResponseCode(200)
-        if self.server_cache.get(server_name):
-            return json.dumps({'servers': [list_server(tenant_id, server_name)
-                               for _ in range(self.server_cache[server_name])]})
-        else:
-            log.msg(self.server_cache.get(server_name))
-        return json.dumps({'servers': []})
+        return json.dumps({'servers': servers_list})
 
     @app.route('/v2/<string:tenant_id>/servers/<string:server_id>', methods=['DELETE'])
     def delete_server(self, request, tenant_id, server_id):
         """
         Returns a 204 response code, for any server id'
         """
+        del self.s_cache[server_id]
+        log.msg(self.s_cache)
         return request.setResponseCode(204)
 
     @app.route('/v2/<string:tenant_id>/images/<string:image_id>', methods=['GET'])
