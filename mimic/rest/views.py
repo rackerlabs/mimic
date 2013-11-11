@@ -104,8 +104,11 @@ class Mimic(object):
         """
         Returns a 204 response code, for any server id'
         """
-        del self.s_cache[server_id]
-        log.msg(self.s_cache)
+        try:
+            del self.s_cache[server_id]
+            log.msg(self.s_cache)
+        except KeyError:
+            pass
         return request.setResponseCode(204)
 
     @app.route('/v2/<string:tenant_id>/images/<string:image_id>', methods=['GET'])
