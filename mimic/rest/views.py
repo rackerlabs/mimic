@@ -104,12 +104,12 @@ class Mimic(object):
         """
         Returns a 204 response code, for any server id'
         """
-        try:
+        if server_id in self.s_cache:
             del self.s_cache[server_id]
             log.msg(self.s_cache)
-        except KeyError:
-            pass
-        return request.setResponseCode(204)
+            return request.setResponseCode(204)
+        else:
+            return request.setResponseCode(404)
 
     @app.route('/v2/<string:tenant_id>/images/<string:image_id>', methods=['GET'])
     def get_image(self, request, tenant_id, image_id):
