@@ -1,9 +1,9 @@
+"""
+Defines create, delete, get, list servers and get images and flavors.
+"""
 from twisted.python import log
-
 import json
-
 from twisted.web.server import Request
-
 from mimic.canned_responses.nova import (get_server, get_limit,
                                          create_server_example,
                                          get_image, get_flavor)
@@ -14,7 +14,7 @@ Request.defaultContentType = 'application/json'
 
 class NovaApi():
     """
-    Rest endpoints for mocked Auth.
+    Rest endpoints for mocked Nova Api.
     """
     app = MimicApp()
     s_cache = {}
@@ -62,9 +62,12 @@ class NovaApi():
         """
         Returns a 204 response code, for any server id'
         """
-        del self.s_cache[server_id]
-        log.msg(self.s_cache)
-        return request.setResponseCode(204)
+        if server_id in self.s_cache:
+            del self.s_cache[server_id]
+            log.msg(self.s_cache)
+            return request.setResponseCode(204)
+        else:
+            return request.setResponseCode(404)
 
     @app.route('/v2/<string:tenant_id>/images/<string:image_id>', methods=['GET'])
     def get_image(self, request, tenant_id, image_id):

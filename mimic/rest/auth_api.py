@@ -1,11 +1,9 @@
 """
-Defines get token from Auth and create, delete, get servers and get images and flavors.
+Defines get token, impersonation
 """
 
 import json
-
 from twisted.web.server import Request
-
 from mimic.canned_responses.auth import (get_token, get_user,
                                          get_user_token, get_endpoints)
 from mimic.rest.mimicapp import MimicApp
@@ -16,7 +14,7 @@ Request.defaultContentType = 'application/json'
 class AuthApi(object):
 
     """
-    Rest endpoints for mocked Auth.
+    Rest endpoints for mocked Auth api.
     """
     app = MimicApp()
 
