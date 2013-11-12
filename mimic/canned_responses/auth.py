@@ -18,17 +18,20 @@ get_token = {
             {"name": "cloudServersOpenStack",
              "endpoints": [{"region": "ORD",
                             "tenantId": "851153",
-                            "publicURL": "http://10.20.76.72:8909/v2/851153/servers"}],
+                            "publicURL": "http://10.20.76.59:8909/v2/851153"}],
              "type": "compute"},
             {"name": "cloudLoadBalancers",
              "endpoints": [{"region": "ORD",
                             "tenantId": "851153",
-                            "publicURL": "http://10.20.76.72:8909/v2/851153/loadbalancers"}],
-             "type": "rax:load-balancer"}]}}
+                            "publicURL": "http://10.20.76.59:8909/v2/851153"}],
+             "type": "rax:load-balancer"}],
+        "user": {"id": "10002",
+                 "name": "autoscaleaus",
+                 "roles": [{"id": "1", "description": "Admin", "name": "Identity"}]}}}
 
 
 def get_user():
-    return {'user': {'id': 'autoscaleprod'}}
+    return {'user': {'id': 'autoscaleaus'}}
 
 
 def get_user_token(expires_in):
@@ -46,21 +49,21 @@ def get_endpoints():
     return {"endpoints": [{"tenantId": "851153",
                            "region": "ORD",
                            "id": 19,
-                           "publicURL": "http://10.20.76.72:8909/v2/851153",
+                           "publicURL": "http://10.20.76.59:8909/v2/851153",
                            "name": "cloudLoadBalancers",
                            "type": "rax:load-balancer"},
                           {"tenantId": "851153",
                            "region": "ORD",
                            "id": 86,
-                           "publicURL": "http://10.20.76.72:8909/v2/851153",
+                           "publicURL": "http://10.20.76.59:8909/v2/851153",
                            "name": "autoscale",
                            "type": "rax:autoscale"},
                           {"tenantId": "851153",
                            "region": "ORD",
                            "id": 303,
-                           "publicURL": "http://10.20.76.72:8909/v2/851153/",
-                           "versionInfo": "http://10.20.76.72:8909/v2",
-                           "versionList": "http://10.20.76.72:8909/",
+                           "publicURL": "http://10.20.76.59:8909/v2/851153/",
+                           "versionInfo": "http://10.20.76.59:8909/v2",
+                           "versionList": "http://10.20.76.59:8909/",
                            "name": "cloudServersOpenStack",
                            "versionId": "2",
                            "type": "compute"}]}
