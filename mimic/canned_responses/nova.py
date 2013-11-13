@@ -1,14 +1,19 @@
 from random import randrange
 
 
-def get_server(tenant_id, server_id):
+def get_server(tenant_id, server_info):
     """
     Canned response for get server.
     The server id provided is substituted in the response
     """
+    server_id = server_info["id"]
     return {"server": {"status": "ACTIVE",
                        "id": server_id,
-                       "name": 'server-from-above',
+                       "name": server_info['name'],
+                       "flavor": {"id": server_info["flavorRef"],
+                                  "links": [{"href": "http://localhost", "rel": "self"}]},
+                       "image": {"id": server_info["imageRef"],
+                                 "links": [{"href": "http://localhost", "rel": "self"}]},
                        "addresses": {
                            "public": [
                                     {"version": 6,
@@ -18,11 +23,12 @@ def get_server(tenant_id, server_id):
                            "private": [
                                     {"version": 4,
                                      "addr": "10.176.8.186"}]},
+                       "metadata": server_info["metadata"],
                        "links": [{
-                           "href": "http://localhost:8909/v2/{0}/servers/{1}".format(tenant_id,
+                           "href": "http://localhost:8902/v2/{0}/servers/{1}".format(tenant_id,
                                                                                      server_id),
                            "rel": "self"},
-                           {"href": "http://localhost:8909/v2/{0}/servers/{1}".format(tenant_id,
+                           {"href": "http://localhost:8902/v2/{0}/servers/{1}".format(tenant_id,
                                                                                       server_id),
                             "rel": "bookmark"}]}}
 
@@ -35,9 +41,9 @@ def create_server_example(tenant_id):
     return {'server':
            {'OS-DCF:diskConfig': 'AUTO',
             'id': server_id,
-            'links': [{'href': 'http://localhost:8909/v2/{0}/servers/{1}'.format(tenant_id, server_id),
+            'links': [{'href': 'http://localhost:8902/v2/{0}/servers/{1}'.format(tenant_id, server_id),
                        'rel': 'self'},
-                      {'href': 'http://localhost:8909/v2/{0}/servers/{1}'.format(tenant_id, server_id),
+                      {'href': 'http://localhost:8902/v2/{0}/servers/{1}'.format(tenant_id, server_id),
                        'rel': 'bookmark'}],
             'adminPass': 'testpassword'}}
 
