@@ -39,14 +39,14 @@ class NovaApi():
         """
         if self.s_cache.get(server_id):
             request.setResponseCode(200)
-            return json.dumps(get_server(tenant_id, server_id))
+            return json.dumps(get_server(tenant_id, self.s_cache[server_id]))
         else:
             return request.setResponseCode(404)
 
     @app.route('/v2/<string:tenant_id>/servers', methods=['GET'])
     def list_servers(self, request, tenant_id):
         """
-        Returns number of servers that were created by the mocks, with the given name.
+        Returns list of servers that were created by the mocks, with the given name.
         """
         if 'name' in request.args:
             server_name = request.args['name'][0]
@@ -56,6 +56,14 @@ class NovaApi():
         log.msg(servers_list)
         request.setResponseCode(200)
         return json.dumps({'servers': servers_list})
+
+    @app.route('/v2/<string:tenant_id>/servers/detail', methods=['GET'])
+    def list_servers_with_details(self, request, tenant_id):
+        """
+        Returns list of servers that were created by the mocks, with details such as the metadata.
+        """
+        request.setResponseCode(200)
+        return json.dumps({'servers': [value for value in self.s_cache.values()]})
 
     @app.route('/v2/<string:tenant_id>/servers/<string:server_id>', methods=['DELETE'])
     def delete_server(self, request, tenant_id, server_id):

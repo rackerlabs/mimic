@@ -7,6 +7,7 @@ from twisted.web.server import Request
 from mimic.canned_responses.auth import (get_token, get_user,
                                          get_user_token, get_endpoints)
 from mimic.rest.mimicapp import MimicApp
+from twisted.python import log
 
 Request.defaultContentType = 'application/json'
 
@@ -24,16 +25,21 @@ class AuthApi(object):
         Return a service catalog consisting of nova and load balancer mocked
         endpoints and an api token.
         """
+        content = json.loads(request.content.read())
+        try:
+            tenant_id = content['auth']['tenantName']
+        except KeyError:
+            tenant_id = 'test'
         request.setResponseCode(200)
-        return json.dumps(get_token)
+        return json.dumps(get_token(tenant_id))
 
     @app.route('/v1.1/mosso/<string:tenant_id>', methods=['GET'])
     def get_username(self, request, tenant_id):
         """
-        Returns response with username 'autoscaleprod.
+        Returns response with random usernames.
         """
         request.setResponseCode(301)
-        return json.dumps(get_user())
+        return json.dumps(get_user(tenant_id))
 
     @app.route('/v2.0/RAX-AUTH/impersonation-tokens', methods=['POST'])
     def get_user_token(self, request):
@@ -42,8 +48,10 @@ class AuthApi(object):
         """
         request.setResponseCode(200)
         content = json.loads(request.content.read())
+        log.msg(content)
         expires_in = content['RAX-AUTH:impersonation']['expire-in-seconds']
-        return json.dumps(get_user_token(expires_in))
+        username = content['RAX-AUTH:impersonation']['user']['username']
+        return json.dumps(get_user_token(expires_in, username))
 
     @app.route('/v2.0/tokens/<string:token_id>/endpoints', methods=['GET'])
     def get_service_catalog(self, request, token_id):
@@ -52,4 +60,4 @@ class AuthApi(object):
         endpoints.
         """
         request.setResponseCode(200)
-        return json.dumps(get_endpoints())
+        return json.dumps(get_endpoints(token_id))
