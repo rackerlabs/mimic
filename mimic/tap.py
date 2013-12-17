@@ -1,7 +1,7 @@
 from twisted.application.strports import service
 from twisted.application.service import MultiService
 from twisted.web.server import Site
-from mimic.rest import auth_api, nova_api
+from mimic.rest import auth_api, nova_api, loadbalancer_api
 from twisted.python import usage
 
 
@@ -22,6 +22,11 @@ def makeService(config):
     nova_service = nova_api.NovaApi()
     site = Site(nova_service.app.resource())
     api_service = service(str(8902), site)
+    api_service.setServiceParent(s)
+    site.displayTracebacks = False
+    loadbalancer_service = loadbalancer_api.LoadBalancerApi()
+    site = Site(loadbalancer_service.app.resource())
+    api_service = service(str(8903), site)
     api_service.setServiceParent(s)
     site.displayTracebacks = False
     return s
