@@ -47,7 +47,7 @@ def delete_node(lb_id, node_id):
     if lb_id in lb_node_id_cache:
         if node_id in lb_node_id_cache[lb_id]:
             del lb_node_id_cache[lb_id][node_id]
-            response = 204
+            response = 202
     return response
 
 

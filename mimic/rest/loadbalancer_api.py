@@ -10,7 +10,7 @@ from mimic.rest.mimicapp import MimicApp
 
 Request.defaultContentType = 'application/json'
 failing_lb_id = '175647'
-_count = 11
+_count = 3
 
 
 class LoadBalancerApi(object):
