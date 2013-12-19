@@ -29,7 +29,7 @@ class NovaApi():
         response = create_server_example(tenant_id)
         self.s_cache[response['server']['id']] = content['server']
         self.s_cache[response['server']['id']].update(id=response['server']['id'])
-        log.msg(self.s_cache)
+        #log.msg(self.s_cache)
         return json.dumps(response)
 
     @app.route('/v2/<string:tenant_id>/servers/<string:server_id>', methods=['GET'])
@@ -50,10 +50,10 @@ class NovaApi():
         """
         if 'name' in request.args:
             server_name = request.args['name'][0]
-            log.msg(server_name)
+            #log.msg(server_name)
 
         servers_list = [value for value in self.s_cache.values() if server_name in value['name']]
-        log.msg(servers_list)
+        #log.msg(servers_list)
         request.setResponseCode(200)
         return json.dumps({'servers': servers_list})
 
@@ -72,7 +72,7 @@ class NovaApi():
         """
         if server_id in self.s_cache:
             del self.s_cache[server_id]
-            log.msg(self.s_cache)
+            #log.msg(self.s_cache)
             return request.setResponseCode(204)
         else:
             return request.setResponseCode(404)

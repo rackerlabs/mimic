@@ -23,7 +23,7 @@ def get_server(tenant_id, server_info):
                                      "addr": "119.9.41.136"}],
                            "private": [
                                     {"version": 4,
-                                     "addr": "10.176.8.{}".format(randrange(999))}]},
+                                     "addr": "10.176.8.{}".format(randrange(255))}]},
                        "metadata": server_info["metadata"],
                        "links": [{
                            "href": "http://localhost:8902/v2/{0}/servers/{1}".format(tenant_id,
