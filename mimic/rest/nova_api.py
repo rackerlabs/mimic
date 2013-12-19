@@ -6,7 +6,7 @@ import json
 from twisted.web.server import Request
 from mimic.canned_responses.nova import (get_server, get_limit,
                                          create_server_example,
-                                         get_image, get_flavor)
+                                         get_image, get_flavor, list_addresses)
 from mimic.rest.mimicapp import MimicApp
 
 Request.defaultContentType = 'application/json'
@@ -100,3 +100,11 @@ class NovaApi():
         """
         request.setResponseCode(200)
         return json.dumps(get_limit())
+
+    @app.route('/v2/<string:tenant_id>/servers/<string:server_id>/ips', methods=['GET'])
+    def get_ips(self, request, tenant_id, server_id):
+        """
+        Returns a get flavor response, for any given flavorid
+        """
+        request.setResponseCode(200)
+        return json.dumps(list_addresses(tenant_id, server_id))

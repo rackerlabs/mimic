@@ -1,4 +1,5 @@
 from random import randrange
+server_addresses_cache = {}
 
 
 def get_server(tenant_id, server_info):
@@ -7,7 +8,7 @@ def get_server(tenant_id, server_info):
     The server id provided is substituted in the response
     """
     server_id = server_info["id"]
-    return {"server": {"status": "ACTIVE",
+    data = {"server": {"status": "ACTIVE",
                        "id": server_id,
                        "name": server_info['name'],
                        "flavor": {"id": server_info["flavorRef"],
@@ -22,7 +23,7 @@ def get_server(tenant_id, server_info):
                                      "addr": "119.9.41.136"}],
                            "private": [
                                     {"version": 4,
-                                     "addr": "10.176.8.186"}]},
+                                     "addr": "10.176.8.{}".format(randrange(999))}]},
                        "metadata": server_info["metadata"],
                        "links": [{
                            "href": "http://localhost:8902/v2/{0}/servers/{1}".format(tenant_id,
@@ -31,6 +32,15 @@ def get_server(tenant_id, server_info):
                            {"href": "http://localhost:8902/v2/{0}/servers/{1}".format(tenant_id,
                                                                                       server_id),
                             "rel": "bookmark"}]}}
+    server_addresses_cache['server_id'] = {'addresses': data['server']['addresses']}
+    return data
+
+
+def list_addresses(tenant_id, server_id):
+    """
+    Returns the public and private ip address for the given server
+    """
+    return server_addresses_cache['server_id']
 
 
 def create_server_example(tenant_id):
