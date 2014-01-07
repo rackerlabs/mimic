@@ -22,19 +22,13 @@ def add_node(node_list, lb_id):
         node_data['address'] = node['address']
         node_data['port'] = node['port']
         node_data['condition'] = node['condition']
-        try:
-            if node['weight']:
-                node_data['weight'] = node['weight']
-        except:
-            KeyError
-        try:
-            if node['type']:
-                node_data['type'] = node['type']
-        except:
-            KeyError
+        if node.get('weight', 0):
+            node_data['weight'] = node['weight']
+        if node.get('type', 0):
+            node_data['type'] = node['type']
         lb_node_id_cache[lb_id][node_data['id']] = node_data
         node_response_list.append(node_data)
-    #log.msg(lb_node_id_cache)
+    log.msg(lb_node_id_cache)
     return {'nodes': node_response_list}
 
 

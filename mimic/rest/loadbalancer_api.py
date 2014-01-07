@@ -6,11 +6,13 @@ import json
 from twisted.web.server import Request
 from mimic.canned_responses.loadbalancer import (add_node, delete_node, list_nodes)
 from mimic.rest.mimicapp import MimicApp
+from mimic.canned_responses.mimic_presets import get_presets
 
 
 Request.defaultContentType = 'application/json'
-failing_lb_id = '175647'
-_count = 3
+failing_lb_id = get_presets['loadbalancers']['failing_lb_id']
+invalid_lb = get_presets['loadbalancers']['invalid_lb']
+_count = get_presets['loadbalancers']['return_422_on_add_node_count']
 
 
 class LoadBalancerApi(object):
@@ -32,6 +34,8 @@ class LoadBalancerApi(object):
                 request.setResponseCode(422)
                 return json.dumps({'message': "Load Balancer {0} has a status of 'PENDING_UPDATE' \
                     and is considered immutable.".format(lb_id), 'code': 422})
+        if str(lb_id) == invalid_lb:
+            return request.setResponseCode(404)
         content = json.loads(request.content.read())
         node_list = content['nodes']
         request.setResponseCode(200)
