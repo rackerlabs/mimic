@@ -10,9 +10,6 @@ from mimic.canned_responses.mimic_presets import get_presets
 
 
 Request.defaultContentType = 'application/json'
-failing_lb_id = get_presets['loadbalancers']['failing_lb_id']
-invalid_lb = get_presets['loadbalancers']['invalid_lb']
-_count = get_presets['loadbalancers']['return_422_on_add_node_count']
 
 
 class LoadBalancerApi(object):
@@ -22,19 +19,23 @@ class LoadBalancerApi(object):
     """
     app = MimicApp()
 
+    def __init__(self):
+        self.failing_lb_id = get_presets['loadbalancers']['failing_lb_id']
+        self.invalid_lb = get_presets['loadbalancers']['invalid_lb']
+        self.count = get_presets['loadbalancers']['return_422_on_add_node_count']
+
     @app.route('/v2/<string:tenant_id>/loadbalancers/<string:lb_id>/nodes', methods=['POST'])
     def add_node_to_load_balancer(self, request, tenant_id, lb_id):
         """
         Return a successful add node response
         """
-        if str(lb_id) == failing_lb_id:
-            global _count
-            if _count != 0:
-                _count = _count - 1
+        if str(lb_id) == self.failing_lb_id:
+            if self.count != 0:
+                self.count = self.count - 1
                 request.setResponseCode(422)
                 return json.dumps({'message': "Load Balancer {0} has a status of 'PENDING_UPDATE' \
                     and is considered immutable.".format(lb_id), 'code': 422})
-        if str(lb_id) == invalid_lb:
+        if str(lb_id) == self.invalid_lb:
             return request.setResponseCode(404)
         content = json.loads(request.content.read())
         node_list = content['nodes']

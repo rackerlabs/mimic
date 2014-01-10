@@ -32,7 +32,7 @@ def get_server(tenant_id, server_info):
                            {"href": "http://localhost:8902/v2/{0}/servers/{1}".format(tenant_id,
                                                                                       server_id),
                             "rel": "bookmark"}]}}
-    server_addresses_cache['server_id'] = {'addresses': data['server']['addresses']}
+    server_addresses_cache[server_id] = {'addresses': data['server']['addresses']}
     return data
 
 
@@ -40,7 +40,7 @@ def list_addresses(tenant_id, server_id):
     """
     Returns the public and private ip address for the given server
     """
-    return server_addresses_cache['server_id']
+    return server_addresses_cache[server_id]
 
 
 def create_server_example(tenant_id):
