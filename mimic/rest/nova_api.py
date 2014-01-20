@@ -17,7 +17,7 @@ class NovaApi():
     Rest endpoints for mocked Nova Api.
     """
     app = MimicApp()
-    s_cache = {}
+    #s_cache = {}
 
     @app.route('/v2/<string:tenant_id>/servers', methods=['POST'])
     def create_server(self, request, tenant_id):
@@ -26,10 +26,10 @@ class NovaApi():
         """
         request.setResponseCode(202)
         content = json.loads(request.content.read())
-        response = create_server_example(tenant_id)
-        self.s_cache[response['server']['id']] = content['server']
-        self.s_cache[response['server']['id']].update(id=response['server']['id'])
-        log.msg(self.s_cache)
+        response = create_server_example(tenant_id, content['server'])
+        # self.s_cache[response['server']['id']] = content['server']
+        # self.s_cache[response['server']['id']].update(id=response['server']['id'])
+        # log.msg(self.s_cache)
         return json.dumps(response)
 
     @app.route('/v2/<string:tenant_id>/servers/<string:server_id>', methods=['GET'])
@@ -37,11 +37,12 @@ class NovaApi():
         """
         Returns a generic get server response, with status 'ACTIVE'
         """
-        if self.s_cache.get(server_id):
-            request.setResponseCode(200)
-            return json.dumps(get_server(tenant_id, self.s_cache[server_id]))
-        else:
-            return request.setResponseCode(404)
+        # if self.s_cache.get(server_id):
+        #     request.setResponseCode(200)
+        #     return json.dumps(get_server(tenant_id, self.s_cache[server_id]))
+        # else:
+        #     return request.setResponseCode(404)
+
 
     @app.route('/v2/<string:tenant_id>/servers', methods=['GET'])
     def list_servers(self, request, tenant_id):

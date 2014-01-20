@@ -1,5 +1,9 @@
 from random import randrange
+from twisted.python import log
+
+
 server_addresses_cache = {}
+s_cache = {}
 
 
 def get_server(tenant_id, server_info):
@@ -43,19 +47,24 @@ def list_addresses(tenant_id, server_id):
     return server_addresses_cache[server_id]
 
 
-def create_server_example(tenant_id):
+def create_server_example(tenant_id, server_info):
     """
     Canned response for create server
     """
     server_id = 'test-server{0}-id-{0}'.format(str(randrange(9999999999)))
-    return {'server':
-           {'OS-DCF:diskConfig': 'AUTO',
-            'id': server_id,
-            'links': [{'href': 'http://localhost:8902/v2/{0}/servers/{1}'.format(tenant_id, server_id),
-                       'rel': 'self'},
-                      {'href': 'http://localhost:8902/v2/{0}/servers/{1}'.format(tenant_id, server_id),
-                       'rel': 'bookmark'}],
-            'adminPass': 'testpassword'}}
+    response = {'server': {'OS-DCF:diskConfig': 'AUTO',
+                           'id': server_id,
+                           'links': [{'href': 'http://localhost:8902/v2/{0}/servers/'
+                                              '{1}'.format(tenant_id, server_id),
+                                      'rel': 'self'},
+                                     {'href': 'http://localhost:8902/v2/{0}/servers/'
+                                              '{1}'.format(tenant_id, server_id),
+                                      'rel': 'bookmark'}],
+                           'adminPass': 'testpassword'}}
+    s_cache[response['server']['id']] = server_info
+    s_cache[response['server']['id']].update(id=response['server']['id'])
+    log.msg(s_cache)
+    return
 
 
 def get_image(image_id):
