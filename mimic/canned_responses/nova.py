@@ -6,6 +6,28 @@ server_addresses_cache = {}
 s_cache = {}
 
 
+def not_found_response(resource='servers'):
+    """
+    Return a 404 response body for Nova, depending on the resource.  Expects
+    resource to be one of "servers", "images", or "flavors".
+
+    If the resource is unrecognized, defaults to
+    "The resource culd not be found."
+    """
+    message = {
+        'servers': "Instance could not be found",
+        'images': "Image not found.",
+        'flavors': "The resource could not be found."
+    }
+
+    return {
+        "itemNotFound": {
+            "message": message.get(resource, "The resource could not be found."),
+            "code": 404
+        }
+    }
+
+
 def get_server(tenant_id, server_info):
     """
     Canned response for get server.

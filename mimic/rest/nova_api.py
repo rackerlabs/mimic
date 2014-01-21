@@ -6,7 +6,8 @@ import json
 from twisted.web.server import Request
 from mimic.canned_responses.nova import (get_server, get_limit,
                                          create_server_example,
-                                         get_image, get_flavor, list_addresses)
+                                         get_image, get_flavor, list_addresses,
+                                         not_found_response)
 from mimic.rest.mimicapp import MimicApp
 
 Request.defaultContentType = 'application/json'
@@ -37,12 +38,12 @@ class NovaApi():
         """
         Returns a generic get server response, with status 'ACTIVE'
         """
-        # if self.s_cache.get(server_id):
-        #     request.setResponseCode(200)
-        #     return json.dumps(get_server(tenant_id, self.s_cache[server_id]))
-        # else:
-        #     return request.setResponseCode(404)
-
+        if self.s_cache.get(server_id):
+            request.setResponseCode(200)
+            return json.dumps(get_server(tenant_id, self.s_cache[server_id]))
+        else:
+            request.setResponseCode(404)
+            return json.dumps(not_found_response())
 
     @app.route('/v2/<string:tenant_id>/servers', methods=['GET'])
     def list_servers(self, request, tenant_id):
@@ -76,7 +77,8 @@ class NovaApi():
             log.msg(self.s_cache)
             return request.setResponseCode(204)
         else:
-            return request.setResponseCode(404)
+            request.setResponseCode(404)
+            return json.dumps(not_found_response())
 
     @app.route('/v2/<string:tenant_id>/images/<string:image_id>', methods=['GET'])
     def get_image(self, request, tenant_id, image_id):
