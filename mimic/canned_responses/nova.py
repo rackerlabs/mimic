@@ -34,7 +34,7 @@ def server_template(tenant_id, server_info, server_id):
     Template used to create server cache.
     """
     server_template = {
-        "OS-DCF:diskConfig": server_info['OS-DCF:diskConfig'] or "AUTO",
+        "OS-DCF:diskConfig": "AUTO",
         "OS-EXT-STS:power_state": 1,
         "OS-EXT-STS:task_state": "null",
         "OS-EXT-STS:vm_state": "active",
