@@ -111,7 +111,7 @@ def create_server(tenant_id, server_info, server_id):
     return {'server': {"OS-DCF:diskConfig": s_cache[server_id]['OS-DCF:diskConfig'],
                        "id": s_cache[server_id]['id'],
                        "links": s_cache[server_id]['links'],
-                       "adminPass": "testpassword"}}, 201
+                       "adminPass": "testpassword"}}, 202
 
 
 def get_server(server_id):
