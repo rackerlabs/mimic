@@ -1,6 +1,6 @@
 from random import randrange
-from twisted.python import log
 from datetime import datetime
+from mimic.canned_responses.mimic_presets import get_presets
 
 
 server_addresses_cache = {}
@@ -25,6 +25,20 @@ def not_found_response(resource='servers'):
         "itemNotFound": {
             "message": message.get(resource, "The resource could not be found."),
             "code": 404
+        }
+    }
+
+
+def invalid_resource(message, response_code=400):
+    """
+    Returns the given message within in bad request body, and sets the response
+    code to given response code. Defaults response code to 404, if not provided.
+    """
+
+    return {
+        "badRequest": {
+            "message": message,
+            "code": response_code
         }
     }
 
@@ -64,7 +78,8 @@ def server_template(tenant_id, server_info, server_id):
             "links": [
                 {
                     "href": "http://localhost:8902/{0}/flavors/{1}".format(tenant_id,
-                                                                           server_info['flavorRef']),
+                                                                           server_info[
+                                                                               'flavorRef']),
                     "rel": "bookmark"
                 }
             ]
@@ -76,7 +91,8 @@ def server_template(tenant_id, server_info, server_id):
             "links": [
                 {
                   "href": "http://localhost:8902/{0}/images/{1}".format(tenant_id,
-                                                                        server_info['imageRef']),
+                                                                        server_info[
+                                                                            'imageRef']),
                   "rel": "bookmark"
                 }
             ]
@@ -106,12 +122,17 @@ def create_server(tenant_id, server_info, server_id):
     """
     Canned response for create server and adds the server to the server cache.
     """
+    if 'create_server_failure' in server_info['metadata']:
+        message = server_info['metadata']['create_server_failure']['message']
+        code = server_info['metadata']['create_server_failure']['code']
+        return invalid_resource(message, code), code
+
     s_cache[server_id] = server_template(tenant_id, server_info, server_id)
-    log.msg(s_cache)
-    return {'server': {"OS-DCF:diskConfig": s_cache[server_id]['OS-DCF:diskConfig'],
-                       "id": s_cache[server_id]['id'],
-                       "links": s_cache[server_id]['links'],
-                       "adminPass": "testpassword"}}, 202
+    return {
+        'server': {"OS-DCF:diskConfig": s_cache[server_id]['OS-DCF:diskConfig'],
+                   "id": s_cache[server_id]['id'],
+                   "links": s_cache[server_id]['links'],
+                   "adminPass": "testpassword"}}, 202
 
 
 def get_server(server_id):
@@ -162,10 +183,12 @@ def list_addresses(server_id):
 
 def get_image(image_id):
     """
-    Canned response for get image.
-    The image id provided is substituted in the response
+    Canned response for get image. The image id provided is substituted in the response,
+    if not one of the invalid image ids specified in mimic_presets.
     """
-    return {'image': {'status': 'ACTIVE', 'id': image_id}}
+    if any([image_id in get_presets['servers']['invalid_image_ref'], image_id.endswith('Z')]):
+        return invalid_resource('Invalid imageRef provided.', 400), 400
+    return {'image': {'status': 'ACTIVE', 'id': image_id}}, 200
 
 
 def get_flavor(flavor_id):
@@ -173,8 +196,10 @@ def get_flavor(flavor_id):
     Canned response for get flavor.
     The flavor id provided is substituted in the response
     """
+    if flavor_id in get_presets['servers']['invalid_flavor_ref']:
+        return invalid_resource('Invalid flavorRef provided.', 400), 400
     return {'flavor': {'name': '512MB Standard Instance',
-                       'id': flavor_id}}
+                       'id': flavor_id}}, 200
 
 
 def get_limit():

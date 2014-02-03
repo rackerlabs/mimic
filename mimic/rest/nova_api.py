@@ -73,16 +73,18 @@ class NovaApi():
         """
         Returns a get image response, for any given imageid
         """
-        request.setResponseCode(200)
-        return json.dumps(get_image(image_id))
+        response_data = get_image(image_id)
+        request.setResponseCode(response_data[1])
+        return json.dumps(response_data[0])
 
     @app.route('/v2/<string:tenant_id>/flavors/<string:flavor_id>', methods=['GET'])
     def get_flavor(self, request, tenant_id, flavor_id):
         """
         Returns a get flavor response, for any given flavorid
         """
-        request.setResponseCode(200)
-        return json.dumps(get_flavor(flavor_id))
+        response_data = get_flavor(flavor_id)
+        request.setResponseCode(response_data[1])
+        return json.dumps(response_data[0])
 
     @app.route('/v2/<string:tenant_id>/limits', methods=['GET'])
     def get_limit(self, request, tenant_id):
