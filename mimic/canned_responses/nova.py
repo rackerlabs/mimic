@@ -1,10 +1,11 @@
 from random import randrange
-from datetime import datetime
+from datetime import datetime, timedelta
 from mimic.canned_responses.mimic_presets import get_presets
 
 
 server_addresses_cache = {}
 s_cache = {}
+fmt = '%Y-%m-%dT%H:%M:%S.%fZ'
 
 
 def not_found_response(resource='servers'):
@@ -43,7 +44,7 @@ def invalid_resource(message, response_code=400):
     }
 
 
-def server_template(tenant_id, server_info, server_id):
+def server_template(tenant_id, server_info, server_id, status):
     """
     Template used to create server cache.
     """
@@ -72,7 +73,7 @@ def server_template(tenant_id, server_info, server_id):
                 }
             ]
         },
-        "created": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+        "created": datetime.utcnow().strftime(fmt),
         "flavor": {
             "id": server_info['flavorRef'],
             "links": [
@@ -110,9 +111,9 @@ def server_template(tenant_id, server_info, server_id):
         "metadata": server_info['metadata'],
         "name": server_info['name'],
         "progress": 100,
-        "status": "ACTIVE",
+        "status": status,
         "tenant_id": tenant_id,
-        "updated": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+        "updated": datetime.utcnow().strftime(fmt),
         "user_id": "170454"
     }
     return server_template
@@ -122,12 +123,20 @@ def create_server(tenant_id, server_info, server_id):
     """
     Canned response for create server and adds the server to the server cache.
     """
+    status = "ACTIVE"
     if 'create_server_failure' in server_info['metadata']:
         message = server_info['metadata']['create_server_failure']['message']
         code = server_info['metadata']['create_server_failure']['code']
         return invalid_resource(message, code), code
 
-    s_cache[server_id] = server_template(tenant_id, server_info, server_id)
+    if 'server_building' in server_info['metadata']:
+        status = "BUILD"
+
+    if 'server_error' in server_info['metadata']:
+        status = "ERROR"
+
+    s_cache[server_id] = server_template(
+        tenant_id, server_info, server_id, status)
     return {
         'server': {"OS-DCF:diskConfig": s_cache[server_id]['OS-DCF:diskConfig'],
                    "id": s_cache[server_id]['id'],
@@ -141,6 +150,7 @@ def get_server(server_id):
     data else return None
     """
     if server_id in s_cache:
+        set_server_state(server_id)
         return {'server': s_cache[server_id]}, 200
     else:
         return not_found_response(), 404
@@ -151,6 +161,8 @@ def list_server(tenant_id, name=None, details=True):
     Return a list of all servers in  the server cache with the given tenant_id
     """
     response = {k: v for (k, v) in s_cache.items() if tenant_id == v['tenant_id']}
+    for each in response:
+        set_server_state(each)
     if name:
         response = {k: v for (k, v) in response.items() if name in v['name']}
     if details:
@@ -225,3 +237,16 @@ def get_limit():
                           "maxTotalFloatingIps": -1,
                           "maxTotalInstances": 200,
                           "maxTotalRAMSize": 256000}}}
+
+
+def set_server_state(server_id):
+    """
+    If the server status is not active, sets the state of the server based on the
+    server metadata
+    """
+    if s_cache[server_id]['status'] != "ACTIVE":
+            if 'server_building' in s_cache[server_id]['metadata']:
+                if (datetime.strptime(s_cache[server_id]['updated'], fmt) +
+                   timedelta(seconds=s_cache[server_id]['metadata']['server_building'])) < \
+                   datetime.utcnow():
+                        s_cache[server_id]['status'] = "ACTIVE"
