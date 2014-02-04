@@ -177,6 +177,11 @@ def delete_server(server_id):
     Returns True if the server was deleted from the cache, else returns false.
     """
     if server_id in s_cache:
+        if 'delete_server_failure' in s_cache[server_id]['metadata']:
+            delete_meta = s_cache[server_id]['metadata']['delete_server_failure']
+            if delete_meta['times'] != 0:
+                delete_meta['times'] = delete_meta['times'] - 1
+                return invalid_resource('server error', delete_meta['code']), delete_meta['code']
         del s_cache[server_id]
         return True, 204
     else:
