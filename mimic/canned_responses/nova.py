@@ -51,10 +51,11 @@ def server_template(tenant_id, server_info, server_id, status):
     server_template = {
         "OS-DCF:diskConfig": "AUTO",
         "OS-EXT-STS:power_state": 1,
-        "OS-EXT-STS:task_state": "null",
+        "OS-EXT-STS:task_state": None,
         "OS-EXT-STS:vm_state": "active",
         "accessIPv4": "198.101.241.238",
         "accessIPv6": "2001:4800:780e:0510:d87b:9cbc:ff04:513a",
+        "key_name": None,
         "addresses": {
             "private": [
                 {
