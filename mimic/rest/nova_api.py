@@ -1,13 +1,12 @@
 """
 Defines create, delete, get, list servers and get images and flavors.
 """
-from twisted.python import log
 import json
+from random import randrange
 from twisted.web.server import Request
-from mimic.canned_responses.nova import (get_server, get_limit,
-                                         create_server_example,
-                                         get_image, get_flavor, list_addresses,
-                                         not_found_response)
+from mimic.canned_responses.nova import (get_server, list_server, get_limit,
+                                         create_server, delete_server,
+                                         get_image, get_flavor, list_addresses)
 from mimic.rest.mimicapp import MimicApp
 
 Request.defaultContentType = 'application/json'
@@ -18,83 +17,74 @@ class NovaApi():
     Rest endpoints for mocked Nova Api.
     """
     app = MimicApp()
-    s_cache = {}
 
     @app.route('/v2/<string:tenant_id>/servers', methods=['POST'])
     def create_server(self, request, tenant_id):
         """
         Returns a generic create server response, with status 'ACTIVE'.
         """
-        request.setResponseCode(202)
+        server_id = 'test-server{0}-id-{0}'.format(str(randrange(9999999999)))
         content = json.loads(request.content.read())
-        response = create_server_example(tenant_id)
-        self.s_cache[response['server']['id']] = content['server']
-        self.s_cache[response['server']['id']].update(id=response['server']['id'])
-        log.msg(self.s_cache)
-        return json.dumps(response)
+        response_data = create_server(tenant_id, content['server'], server_id)
+        request.setResponseCode(response_data[1])
+        return json.dumps(response_data[0])
 
     @app.route('/v2/<string:tenant_id>/servers/<string:server_id>', methods=['GET'])
     def get_server(self, request, tenant_id, server_id):
         """
         Returns a generic get server response, with status 'ACTIVE'
         """
-        if self.s_cache.get(server_id):
-            request.setResponseCode(200)
-            return json.dumps(get_server(tenant_id, self.s_cache[server_id]))
-        else:
-            request.setResponseCode(404)
-            return json.dumps(not_found_response())
+        response_data = get_server(server_id)
+        request.setResponseCode(response_data[1])
+        return json.dumps(response_data[0])
 
     @app.route('/v2/<string:tenant_id>/servers', methods=['GET'])
     def list_servers(self, request, tenant_id):
         """
         Returns list of servers that were created by the mocks, with the given name.
         """
+        server_name = ''
         if 'name' in request.args:
             server_name = request.args['name'][0]
-            log.msg(server_name)
-
-        servers_list = [value for value in self.s_cache.values() if server_name in value['name']]
-        log.msg(servers_list)
-        request.setResponseCode(200)
-        return json.dumps({'servers': servers_list})
+        response_data = list_server(tenant_id, server_name, details=False)
+        request.setResponseCode(response_data[1])
+        return json.dumps(response_data[0])
 
     @app.route('/v2/<string:tenant_id>/servers/detail', methods=['GET'])
     def list_servers_with_details(self, request, tenant_id):
         """
         Returns list of servers that were created by the mocks, with details such as the metadata.
         """
-        request.setResponseCode(200)
-        return json.dumps({'servers': [value for value in self.s_cache.values()]})
+        response_data = list_server(tenant_id)
+        request.setResponseCode(response_data[1])
+        return json.dumps(response_data[0])
 
     @app.route('/v2/<string:tenant_id>/servers/<string:server_id>', methods=['DELETE'])
     def delete_server(self, request, tenant_id, server_id):
         """
         Returns a 204 response code, for any server id'
         """
-        if server_id in self.s_cache:
-            del self.s_cache[server_id]
-            log.msg(self.s_cache)
-            return request.setResponseCode(204)
-        else:
-            request.setResponseCode(404)
-            return json.dumps(not_found_response())
+        response_data = delete_server(server_id)
+        request.setResponseCode(response_data[1])
+        return json.dumps(response_data[0])
 
     @app.route('/v2/<string:tenant_id>/images/<string:image_id>', methods=['GET'])
     def get_image(self, request, tenant_id, image_id):
         """
         Returns a get image response, for any given imageid
         """
-        request.setResponseCode(200)
-        return json.dumps(get_image(image_id))
+        response_data = get_image(image_id)
+        request.setResponseCode(response_data[1])
+        return json.dumps(response_data[0])
 
     @app.route('/v2/<string:tenant_id>/flavors/<string:flavor_id>', methods=['GET'])
     def get_flavor(self, request, tenant_id, flavor_id):
         """
         Returns a get flavor response, for any given flavorid
         """
-        request.setResponseCode(200)
-        return json.dumps(get_flavor(flavor_id))
+        response_data = get_flavor(flavor_id)
+        request.setResponseCode(response_data[1])
+        return json.dumps(response_data[0])
 
     @app.route('/v2/<string:tenant_id>/limits', methods=['GET'])
     def get_limit(self, request, tenant_id):
@@ -110,5 +100,6 @@ class NovaApi():
         Returns a get flavor response, for any given flavorid.
         (currently the GET ips works only after a GET server after the server is created)
         """
-        request.setResponseCode(200)
-        return json.dumps(list_addresses(tenant_id, server_id))
+        response_data = list_addresses(server_id)
+        request.setResponseCode(response_data[1])
+        return json.dumps(response_data[0])
