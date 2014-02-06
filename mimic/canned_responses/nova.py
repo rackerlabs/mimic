@@ -253,6 +253,6 @@ def set_server_state(server_id):
     if s_cache[server_id]['status'] != "ACTIVE":
             if 'server_building' in s_cache[server_id]['metadata']:
                 if (datetime.strptime(s_cache[server_id]['updated'], fmt) +
-                   timedelta(seconds=s_cache[server_id]['metadata']['server_building'])) < \
+                   timedelta(seconds=int(s_cache[server_id]['metadata']['server_building']))) < \
                    datetime.utcnow():
                         s_cache[server_id]['status'] = "ACTIVE"
