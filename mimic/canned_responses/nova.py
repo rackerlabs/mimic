@@ -128,7 +128,7 @@ def create_server(tenant_id, server_info, server_id):
     status = "ACTIVE"
     if 'create_server_failure' in server_info['metadata']:
         dict_meta = json.loads(server_info['metadata']['create_server_failure'])
-        return invalid_resource(dict_meta['message'], int(dict_meta['code'])), int(dict_meta['code'])
+        return invalid_resource(dict_meta['message'], dict_meta['code']), dict_meta['code']
 
     if 'server_building' in server_info['metadata']:
         status = "BUILD"
@@ -180,10 +180,10 @@ def delete_server(server_id):
     if server_id in s_cache:
         if 'delete_server_failure' in s_cache[server_id]['metadata']:
             del_meta = json.loads(s_cache[server_id]['metadata']['delete_server_failure'])
-            if int(del_meta['times']) != 0:
-                del_meta['times'] = str(int(del_meta['times']) - 1)
+            if del_meta['times'] != 0:
+                del_meta['times'] = del_meta['times'] - 1
                 s_cache[server_id]['metadata']['delete_server_failure'] = json.dumps(del_meta)
-                return invalid_resource('server error', int(del_meta['code'])), int(del_meta['code'])
+                return invalid_resource('server error', del_meta['code']), del_meta['code']
         del s_cache[server_id]
         return True, 204
     else:
