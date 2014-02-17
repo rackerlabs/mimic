@@ -1,48 +1,13 @@
 from random import randrange
-from datetime import datetime, timedelta
 from mimic.canned_responses.mimic_presets import get_presets
+from mimic.util.helper import (not_found_response, invalid_resource,
+                               current_time_in_utc, set_resource_status)
 import json
 
 
 server_addresses_cache = {}
 s_cache = {}
 fmt = '%Y-%m-%dT%H:%M:%S.%fZ'
-
-
-def not_found_response(resource='servers'):
-    """
-    Return a 404 response body for Nova, depending on the resource.  Expects
-    resource to be one of "servers", "images", or "flavors".
-
-    If the resource is unrecognized, defaults to
-    "The resource culd not be found."
-    """
-    message = {
-        'servers': "Instance could not be found",
-        'images': "Image not found.",
-        'flavors': "The resource could not be found."
-    }
-
-    return {
-        "itemNotFound": {
-            "message": message.get(resource, "The resource could not be found."),
-            "code": 404
-        }
-    }
-
-
-def invalid_resource(message, response_code=400):
-    """
-    Returns the given message within in bad request body, and sets the response
-    code to given response code. Defaults response code to 404, if not provided.
-    """
-
-    return {
-        "badRequest": {
-            "message": message,
-            "code": response_code
-        }
-    }
 
 
 def server_template(tenant_id, server_info, server_id, status):
@@ -75,7 +40,7 @@ def server_template(tenant_id, server_info, server_id, status):
                 }
             ]
         },
-        "created": datetime.utcnow().strftime(fmt),
+        "created": current_time_in_utc(),
         "flavor": {
             "id": server_info['flavorRef'],
             "links": [
@@ -115,7 +80,7 @@ def server_template(tenant_id, server_info, server_id, status):
         "progress": 100,
         "status": status,
         "tenant_id": tenant_id,
-        "updated": datetime.utcnow().strftime(fmt),
+        "updated": current_time_in_utc(),
         "user_id": "170454"
     }
     return server_template
@@ -253,7 +218,10 @@ def set_server_state(server_id):
     """
     if s_cache[server_id]['status'] != "ACTIVE":
             if 'server_building' in s_cache[server_id]['metadata']:
-                if (datetime.strptime(s_cache[server_id]['updated'], fmt) +
-                   timedelta(seconds=int(s_cache[server_id]['metadata']['server_building']))) < \
-                   datetime.utcnow():
-                        s_cache[server_id]['status'] = "ACTIVE"
+                set_resource_status(s_cache[server_id]['updated'],
+                                    int(s_cache[server_id]['metadata']['server_building']))
+
+                # if (datetime.strptime(s_cache[server_id]['updated'], fmt) +
+                #    timedelta(seconds=int(s_cache[server_id]['metadata']['server_building']))) < \
+                #    datetime.utcnow():
+                #         s_cache[server_id]['status'] = "ACTIVE"

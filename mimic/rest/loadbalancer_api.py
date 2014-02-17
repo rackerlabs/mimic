@@ -4,9 +4,12 @@ Defines add node and delete node from load balancers
 
 import json
 from twisted.web.server import Request
-from mimic.canned_responses.loadbalancer import (add_node, delete_node, list_nodes)
+from mimic.canned_responses.loadbalancer import (
+    add_load_balancer, del_load_balancer,
+    add_node, delete_node, list_nodes)
 from mimic.rest.mimicapp import MimicApp
 from mimic.canned_responses.mimic_presets import get_presets
+from random import randrange
 
 
 Request.defaultContentType = 'application/json'
@@ -22,12 +25,35 @@ class LoadBalancerApi(object):
     def __init__(self):
         self.failing_lb_id = get_presets['loadbalancers']['failing_lb_id']
         self.invalid_lb = get_presets['loadbalancers']['invalid_lb']
-        self.count = get_presets['loadbalancers']['return_422_on_add_node_count']
+        self.count = get_presets['loadbalancers'][
+            'return_422_on_add_node_count']
+
+    @app.route('/v2/<string:tenant_id>/loadbalancers', methods=['POST'])
+    def add_load_balancer(self, request, tenant_id):
+        """
+        Creates a load balancer and adds it to the lb_cache.
+        Returns the newly created load balancer with response code 200
+        """
+        lb_id = randrange(99999)
+        content = json.loads(request.content.read())
+        response_data = add_load_balancer(tenant_id, content['loadBalancer'], lb_id)
+        request.setResponseCode(response_data[1])
+        return json.dumps(response_data[0])
+
+    @app.route('/v2/<string:tenant_id>/loadbalancers/<string:lb_id>', methods=['DELETE'])
+    def delete_load_balancer(self, request, tenant_id, lb_id):
+        """
+        Creates a load balancer and adds it to the lb_cache.
+        Returns the newly created load balancer with response code 200
+        """
+        response_data = del_load_balancer(lb_id)
+        request.setResponseCode(response_data[1])
+        return json.dumps(response_data[0])
 
     @app.route('/v2/<string:tenant_id>/loadbalancers/<string:lb_id>/nodes', methods=['POST'])
     def add_node_to_load_balancer(self, request, tenant_id, lb_id):
         """
-        Return a successful add node response
+        Return a successful add node response with code 200
         """
         if str(lb_id) == self.failing_lb_id:
             if self.count != 0:
