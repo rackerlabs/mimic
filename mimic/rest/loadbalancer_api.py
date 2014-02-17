@@ -59,7 +59,7 @@ class LoadBalancerApi(object):
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
-    @app.route('/v2/<string:tenant_id>/loadbalancers/<string:lb_id>/nodes', methods=['POST'])
+    @app.route('/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/nodes', methods=['POST'])
     def add_node_to_load_balancer(self, request, tenant_id, lb_id):
         """
         Return a successful add node response with code 200
@@ -74,10 +74,11 @@ class LoadBalancerApi(object):
             return request.setResponseCode(404)
         content = json.loads(request.content.read())
         node_list = content['nodes']
-        request.setResponseCode(200)
-        return json.dumps(add_node(node_list, lb_id))
+        response_data = add_node(node_list, lb_id)
+        request.setResponseCode(response_data[1])
+        return json.dumps(response_data[0])
 
-    @app.route('/v2/<string:tenant_id>/loadbalancers/<string:lb_id>/nodes/<string:node_id>',
+    @app.route('/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/nodes/<int:node_id>',
                methods=['DELETE'])
     def delete_node_from_load_balancer(self, request, tenant_id, lb_id, node_id):
         """
@@ -87,13 +88,17 @@ class LoadBalancerApi(object):
         #     request.setResponseCode(422)
         #     return json.dumps({'message': "Load Balancer {0} has a status of 'PENDING_UPDATE' \
         #         and is considered immutable.".format(lb_id), 'code': 422})
-        return request.setResponseCode(delete_node(lb_id, node_id))
+        response_data = delete_node(lb_id, node_id)
+        request.setResponseCode(response_data[1])
+        return json.dumps(response_data[0])
+        #return request.setResponseCode(delete_node(lb_id, node_id))
 
-    @app.route('/v2/<string:tenant_id>/loadbalancers/<string:lb_id>/nodes',
+    @app.route('/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/nodes',
                methods=['GET'])
     def list_nodes_for_load_balancer(self, request, tenant_id, lb_id):
         """
         Returns a 200 response code and list of nodes on the load balancer
         """
-        request.setResponseCode(200)
-        return json.dumps({"nodes": list_nodes(lb_id)})
+        response_data = list_nodes(lb_id)
+        request.setResponseCode(response_data[1])
+        return json.dumps(response_data[0])

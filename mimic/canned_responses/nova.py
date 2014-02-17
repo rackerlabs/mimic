@@ -25,7 +25,7 @@ def server_template(tenant_id, server_info, server_id, status):
         "addresses": {
             "private": [
                 {
-                    "addr": "10.180.3.{0}".format(randrange(255)),
+                    "addr": "10.180.{0}.{1}".format(randrange(255), randrange(255)),
                     "version": 4
                 }
             ],
