@@ -5,7 +5,7 @@ Defines add node and delete node from load balancers
 import json
 from twisted.web.server import Request
 from mimic.canned_responses.loadbalancer import (
-    add_load_balancer, del_load_balancer,
+    add_load_balancer, del_load_balancer, list_load_balancers,
     add_node, delete_node, list_nodes)
 from mimic.rest.mimicapp import MimicApp
 from mimic.canned_responses.mimic_presets import get_presets
@@ -32,7 +32,7 @@ class LoadBalancerApi(object):
     def add_load_balancer(self, request, tenant_id):
         """
         Creates a load balancer and adds it to the lb_cache.
-        Returns the newly created load balancer with response code 200
+        Returns the newly created load balancer with response code 202
         """
         lb_id = randrange(99999)
         content = json.loads(request.content.read())
@@ -40,7 +40,16 @@ class LoadBalancerApi(object):
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
-    @app.route('/v2/<string:tenant_id>/loadbalancers/<string:lb_id>', methods=['DELETE'])
+    @app.route('/v2/<string:tenant_id>/loadbalancers', methods=['GET'])
+    def list_load_balancers(self, request, tenant_id):
+        """
+        Returns a list of all load balancers created using mimic with response code 200
+        """
+        response_data = list_load_balancers(tenant_id)
+        request.setResponseCode(response_data[1])
+        return json.dumps(response_data[0])
+
+    @app.route('/v2/<string:tenant_id>/loadbalancers/<int:lb_id>', methods=['DELETE'])
     def delete_load_balancer(self, request, tenant_id, lb_id):
         """
         Creates a load balancer and adds it to the lb_cache.

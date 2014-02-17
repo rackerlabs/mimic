@@ -1,8 +1,7 @@
 """
 Defines create, delete, get, list servers and get images and flavors.
 """
-import simplejson as json
-from twisted.python import log
+import json
 from random import randrange
 from twisted.web.server import Request
 from mimic.canned_responses.nova import (get_server, list_server, get_limit,
@@ -25,9 +24,7 @@ class NovaApi():
         Returns a generic create server response, with status 'ACTIVE'.
         """
         server_id = 'test-server{0}-id-{0}'.format(str(randrange(9999999999)))
-        log.msg(request.content.read())
         content = json.loads(request.content.read())
-        log.msg("here")
         response_data = create_server(tenant_id, content['server'], server_id)
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])

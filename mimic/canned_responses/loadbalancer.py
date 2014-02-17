@@ -2,6 +2,7 @@
 Canned response for add and delete node for load balancers
 """
 from random import randrange
+from copy import deepcopy
 from twisted.python import log
 from datetime import datetime, timedelta
 from mimic.canned_responses.mimic_presets import get_presets
@@ -16,7 +17,7 @@ def load_balancer_example(lb_info, lb_id, status):
     Create load balancer response example
     """
     lb_example = {"name": lb_info["name"],
-                  "id": randrange(99999),
+                  "id": lb_id,
                   "protocol": lb_info["protocol"],
                   "port": lb_info.get("port", 80),
                   "algorithm": lb_info.get("algorithm") or "RANDOM",
@@ -25,11 +26,11 @@ def load_balancer_example(lb_info, lb_id, status):
                   "timeout": lb_info.get("tiemout", 30),
                   "created": {"time": current_time_in_utc()},
                   "virtualIps": [{"address": "127.0.0.1",
-                                 "id": randrange(99999),
+                                 "id": 1111,
                                  "type": "PUBLIC",
                                  "ipVersion": "IPV4"},
                                  {"address": "0000:0000:0000:0000:1111:111b:0000:0000",
-                                  "id": randrange(99999),
+                                  "id": 1111,
                                   "type": "PUBLIC",
                                   "ipVersion": "IPV6"}],
                   "sourceAddresses": {"ipv6Public": "0000:0001:0002::00/00",
@@ -67,9 +68,10 @@ def add_load_balancer(tenant_id, lb_info, lb_id):
 
     lb_cache[lb_id] = load_balancer_example(lb_info, lb_id, status)
     lb_cache[lb_id].update({"tenant_id": tenant_id})
-    new_lb = lb_cache[lb_id].deepcopy()
+    log.msg(lb_cache, lb_id)
+    new_lb = deepcopy(lb_cache[lb_id])
     del new_lb["tenant_id"]
-    return {'loadBalancer': new_lb}
+    return {'loadBalancer': new_lb}, 202
 
 
 def del_load_balancer(lb_id):
@@ -77,11 +79,22 @@ def del_load_balancer(lb_id):
     Returns response for a load balancer that is in building status for 20 seconds
     and response code 202, and adds the new lb to the lb_cache
     """
+    log.msg(lb_cache.keys())
     if lb_id in lb_cache:
         del lb_cache[lb_id]
         return True, 204
     else:
         return not_found_response(), 404
+
+
+def list_load_balancers(tenant_id):
+    """
+    Returns the list of load balancers with the given tenant id with response
+    code 200. If no load balancers are found returns empty list.
+    """
+    response = {k: v for (k, v) in lb_cache.items() if tenant_id == v['tenant_id']}
+    log.msg(response)
+    return {'loadBalancers': response.values() or []}, 200
 
 
 def add_node(node_list, lb_id):

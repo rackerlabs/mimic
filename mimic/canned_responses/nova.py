@@ -124,7 +124,7 @@ def get_server(server_id):
 
 def list_server(tenant_id, name=None, details=True):
     """
-    Return a list of all servers in  the server cache with the given tenant_id
+    Return a list of all servers in the server cache with the given tenant_id
     """
     response = {k: v for (k, v) in s_cache.items() if tenant_id == v['tenant_id']}
     for each in response:
@@ -218,10 +218,7 @@ def set_server_state(server_id):
     """
     if s_cache[server_id]['status'] != "ACTIVE":
             if 'server_building' in s_cache[server_id]['metadata']:
-                set_resource_status(s_cache[server_id]['updated'],
-                                    int(s_cache[server_id]['metadata']['server_building']))
-
-                # if (datetime.strptime(s_cache[server_id]['updated'], fmt) +
-                #    timedelta(seconds=int(s_cache[server_id]['metadata']['server_building']))) < \
-                #    datetime.utcnow():
-                #         s_cache[server_id]['status'] = "ACTIVE"
+                status = set_resource_status(
+                    s_cache[server_id]['updated'],
+                    int(s_cache[server_id]['metadata']['server_building']))
+                s_cache[server_id]['status'] = status or s_cache[server_id]['status']
