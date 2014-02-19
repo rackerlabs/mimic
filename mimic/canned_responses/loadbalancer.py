@@ -15,8 +15,8 @@ If a LB is deleted, set the status to 'DELETED' and results in 422 on any action
 """
 from random import randrange
 from copy import deepcopy
-from twisted.python import log
-from mimic.util.helper import (not_found_response, current_time_in_utc)
+from mimic.util.helper import (not_found_response, current_time_in_utc,
+                               invalid_resource)
 
 lb_node_id_cache = {}
 lb_cache = {}
@@ -53,21 +53,21 @@ def load_balancer_example(lb_info, lb_id, status):
                   "contentCaching": {"enabled": False}}
     if lb_info.get("nodes"):
         lb_example.update({"nodes": _add_nodes_to_lb(lb_info["nodes"])})
+    if lb_info.get("metadata"):
+        lb_example.update({"metadata": _add_meta(lb_info["metadata"])})
     return lb_example
 
 
 def add_load_balancer(tenant_id, lb_info, lb_id):
     """
     Returns response of a newly created load balancer with
-    response code 202, and adds the new lb to the lb_cache
+    response code 202, and adds the new lb to the lb_cache.
+    Note: lb_cache has tenant_id added as an extra key in comparison
+    to the lb_example.
     """
     status = "ACTIVE"
-    if "BUILD" in lb_info["name"].upper():
-        status = "BUILD"
-
     lb_cache[lb_id] = load_balancer_example(lb_info, lb_id, status)
     lb_cache[lb_id].update({"tenant_id": tenant_id})
-    log.msg(lb_cache, lb_id)
     new_lb = deepcopy(lb_cache[lb_id])
     del new_lb["tenant_id"]
     return {'loadBalancer': new_lb}, 202
@@ -78,7 +78,6 @@ def del_load_balancer(lb_id):
     Returns response for a load balancer that is in building status for 20 seconds
     and response code 202, and adds the new lb to the lb_cache
     """
-    log.msg(lb_cache.keys())
     if lb_id in lb_cache:
         del lb_cache[lb_id]
         return None, 202
@@ -92,7 +91,6 @@ def list_load_balancers(tenant_id):
     code 200. If no load balancers are found returns empty list.
     """
     response = {k: v for (k, v) in lb_cache.items() if tenant_id == v['tenant_id']}
-    log.msg(response)
     return {'loadBalancers': response.values() or []}, 200
 
 
@@ -103,10 +101,15 @@ def add_node(node_list, lb_id):
     if lb_id in lb_cache:
         nodes = _add_nodes_to_lb(node_list)
         if lb_cache[lb_id].get("nodes"):
+            for existing_node in lb_cache[lb_id]["nodes"]:
+                for new_node in node_list:
+                    if (existing_node["address"] == new_node["address"] and
+                       existing_node["port"] == new_node["port"]):
+                        return invalid_resource("Duplicate nodes detected. One or more nodes "
+                                                "already configured on load balancer.", 413), 413
             lb_cache[lb_id]["nodes"] = lb_cache[lb_id]["nodes"] + nodes
         else:
             lb_cache[lb_id]["nodes"] = nodes
-        log.msg(lb_cache[lb_id]["nodes"])
         return {"nodes": nodes}, 200
     else:
         return not_found_response("loadbalancer"), 404
@@ -120,16 +123,9 @@ def delete_node(lb_id, node_id):
     """
     if lb_id in lb_cache:
         lb_cache[lb_id]["nodes"] = [x for x in lb_cache[lb_id]["nodes"] if not (node_id == x.get("id"))]
-        # for each in lb_cache[lb_id]["nodes"]:
-        #     log.msg(each)
-        #     if node_id == each["id"]:
-        #         lb_cache[lb_id]["nodes"].remove(each)
         if not lb_cache[lb_id]["nodes"]:
             del lb_cache[lb_id]["nodes"]
         return None, 202
-        # else:
-        #         return invalid_resource("Node with id {0} not found for load balancer"
-        #                                 " {1}".format(node_id, lb_id)), 404
     else:
         return not_found_response("loadbalancer"), 404
 
@@ -166,3 +162,14 @@ def _add_nodes_to_lb(node_list):
         node["status"] = "ONLINE"
         nodes.append(node)
     return nodes
+
+
+def _add_meta(node_list):
+    """
+    creates metadata with 'id' as a key
+    """
+    meta = []
+    for each in node_list:
+        each.update({"id": randrange(999)})
+        meta.append(each)
+    return meta

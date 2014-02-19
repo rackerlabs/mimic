@@ -84,14 +84,9 @@ class LoadBalancerApi(object):
         """
         Returns a 204 response code, for any load balancer created using the mocks
         """
-        # if str(lb_id) == failing_lb_id:
-        #     request.setResponseCode(422)
-        #     return json.dumps({'message': "Load Balancer {0} has a status of 'PENDING_UPDATE' \
-        #         and is considered immutable.".format(lb_id), 'code': 422})
         response_data = delete_node(lb_id, node_id)
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
-        #return request.setResponseCode(delete_node(lb_id, node_id))
 
     @app.route('/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/nodes',
                methods=['GET'])

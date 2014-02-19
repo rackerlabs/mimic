@@ -1,3 +1,3 @@
 """
-Common funtional modules
+Common functional modules
 """
