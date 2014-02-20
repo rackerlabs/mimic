@@ -61,6 +61,6 @@ def set_resource_status(updated_time, time_delta, status='ACTIVE'):
 
     :return: ``status`` or ``None``.
     """
-    if (datetime.strptime(updated_time, fmt) + timedelta(seconds=time_delta)) < \
+    if (datetime.strptime(updated_time, fmt) + timedelta(seconds=int(time_delta))) < \
             datetime.utcnow():
         return status
