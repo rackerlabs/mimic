@@ -1,18 +1,19 @@
 # MIMIC #
 
-Mimic is a plug and play light weight service that provides a compatible interface to Openstack Compute, Rackspace implementation of Identity and Cloud Load balancers.
+Mimic is a plug and play light weight service that provides a compatible interface to Openstack Compute and Rackspace's implementation of Identity and Cloud Load balancers.
 
-Things mimic helps with:
+Mimic helps with:
 * fast set-up
 * instant response
+* cost efficient
 * enables offline developmenet
-* test error or unusual behavior of an api
-* Acts as a central repository for mocked responses from services
+* tests error or unusual behaviors of an api
+* acts as a central repository for mocked responses from services
 
 
 ## Compute ##
 
-1. LIST servers - Lists servers on the tenant in mimic
+1. LIST servers - Lists servers on the tenant, in mimic
 2. POST server - Creates a server in mimic *(look at the 'Errors or unusual behaviors supported for compute' below)*
 3. GET server - Returns the server, if it exists in mimic else returns a 404
 4. DELETE server - Deletes the server, if it exists in mimcic else returns 404
@@ -24,9 +25,8 @@ Things mimic helps with:
 8. GET limits - Returns only the absolute limits for compute
 
 #### Errors or unusual behaviors supported for compute: ####
-* [mimic_presets](https://github.com/rackerlabs/mimic/blob/master/mimic/canned_responses/mimic_presets.py) *
 
-Based on the metadata provided when a server is being created, a server can be made to behave as follows:
+Based on the metadata ([mimic_presets](https://github.com/rackerlabs/mimic/blob/master/mimic/canned_responses/mimic_presets.py)) provided when a server is being created, a server can be made to behave as follows:
 * Fail with the given response message and response code
 * Go into an error state on creation
 * Remain in building state for the specified amount of time
@@ -45,6 +45,7 @@ Request for create server that remains in building for 120 seconds:
     }
  }`
 
+
 ## Identity ##
 1. Authenticate - Given a tenant id, username and password, returns the service catalog with links to compute and load balancer links within mimic, and a test token.
 2. Impersonate user (Admin call) - Given a token created by mimic in the header, returns a test token for the username.
@@ -53,7 +54,7 @@ Request for create server that remains in building for 120 seconds:
 
 ## Cloud Load Balancer ##
 1. LIST load balancers - Lists the load balancers created in mimic
-2. CREATE load balancer - Creates a load balancer
+2. CREATE load balancer - Creates a load balancer *(look at the 'Errors or unusual behaviors supported for cloud load balancers' below)*
 3. GET load balancer - Returns the load balancer if it exists, else 404
 4. DELETE load balancer - Deletes the load balancer if it exists, else returns 404
 5. LIST nodes - Lists the nodes on the load balancer
@@ -62,15 +63,14 @@ Request for create server that remains in building for 120 seconds:
 8. DELETE node - Deletes the node if it exists, else returns 404
 
 #### Errors or unusual behaviors supported for cloud load balancers: ####
-* [mimic_presets](https://github.com/rackerlabs/mimic/blob/master/mimic/canned_responses/mimic_presets.py) *
 
-Based on the key and val;ue of the metadata provided when a load balancer is being created, a load balancer can be made to behave as follows:
+Based on key and value of the metadata ([mimic_presets](https://github.com/rackerlabs/mimic/blob/master/mimic/canned_responses/mimic_presets.py)) provided when a load balancer is being created, a load balancer can be made to behave as follows:
 * Remain in 'BUILD' state for the specified amount of time
 * Load balancer goes into'PENDING-UPDATE' state on every add/delete node for the specified amout of time
 * Load balancer goes into'PENDING-DELETE' state on delete load balancer for the specified amout of time
 * Load balancer goes into an error state on creation
 
 
-## Mimic does not ##:
+## Mimic does not: ##
 * support XML
 * validate the auth token
