@@ -55,8 +55,9 @@ def add_load_balancer(tenant_id, lb_info, lb_id):
 
     # create a metadata cache so we dont have to deal with the list
     meta = {}
-    for each in lb_info["metadata"]:
-        meta.update({each["key"]: each["value"]})
+    if "metadata" in lb_info:
+        for each in lb_info["metadata"]:
+            meta.update({each["key"]: each["value"]})
     meta_cache[lb_id] = meta
     log.msg(meta_cache)
 

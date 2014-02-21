@@ -20,15 +20,18 @@ def not_found_response(resource='servers'):
         'servers': "Instance could not be found",
         'images': "Image not found.",
         'flavors': "The resource could not be found.",
-        'loadbalancer': "Load balancer not found"
+        'loadbalancer': "Load balancer not found",
+        'node': "Node not found"
     }
-
-    return {
+    resp = {
         "itemNotFound": {
             "message": message.get(resource, "The resource could not be found."),
             "code": 404
         }
     }
+    if resource == 'loadbalancer' or resource == 'node':
+        return resp["itemNotFound"]
+    return resp
 
 
 def invalid_resource(message, response_code=400):
