@@ -13,7 +13,7 @@ Mimic helps with:
 
 ## Compute ##
 
-#### Calls supported ####
+#### Calls supported: ####
 1. LIST servers - Lists servers on the tenant, in mimic
 2. POST server - Creates a server in mimic *(look at the 'Errors or unusual behaviors supported for compute' below)*
 3. GET server - Returns the server, if it exists in mimic else returns a 404
@@ -48,7 +48,7 @@ Request for create server that remains in building for 120 seconds:
 
 ## Identity ##
 
-#### Calls supported ####
+#### Calls supported: ####
 1. Authenticate - Given a tenant id, username and password, returns the service catalog with links to compute and load balancer links within mimic, and a test token.
 2. Impersonate user (Admin call) - Given a token created by mimic in the header, returns a test token for the username.
 3. GET endpoints - Given token created by mimic, returns the service catalog for that user.
@@ -56,13 +56,13 @@ Request for create server that remains in building for 120 seconds:
 
 ## Cloud Load Balancer ##
 
-#### Calls supported ####
+#### Calls supported: ####
 1. LIST load balancers - Lists the load balancers created in mimic
-2. CREATE load balancer - Creates a load balancer *(look at the 'Errors or unusual behaviors supported for cloud load balancers' below)*
+2. POST load balancer - Creates a load balancer *(look at the 'Errors or unusual behaviors supported for cloud load balancers' below)*
 3. GET load balancer - Returns the load balancer if it exists, else 404
 4. DELETE load balancer - Deletes the load balancer if it exists, else returns 404
 5. LIST nodes - Lists the nodes on the load balancer
-6. CREATE node - Creates a node on the load balancer
+6. POST node - Creates a node on the load balancer
 7. GET node - Returns the node if it exists, else returns 404
 8. DELETE node - Deletes the node if it exists, else returns 404
 
@@ -72,6 +72,13 @@ Based on key and value of the metadata ([mimic_presets](https://github.com/racke
 * Load balancer goes into 'PENDING-UPDATE' state on every add/delete node for the specified amout of time
 * Load balancer goes into 'PENDING-DELETE' state on delete load balancer for the specified amout of time
 * Load balancer goes into an error state on creation
+
+Eg:
+Request for create load balancer that is expected to go into 'PENDING-UPDATE' state on every add/delete
+node, for 20 seconds:
+
+`{"loadBalancer": {"name": "a-new-loadbalancer2", "protocol": "HTTP", "virtualIps": [{"type": "PUBLIC"}], "metadata": [{"key": "lb_pending_update", "value": 20}], "nodes": []}}`
+
 
 
 ## Mimic does not: ##
