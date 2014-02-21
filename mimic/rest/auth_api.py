@@ -26,6 +26,7 @@ class AuthApi(object):
         endpoints and an api token.
         """
         content = json.loads(request.content.read())
+        log.msg(content)
         try:
             tenant_id = content['auth']['tenantName']
         except KeyError:
