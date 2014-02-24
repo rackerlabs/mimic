@@ -84,3 +84,10 @@ node, for 20 seconds:
 ## Mimic does not: ##
 * support XML
 * validate the auth token
+
+## Running Mimic on a cloud server ##
+1. create a cloud server with an image that by default comes with python 2.7 (eg: ubuntu 12.04) and ssh into it
+2. git clone https://github.com/rackerlabs/mimic.git
+3. pip install -r requirements.txt from within the mimic folder (if there is a gcc error, `get-apt install python-dev`)
+4. cd into mimic or add the mimic to the PYTHONPATH and run `twistd -n mimic`
+
