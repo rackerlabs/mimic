@@ -13,7 +13,8 @@ Mimic helps with:
 
 ## Compute ##
 
-#### Calls supported: #### https://github.com/rackerlabs/mimic/blob/master/mimic/rest/nova_api.py
+#### Calls supported: ####
+https://github.com/rackerlabs/mimic/blob/master/mimic/rest/nova_api.py
 1. LIST servers - Lists servers on the tenant, in mimic
 2. POST server - Creates a server in mimic *(look at the 'Errors or unusual behaviors supported for compute' below)*
 3. GET server - Returns the server, if it exists in mimic else returns a 404
@@ -48,7 +49,8 @@ Request for create server that remains in building for 120 seconds:
 
 ## Rackspace Auth ##
 
-#### Calls supported: #### https://github.com/rackerlabs/mimic/blob/master/mimic/rest/auth_api.py
+#### Calls supported: ####
+https://github.com/rackerlabs/mimic/blob/master/mimic/rest/auth_api.py
 1. Authenticate - Given a tenant id, username and password, returns the service catalog with links to compute and load balancer links within mimic, and a test token.
 2. Impersonate user (Admin call) - Given a token created by mimic in the header, returns a test token for the username.
 3. GET endpoints - Given token created by mimic, returns the service catalog for that user.
@@ -56,7 +58,8 @@ Request for create server that remains in building for 120 seconds:
 
 ## Cloud Load Balancer ##
 
-#### Calls supported: #### https://github.com/rackerlabs/mimic/blob/master/mimic/rest/loadbalancer_api.py
+#### Calls supported: ####
+https://github.com/rackerlabs/mimic/blob/master/mimic/rest/loadbalancer_api.py
 1. LIST load balancers - Lists the load balancers created in mimic
 2. POST load balancer - Creates a load balancer *(look at the 'Errors or unusual behaviors supported for cloud load balancers' below)*
 3. GET load balancer - Returns the load balancer if it exists, else 404
