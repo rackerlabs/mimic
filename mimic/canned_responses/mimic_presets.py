@@ -20,5 +20,6 @@ get_presets = {"loadbalancers": {"lb_name-BUILD": "Keeps the load balancer in bu
                            "invalid_image_ref": ["INVALID-IMAGE-ID", "1111", "image_ends_with_Z"],
                            "invalid_flavor_ref": ["INVALID-FLAVOR-ID", "8888", "-4", "1"],
                            "server_error": "sets server state to error on create",
-                           "server_building": "sets the server to be in building state for given time"}
+                           "server_building": "sets the server to be in building state for given time"
+                                              " in seconds"}
                }
