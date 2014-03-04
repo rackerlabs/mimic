@@ -1,6 +1,6 @@
 # MIMIC #
 
-Mimic is a plug and play light weight service that provides a compatible interface to __Openstack Compute__ and __Rackspace's implementation of Identity and Cloud Load balancers__.
+Mimic is an API-compatible mock service for  __Openstack Compute__ and __Rackspace's implementation of Identity and Cloud Load balancers__. It is backed by in-memory data structure rather than a potentially expensive database.
 
 Mimic helps with:
 * fast set-up
@@ -13,7 +13,7 @@ Mimic helps with:
 
 ## Compute ##
 
-#### Calls supported: ####
+#### Calls supported: https://github.com/rackerlabs/mimic/blob/master/mimic/rest/nova_api.py ####
 1. LIST servers - Lists servers on the tenant, in mimic
 2. POST server - Creates a server in mimic *(look at the 'Errors or unusual behaviors supported for compute' below)*
 3. GET server - Returns the server, if it exists in mimic else returns a 404
@@ -46,9 +46,9 @@ Request for create server that remains in building for 120 seconds:
  }`
 
 
-## Identity ##
+## Rackspace Auth ##
 
-#### Calls supported: ####
+#### Calls supported: https://github.com/rackerlabs/mimic/blob/master/mimic/rest/auth_api.py ####
 1. Authenticate - Given a tenant id, username and password, returns the service catalog with links to compute and load balancer links within mimic, and a test token.
 2. Impersonate user (Admin call) - Given a token created by mimic in the header, returns a test token for the username.
 3. GET endpoints - Given token created by mimic, returns the service catalog for that user.
@@ -56,7 +56,7 @@ Request for create server that remains in building for 120 seconds:
 
 ## Cloud Load Balancer ##
 
-#### Calls supported: ####
+#### Calls supported: https://github.com/rackerlabs/mimic/blob/master/mimic/rest/loadbalancer_api.py ####
 1. LIST load balancers - Lists the load balancers created in mimic
 2. POST load balancer - Creates a load balancer *(look at the 'Errors or unusual behaviors supported for cloud load balancers' below)*
 3. GET load balancer - Returns the load balancer if it exists, else 404
@@ -87,7 +87,7 @@ node, for 20 seconds:
 
 ## Running Mimic on a cloud server ##
 1. create a cloud server with an image that by default comes with python 2.7 (eg: ubuntu 12.04) and ssh into it
-2. git clone https://github.com/rackerlabs/mimic.git
-3. pip install -r requirements.txt from within the mimic folder (if there is a gcc error, `get-apt install python-dev`)
+2. `git clone https://github.com/rackerlabs/mimic.git`
+3. `pip install -r requirements.txt` from within the mimic folder (if there is a gcc error, `get-apt install python-dev`)
 4. cd into mimic or add the mimic to the PYTHONPATH and run `twistd -n mimic`
 
