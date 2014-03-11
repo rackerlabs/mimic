@@ -46,9 +46,11 @@ def get_user_token(expires_in, username):
     if username in auth_cache:
         if not auth_cache.get('username.token'):
             auth_cache[username]['token'] = token
-            token_cache[token] = auth_cache[username]['tenant_id']
     else:
-        auth_cache['no-user']['token'] = 'token-even-when-no-user'
+        auth_cache[username] = {}
+        auth_cache[username]['token'] = token
+        auth_cache[username]['tenant_id'] = '11111'
+    token_cache[token] = auth_cache[username]['tenant_id']
     return {
         "access":
         {"token":
@@ -63,7 +65,7 @@ def get_endpoints(token_id):
     if token_id in token_cache:
         tenant_id = token_cache[token_id]
     else:
-        tenant_id = "851153"
+        tenant_id = "11111"
     return {"endpoints": [{"tenantId": tenant_id,
                            "region": "ORD",
                            "id": 19,
