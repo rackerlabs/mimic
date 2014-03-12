@@ -7,7 +7,14 @@ auth_cache = {}
 token_cache = {}
 
 
-def get_token(tenant_id):
+def get_token(tenant_id,auth_user_name):
+    if auth_user_name == 'user-admin':
+        dict_roles = [{"id": "3", "serviceId": "bde1268ebabeeabb70a0e702a4626977c331d5c4","description": "User Admin Role.", "name": "identity:user-admin"}]
+    elif auth_user_name == 'global-admin':
+	dict_roles = [{"id": "10000258","description": "Full Access Admin Role for Account User","name": "admin"},
+   					  {"id": "2","description": "Default Role.","name": "identity:default"}]
+    print auth_user_name
+    print dict_roles	
     return {
         "access": {
             "token": {
@@ -30,8 +37,8 @@ def get_token(tenant_id):
                                 "publicURL": "http://localhost:8903/v2/{0}".format(tenant_id)}],
                  "type": "rax:load-balancer"}],
             "user": {"id": "10002",
-                     "name": "autoscaleaus",
-                     "roles": [{"id": "1", "description": "Admin", "name": "Identity"}]
+                     "name": auth_user_name,
+                     "roles": dict_roles
                      }}}
 
 
