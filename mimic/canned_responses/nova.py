@@ -75,7 +75,7 @@ def server_template(tenant_id, server_info, server_id, status):
                 "rel": "bookmark"
             }
         ],
-        "metadata": server_info['metadata'],
+        "metadata": server_info.get('metadata') or None,
         "name": server_info['name'],
         "progress": 100,
         "status": status,
@@ -91,15 +91,16 @@ def create_server(tenant_id, server_info, server_id):
     Canned response for create server and adds the server to the server cache.
     """
     status = "ACTIVE"
-    if 'create_server_failure' in server_info['metadata']:
-        dict_meta = json.loads(server_info['metadata']['create_server_failure'])
-        return invalid_resource(dict_meta['message'], dict_meta['code']), dict_meta['code']
+    if server_info.get('metadata'):
+        if 'create_server_failure' in server_info['metadata']:
+            dict_meta = json.loads(server_info['metadata']['create_server_failure'])
+            return invalid_resource(dict_meta['message'], dict_meta['code']), dict_meta['code']
 
-    if 'server_building' in server_info['metadata']:
-        status = "BUILD"
+        if 'server_building' in server_info['metadata']:
+            status = "BUILD"
 
-    if 'server_error' in server_info['metadata']:
-        status = "ERROR"
+        if 'server_error' in server_info['metadata']:
+            status = "ERROR"
 
     s_cache[server_id] = server_template(
         tenant_id, server_info, server_id, status)
