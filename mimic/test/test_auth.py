@@ -1,0 +1,101 @@
+
+from unittest import TestCase
+
+from mimic.canned_responses.auth import (
+    get_token, HARD_CODED_TOKEN
+)
+
+
+class ExampleCatalogEndpoint:
+    def __init__(self, region, tenant_id):
+        self.region = region
+        self.tenant_id = tenant_id
+
+
+class ExampleCatalogEntry(object):
+    """
+    Example of a thing that a plugin produces at some phase of its lifecycle;
+    maybe you have to pass it a tenant ID to get one of these.  (Services which
+    don't want to show up in the catalog won't produce these.)
+    """
+    def __init__(self, tenant_id, name, endpoint_count=2):
+        # some services transform their tenant ID
+        self.name = name
+        self.type = "compute"
+        self.path_prefix = "/v2/"
+        self.endpoints = [ExampleCatalogEndpoint(
+            region="EXAMPLE_%d" % (n + 1,),
+            tenant_id="%s_%d" % (tenant_id, n + 1),
+        ) for n in range(endpoint_count)]
+
+
+    @classmethod
+    def examples_from_tenant(cls, tenant_id):
+        """
+        Create some example catalog entries from a given tenant ID, like the
+        plugin loader would.
+        """
+        yield ExampleCatalogEntry(tenant_id, "something")
+        yield ExampleCatalogEntry(tenant_id, "something_else")
+
+
+
+class CatalogGenerationTests(TestCase):
+    """
+    Tests for generating a service catalog in various formats from a common
+    data source.
+    """
+
+    def test_tokens_response(self):
+        """
+        :func:`get_token` returns JSON-serializable data in the format
+        presented by a ``POST /v2.0/tokens`` API request; i.e. the normal
+        user-facing service catalog generation.
+        """
+        tenant_id = 'abcdefg'
+        self.assertEqual(
+            get_token(
+                tenant_id=tenant_id, timestamp=lambda: "<<<timestamp>>>",
+                entry_generator=ExampleCatalogEntry.examples_from_tenant
+            ),
+            {
+                "access": {
+                    "token": {
+                        "id": HARD_CODED_TOKEN,
+                        "expires": "<<<timestamp>>>",
+                        "tenant": {
+                            "id": tenant_id,
+                            "name": tenant_id, # TODO: parameterize later
+                        },
+                        "RAX-AUTH:authenticatedBy": [
+                            "PASSWORD",
+                        ]
+                    },
+                    "serviceCatalog": [
+                        {
+                            "name": "something",
+                            "endpoints": [
+                                {
+                                    "region": "EXAMPLE_1",
+                                    "tenantId": "abcdefg_1",
+                                    "publicURL": 
+                                }
+                            ]
+                        }
+                    ],
+                    "user": {
+                        "id": HARD_CODED_USER_ID,
+                        "name": HARD_CODED_USER_NAME,
+                        "roles": HARD_CODED_ROLES,
+                    }
+                }
+            }
+        )
+
+
+    def test_endpoints_response(self):
+        """
+        :func:`get_endpoints` returns JSON-serializable data in the format
+        presented by a ``GET /v2.0/tokens/<token>/endpoints``; i.e. the
+        administrative list of tokens.
+        """
