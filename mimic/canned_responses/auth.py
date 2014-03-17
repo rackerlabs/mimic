@@ -6,12 +6,16 @@ from random import randrange
 auth_cache = {}
 token_cache = {}
 
+HARD_CODED_TOKEN = "fff73937db5047b8b12fc9691ea5b9e8"
+HARD_CODED_USER_ID = "10002"
+HARD_CODED_USER_NAME = "autoscaleaus"
+HARD_CODED_ROLES = [{"id": "1", "description": "Admin", "name": "Identity"}]
 
 def get_token(tenant_id):
     return {
         "access": {
             "token": {
-                "id": "fff73937db5047b8b12fc9691ea5b9e8",
+                "id": HARD_CODED_TOKEN,
                 "expires": ((datetime.now() + timedelta(1)).
                             strftime(('%Y-%m-%dT%H:%M:%S.999-05:00'))),
                 "tenant": {
@@ -29,9 +33,9 @@ def get_token(tenant_id):
                                 "tenantId": tenant_id,
                                 "publicURL": "http://localhost:8903/v2/{0}".format(tenant_id)}],
                  "type": "rax:load-balancer"}],
-            "user": {"id": "10002",
-                     "name": "autoscaleaus",
-                     "roles": [{"id": "1", "description": "Admin", "name": "Identity"}]
+            "user": {"id": HARD_CODED_USER_ID,
+                     "name": HARD_CODED_USER_NAME,
+                     "roles": HARD_CODED_ROLES,
                      }}}
 
 
