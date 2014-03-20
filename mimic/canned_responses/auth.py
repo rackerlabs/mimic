@@ -3,43 +3,27 @@ Canned response for get auth token
 """
 from datetime import datetime, timedelta
 from random import randrange
+import os.path
+import json
 auth_cache = {}
 token_cache = {}
 
 
 def get_token(tenant_id,auth_user_name):
+    json_files_dir = os.path.expanduser('~/mimic/mimic/canned_responses/json_files')
     if auth_user_name == 'user-admin':
-        dict_roles = [{"id": "3", "serviceId": "bde1268ebabeeabb70a0e702a4626977c331d5c4","description": "User Admin Role.", "name": "identity:user-admin"}]
+       json_file_name = json_files_dir+'/user_admin_auth_response.json'
     elif auth_user_name == 'global-admin':
-	dict_roles = [{"id": "10000258","description": "Full Access Admin Role for Account User","name": "admin"},
-   					  {"id": "2","description": "Default Role.","name": "identity:default"}]
-    print auth_user_name
-    print dict_roles	
-    return {
-        "access": {
-            "token": {
-                "id": "fff73937db5047b8b12fc9691ea5b9e8",
-                "expires": ((datetime.now() + timedelta(1)).
-                            strftime(('%Y-%m-%dT%H:%M:%S.999-05:00'))),
-                "tenant": {
-                    "id": tenant_id,
-                    "name": tenant_id},
-                "RAX-AUTH:authenticatedBy": ["PASSWORD"]},
-            "serviceCatalog": [
-                {"name": "cloudServersOpenStack",
-                 "endpoints": [{"region": "ORD",
-                                "tenantId": tenant_id,
-                                "publicURL": "http://localhost:8902/v2/{0}".format(tenant_id)}],
-                 "type": "compute"},
-                {"name": "cloudLoadBalancers",
-                 "endpoints": [{"region": "ORD",
-                                "tenantId": tenant_id,
-                                "publicURL": "http://localhost:8903/v2/{0}".format(tenant_id)}],
-                 "type": "rax:load-balancer"}],
-            "user": {"id": "10002",
-                     "name": auth_user_name,
-                     "roles": dict_roles
-                     }}}
+       json_file_name = json_files_dir+'/global_admin_auth_response.json'
+    else:
+       json_file_name = json_files_dir+'/user_admin_auth_response.json'
+    json_file=open(json_file_name,'r')
+    resp = json.load(json_file)
+    resp['access']['token']['expires'] = (datetime.now() + timedelta(1)).strftime(('%Y-%m-%dT%H:%M:%S.999-05:00'))
+    resp['access']['tenant']['id'] = tenant_id
+    resp['access']['tenant']['name'] = tenant_id
+    
+    return resp
 
 
 def get_user(tenant_id):
