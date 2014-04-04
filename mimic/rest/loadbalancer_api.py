@@ -23,6 +23,10 @@ class LoadBalancerApi(object):
     app = MimicApp()
 
     def __init__(self):
+        """
+        Fetches the load balancer id for a failure, invalid scenarios and
+        the count on the number of time 422 should be returned on add node.
+        """
         self.failing_lb_id = get_presets['loadbalancers']['failing_lb_id']
         self.invalid_lb = get_presets['loadbalancers']['invalid_lb']
         self.count = get_presets['loadbalancers'][
