@@ -119,6 +119,7 @@
             {
                 "name": "cloudOrchestration",
                 "endpoints": [
+                    ,
                     {
                         "region": "ORD",
                         "tenantId": "",
@@ -175,6 +176,11 @@
         "user": {
             "id": "10084474",
             "roles": [
+                {
+                    "id": "10000289",
+                    "description": "Read only role for cloud backup access.",
+                    "name": "cloudBackup:observer"
+                },
                 {
                     "tenantId": "",
                     "id": "6",

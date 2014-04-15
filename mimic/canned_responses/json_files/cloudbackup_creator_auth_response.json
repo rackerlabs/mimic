@@ -1,8 +1,8 @@
 {
     "access": {
         "token": {
-            "id": "79fd9cf1cbfb408494e3277cc54a0cf8",
-            "expires": "2014-04-16T00:07:44.216Z",
+            "id": "a8c64ea889ba485f9f31d9851abf3577",
+            "expires": "2014-04-15T14:11:35.285Z",
             "tenant": {
                 "id": "",
                 "name": ""
@@ -173,12 +173,12 @@
             }
         ],
         "user": {
-            "id": "8b027e99dd1c4037a3ec8f9605809221",
+            "id": "10084474",
             "roles": [
                 {
-                    "id": "10000259",
-                    "description": "Read-Only Access Role for Account User",
-                    "name": "observer"
+                    "id": "10000288",
+                    "description": "Creator role for cloud backup access.",
+                    "name": "cloudBackup:creator"
                 },
                 {
                     "tenantId": "",
@@ -203,8 +203,8 @@
                     "name": "identity:default"
                 }
             ],
-            "name": "core2GlobalObserver",
-            "RAX-AUTH:defaultRegion": "DFW"
+            "name": "BillBros2",
+            "RAX-AUTH:defaultRegion": "ORD"
         }
     }
 }
