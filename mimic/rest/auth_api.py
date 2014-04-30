@@ -26,6 +26,7 @@ class AuthApi(object):
         endpoints and an api token.
         """
         content = json.loads(request.content.read())
+
 	#need to the credential type like RAX-KSKEY:apiKeyCredentials or passwordCredentials
 	#Then we can get the username so we can determine what response to send back.
 	credential_key = content['auth'].keys()
@@ -35,8 +36,7 @@ class AuthApi(object):
             tenant_id = '123456789'
         except KeyError:
             auth_user_name = 'user-admin'
-	    tenant_id = '123456789'
-        print auth_user_name
+            tenant_id = '123456789'
         request.setResponseCode(200)
 	return json.dumps(get_token(tenant_id,auth_user_name))
 
