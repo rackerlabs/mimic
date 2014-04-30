@@ -3,36 +3,26 @@ Canned response for get auth token
 """
 from datetime import datetime, timedelta
 from random import randrange
+import os.path
+import json
 auth_cache = {}
 token_cache = {}
 
 
-def get_token(tenant_id):
-    return {
-        "access": {
-            "token": {
-                "id": "fff73937db5047b8b12fc9691ea5b9e8",
-                "expires": ((datetime.now() + timedelta(1)).
-                            strftime(('%Y-%m-%dT%H:%M:%S.999-05:00'))),
-                "tenant": {
-                    "id": tenant_id,
-                    "name": tenant_id},
-                "RAX-AUTH:authenticatedBy": ["PASSWORD"]},
-            "serviceCatalog": [
-                {"name": "cloudServersOpenStack",
-                 "endpoints": [{"region": "ORD",
-                                "tenantId": tenant_id,
-                                "publicURL": "http://localhost:8902/v2/{0}".format(tenant_id)}],
-                 "type": "compute"},
-                {"name": "cloudLoadBalancers",
-                 "endpoints": [{"region": "ORD",
-                                "tenantId": tenant_id,
-                                "publicURL": "http://localhost:8903/v2/{0}".format(tenant_id)}],
-                 "type": "rax:load-balancer"}],
-            "user": {"id": "10002",
-                     "name": "autoscaleaus",
-                     "roles": [{"id": "1", "description": "Admin", "name": "Identity"}]
-                     }}}
+def get_token(tenant_id,auth_user_name):
+    json_files_dir = os.path.expanduser('~/mimic/mimic/canned_responses/json_files')
+    if auth_user_name == 'user-admin':
+       json_file_name = json_files_dir + '/user_admin_role.json'
+    elif auth_user_name == 'global-admin':
+       json_file_name = json_files_dir + '/global_admin_role.json'
+    else:
+       json_file_name = json_files_dir + '/user_admin_role.json'
+    json_file = open(json_file_name,'r')
+    resp = json.load(json_file)
+    resp['access']['token']['expires'] = (datetime.now() + timedelta(1)).strftime(('%Y-%m-%dT%H:%M:%S.999-05:00'))
+    resp['access']['token']['tenant']['id'] = tenant_id
+    resp['access']['token']['tenant']['name'] = tenant_id
+    return resp
 
 
 def get_user(tenant_id):

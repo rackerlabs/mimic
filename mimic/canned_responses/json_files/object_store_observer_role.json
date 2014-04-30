@@ -1,0 +1,210 @@
+{
+    "access": {
+        "token": {
+            "id": "a8c64ea889ba485f9f31d9851abf3577",
+            "expires": "2014-04-15T14:11:35.285Z",
+            "tenant": {
+                "id": "",
+                "name": ""
+            },
+            "RAX-AUTH:authenticatedBy": [
+                "APIKEY"
+            ]
+        },
+        "serviceCatalog": [
+            {
+                "name": "cloudBlockStorage",
+                "endpoints": [
+                    {
+                        "region": "ORD",
+                        "tenantId": "",
+                        "publicURL": ""
+                    }
+                ],
+                "type": "volume"
+            },
+            {
+                "name": "cloudLoadBalancers",
+                "endpoints": [
+                    {
+                        "region": "ORD",
+                        "tenantId": "",
+                        "publicURL": ""
+                    }
+                ],
+                "type": "rax:load-balancer"
+            },
+            {
+                "name": "cloudDatabases",
+                "endpoints": [
+                    {
+                        "region": "ORD",
+                        "tenantId": "",
+                        "publicURL": ""
+                    }
+                ],
+                "type": "rax:database"
+            },
+            {
+                "name": "cloudDNS",
+                "endpoints": [
+                    {
+                        "tenantId": "",
+                        "publicURL": ""
+                    }
+                ],
+                "type": "rax:dns"
+            },
+            {
+                "name": "cloudBackup",
+                "endpoints": [
+                    {
+                        "region": "ORD",
+                        "tenantId": "",
+                        "publicURL": ""
+                    }
+                ],
+                "type": "rax:backup"
+            },
+            {
+                "name": "cloudImages",
+                "endpoints": [
+                    {
+                        "region": "ORD",
+                        "tenantId": "",
+                        "publicURL": ""
+                    }
+                ],
+                "type": "image"
+            },
+            {
+                "name": "cloudServersOpenStack",
+                "endpoints": [
+                    {
+                        "region": "ORD",
+                        "tenantId": "",
+                        "publicURL": "",
+                        "versionInfo": "",
+                        "versionList": "",
+                        "versionId": ""
+                    }
+                ],
+                "type": "compute"
+            },
+            {
+                "name": "cloudQueues",
+                "endpoints": [
+                    {
+                        "region": "ORD",
+                        "tenantId": "",
+                        "publicURL": "",
+                        "internalURL": ""
+                    }
+                ],
+                "type": "rax:queues"
+            },
+            {
+                "name": "cloudServers",
+                "endpoints": [
+                    {
+                        "tenantId": "",
+                        "publicURL": "",
+                        "versionInfo": "",
+                        "versionList": "",
+                        "versionId": ""
+                    }
+                ],
+                "type": "compute"
+            },
+            {
+                "name": "cloudOrchestration",
+                "endpoints": [
+                    {
+                        "region": "ORD",
+                        "tenantId": "",
+                        "publicURL": ""
+                    }
+                ],
+                "type": "orchestration"
+            },
+            {
+                "name": "autoscale",
+                "endpoints": [
+                    {
+                        "region": "ORD",
+                        "tenantId": "",
+                        "publicURL": ""
+                    }
+                ],
+                "type": "rax:autoscale"
+            },
+            {
+                "name": "cloudMonitoring",
+                "endpoints": [
+                    {
+                        "tenantId": "",
+                        "publicURL": ""
+                    }
+                ],
+                "type": "rax:monitor"
+            },
+            {
+                "name": "cloudFilesCDN",
+                "endpoints": [
+                    {
+                        "region": "ORD",
+                        "tenantId": "",
+                        "publicURL": ""
+                    }
+                ],
+                "type": "rax:object-cdn"
+            },
+            {
+                "name": "cloudFiles",
+                "endpoints": [
+                    {
+                        "region": "ORD",
+                        "tenantId": "",
+                        "publicURL": "",
+                        "internalURL": ""
+                    }
+                ],
+                "type": "object-store"
+            }
+        ],
+        "user": {
+            "id": "10084474",
+            "roles": [
+                {
+                    "id": "10000257",
+                    "description": "Object Store Observer Role for Account User",
+                    "name": "object-store:observer"
+                },
+                {
+                    "tenantId": "",
+                    "id": "6",
+                    "description": "A Role that allows a user access to keystone Service methods",
+                    "name": "compute:default"
+                },
+                {
+                    "tenantId": "",
+                    "id": "5",
+                    "description": "A Role that allows a user access to keystone Service methods",
+                    "name": "object-store:default"
+                },
+                {
+                    "id": "10000150",
+                    "description": "Checkmate Access role",
+                    "name": "checkmate"
+                },
+                {
+                    "id": "2",
+                    "description": "Default Role.",
+                    "name": "identity:default"
+                }
+            ],
+            "name": "BillBros2",
+            "RAX-AUTH:defaultRegion": "ORD"
+        }
+    }
+}
