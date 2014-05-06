@@ -203,7 +203,7 @@
                     "name": "identity:default"
                 }
             ],
-            "name": "core2GlobalObserver",
+            "name": "",
             "RAX-AUTH:defaultRegion": "DFW"
         }
     }

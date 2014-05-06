@@ -203,7 +203,7 @@
                     "name": "identity:default"
                 }
             ],
-            "name": "core2GlobalAdmin",
+            "name": "",
             "RAX-AUTH:defaultRegion": "DFW"
         }
     }
