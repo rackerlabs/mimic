@@ -28,7 +28,7 @@ class LoadBalancerApi(object):
         self.count = get_presets['loadbalancers'][
             'return_422_on_add_node_count']
 
-    @app.route('/v2/<string:tenant_id>/loadbalancers', methods=['POST'])
+    @app.route('/v1.0/<string:tenant_id>/loadbalancers', methods=['POST'])
     def add_load_balancer(self, request, tenant_id):
         """
         Creates a load balancer and adds it to the lb_cache.
@@ -40,7 +40,7 @@ class LoadBalancerApi(object):
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
-    @app.route('/v2/<string:tenant_id>/loadbalancers', methods=['GET'])
+    @app.route('/v1.0/<string:tenant_id>/loadbalancers', methods=['GET'])
     def list_load_balancers(self, request, tenant_id):
         """
         Returns a list of all load balancers created using mimic with response code 200
@@ -49,7 +49,7 @@ class LoadBalancerApi(object):
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
-    @app.route('/v2/<string:tenant_id>/loadbalancers/<int:lb_id>', methods=['DELETE'])
+    @app.route('/v1.0/<string:tenant_id>/loadbalancers/<int:lb_id>', methods=['DELETE'])
     def delete_load_balancer(self, request, tenant_id, lb_id):
         """
         Creates a load balancer and adds it to the lb_cache.
@@ -59,7 +59,7 @@ class LoadBalancerApi(object):
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
-    @app.route('/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/nodes', methods=['POST'])
+    @app.route('/v1.0/<string:tenant_id>/loadbalancers/<int:lb_id>/nodes', methods=['POST'])
     def add_node_to_load_balancer(self, request, tenant_id, lb_id):
         """
         Return a successful add node response with code 200
@@ -78,7 +78,7 @@ class LoadBalancerApi(object):
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
-    @app.route('/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/nodes/<int:node_id>',
+    @app.route('/v1.0/<string:tenant_id>/loadbalancers/<int:lb_id>/nodes/<int:node_id>',
                methods=['DELETE'])
     def delete_node_from_load_balancer(self, request, tenant_id, lb_id, node_id):
         """
@@ -88,7 +88,7 @@ class LoadBalancerApi(object):
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
-    @app.route('/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/nodes',
+    @app.route('/v1.0/<string:tenant_id>/loadbalancers/<int:lb_id>/nodes',
                methods=['GET'])
     def list_nodes_for_load_balancer(self, request, tenant_id, lb_id):
         """
