@@ -1,0 +1,3 @@
+"""
+Canned responses
+"""

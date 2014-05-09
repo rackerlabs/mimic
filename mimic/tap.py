@@ -1,3 +1,6 @@
+"""
+Twisted Application plugin for Mimic
+"""
 from twisted.application.strports import service
 from twisted.application.service import MultiService
 from twisted.web.server import Site
@@ -6,6 +9,9 @@ from twisted.python import usage
 
 
 class Options(usage.Options):
+    """
+    Options for Mimic
+    """
     pass
 
 

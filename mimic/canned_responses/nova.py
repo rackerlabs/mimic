@@ -1,3 +1,6 @@
+"""
+Canned response for Nova
+"""
 from random import randrange
 from mimic.canned_responses.mimic_presets import get_presets
 from mimic.util.helper import (not_found_response, invalid_resource,
