@@ -36,9 +36,7 @@ def load_balancer_example(lb_info, lb_id, status):
                   "timeout": lb_info.get("tiemout", 30),
                   "created": {"time": current_time_in_utc()},
                   "virtualIps": [{"address": "127.0.0.1",
-                                 "id": 1111,
-                                 "type": "PUBLIC",
-                                 "ipVersion": "IPV4"},
+                                 "id": 1111, "type": "PUBLIC", "ipVersion": "IPV4"},
                                  {"address": "0000:0000:0000:0000:1111:111b:0000:0000",
                                   "id": 1111,
                                   "type": "PUBLIC",
@@ -103,10 +101,12 @@ def add_node(node_list, lb_id):
         if lb_cache[lb_id].get("nodes"):
             for existing_node in lb_cache[lb_id]["nodes"]:
                 for new_node in node_list:
-                    if (existing_node["address"] == new_node["address"] and
-                       existing_node["port"] == new_node["port"]):
-                        return invalid_resource("Duplicate nodes detected. One or more nodes "
-                                                "already configured on load balancer.", 413), 413
+                    if (
+                        existing_node["address"] == new_node["address"] and
+                        existing_node["port"] == new_node["port"]
+                    ):
+                            return invalid_resource("Duplicate nodes detected. One or more nodes "
+                                                    "already configured on load balancer.", 413), 413
             lb_cache[lb_id]["nodes"] = lb_cache[lb_id]["nodes"] + nodes
         else:
             lb_cache[lb_id]["nodes"] = nodes
@@ -122,7 +122,8 @@ def delete_node(lb_id, node_id):
     Note : Currently even if node does not exist, return 202 on delete.
     """
     if lb_id in lb_cache:
-        lb_cache[lb_id]["nodes"] = [x for x in lb_cache[lb_id]["nodes"] if not (node_id == x.get("id"))]
+        lb_cache[lb_id]["nodes"] = [x for x in lb_cache[
+            lb_id]["nodes"] if not (node_id == x.get("id"))]
         if not lb_cache[lb_id]["nodes"]:
             del lb_cache[lb_id]["nodes"]
         return None, 202
@@ -134,7 +135,6 @@ def list_nodes(lb_id):
     """
     Returns the list of nodes remaining on the load balancer
     """
-
     if lb_id in lb_cache:
         node_list = []
         if lb_cache[lb_id].get("nodes"):

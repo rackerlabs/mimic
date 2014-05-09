@@ -12,6 +12,10 @@ HARD_CODED_USER_NAME = "autoscaleaus"
 HARD_CODED_ROLES = [{"id": "1", "description": "Admin", "name": "Identity"}]
 
 def get_token(tenant_id):
+    """
+    Canned response for authentication, with service catalog containing endpoints only
+    for services implemented by Mimic.
+    """
     return {
         "access": {
             "token": {
@@ -40,12 +44,20 @@ def get_token(tenant_id):
 
 
 def get_user(tenant_id):
+    """
+    Canned response for get user. This adds the tenant_id to the auth_cache and
+    returns unique username for the tenant id.
+    """
     username = 'mockuser{0}'.format(str(randrange(999999)))
     auth_cache[username] = {'tenant_id': tenant_id}
     return {'user': {'id': username}}
 
 
 def get_user_token(expires_in, username):
+    """
+    Canned response for get user token. Also, creates a unique token for a given username,
+    and associated that token to the username in auth_cache.
+    """
     token = 'mocked-token{0}'.format(str(randrange(9999999)))
     if username in auth_cache:
         if not auth_cache.get('username.token'):
@@ -66,6 +78,10 @@ def get_user_token(expires_in, username):
 
 
 def get_endpoints(token_id):
+    """
+    Canned response for Identity's get enpoints call. This returns endpoints only
+    for the services implemented by Mimic.
+    """
     if token_id in token_cache:
         tenant_id = token_cache[token_id]
     else:

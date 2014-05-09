@@ -1,3 +1,7 @@
+
+"""
+Helper methods
+"""
 from datetime import datetime, timedelta
 
 
@@ -32,7 +36,6 @@ def invalid_resource(message, response_code=400):
     Returns the given message within in bad request body, and sets the response
     code to given response code. Defaults response code to 404, if not provided.
     """
-
     return {"message": message, "code": response_code}
 
 
