@@ -6,12 +6,17 @@ install:
   - "pip install -r requirements.txt"
   - "pip install flake8"
   - "pip install pep257==0.3.2"
+  - pip install coveralls
 script:
   # Lint
   - flake8 --max-line-length 105 mimic
   - "pep257 --ignore=D400,D401,D200,D203,D204,D205 mimic"
   # Run tests
-  - python -m unittest discover
+  - coverage run -m unittest discover
+
+after_success:
+    - coveralls
+
 notifications:
   irc:
     channels: "chat.freenode.net##mimic"
