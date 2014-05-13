@@ -7,7 +7,7 @@ from setuptools import setup, find_packages
 setup(
     name='mimic',
     version='0.0.0',
-    description='Mocks for Autoscale',
+    description='An API-compatible mock service',
     packages=find_packages(exclude=[]),
     package_data={'': ['LICENSE']},
     package_dir={'mimic': 'mimic'},
