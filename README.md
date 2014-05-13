@@ -15,6 +15,8 @@ Mimic helps with:
 #### Build status: ####
 [![Build Status](https://travis-ci.org/rackerlabs/mimic.png)](https://travis-ci.org/rackerlabs/mimic)
 
+[![Coverage Status](https://coveralls.io/repos/rackerlabs/mimic/badge.png)](https://coveralls.io/r/rackerlabs/mimic)
+
 ## Compute ##
 
 #### Calls supported: ####
