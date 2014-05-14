@@ -2,14 +2,27 @@
 from unittest import TestCase
 
 from mimic.canned_responses.auth import (
-    get_token, HARD_CODED_TOKEN
+    get_token, HARD_CODED_TOKEN, HARD_CODED_USER_ID,
+    HARD_CODED_USER_NAME, HARD_CODED_ROLES
 )
 
 
 class ExampleCatalogEndpoint:
-    def __init__(self, region, tenant_id):
-        self.region = region
-        self.tenant_id = tenant_id
+    def __init__(self, tenant, num):
+        self._tenant = tenant
+        self._num = num
+
+    @property
+    def region(self):
+        return "EXAMPLE_{num}".format(num=self._num)
+
+    @property
+    def tenant_id(self):
+        return "{tenant}_{num}".format(tenant=self._tenant,
+                                       num=self._num)
+
+    def url_with_prefix(self, prefix):
+        return "http://ok_{num}".format(num=self._num)
 
 
 class ExampleCatalogEntry(object):
@@ -23,10 +36,8 @@ class ExampleCatalogEntry(object):
         self.name = name
         self.type = "compute"
         self.path_prefix = "/v2/"
-        self.endpoints = [ExampleCatalogEndpoint(
-            region="EXAMPLE_%d" % (n + 1,),
-            tenant_id="%s_%d" % (tenant_id, n + 1),
-        ) for n in range(endpoint_count)]
+        self.endpoints = [ExampleCatalogEndpoint(tenant_id, n+1)
+                          for n in range(endpoint_count)]
 
 
     @classmethod
@@ -45,6 +56,7 @@ class CatalogGenerationTests(TestCase):
     Tests for generating a service catalog in various formats from a common
     data source.
     """
+    maxDiff = None
 
     def test_tokens_response(self):
         """
@@ -55,7 +67,7 @@ class CatalogGenerationTests(TestCase):
         tenant_id = 'abcdefg'
         self.assertEqual(
             get_token(
-                tenant_id=tenant_id, timestamp=lambda: "<<<timestamp>>>",
+                tenant_id=tenant_id, timestamp=lambda dt: "<<<timestamp>>>",
                 entry_generator=ExampleCatalogEntry.examples_from_tenant
             ),
             {
@@ -74,11 +86,33 @@ class CatalogGenerationTests(TestCase):
                     "serviceCatalog": [
                         {
                             "name": "something",
+                            "type": "compute",
                             "endpoints": [
                                 {
                                     "region": "EXAMPLE_1",
                                     "tenantId": "abcdefg_1",
-                                    "publicURL": 
+                                    "publicURL": "http://ok_1"
+                                },
+                                {
+                                    "region": "EXAMPLE_2",
+                                    "tenantId": "abcdefg_2",
+                                    "publicURL": "http://ok_2"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "something_else",
+                            "type": "compute",
+                            "endpoints": [
+                                {
+                                    "region": "EXAMPLE_1",
+                                    "tenantId": "abcdefg_1",
+                                    "publicURL": "http://ok_1"
+                                },
+                                {
+                                    "region": "EXAMPLE_2",
+                                    "tenantId": "abcdefg_2",
+                                    "publicURL": "http://ok_2"
                                 }
                             ]
                         }
