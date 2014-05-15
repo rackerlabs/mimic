@@ -9,20 +9,23 @@ auth_cache = {}
 token_cache = {}
 
 
-def get_token(tenant_id,auth_user_name):
-    json_files_dir = os.path.expanduser('~/mimic/mimic/canned_responses/json_files')
+def get_token(tenant_id, auth_user_name):
+    json_files_dir = os.path.expanduser(
+        '~/mimic/mimic/canned_responses/json_files')
     if auth_user_name == 'user-admin':
-       json_file_name = json_files_dir+'/user_admin_role.json'
+        json_file_name = json_files_dir+'/user_admin_role.json'
     elif auth_user_name == 'global-admin':
-       json_file_name = json_files_dir+'/global_admin_role.json'
+        json_file_name = json_files_dir+'/global_admin_role.json'
     else:
-       json_file_name = json_files_dir+'/user_admin_role.json'
-    json_file=open(json_file_name,'r')
+        json_file_name = json_files_dir+'/user_admin_role.json'
+    json_file = open(json_file_name, 'r')
     resp = json.load(json_file)
-    resp['access']['token']['expires'] = (datetime.now() + timedelta(1)).strftime(('%Y-%m-%dT%H:%M:%S.999-05:00'))
+    exp = (
+        datetime.now() +
+        timedelta(1)).strftime(('%Y-%m-%dT%H:%M:%S.999-05:00'))
+    resp['access']['token']['expires'] = exp
     resp['access']['token']['tenant']['id'] = tenant_id
     resp['access']['token']['tenant']['name'] = tenant_id
-    
     return resp
 
 
