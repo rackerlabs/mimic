@@ -26,23 +26,26 @@ class AuthApi(object):
         endpoints and an api token.
         """
         content = json.loads(request.content.read())
-	#need to the credential type like RAX-KSKEY:apiKeyCredentials or passwordCredentials
-	#Then we can get the username so we can determine what response to send back.
-	credential_key = content['auth'].keys()
+        '''
+        Need to get the credential type like RAX-KSKEY:apiKeyCredentials
+        or passwordCredentials.
+        Then we can get the username so we can determine what response
+        to send back.
+        '''
+        credential_key = content['auth'].keys()
         try:
             if len(credential_key) > 1:
                 tenant_id = content['auth']['tenantName']
                 auth_user_name = content['auth'][credential_key[1]]['username']
             else:
-	        auth_user_name = content['auth'][credential_key[0]]['username']
+                auth_user_name = content['auth'][credential_key[0]]['username']
                 tenant_id = '123456789'
         except KeyError:
-            tenant_name = '123456789'
+            tenant_id = '123456789'
             auth_user_name = 'user-admin'
-	    tenant_id = '123456789'
+        tenant_id = '123456789'
         request.setResponseCode(200)
-        print tenant_id,auth_user_name
-	return json.dumps(get_token(tenant_id,auth_user_name))
+        return json.dumps(get_token(tenant_id, auth_user_name))
 
     @app.route('/v1.1/mosso/<string:tenant_id>', methods=['GET'])
     def get_username(self, request, tenant_id):
