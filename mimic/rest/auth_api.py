@@ -35,8 +35,11 @@ class AuthApi(object):
         credential_key = content['auth'].keys()
         try:
             if len(credential_key) > 1:
-                tenant_id = content['auth']['tenantName']
-                auth_user_name = content['auth'][credential_key[1]]['username']
+                for k in credential_key:
+                    if k == 'tenantId':
+                        tenant_id = content['auth'][k]
+                    elif k == 'passwordCredentials':
+                        auth_user_name = content['auth'][k]['username']
             else:
                 auth_user_name = content['auth'][credential_key[0]]['username']
                 tenant_id = '123456789'
