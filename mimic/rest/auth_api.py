@@ -19,6 +19,13 @@ class AuthApi(object):
     """
     app = MimicApp()
 
+    def __init__(self, core):
+        """
+        :param MimicCore core: The core to which this AuthApi will be
+            authenticating.
+        """
+        self.core = core
+
     @app.route('/v2.0/tokens', methods=['POST'])
     def get_service_catalog_and_token(self, request):
         """
