@@ -12,6 +12,21 @@ HARD_CODED_USER_ID = "10002"
 HARD_CODED_USER_NAME = "autoscaleaus"
 HARD_CODED_ROLES = [{"id": "1", "description": "Admin", "name": "Identity"}]
 
+def HARD_CODED_PREFIX(entry_type):
+    """
+    Temporary hack.
+    """
+    # ugly hack corresponding to hard-coding in mimic.tap, eliminate as soon as
+    # that is gone.  note that the responsibility here is correct though; URI
+    # generation belongs in the auth system.
+    port_offset_by_service = {
+        "compute": 2,
+        "rax:load-balancer": 3,
+    }
+    return "http://localhost:{port}/".format(
+        port=8900 + port_offset_by_service[entry_type]
+    )
+
 def format_timestamp(dt):
     """
     Format the given timestamp.
@@ -23,9 +38,10 @@ def format_timestamp(dt):
 
 
 class CatalogEndpoint(object):
-    def __init__(self, tenant_id, region):
+    def __init__(self, tenant_id, region, endpoint_id):
         self.tenant_id = tenant_id
         self.region = region
+        self.endpoint_id = endpoint_id
 
     def url_with_prefix(self, uri_prefix):
         return uri_prefix + "/v2/" + self.tenant_id
@@ -33,22 +49,23 @@ class CatalogEndpoint(object):
 
 
 class CatalogEntry(object):
-    def __init__(self, tenant_id, type, name, regions):
+    def __init__(self, tenant_id, type, name, endpoints):
         self.type = type
         self.tenant_id = tenant_id
         self.name = name
-        self._regions = regions
+        self.endpoints = endpoints
 
-    @property
-    def endpoints(self):
-        """
-        Yield a list of CatalogEndpoint objects for each endpoint supported by
-        this catalog entry.
-        """
-        for region in self._regions:
-            yield CatalogEndpoint(self.tenant_id, region)
 
-    
+    @classmethod
+    def catalog_with_regions(self, tenant_id, type, name, regions):
+        """
+        Constructor for a catalog entry with multiple regions.
+        """
+        return CatalogEntry(tenant_id, type, name, [
+            CatalogEndpoint(self.tenant_id, region, str(uuid4()))
+            for region in regions
+        ])
+
 
 
 def canned_entries(tenant_id):
@@ -56,10 +73,10 @@ def canned_entries(tenant_id):
     Some canned catalog entries.
     """
     return [
-        CatalogEntry(
+        CatalogEntry.entry_with_regions(
             tenant_id, "compute", "cloudServersOpenStack", ["ORD"]
         ),
-        CatalogEntry(
+        CatalogEntry.entry_with_regions(
             tenant_id, "rax:load-balancer", "cloudLoadBalancers", ["ORD"]
         ),
     ]
@@ -82,13 +99,6 @@ def get_token(tenant_id,
              response for the identity ``/v2/tokens`` request.
     """
     def entry_json():
-        # ugly hack corresponding to hard-coding in mimic.tap, eliminate as
-        # soon as that is gone.  note that the responsibility here is correct
-        # though; URI generation belongs in the auth system.
-        port_offset_by_service = {
-            "compute": 2,
-            "rax:load-balancer": 3,
-        }
         for entry in entry_generator(tenant_id):
             def endpoint_json():
                 for endpoint in entry.endpoints:
@@ -96,9 +106,7 @@ def get_token(tenant_id,
                         "region": endpoint.region,
                         "tenantId": endpoint.tenant_id,
                         "publicURL": endpoint.url_with_prefix(
-                            "http://localhost:{port}/".format(
-                                port=8900 + port_offset_by_service[entry.type]
-                            )
+                            HARD_CODED_PREFIX(entry.type)
                         ),
                     }
             yield {
@@ -160,33 +168,25 @@ def get_user_token(expires_in, username):
     }
 
 
-def get_endpoints(token_id):
+def get_endpoints(tenant_id, entry_generator=canned_entries):
     """
     Canned response for Identity's get endpoints call.  This returns endpoints
     only for the services implemented by Mimic.
+
+    :param entry_generator: A callable, like :func:`canned_entries`, which
+        takes a datetime and returns an iterable of CatalogEntry.
     """
-    if token_id in token_cache:
-        tenant_id = token_cache[token_id]
-    else:
-        tenant_id = "11111"
-    return {"endpoints": [{"tenantId": tenant_id,
-                           "region": "ORD",
-                           "id": 19,
-                           "publicURL": "http://localhost:8903/v2/{0}".format(tenant_id),
-                           "name": "cloudLoadBalancers",
-                           "type": "rax:load-balancer"},
-                          {"tenantId": tenant_id,
-                           "region": "ORD",
-                           "id": 86,
-                           "publicURL": "http://localhost:8904/v2/{0}".format(tenant_id),
-                           "name": "autoscale",
-                           "type": "rax:autoscale"},
-                          {"tenantId": tenant_id,
-                           "region": "ORD",
-                           "id": 303,
-                           "publicURL": "http://localhost:8902/v2/{0}".format(tenant_id),
-                           "versionInfo": "http://localhost:8902/v2",
-                           "versionList": "http://localhost:8902/",
-                           "name": "cloudServersOpenStack",
-                           "versionId": "2",
-                           "type": "compute"}]}
+    result = []
+    for entry in entry_generator(tenant_id):
+        for endpoint in entry.endpoints:
+            result.append({
+                "region": endpoint.region,
+                "tenantId": endpoint.tenant_id,
+                "publicURL": endpoint.url_with_prefix(
+                    HARD_CODED_PREFIX(entry.type)
+                ),
+                "name": entry.name,
+                "type": entry.type,
+                "id": endpoint.endpoint_id,
+            })
+    return {"endpoints": result}
