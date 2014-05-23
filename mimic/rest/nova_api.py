@@ -1,6 +1,7 @@
 """
 Defines create, delete, get, list servers and get images and flavors.
 """
+from uuid import uuid4
 import json
 from random import randrange
 from twisted.web.server import Request
@@ -8,6 +9,8 @@ from mimic.canned_responses.nova import (get_server, list_server, get_limit,
                                          create_server, delete_server,
                                          get_image, get_flavor, list_addresses)
 from mimic.rest.mimicapp import MimicApp
+from mimic.catalog import Entry
+from mimic.catalog import Endpoint
 
 Request.defaultContentType = 'application/json'
 
@@ -17,6 +20,20 @@ class NovaApi(object):
     Rest endpoints for mocked Nova Api.
     """
     app = MimicApp()
+
+
+    def catalog_entries(self, tenant_id):
+        """
+        List catalog entries for the Nova API.
+        """
+        return [
+            Entry(
+                tenant_id, "compute", "cloudServersOpenStack",
+                [
+                    Endpoint(tenant_id, "ORD", uuid4())
+                ]
+            )
+        ]
 
     @app.route('/v2/<string:tenant_id>/servers', methods=['POST'])
     def create_server(self, request, tenant_id):
