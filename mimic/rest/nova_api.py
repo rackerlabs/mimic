@@ -12,7 +12,7 @@ from mimic.rest.mimicapp import MimicApp
 Request.defaultContentType = 'application/json'
 
 
-class NovaApi():
+class NovaApi(object):
     """
     Rest endpoints for mocked Nova Api.
     """
