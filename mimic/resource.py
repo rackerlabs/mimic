@@ -4,8 +4,8 @@ Resources for Mimic's core.
 
 import json
 from mimic.canned_responses.mimic_presets import get_presets
+from mimic.rest.mimicapp import MimicApp
 from mimic.rest.auth_api import AuthApi
-from mimic.mimicapp import MimicApp
 
 class MimicRoot(object):
 
