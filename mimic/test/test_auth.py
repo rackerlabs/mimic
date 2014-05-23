@@ -42,7 +42,6 @@ class ExampleCatalogEntry(object):
                           for n in range(endpoint_count)]
 
 
-
 def example_endpoints(counter):
     """
     Create some example catalog entries from a given tenant ID, like the plugin
@@ -59,8 +58,11 @@ class CatalogGenerationTests(TestCase):
     Tests for generating a service catalog in various formats from a common
     data source.
     """
-    maxDiff = None
 
+    # Service catalogs are pretty large, so set the testing option to a value
+    # where we can see as much as possible of the difference in the case of a
+    # failure.
+    maxDiff = None
 
     def test_tokens_response(self):
         """
