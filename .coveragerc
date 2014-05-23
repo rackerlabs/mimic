@@ -1,0 +1,8 @@
+[run]
+branch = True
+
+source =
+    mimic
+    twisted/plugins
+
+omit = mimic/test/*
