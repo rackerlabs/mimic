@@ -55,7 +55,13 @@ def canned_entries(tenant_id):
 
 def get_token(tenant_id,
               timestamp=format_timestamp,
-              entry_generator=canned_entries):
+              entry_generator=canned_entries,
+              response_token=HARD_CODED_TOKEN,
+              response_user_id=HARD_CODED_USER_ID,
+              response_user_name=HARD_CODED_USER_NAME,
+              response_roles=HARD_CODED_ROLES,
+              prefix_for_type=HARD_CODED_PREFIX,
+            ):
     """
     Canned response for authentication, with service catalog containing
     endpoints only for services implemented by Mimic.
@@ -76,7 +82,7 @@ def get_token(tenant_id,
                         "region": endpoint.region,
                         "tenantId": endpoint.tenant_id,
                         "publicURL": endpoint.url_with_prefix(
-                            HARD_CODED_PREFIX(entry.type)
+                            prefix_for_type(entry.type)
                         ),
                     }
             yield {
@@ -88,7 +94,7 @@ def get_token(tenant_id,
     return {
         "access": {
             "token": {
-                "id": HARD_CODED_TOKEN,
+                "id": response_token,
                 "expires": timestamp(datetime.now() + timedelta(days=1)),
                 "tenant": {
                     "id": tenant_id,
@@ -96,9 +102,9 @@ def get_token(tenant_id,
                 "RAX-AUTH:authenticatedBy": ["PASSWORD"]},
             "serviceCatalog": list(entry_json()),
             "user": {
-                "id": HARD_CODED_USER_ID,
-                "name": HARD_CODED_USER_NAME,
-                "roles": HARD_CODED_ROLES,
+                "id": response_user_id,
+                "name": response_user_name,
+                "roles": response_roles,
             }
         }
     }
@@ -143,7 +149,8 @@ def get_user_token(expires_in, username,
 
 
 
-def get_endpoints(tenant_id, entry_generator=canned_entries):
+def get_endpoints(tenant_id, entry_generator=canned_entries,
+                  prefix_for_type=HARD_CODED_PREFIX):
     """
     Canned response for Identity's get endpoints call.  This returns endpoints
     only for the services implemented by Mimic.
@@ -158,7 +165,7 @@ def get_endpoints(tenant_id, entry_generator=canned_entries):
                 "region": endpoint.region,
                 "tenantId": endpoint.tenant_id,
                 "publicURL": endpoint.url_with_prefix(
-                    HARD_CODED_PREFIX(entry.type)
+                    prefix_for_type(entry.type)
                 ),
                 "name": entry.name,
                 "type": entry.type,
