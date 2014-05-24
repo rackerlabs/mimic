@@ -13,10 +13,10 @@ Request.defaultContentType = 'application/json'
 
 
 class AuthApi(object):
-
     """
     Rest endpoints for mocked Auth api.
     """
+
     app = MimicApp()
 
     def __init__(self, core):
@@ -24,6 +24,7 @@ class AuthApi(object):
         :param MimicCore core: The core to which this AuthApi will be
             authenticating.
         """
+        print("AuthApi created...")
         self.core = core
 
     @app.route('/v2.0/tokens', methods=['POST'])
@@ -32,13 +33,26 @@ class AuthApi(object):
         Return a service catalog consisting of nova and load balancer mocked
         endpoints and an api token.
         """
+        print("Getting service catalog...")
         content = json.loads(request.content.read())
+        print("Loaded content...")
         try:
             tenant_id = content['auth']['tenantName']
         except KeyError:
             tenant_id = 'test'
         request.setResponseCode(200)
-        return json.dumps(get_token(tenant_id))
+        prefix_map = {
+            # map of entry to 
+        }
+        return json.dumps(
+            get_token(
+                tenant_id,
+                entry_generator=lambda tenant_id:
+                self.core.entries_for_tenant(tenant_id, prefix_map,
+                                             "http://localhost:8900/service/"),
+                prefix_for_entry=prefix_map.get,
+            )
+        )
 
     @app.route('/v1.1/mosso/<string:tenant_id>', methods=['GET'])
     def get_username(self, request, tenant_id):

@@ -1,20 +1,27 @@
 """
 Defines create, delete, get, list servers and get images and flavors.
 """
+
 from uuid import uuid4
 import json
 from random import randrange
+
+from zope.interface import implementer
+
 from twisted.web.server import Request
+
 from mimic.canned_responses.nova import (get_server, list_server, get_limit,
                                          create_server, delete_server,
                                          get_image, get_flavor, list_addresses)
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
+from mimic.imimic import IAPIMock
 
 Request.defaultContentType = 'application/json'
 
 
+@implementer(IAPIMock)
 class NovaApi(object):
     """
     Rest endpoints for mocked Nova Api.

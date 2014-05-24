@@ -3,20 +3,22 @@ Defines add node and delete node from load balancers
 """
 
 import json
+from zope.interface import implementer
 from twisted.web.server import Request
 from mimic.canned_responses.loadbalancer import (
     add_load_balancer, del_load_balancer, list_load_balancers,
     add_node, delete_node, list_nodes)
 from mimic.rest.mimicapp import MimicApp
 from mimic.canned_responses.mimic_presets import get_presets
+from mimic.imimic import IAPIMock
 from random import randrange
 
 
 Request.defaultContentType = 'application/json'
 
 
+@implementer(IAPIMock)
 class LoadBalancerApi(object):
-
     """
     Rest endpoints for mocked Load balancer api.
     """
@@ -31,6 +33,9 @@ class LoadBalancerApi(object):
         self.invalid_lb = get_presets['loadbalancers']['invalid_lb']
         self.count = get_presets['loadbalancers'][
             'return_422_on_add_node_count']
+
+    def catalog_entries(self, tenant_id):
+        return []
 
     @app.route('/v2/<string:tenant_id>/loadbalancers', methods=['POST'])
     def add_load_balancer(self, request, tenant_id):

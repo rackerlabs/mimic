@@ -16,7 +16,7 @@ class Endpoint(object):
         self.endpoint_id = endpoint_id
 
     def url_with_prefix(self, uri_prefix):
-        return "/".join(uri_prefix, self.tenant_id)
+        return "/".join([uri_prefix.rstrip("/"), self.tenant_id])
 
 
 
@@ -43,7 +43,7 @@ class Entry(object):
         Endpoint IDs will be random UUIDs.
         """
         return Entry(tenant_id, type, name, [
-            Endpoint(self.tenant_id, region, str(uuid4()))
+            Endpoint(tenant_id, region, str(uuid4()))
             for region in regions
         ])
 

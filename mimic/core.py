@@ -37,6 +37,20 @@ class MimicCore(object):
         :return: A resource.
         :rtype: :obj:`twisted.web.iweb.IResource`
         """
-        return self.uri_prefixes.get((region_name, service_id)).app.resource()
+        key = (region_name, service_id)
+        if key in self.uri_prefixes:
+            return self.uri_prefixes[key].app.resource()
 
 
+    def entries_for_tenant(self, tenant_id, prefix_map, prefix):
+        """
+        Get all the :obj:`mimic.catalog.Entry` objects for the given tenant ID.
+
+        :param unicode tenant_id: A fictional tenant ID.
+        """
+        for (region, service_id), api in sorted(self.uri_prefixes.items()):
+            for entry in api.catalog_entries(tenant_id):
+                prefix_map[entry] = "/".join([prefix.rstrip("/"),
+                                              region, service_id,
+                                              ""])
+                yield entry

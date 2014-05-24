@@ -5,15 +5,16 @@ Canned response for get auth token
 from datetime import datetime, timedelta
 from random import randrange
 from mimic.catalog import Entry
-auth_cache = {}
-token_cache = {}
+
+GLOBAL_MUTABLE_AUTH_CACHE = {}
+GLOBAL_MUTABLE_TOKEN_CACHE = {}
 
 HARD_CODED_TOKEN = "fff73937db5047b8b12fc9691ea5b9e8"
 HARD_CODED_USER_ID = "10002"
 HARD_CODED_USER_NAME = "autoscaleaus"
 HARD_CODED_ROLES = [{"id": "1", "description": "Admin", "name": "Identity"}]
 
-def HARD_CODED_PREFIX(entry_type):
+def HARD_CODED_PREFIX(entry):
     """
     Temporary hack.
     """
@@ -25,7 +26,7 @@ def HARD_CODED_PREFIX(entry_type):
         "rax:load-balancer": 3,
     }
     return "http://localhost:{port}/".format(
-        port=8900 + port_offset_by_service[entry_type]
+        port=8900 + port_offset_by_service[entry.type]
     )
 
 def format_timestamp(dt):
@@ -60,8 +61,7 @@ def get_token(tenant_id,
               response_user_id=HARD_CODED_USER_ID,
               response_user_name=HARD_CODED_USER_NAME,
               response_roles=HARD_CODED_ROLES,
-              prefix_for_type=HARD_CODED_PREFIX,
-            ):
+              prefix_for_entry=HARD_CODED_PREFIX):
     """
     Canned response for authentication, with service catalog containing
     endpoints only for services implemented by Mimic.
@@ -82,7 +82,7 @@ def get_token(tenant_id,
                         "region": endpoint.region,
                         "tenantId": endpoint.tenant_id,
                         "publicURL": endpoint.url_with_prefix(
-                            prefix_for_type(entry.type)
+                            prefix_for_entry(entry)
                         ),
                     }
             yield {
@@ -110,7 +110,8 @@ def get_token(tenant_id,
     }
 
 
-def get_user(tenant_id):
+def get_user(tenant_id,
+             auth_cache=GLOBAL_MUTABLE_AUTH_CACHE):
     """
     Canned response for get user. This adds the tenant_id to the auth_cache and
     returns unique username for the tenant id.
@@ -122,7 +123,9 @@ def get_user(tenant_id):
 
 
 def get_user_token(expires_in, username,
-                   timestamp=format_timestamp):
+                   timestamp=format_timestamp,
+                   auth_cache=GLOBAL_MUTABLE_AUTH_CACHE,
+                   token_cache=GLOBAL_MUTABLE_TOKEN_CACHE):
     """
     Canned response for get user token.  Also, creates a unique token for a
     given username, and associated that token to the username in auth_cache.
@@ -150,7 +153,7 @@ def get_user_token(expires_in, username,
 
 
 def get_endpoints(tenant_id, entry_generator=canned_entries,
-                  prefix_for_type=HARD_CODED_PREFIX):
+                  prefix_for_entry=HARD_CODED_PREFIX):
     """
     Canned response for Identity's get endpoints call.  This returns endpoints
     only for the services implemented by Mimic.
@@ -165,7 +168,7 @@ def get_endpoints(tenant_id, entry_generator=canned_entries,
                 "region": endpoint.region,
                 "tenantId": endpoint.tenant_id,
                 "publicURL": endpoint.url_with_prefix(
-                    prefix_for_type(entry.type)
+                    prefix_for_entry(entry)
                 ),
                 "name": entry.name,
                 "type": entry.type,

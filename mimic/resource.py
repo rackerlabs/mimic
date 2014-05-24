@@ -13,9 +13,20 @@ class MimicRoot(object):
 
     def __init__(self, core):
         """
-        :param core: ???
+        :param mimic.core.MimicCore core: The core object to dispatch routes
+            from.
         """
         self.core = core
+
+
+    @app.route("/", methods=["GET"])
+    def help(self, request):
+        """
+        A helpful greeting message.
+        """
+        request.responseHeaders.setRawHeaders("content-type", ["text/plain"])
+        return ("To get started with Mimic, POST an authentication request to:"
+                "\n\n/identity/v2.0/tokens")
 
 
     @app.route("/identity", branch=True)
@@ -23,6 +34,7 @@ class MimicRoot(object):
         """
         Get the identity ...
         """
+        print("requesting identity")
         return AuthApi(self.core).app.resource()
 
 
@@ -31,11 +43,13 @@ class MimicRoot(object):
         """
         Return the preset values for mimic
         """
+        print("requesting presets")
         request.setResponseCode(200)
         return json.dumps(get_presets)
 
 
-    @app.route("/<region_name>/<service_id>", branch=True)
+    @app.route("/service/<string:region_name>/<string:service_id>",
+               branch=True)
     def get_service_resource(self, request, region_name, service_id):
         """
         Based on the URL prefix of a region and a service, where the region is
@@ -43,5 +57,8 @@ class MimicRoot(object):
         dynamically-generated UUID for a particular plugin, retrieve the
         resource associated with that service.
         """
+        print("requesting service resource")
         serviceObject = self.core.service_with_region(region_name, service_id)
         return serviceObject
+
+
