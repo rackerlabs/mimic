@@ -191,5 +191,5 @@ class CatalogGenerationTests(TestCase):
                     }
                 ]
             },
-
         )
+
