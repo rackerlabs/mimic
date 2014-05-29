@@ -12,7 +12,7 @@ from datetime import datetime
 
 class SessionCreationTests(SynchronousTestCase):
     """
-    
+    Tests for requesting sessions from a MimicCore.
     """
 
     def test_username_password_new(self):
@@ -36,7 +36,7 @@ class SessionCreationTests(SynchronousTestCase):
 
     def test_different_username_different_token(self):
         """
-        
+        Sessions are distinct if they are requested with distinct usernames.
         """
         core = MimicCore(Clock())
         a = core.session_for_username_password("a", "ignored")
