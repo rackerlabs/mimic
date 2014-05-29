@@ -35,23 +35,26 @@ class AuthApi(object):
         endpoints and an api token.
         """
         content = json.loads(request.content.read())
-        tenant_id = content['auth'].get('tenantName', None)
+        # tenant_id = content['auth'].get('tenantName', None)
+        credentials = content['auth']['passwordCredentials']
+        session = self.core.session_for_username_password(
+            credentials['username'], credentials['password']
+        )
         request.setResponseCode(200)
         prefix_map = {
             # map of entry to URI prefix for that entry
         }
         def lookup(entry):
-            print("Looking up entry", entry)
-            print(prefix_map)
             return prefix_map[entry]
         return json.dumps(
             get_token(
-                tenant_id,
+                session.tenant_id,
                 entry_generator=lambda tenant_id:
                 list(self.core.entries_for_tenant(
                     tenant_id, prefix_map, "http://localhost:8900/service/")
                  ),
                 prefix_for_entry=lookup,
+                response_token=session.token,
             )
         )
 
