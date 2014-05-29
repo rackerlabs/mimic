@@ -29,4 +29,16 @@ class SessionCreationTests(TestCase):
                          datetime.utcfromtimestamp(4321 + 86400))
         self.assertIsInstance(session.tenant_id, six.text_type)
         self.assertIsInstance(session.token, six.text_type)
+        self.assertNotEqual(session.username, session.token)
+        self.assertNotEqual(session.token, session.tenant_id)
+
+
+    def test_different_username_different_token(self):
+        """
+        
+        """
+        core = MimicCore(Clock())
+        a = core.session_for_username_password("a", "ignored")
+        b = core.session_for_username_password("b", "ignored")
+        self.assertNotEqual(a.token, b.token)
 

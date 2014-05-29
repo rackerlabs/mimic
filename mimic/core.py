@@ -1,9 +1,12 @@
 # -*- test-case-name: mimic.test.test_core -*-
+
+from __future__ import unicode_literals
 from characteristic import attributes
 
 from mimic.rest.nova_api import NovaApi
 from mimic.rest.loadbalancer_api import LoadBalancerApi
 from datetime import datetime, timedelta
+from six import text_type
 
 from uuid import uuid4
 
@@ -77,7 +80,9 @@ class MimicCore(object):
         """
         
         """
-        return Session(username=username, tenant_id=username, token=username,
+        return Session(username=username,
+                       tenant_id=text_type(uuid4()),
+                       token=text_type(uuid4()),
                        expires=datetime.utcfromtimestamp(self._clock.seconds())
                        + timedelta(days=1))
 
