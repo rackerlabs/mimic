@@ -52,7 +52,9 @@ class SessionCreationTests(SynchronousTestCase):
         core = MimicCore(Clock())
         a = core.session_for_token("testtoken")
         b = core.session_for_username_password(a.username, "testpswd")
+        c = core.session_for_api_key(a.username, "testapikey")
         self.assertIdentical(a, b)
+        self.assertIdentical(a, c)
 
 
     def test_by_token_after_username(self):
