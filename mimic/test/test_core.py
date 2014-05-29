@@ -2,14 +2,15 @@
 from __future__ import unicode_literals
 
 import six
-from unittest import TestCase
+
+from twisted.trial.unittest import SynchronousTestCase 
 
 from twisted.internet.task import Clock
 from mimic.core import MimicCore
 from datetime import datetime
 
 
-class SessionCreationTests(TestCase):
+class SessionCreationTests(SynchronousTestCase):
     """
     
     """
