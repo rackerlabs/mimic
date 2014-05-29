@@ -44,15 +44,27 @@ class SessionCreationTests(SynchronousTestCase):
         self.assertNotEqual(a.token, b.token)
 
 
-    def test_by_token_after_auth(self):
+    def test_by_username_after_token(self):
         """
-        MimicCore.session_for_token should retrieve the same session that was
-        created by MimicCore.session_for_username_password.
+        MimicCore.session_for_username_password should retrieve the same
+        session that was created by MimicCore.session_for_token.
         """
         core = MimicCore(Clock())
         a = core.session_for_token("testtoken")
         b = core.session_for_username_password(a.username, "testpswd")
         self.assertIdentical(a, b)
+
+
+    def test_by_token_after_username(self):
+        """
+        MimicCore.session_for_token should retrieve the same session that was
+        created by MimicCore.session_for_username_password.
+        """
+        core = MimicCore(Clock())
+        a = core.session_for_username_password("username", "testpswd")
+        b = core.session_for_token(a.token)
+        self.assertIdentical(a, b)
+        
 
 
 
