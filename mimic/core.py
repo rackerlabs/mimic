@@ -57,6 +57,15 @@ class MimicCore(object):
 
         :raise: :obj:`KeyError` if no such thing exists.
         """
+        session = Session(username=text_type(uuid4()),
+                          tenant_id=text_type(uuid4()),
+                          token=token,
+                          expires=datetime.utcfromtimestamp(
+                              self._clock.seconds())
+                          + timedelta(days=1))
+        self._username_to_token[session.username] = session.token
+        self._token_to_session[session.token] = session
+        return session
         # if token in self._token_to_session:
         #     return self._token_to_session[token]
         # else:
@@ -80,6 +89,8 @@ class MimicCore(object):
         """
         
         """
+        if username in self._username_to_token:
+            return self._token_to_session[self._username_to_token[username]]
         return Session(username=username,
                        tenant_id=text_type(uuid4()),
                        token=text_type(uuid4()),
