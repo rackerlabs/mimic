@@ -6,8 +6,8 @@ from datetime import datetime, timedelta
 from random import randrange
 from mimic.catalog import Entry
 
-GLOBAL_MUTABLE_AUTH_CACHE = {}
-GLOBAL_MUTABLE_TOKEN_CACHE = {}
+GLOBAL_MUTABLE_AUTH_STORE = {}
+GLOBAL_MUTABLE_TOKEN_STORE = {}
 
 HARD_CODED_TOKEN = "fff73937db5047b8b12fc9691ea5b9e8"
 HARD_CODED_USER_ID = "10002"
@@ -94,6 +94,8 @@ def get_token(tenant_id,
     return {
         "access": {
             "token": {
+                # TODO: This token should be synthesized and stored in an
+                # auth_store-style argument, alongside impersonation tokens.
                 "id": response_token,
                 "expires": timestamp(datetime.now() + timedelta(days=1)),
                 "tenant": {
@@ -111,39 +113,58 @@ def get_token(tenant_id,
 
 
 def get_user(tenant_id,
-             auth_cache=GLOBAL_MUTABLE_AUTH_CACHE):
+             auth_store=GLOBAL_MUTABLE_AUTH_STORE):
     """
-    Canned response for get user. This adds the tenant_id to the auth_cache and
-    returns unique username for the tenant id.
+    Canned response for get user.  This adds the tenant_id to the auth_store
+    and returns unique username for the tenant id.
+
+    :param dict auth_store: map of username to a dictionary like
+        ``dict(token=something, tenant_id=something_else)``.  The ``token`` key
+        may or may not exist in this dictionary, depending on whether that user
+        has a currently active authentication token populated by
+        :obj:`get_user_token`.  Calling get_user will populate the
+        ``auth_store`` argument.
     """
     username = 'mockuser{0}'.format(str(randrange(999999)))
-    auth_cache[username] = {'tenant_id': tenant_id}
+    auth_store[username] = {'tenant_id': tenant_id}
     return {'user': {'id': username}}
 
 
 
 def get_user_token(expires_in, username,
                    timestamp=format_timestamp,
-                   auth_cache=GLOBAL_MUTABLE_AUTH_CACHE,
-                   token_cache=GLOBAL_MUTABLE_TOKEN_CACHE):
+                   auth_store=GLOBAL_MUTABLE_AUTH_STORE,
+                   token_store=GLOBAL_MUTABLE_TOKEN_STORE):
     """
     Canned response for get user token.  Also, creates a unique token for a
-    given username, and associated that token to the username in auth_cache.
+    given username, and associated that token to the username in auth_store.
+
+    :param dict auth_store: a map of username to dictionary, like the
+        ``auth_store`` parameter to :obj:`get_user`.
+    :param dict token_store: a map of token to tenant_id.
     """
+    # NOTE: when we start exposing these caches to plugins to allow them to do
+    # interesting things with their own auth storage, we should really make
+    # classes and document them rather than having ad-hoc dictionaries in the
+    # various auth caches.
+
+    # TODO: this should really be called get_impersonated_token or something,
+    # these API results are only useful for impersonation.
     token = 'mocked-token{0}'.format(str(randrange(9999999)))
-    if username in auth_cache:
-        if not auth_cache.get('username.token'):
-            auth_cache[username]['token'] = token
+    if username in auth_store:
+        # if 'token' not in auth_store['username']
+        if not auth_store.get('username.token'):
+            auth_store[username]['token'] = token
     else:
-        auth_cache[username] = {
+        auth_store[username] = {
             'token': token,
             'tenant_id': '11111',
         }
-    token_cache[token] = auth_cache[username]['tenant_id']
+    token_store[token] = auth_store[username]['tenant_id']
     return {
         "access": {
             "token": {
-                "id": auth_cache[username]['token'],
+                "id": auth_store[username]['token'],
                 "expires": format_timestamp(datetime.now() +
                                             timedelta(seconds=int(expires_in)))
             }
