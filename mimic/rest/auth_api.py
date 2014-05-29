@@ -25,7 +25,6 @@ class AuthApi(object):
         :param MimicCore core: The core to which this AuthApi will be
             authenticating.
         """
-        print("AuthApi created...")
         self.core = core
 
     @app.route('/v2.0/tokens', methods=['POST'])
