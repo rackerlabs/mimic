@@ -42,7 +42,7 @@ class AuthApi(object):
             tenant_id = 'test'
         request.setResponseCode(200)
         prefix_map = {
-            # map of entry to 
+            # map of entry to URI prefix for that entry
         }
         return json.dumps(
             get_token(
