@@ -89,7 +89,8 @@ class MimicCore(object):
         :return: a session for the given user.
         :rtype: Session
         """
-        
+        # One day, API keys will be different from passwords, but not today.
+        return self.session_for_username_password(username, api_key)
 
 
     def session_for_username_password(self, username, password):
