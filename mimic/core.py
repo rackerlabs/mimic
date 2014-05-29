@@ -48,7 +48,17 @@ class MimicCore(object):
 
     def _new_session(self, **attributes):
         """
-        
+        Create a new session and persist it according to its username and token
+        values.
+
+        :param attributes: Keyword parameters containing zero or more of
+            ``username``, ``token``, and ``tenant_id``.  Any fields that are
+            not specified will be filled out automatically.
+
+        :return: A new session with all fields filled out and an expiration
+                 time 1 day in the future (according to the clock associated
+                 with this :obj:`MimicCore`).
+        :rtype: :obj:`Session`
         """
         for key in ['username', 'token', 'tenant_id']:
             if key not in attributes:
