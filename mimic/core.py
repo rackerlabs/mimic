@@ -46,6 +46,23 @@ class MimicCore(object):
                     self.uri_prefixes[(endpoint.region, str(uuid4()))] = api
 
 
+    def _new_session(self, **attributes):
+        """
+        
+        """
+        for key in ['username', 'token', 'tenant_id']:
+            if key not in attributes:
+                attributes[key] = text_type(uuid4())
+        session = Session(
+            expires=(datetime.utcfromtimestamp(self._clock.seconds())
+                     + timedelta(days=1)),
+            **attributes
+        )
+        self._username_to_token[session.username] = session.token
+        self._token_to_session[session.token] = session
+        return session
+
+
     def session_for_token(self, token):
         """
         :param unicode token: An authentication token previously created by
@@ -59,19 +76,7 @@ class MimicCore(object):
         """
         if token in self._token_to_session:
             return self._token_to_session[token]
-        session = Session(username=text_type(uuid4()),
-                          tenant_id=text_type(uuid4()),
-                          token=token,
-                          expires=datetime.utcfromtimestamp(
-                              self._clock.seconds())
-                          + timedelta(days=1))
-        self._username_to_token[session.username] = session.token
-        self._token_to_session[session.token] = session
-        return session
-        # if token in self._token_to_session:
-        #     return self._token_to_session[token]
-        # else:
-        #     raise KeyError("no such token: {token}".format(token=token))
+        return self._new_session(token=token)
 
 
     def session_for_api_key(self, username, api_key):
@@ -89,18 +94,11 @@ class MimicCore(object):
 
     def session_for_username_password(self, username, password):
         """
-        
+        Create or return a :obj:`Session` based on a user's credentials.
         """
         if username in self._username_to_token:
             return self._token_to_session[self._username_to_token[username]]
-        session = Session(username=username,
-                          tenant_id=text_type(uuid4()),
-                          token=text_type(uuid4()),
-                          expires=datetime.utcfromtimestamp(self._clock.seconds())
-                          + timedelta(days=1))
-        self._username_to_token[session.username] = session.token
-        self._token_to_session[session.token] = session
-        return session
+        return self._new_session(username=username)
 
 
     def service_with_region(self, region_name, service_id):
