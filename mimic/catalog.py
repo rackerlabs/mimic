@@ -16,7 +16,11 @@ class Endpoint(object):
         self.endpoint_id = endpoint_id
 
     def url_with_prefix(self, uri_prefix):
-        return "/".join([uri_prefix.rstrip("/"), self.tenant_id])
+        if self.tenant_id is None:
+            postfix = ''
+        else:
+            postfix = self.tenant_id
+        return "/".join([uri_prefix.rstrip("/"), postfix])
 
 
 

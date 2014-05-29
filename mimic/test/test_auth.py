@@ -1,6 +1,13 @@
 
-from unittest import TestCase
+import io
+import json
 
+from twisted.trial.unittest import SynchronousTestCase
+from twisted.internet.task import Clock
+from characteristic import attributes
+
+from mimic.core import MimicCore
+from mimic.rest.auth_api import AuthApi
 from mimic.canned_responses.auth import (
     get_token, HARD_CODED_TOKEN, HARD_CODED_USER_ID,
     HARD_CODED_USER_NAME, HARD_CODED_ROLES,
@@ -53,7 +60,7 @@ def example_endpoints(counter):
     return endpoints
 
 
-class CatalogGenerationTests(TestCase):
+class CatalogGenerationTests(SynchronousTestCase):
     """
     Tests for generating a service catalog in various formats from a common
     data source.
@@ -192,4 +199,39 @@ class CatalogGenerationTests(TestCase):
                 ]
             },
         )
+
+
+class APITests(SynchronousTestCase):
+    """
+    Tests for :obj:`get_service_catalog_for_token`
+    """
+
+    def test_token_has_token(self):
+        """
+        AuthApi.get_service_catalog_and_token (the handler for
+        ``/identity/v2.0/tokens``) returns a JSON response with an
+        access.token.id key corresponding to its MimicCore session, and
+        therefore access.token.tenant.id should match that session's tenant_id.
+        """
+        core = MimicCore(Clock())
+        api = AuthApi(core)
+        @attributes(["content"])
+        class FakeRequest(object):
+            def setResponseCode(self, responsecode):
+                pass
+        request = FakeRequest(content=io.BytesIO(json.dumps(
+            {"auth":{
+                "passwordCredentials":{
+                    "username":"demoauthor",
+                    "password":"theUsersPassword"
+                }
+            }}))
+        )
+        result = api.get_service_catalog_and_token(request)
+        value = json.loads(result)
+        token = value['access']['token']['id']
+        tenant_id = value['access']['token']['tenant']['id']
+        session = core.session_for_token(token)
+        self.assertEqual(token, session.token)
+        self.assertEqual(tenant_id, session.tenant_id)
 

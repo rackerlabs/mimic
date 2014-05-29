@@ -1,3 +1,4 @@
+# -*- test-case-name: mimic.test.test_auth -*-
 """
 Defines get token, impersonation
 """
@@ -33,24 +34,24 @@ class AuthApi(object):
         Return a service catalog consisting of nova and load balancer mocked
         endpoints and an api token.
         """
-        print("Getting service catalog...")
         content = json.loads(request.content.read())
-        print("Loaded content...")
-        try:
-            tenant_id = content['auth']['tenantName']
-        except KeyError:
-            tenant_id = 'test'
+        tenant_id = content['auth'].get('tenantName', None)
         request.setResponseCode(200)
         prefix_map = {
             # map of entry to URI prefix for that entry
         }
+        def lookup(entry):
+            print("Looking up entry", entry)
+            print(prefix_map)
+            return prefix_map[entry]
         return json.dumps(
             get_token(
                 tenant_id,
                 entry_generator=lambda tenant_id:
-                self.core.entries_for_tenant(tenant_id, prefix_map,
-                                             "http://localhost:8900/service/"),
-                prefix_for_entry=prefix_map.get,
+                list(self.core.entries_for_tenant(
+                    tenant_id, prefix_map, "http://localhost:8900/service/")
+                 ),
+                prefix_for_entry=lookup,
             )
         )
 

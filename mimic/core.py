@@ -139,4 +139,5 @@ class MimicCore(object):
                 prefix_map[entry] = "/".join([prefix.rstrip("/"),
                                               region, service_id,
                                               ""])
+                print("Populating prefix_map", entry, prefix_map[entry])
                 yield entry
