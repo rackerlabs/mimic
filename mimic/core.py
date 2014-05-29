@@ -62,7 +62,7 @@ class MimicCore(object):
         """
         for key in ['username', 'token', 'tenant_id']:
             if key not in attributes:
-                attributes[key] = text_type(uuid4())
+                attributes[key] = key + "_" + text_type(uuid4())
         session = Session(
             expires=(datetime.utcfromtimestamp(self._clock.seconds())
                      + timedelta(days=1)),
