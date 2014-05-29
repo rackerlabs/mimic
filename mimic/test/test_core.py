@@ -66,7 +66,9 @@ class SessionCreationTests(SynchronousTestCase):
         a = core.session_for_username_password("username", "testpswd")
         b = core.session_for_token(a.token)
         self.assertIdentical(a, b)
-        
+        c = core.session_for_api_key("apiuser", "testkey")
+        d = core.session_for_token(c.token)
+        self.assertIdentical(c, d)
 
 
 
