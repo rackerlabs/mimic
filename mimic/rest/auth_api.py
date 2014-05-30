@@ -75,6 +75,8 @@ class AuthApi(object):
         log.msg(content)
         expires_in = content['RAX-AUTH:impersonation']['expire-in-seconds']
         username = content['RAX-AUTH:impersonation']['user']['username']
+
+        self.core.session_for_impersonation(username, expires_in)
         return json.dumps(get_user_token(expires_in, username))
 
     @app.route('/v2.0/tokens/<string:token_id>/endpoints', methods=['GET'])

@@ -46,7 +46,7 @@ class MimicCore(object):
                     self.uri_prefixes[(endpoint.region, str(uuid4()))] = api
 
 
-    def _new_session(self, **attributes):
+    def _new_session(self, username_key=None, **attributes):
         """
         Create a new session and persist it according to its username and token
         values.
@@ -63,12 +63,15 @@ class MimicCore(object):
         for key in ['username', 'token', 'tenant_id']:
             if key not in attributes:
                 attributes[key] = key + "_" + text_type(uuid4())
-        session = Session(
-            expires=(datetime.utcfromtimestamp(self._clock.seconds())
-                     + timedelta(days=1)),
-            **attributes
-        )
-        self._username_to_token[session.username] = session.token
+        if 'expires' not in attributes:
+            attributes['expires'] = (
+                datetime.utcfromtimestamp(self._clock.seconds())
+                + timedelta(days=1)
+            )
+        session = Session(**attributes)
+        if username_key is None:
+            username_key = session.username
+        self._username_to_token[username_key] = session.token
         self._token_to_session[session.token] = session
         return session
 
@@ -110,6 +113,26 @@ class MimicCore(object):
         if username in self._username_to_token:
             return self._token_to_session[self._username_to_token[username]]
         return self._new_session(username=username)
+
+
+    def session_for_impersonation(self, username, expires_in):
+        """
+        
+        """
+        session = self.session_for_username_password(
+            username, "lucky we don't check passwords, isn't it",
+        )
+        key = ('impersonation', session.username)
+        if key in self._username_to_token:
+            return self._username_to_token[key]
+        subsession = self._new_session(
+            username=username,
+            expires=datetime.utcfromtimestamp(self._clock.seconds() +
+                                              expires_in),
+            tenant_id=session.tenant_id,
+            username_key=key,
+        )
+        return subsession
 
 
     def service_with_region(self, region_name, service_id):

@@ -71,4 +71,24 @@ class SessionCreationTests(SynchronousTestCase):
         self.assertIdentical(c, d)
 
 
+    def test_impersonation(self):
+        """
+        MimicCore.session_for_impersonation will return a session that can be
+        retrieved by token_id but not username.
+        """
+        clock = Clock()
+        core = MimicCore(clock)
+        A_LITTLE = 1234
+        clock.advance(A_LITTLE)
+        A_LOT = 65432
+        a = core.session_for_impersonation("pretender", A_LOT)
+        b = core.session_for_token(a.token)
+        self.assertEqual(a.expires, datetime.utcfromtimestamp(A_LITTLE + A_LOT))
+        self.assertIdentical(a, b)
+        c = core.session_for_username_password("pretender", "not a password")
+        self.assertNotIdentical(a, c)
+        self.assertEqual(a.username, c.username)
+        self.assertEqual(a.tenant_id, c.tenant_id)
+
+
 
