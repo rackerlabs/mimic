@@ -35,6 +35,8 @@ class LoadBalancerApi(object):
             'return_422_on_add_node_count']
 
     def catalog_entries(self, tenant_id):
+        # TODO: actually add some entries so load balancers show up in the
+        # service catalog.
         return []
 
     @app.route('/v2/<string:tenant_id>/loadbalancers', methods=['POST'])
