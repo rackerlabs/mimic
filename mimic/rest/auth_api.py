@@ -5,9 +5,9 @@ Defines get token, impersonation
 
 import json
 from twisted.web.server import Request
-from mimic.canned_responses.auth import (get_token, get_user,
-                                         get_user_token, get_endpoints)
+from mimic.canned_responses.auth import get_token, get_user, get_endpoints
 from mimic.rest.mimicapp import MimicApp
+from mimic.canned_responses.auth import format_timestamp
 from twisted.python import log
 
 Request.defaultContentType = 'application/json'
@@ -62,22 +62,29 @@ class AuthApi(object):
         """
         Returns response with random usernames.
         """
+        # FIXME: TEST
         request.setResponseCode(301)
-        return json.dumps(get_user(tenant_id))
+        # FIXME: implement this
+        session = self.core.session_for_tenant_id(tenant_id)
+        return json.dumps(dict(user=dict(id=session.username)))
 
     @app.route('/v2.0/RAX-AUTH/impersonation-tokens', methods=['POST'])
-    def get_user_token(self, request):
+    def get_impersonation_token(self, request):
         """
         Return a token id with expiration.
         """
+        # FIXME: TEST
         request.setResponseCode(200)
         content = json.loads(request.content.read())
         log.msg(content)
         expires_in = content['RAX-AUTH:impersonation']['expire-in-seconds']
         username = content['RAX-AUTH:impersonation']['user']['username']
 
-        self.core.session_for_impersonation(username, expires_in)
-        return json.dumps(get_user_token(expires_in, username))
+        session = self.core.session_for_impersonation(username, expires_in)
+        return json.dumps({"access": {
+            "token": {"id": session.token,
+                      "expires": format_timestamp(session.expires)}
+        }})
 
     @app.route('/v2.0/tokens/<string:token_id>/endpoints', methods=['GET'])
     def get_service_catalog(self, request, token_id):
@@ -85,5 +92,12 @@ class AuthApi(object):
         Return a service catalog consisting of nova and load balancer mocked
         endpoints.
         """
+        # FIXME: TEST
         request.setResponseCode(200)
-        return json.dumps(get_endpoints(token_id))
+        prefix_map = {}
+        return json.dumps(get_endpoints(
+            token_id,
+            entry_generator=lambda tenant_id: list(
+                self.core.entries_for_tenant(tenant_id, prefix_map)),
+            prefix_for_entry=prefix_map.get)
+        )

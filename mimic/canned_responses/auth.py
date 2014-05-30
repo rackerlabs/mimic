@@ -112,67 +112,6 @@ def get_token(tenant_id,
     }
 
 
-def get_user(tenant_id,
-             auth_store=GLOBAL_MUTABLE_AUTH_STORE):
-    """
-    Canned response for get user.  This adds the tenant_id to the auth_store
-    and returns unique username for the tenant id.
-
-    :param dict auth_store: map of username to a dictionary like
-        ``dict(token=something, tenant_id=something_else)``.  The ``token`` key
-        may or may not exist in this dictionary, depending on whether that user
-        has a currently active authentication token populated by
-        :obj:`get_user_token`.  Calling get_user will populate the
-        ``auth_store`` argument.
-    """
-    username = 'mockuser{0}'.format(str(randrange(999999)))
-    auth_store[username] = {'tenant_id': tenant_id}
-    return {'user': {'id': username}}
-
-
-
-def get_user_token(expires_in, username,
-                   timestamp=format_timestamp,
-                   auth_store=GLOBAL_MUTABLE_AUTH_STORE,
-                   token_store=GLOBAL_MUTABLE_TOKEN_STORE):
-    """
-    Canned response for get user token.  Also, creates a unique token for a
-    given username, and associated that token to the username in auth_store.
-
-    :param dict auth_store: a map of username to dictionary, like the
-        ``auth_store`` parameter to :obj:`get_user`.
-    :param dict token_store: a map of token to tenant_id.
-    """
-    # NOTE: when we start exposing these caches to plugins to allow them to do
-    # interesting things with their own auth storage, we should really make
-    # classes and document them rather than having ad-hoc dictionaries in the
-    # various auth caches.
-
-    # TODO: this should really be called get_impersonated_token or something,
-    # these API results are only useful for impersonation.
-    token = 'mocked-token{0}'.format(str(randrange(9999999)))
-    if username in auth_store:
-        # if 'token' not in auth_store['username']
-        if not auth_store.get('username.token'):
-            auth_store[username]['token'] = token
-    else:
-        auth_store[username] = {
-            'token': token,
-            'tenant_id': '11111',
-        }
-    token_store[token] = auth_store[username]['tenant_id']
-    return {
-        "access": {
-            "token": {
-                "id": auth_store[username]['token'],
-                "expires": format_timestamp(datetime.now() +
-                                            timedelta(seconds=int(expires_in)))
-            }
-        }
-    }
-
-
-
 def get_endpoints(tenant_id, entry_generator=canned_entries,
                   prefix_for_entry=HARD_CODED_PREFIX):
     """
