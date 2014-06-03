@@ -7,6 +7,7 @@ from twisted.web.server import Site
 from twisted.python import usage
 from mimic.core import MimicCore
 from mimic.resource import MimicRoot
+from twisted.internet.task import Clock
 
 
 class Options(usage.Options):
@@ -21,7 +22,7 @@ def makeService(config):
     Set up the otter-api service.
     """
     s = MultiService()
-    core = MimicCore()
+    core = MimicCore(Clock())
     root = MimicRoot(core)
     site = Site(root.app.resource())
     site.displayTracebacks = False
