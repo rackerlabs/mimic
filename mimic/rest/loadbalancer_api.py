@@ -3,6 +3,7 @@ Defines add node and delete node from load balancers
 """
 
 import json
+from uuid import uuid4
 from zope.interface import implementer
 from twisted.web.server import Request
 from mimic.canned_responses.loadbalancer import (
@@ -11,6 +12,8 @@ from mimic.canned_responses.loadbalancer import (
 from mimic.rest.mimicapp import MimicApp
 from mimic.canned_responses.mimic_presets import get_presets
 from mimic.imimic import IAPIMock
+from mimic.catalog import Entry
+from mimic.catalog import Endpoint
 from random import randrange
 
 
@@ -37,7 +40,12 @@ class LoadBalancerApi(object):
     def catalog_entries(self, tenant_id):
         # TODO: actually add some entries so load balancers show up in the
         # service catalog.
-        return []
+        return [
+            Entry(tenant_id, "rax:load-balancer", "cloudLoadBalancers",
+                  [
+                      Endpoint(tenant_id, "ORD", uuid4(), prefix="v2")
+                  ])
+        ]
 
     @app.route('/v2/<string:tenant_id>/loadbalancers', methods=['POST'])
     def add_load_balancer(self, request, tenant_id):
