@@ -9,18 +9,24 @@ class Endpoint(object):
     :ivar str region: The region name for this endpoint.
     :ivar str endpoint_id: The endpoint ID; used only in some auth responses,
         not the basic service catalog.
+    :ivar str prefix: A prefix, usually a version number, for this endpoint.
     """
-    def __init__(self, tenant_id, region, endpoint_id):
+    def __init__(self, tenant_id, region, endpoint_id, prefix=None):
         self.tenant_id = tenant_id
         self.region = region
         self.endpoint_id = endpoint_id
+        self.prefix = prefix
 
     def url_with_prefix(self, uri_prefix):
         if self.tenant_id is None:
             postfix = ''
         else:
             postfix = self.tenant_id
-        return "/".join([uri_prefix.rstrip("/"), postfix])
+        segments = [uri_prefix.rstrip("/")]
+        if self.prefix is not None:
+            segments.append(self.prefix)
+        segments.append(postfix)
+        return "/".join(segments)
 
 
 
