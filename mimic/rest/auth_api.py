@@ -5,7 +5,7 @@ Defines get token, impersonation
 
 import json
 from twisted.web.server import Request
-from mimic.canned_responses.auth import get_token, get_user, get_endpoints
+from mimic.canned_responses.auth import get_token, get_endpoints
 from mimic.rest.mimicapp import MimicApp
 from mimic.canned_responses.auth import format_timestamp
 from twisted.python import log
