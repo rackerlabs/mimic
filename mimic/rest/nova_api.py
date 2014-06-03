@@ -37,7 +37,7 @@ class NovaApi(object):
             Entry(
                 tenant_id, "compute", "cloudServersOpenStack",
                 [
-                    Endpoint(tenant_id, "ORD", uuid4())
+                    Endpoint(tenant_id, "ORD", uuid4(), prefix="v2")
                 ]
             )
         ]
