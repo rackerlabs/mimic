@@ -12,7 +12,13 @@ from uuid import uuid4
 
 @attributes("username token tenant_id expires".split())
 class Session(object):
-    pass
+
+    @property
+    def user_id(self):
+        """
+        Return a unique numeric ID based on the username.
+        """
+        return text_type(hash(self.username))
 
 
 
