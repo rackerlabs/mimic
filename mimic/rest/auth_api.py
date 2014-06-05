@@ -54,6 +54,8 @@ class AuthApi(object):
                  ),
                 prefix_for_entry=lookup,
                 response_token=session.token,
+                response_user_id=session.user_id,
+                response_user_name=session.username,
             )
         )
 
