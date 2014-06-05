@@ -4,3 +4,5 @@
 *.pyc
 dropin.cache
 twistd.pid
+docs/_build
+_tmp

@@ -1,5 +1,5 @@
 klein==0.2.1
-twisted
+twisted==14.0.0
 jsonschema==2.0
 treq==0.2.0
-unittest2==0.5.1
+.
