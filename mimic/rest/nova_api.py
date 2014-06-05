@@ -26,8 +26,6 @@ class NovaApi(object):
     """
     Rest endpoints for mocked Nova Api.
     """
-    app = MimicApp()
-
 
     def catalog_entries(self, tenant_id):
         """
@@ -42,6 +40,26 @@ class NovaApi(object):
             )
         ]
 
+    def resource_for_region(self, uri_prefix):
+        """
+        
+        """
+        return NovaRegion(uri_prefix).app.resource()
+
+
+class NovaRegion(object):
+    """
+    
+    """
+
+    def __init__(self, uri_prefix):
+        """
+        
+        """
+        self.uri_prefix = uri_prefix
+
+    app = MimicApp()
+
     @app.route('/v2/<string:tenant_id>/servers', methods=['POST'])
     def create_server(self, request, tenant_id):
         """
@@ -49,7 +67,8 @@ class NovaApi(object):
         """
         server_id = 'test-server{0}-id-{0}'.format(str(randrange(9999999999)))
         content = json.loads(request.content.read())
-        response_data = create_server(tenant_id, content['server'], server_id)
+        response_data = create_server(tenant_id, content['server'], server_id,
+                                      self.uri_prefix)
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 

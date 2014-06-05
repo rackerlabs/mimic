@@ -30,7 +30,7 @@ class ResponseGenerationTests(TestCase):
         counter = itertools.count(1)
 
         compute_service_uri_prefix = (
-            "http://mimic.example.com/services/region/compute"
+            "http://mimic.example.com/services/region/compute/"
         )
 
         actual = server_template("some_tenant", input_server_info,

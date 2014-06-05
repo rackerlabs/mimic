@@ -25,17 +25,6 @@ class LoadBalancerApi(object):
     """
     Rest endpoints for mocked Load balancer api.
     """
-    app = MimicApp()
-
-    def __init__(self):
-        """
-        Fetches the load balancer id for a failure, invalid scenarios and
-        the count on the number of time 422 should be returned on add node.
-        """
-        self.failing_lb_id = get_presets['loadbalancers']['failing_lb_id']
-        self.invalid_lb = get_presets['loadbalancers']['invalid_lb']
-        self.count = get_presets['loadbalancers'][
-            'return_422_on_add_node_count']
 
     def catalog_entries(self, tenant_id):
         # TODO: actually add some entries so load balancers show up in the
@@ -46,6 +35,32 @@ class LoadBalancerApi(object):
                       Endpoint(tenant_id, "ORD", uuid4(), prefix="v2")
                   ])
         ]
+
+
+    def resource_for_region(self, uri_prefix):
+        """
+        
+        """
+        return LoadBalancerApiResource(uri_prefix)
+
+
+class LoadBalancerApiResource(object):
+    """
+    
+    """
+
+    app = MimicApp()
+
+    def __init__(self, uri_prefix):
+        """
+        Fetches the load balancer id for a failure, invalid scenarios and
+        the count on the number of time 422 should be returned on add node.
+        """
+        self.failing_lb_id = get_presets['loadbalancers']['failing_lb_id']
+        self.invalid_lb = get_presets['loadbalancers']['invalid_lb']
+        self.count = get_presets['loadbalancers'][
+            'return_422_on_add_node_count']
+        self.uri_prefix = uri_prefix
 
     @app.route('/v2/<string:tenant_id>/loadbalancers', methods=['POST'])
     def add_load_balancer(self, request, tenant_id):

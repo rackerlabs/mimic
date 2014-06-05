@@ -9,11 +9,6 @@ class IAPIMock(Interface):
     An :obj:`IAPIMock` provides an API.
     """
 
-    app = Attribute("""
-        Klein app that does URL routing below the prefix where this app is
-        mounted.
-    """)
-
     def catalog_entries(tenant_id):
         """
         Generate some :obj:`mimic.catalog.Entry` objects given the tenant ID.
@@ -22,4 +17,7 @@ class IAPIMock(Interface):
             Mimic.
         """
 
-
+    def resource_for_region(uri_prefix):
+        """
+        
+        """

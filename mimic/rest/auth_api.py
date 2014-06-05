@@ -49,9 +49,7 @@ class AuthApi(object):
             get_token(
                 session.tenant_id,
                 entry_generator=lambda tenant_id:
-                list(self.core.entries_for_tenant(
-                    tenant_id, prefix_map, "http://localhost:8900/service/")
-                 ),
+                list(self.core.entries_for_tenant(tenant_id, prefix_map)),
                 prefix_for_entry=lookup,
                 response_token=session.token,
                 response_user_id=session.user_id,

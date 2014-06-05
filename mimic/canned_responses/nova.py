@@ -1,7 +1,11 @@
+# -*- test-case-name: mimic.test.test_nova -*-
 """
 Canned response for Nova
 """
 from random import randrange
+
+from twisted.python.urlpath import URLPath
+
 from mimic.canned_responses.mimic_presets import get_presets
 from mimic.util.helper import (not_found_response, invalid_resource,
                                current_time_in_utc, set_resource_status)
@@ -21,6 +25,8 @@ def server_template(tenant_id, server_info, server_id, status,
     """
     if current_time is None:
         current_time = current_time_in_utc()
+    def url(suffix):
+        return str(URLPath.fromString(compute_uri_prefix).child(suffix))
     server_template = {
         "OS-DCF:diskConfig": "AUTO",
         "OS-EXT-STS:power_state": 1,
@@ -52,7 +58,7 @@ def server_template(tenant_id, server_info, server_id, status,
             "id": server_info['flavorRef'],
             "links": [
                 {
-                    "href": compute_uri_prefix + "/{0}/flavors/{1}".format(tenant_id,
+                    "href": compute_uri_prefix + "{0}/flavors/{1}".format(tenant_id,
                                                                            server_info[
                                                                                'flavorRef']),
                     "rel": "bookmark"
@@ -65,20 +71,22 @@ def server_template(tenant_id, server_info, server_id, status,
             "id": server_info['imageRef'],
             "links": [
                 {
-                  "href": compute_uri_prefix + "/{0}/images/{1}".format(tenant_id,
-                                                                        server_info[
-                                                                            'imageRef']),
+                  "href": url("{0}/images/{1}".format(
+                      tenant_id, server_info['imageRef']
+                  )),
                   "rel": "bookmark"
                 }
             ]
         },
         "links": [
             {
-                "href": compute_uri_prefix + "/v2/{0}/servers/{1}".format(tenant_id, server_id),
+                "href": url("v2/{0}/servers/{1}".format(
+                    tenant_id, server_id
+                )),
                 "rel": "self"
             },
             {
-                "href": compute_uri_prefix + "/{0}/servers/{1}".format(tenant_id, server_id),
+                "href": url("{0}/servers/{1}".format(tenant_id, server_id)),
                 "rel": "bookmark"
             }
         ],
@@ -93,7 +101,7 @@ def server_template(tenant_id, server_info, server_id, status,
     return server_template
 
 
-def create_server(tenant_id, server_info, server_id):
+def create_server(tenant_id, server_info, server_id, compute_uri_prefix):
     """
     Canned response for create server and adds the server to the server cache.
     """
@@ -110,7 +118,9 @@ def create_server(tenant_id, server_info, server_id):
             status = "ERROR"
 
     s_cache[server_id] = server_template(
-        tenant_id, server_info, server_id, status)
+        tenant_id, server_info, server_id, status,
+        compute_uri_prefix=compute_uri_prefix,
+    )
     return {
         'server': {"OS-DCF:diskConfig": s_cache[server_id]['OS-DCF:diskConfig'],
                    "id": s_cache[server_id]['id'],

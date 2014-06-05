@@ -3,8 +3,11 @@
 from __future__ import unicode_literals
 from characteristic import attributes
 
+from twisted.python.urlpath import URLPath
+
 from mimic.rest.nova_api import NovaApi
 from mimic.rest.loadbalancer_api import LoadBalancerApi
+
 from datetime import datetime, timedelta
 from six import text_type
 
@@ -29,6 +32,11 @@ class MimicCore(object):
     """
 
     def __init__(self, clock):
+
+        # TODO: determine this from metadata about where the listening port
+        # actually is.
+        self._base_uri = "http://localhost:8900/"
+
         self._clock = clock
         self._token_to_session = {
             # mapping of token (unicode) to session (Session)
@@ -140,7 +148,6 @@ class MimicCore(object):
         )
         return subsession
 
-
     def service_with_region(self, region_name, service_id):
         """
         Given the name of a region and a mimic internal service ID, get a
@@ -154,10 +161,19 @@ class MimicCore(object):
         """
         key = (region_name, service_id)
         if key in self.uri_prefixes:
-            return self.uri_prefixes[key].app.resource()
+            return self.uri_prefixes[key].resource_for_region(
+                self.uri_for_service(region_name, service_id)
+            )
+
+    def uri_for_service(self, region, service_id):
+        """
+        Generate a URI prefix for a given region and service ID.
+        """
+        return str(URLPath.fromString(self._base_uri)
+                   .child("service").child(region).child(service_id).child(""))
 
 
-    def entries_for_tenant(self, tenant_id, prefix_map, prefix):
+    def entries_for_tenant(self, tenant_id, prefix_map):
         """
         Get all the :obj:`mimic.catalog.Entry` objects for the given tenant ID.
 
@@ -165,7 +181,5 @@ class MimicCore(object):
         """
         for (region, service_id), api in sorted(self.uri_prefixes.items()):
             for entry in api.catalog_entries(tenant_id):
-                prefix_map[entry] = "/".join([prefix.rstrip("/"),
-                                              region, service_id,
-                                              ""])
+                prefix_map[entry] = self.uri_for_service(region, service_id)
                 yield entry
