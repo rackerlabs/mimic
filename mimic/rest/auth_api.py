@@ -64,7 +64,6 @@ class AuthApi(object):
         """
         # FIXME: TEST
         request.setResponseCode(301)
-        # FIXME: implement this
         session = self.core.session_for_tenant_id(tenant_id)
         return json.dumps(dict(user=dict(id=session.username)))
 
