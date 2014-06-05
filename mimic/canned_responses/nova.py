@@ -10,13 +10,17 @@ import json
 
 server_addresses_cache = {}
 s_cache = {}
-fmt = '%Y-%m-%dT%H:%M:%S.%fZ'
 
 
-def server_template(tenant_id, server_info, server_id, status):
+def server_template(tenant_id, server_info, server_id, status,
+                    current_time=None,
+                    ipsegment=lambda: randrange(255),
+                    compute_uri_prefix="http://localhost:8902/"):
     """
     Template used to create server cache.
     """
+    if current_time is None:
+        current_time = current_time_in_utc()
     server_template = {
         "OS-DCF:diskConfig": "AUTO",
         "OS-EXT-STS:power_state": 1,
@@ -28,13 +32,13 @@ def server_template(tenant_id, server_info, server_id, status):
         "addresses": {
             "private": [
                 {
-                    "addr": "10.180.{0}.{1}".format(randrange(255), randrange(255)),
+                    "addr": "10.180.{0}.{1}".format(ipsegment(), ipsegment()),
                     "version": 4
                 }
             ],
             "public": [
                 {
-                    "addr": "198.101.241.{0}".format(randrange(255)),
+                    "addr": "198.101.241.{0}".format(ipsegment()),
                     "version": 4
                 },
                 {
@@ -43,12 +47,12 @@ def server_template(tenant_id, server_info, server_id, status):
                 }
             ]
         },
-        "created": current_time_in_utc(),
+        "created": current_time,
         "flavor": {
             "id": server_info['flavorRef'],
             "links": [
                 {
-                    "href": "http://localhost:8902/{0}/flavors/{1}".format(tenant_id,
+                    "href": compute_uri_prefix + "/{0}/flavors/{1}".format(tenant_id,
                                                                            server_info[
                                                                                'flavorRef']),
                     "rel": "bookmark"
@@ -61,7 +65,7 @@ def server_template(tenant_id, server_info, server_id, status):
             "id": server_info['imageRef'],
             "links": [
                 {
-                  "href": "http://localhost:8902/{0}/images/{1}".format(tenant_id,
+                  "href": compute_uri_prefix + "/{0}/images/{1}".format(tenant_id,
                                                                         server_info[
                                                                             'imageRef']),
                   "rel": "bookmark"
@@ -70,11 +74,11 @@ def server_template(tenant_id, server_info, server_id, status):
         },
         "links": [
             {
-                "href": "http://localhost:8902/v2/{0}/servers/{1}".format(tenant_id, server_id),
+                "href": compute_uri_prefix + "/v2/{0}/servers/{1}".format(tenant_id, server_id),
                 "rel": "self"
             },
             {
-                "href": "http://localhost:8902/{0}/servers/{1}".format(tenant_id, server_id),
+                "href": compute_uri_prefix + "/{0}/servers/{1}".format(tenant_id, server_id),
                 "rel": "bookmark"
             }
         ],
@@ -83,7 +87,7 @@ def server_template(tenant_id, server_info, server_id, status):
         "progress": 100,
         "status": status,
         "tenant_id": tenant_id,
-        "updated": current_time_in_utc(),
+        "updated": current_time,
         "user_id": "170454"
     }
     return server_template
