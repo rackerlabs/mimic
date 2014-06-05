@@ -6,6 +6,7 @@ import json
 from uuid import uuid4
 from zope.interface import implementer
 from twisted.web.server import Request
+from twisted.plugin import IPlugin
 from mimic.canned_responses.loadbalancer import (
     add_load_balancer, del_load_balancer, list_load_balancers,
     add_node, delete_node, list_nodes)
@@ -20,7 +21,7 @@ from random import randrange
 Request.defaultContentType = 'application/json'
 
 
-@implementer(IAPIMock)
+@implementer(IAPIMock, IPlugin)
 class LoadBalancerApi(object):
     """
     Rest endpoints for mocked Load balancer api.

@@ -10,6 +10,8 @@ from zope.interface import implementer
 
 from twisted.web.server import Request
 
+from twisted.plugin import IPlugin
+
 from mimic.canned_responses.nova import (get_server, list_server, get_limit,
                                          create_server, delete_server,
                                          get_image, get_flavor, list_addresses)
@@ -21,7 +23,7 @@ from mimic.imimic import IAPIMock
 Request.defaultContentType = 'application/json'
 
 
-@implementer(IAPIMock)
+@implementer(IAPIMock, IPlugin)
 class NovaApi(object):
     """
     Rest endpoints for mocked Nova Api.

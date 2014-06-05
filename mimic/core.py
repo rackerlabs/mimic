@@ -4,13 +4,14 @@ from __future__ import unicode_literals
 from characteristic import attributes
 
 from twisted.python.urlpath import URLPath
+from twisted.plugin import getPlugins
+from mimic import plugins
 
-from mimic.rest.nova_api import NovaApi
-from mimic.rest.loadbalancer_api import LoadBalancerApi
 
 from datetime import datetime, timedelta
 from six import text_type
 
+from mimic.imimic import IAPIMock
 from uuid import uuid4
 
 @attributes("username token tenant_id expires".split())
@@ -45,10 +46,7 @@ class MimicCore(object):
             # mapping of token (unicode) to username (unicode: key in
             # _token_to_session)
         }
-        apis = [
-            NovaApi(),
-            LoadBalancerApi(),
-        ]
+        apis = getPlugins(IAPIMock, plugins)
         self.uri_prefixes = {
             # map of (region, service_id) to (somewhat ad-hoc interface) "Api"
             # object.
