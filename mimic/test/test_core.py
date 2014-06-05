@@ -91,4 +91,16 @@ class SessionCreationTests(SynchronousTestCase):
         self.assertEqual(a.tenant_id, c.tenant_id)
 
 
+    def test_session_for_tenant_id(self):
+        """
+        MimicCore.session_for_tenant_id will return a session that can be
+        retrieved by tenant_id.
+        """
+        clock = Clock()
+        core = MimicCore(clock)
+        session = core.session_for_username_password("someuser", "testpass")
+        session2 = core.session_for_tenant_id(session.tenant_id)
+        self.assertIdentical(session, session2)
+
+
 

@@ -42,6 +42,9 @@ class MimicCore(object):
         self._token_to_session = {
             # mapping of token (unicode) to session (Session)
         }
+        self._tenant_to_token = {
+            # mapping of tenant_id (unicode) to token (unicode)
+        }
         self._username_to_token = {
             # mapping of token (unicode) to username (unicode: key in
             # _token_to_session)
@@ -85,6 +88,7 @@ class MimicCore(object):
             username_key = session.username
         self._username_to_token[username_key] = session.token
         self._token_to_session[session.token] = session
+        self._tenant_to_token[session.tenant_id] = session.token
         return session
 
 
@@ -117,7 +121,6 @@ class MimicCore(object):
         # One day, API keys will be different from passwords, but not today.
         return self.session_for_username_password(username, api_key)
 
-
     def session_for_username_password(self, username, password):
         """
         Create or return a :obj:`Session` based on a user's credentials.
@@ -125,7 +128,6 @@ class MimicCore(object):
         if username in self._username_to_token:
             return self._token_to_session[self._username_to_token[username]]
         return self._new_session(username=username)
-
 
     def session_for_impersonation(self, username, expires_in):
         """
@@ -145,6 +147,13 @@ class MimicCore(object):
             username_key=key,
         )
         return subsession
+
+    def session_for_tenant_id(self, tenant_id):
+        """
+        :param unicode tenant_id: The tenant_id of a previously-created
+            session.
+        """
+        return self.session_for_token(self._tenant_to_token[tenant_id])
 
     def service_with_region(self, region_name, service_id):
         """
