@@ -37,7 +37,8 @@ class AuthApi(object):
         # tenant_id = content['auth'].get('tenantName', None)
         credentials = content['auth']['passwordCredentials']
         session = self.core.session_for_username_password(
-            credentials['username'], credentials['password']
+            credentials['username'], credentials['password'],
+            content['auth'].get('tenantName', None),
         )
         request.setResponseCode(200)
         prefix_map = {
