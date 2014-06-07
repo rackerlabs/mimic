@@ -34,7 +34,6 @@ class MimicRoot(object):
         """
         Get the identity ...
         """
-        print("requesting identity")
         return AuthApi(self.core).app.resource()
 
 
@@ -43,7 +42,6 @@ class MimicRoot(object):
         """
         Return the preset values for mimic
         """
-        print("requesting presets")
         request.setResponseCode(200)
         return json.dumps(get_presets)
 
@@ -57,7 +55,6 @@ class MimicRoot(object):
         dynamically-generated UUID for a particular plugin, retrieve the
         resource associated with that service.
         """
-        print("requesting service resource")
         serviceObject = self.core.service_with_region(region_name, service_id)
         return serviceObject
 
