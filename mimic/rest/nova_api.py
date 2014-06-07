@@ -6,6 +6,8 @@ from uuid import uuid4
 import json
 from random import randrange
 
+from six import text_type
+
 from zope.interface import implementer
 
 from twisted.web.server import Request
@@ -37,7 +39,7 @@ class NovaApi(object):
             Entry(
                 tenant_id, "compute", "cloudServersOpenStack",
                 [
-                    Endpoint(tenant_id, "ORD", uuid4(), prefix="v2")
+                    Endpoint(tenant_id, "ORD", text_type(uuid4()), prefix="v2")
                 ]
             )
         ]
