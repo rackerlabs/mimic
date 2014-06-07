@@ -4,6 +4,7 @@ Defines add node and delete node from load balancers
 
 import json
 from uuid import uuid4
+from six import text_type
 from zope.interface import implementer
 from twisted.web.server import Request
 from twisted.plugin import IPlugin
@@ -33,7 +34,8 @@ class LoadBalancerApi(object):
         return [
             Entry(tenant_id, "rax:load-balancer", "cloudLoadBalancers",
                   [
-                      Endpoint(tenant_id, "ORD", uuid4(), prefix="v2")
+                      Endpoint(tenant_id, "ORD", text_type(uuid4()),
+                               prefix="v2")
                   ])
         ]
 
