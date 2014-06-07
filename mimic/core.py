@@ -76,7 +76,7 @@ class MimicCore(object):
         :rtype: :obj:`Session`
         """
         for key in ['username', 'token', 'tenant_id']:
-            if key not in attributes:
+            if attributes.get(key, None) is None:
                 attributes[key] = key + "_" + text_type(uuid4())
         if 'expires' not in attributes:
             attributes['expires'] = (
@@ -121,13 +121,15 @@ class MimicCore(object):
         # One day, API keys will be different from passwords, but not today.
         return self.session_for_username_password(username, api_key)
 
-    def session_for_username_password(self, username, password):
+    def session_for_username_password(self, username, password,
+                                      tenant_id=None):
         """
         Create or return a :obj:`Session` based on a user's credentials.
         """
         if username in self._username_to_token:
             return self._token_to_session[self._username_to_token[username]]
-        return self._new_session(username=username)
+        return self._new_session(username=username,
+                                 tenant_id=tenant_id)
 
     def session_for_impersonation(self, username, expires_in):
         """

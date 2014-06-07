@@ -56,7 +56,6 @@ class SessionCreationTests(SynchronousTestCase):
         self.assertIdentical(a, b)
         self.assertIdentical(a, c)
 
-
     def test_by_token_after_username(self):
         """
         MimicCore.session_for_token should retrieve the same session that was
@@ -69,7 +68,6 @@ class SessionCreationTests(SynchronousTestCase):
         c = core.session_for_api_key("apiuser", "testkey")
         d = core.session_for_token(c.token)
         self.assertIdentical(c, d)
-
 
     def test_impersonation(self):
         """
@@ -90,7 +88,6 @@ class SessionCreationTests(SynchronousTestCase):
         self.assertEqual(a.username, c.username)
         self.assertEqual(a.tenant_id, c.tenant_id)
 
-
     def test_session_for_tenant_id(self):
         """
         MimicCore.session_for_tenant_id will return a session that can be
@@ -102,5 +99,16 @@ class SessionCreationTests(SynchronousTestCase):
         session2 = core.session_for_tenant_id(session.tenant_id)
         self.assertIdentical(session, session2)
 
+    def test_session_for_tenant_id_with_custom_tenant(self):
+        """
+        MimicCore.session_for_tenant_id will return a session that can be
+        retrieved by tenant_id.
+        """
+        clock = Clock()
+        core = MimicCore(clock)
+        session = core.session_for_username_password("someuser", "testpass",
+                                                     "sometenant")
+        session2 = core.session_for_tenant_id("sometenant")
+        self.assertIdentical(session, session2)
 
 
