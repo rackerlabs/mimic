@@ -8,7 +8,6 @@ from twisted.web.server import Request
 from mimic.canned_responses.auth import get_token, get_endpoints
 from mimic.rest.mimicapp import MimicApp
 from mimic.canned_responses.auth import format_timestamp
-from twisted.python import log
 
 Request.defaultContentType = 'application/json'
 
@@ -76,7 +75,6 @@ class AuthApi(object):
         # FIXME: TEST
         request.setResponseCode(200)
         content = json.loads(request.content.read())
-        log.msg(content)
         expires_in = content['RAX-AUTH:impersonation']['expire-in-seconds']
         username = content['RAX-AUTH:impersonation']['user']['username']
 
