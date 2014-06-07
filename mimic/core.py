@@ -131,14 +131,16 @@ class MimicCore(object):
 
     def session_for_impersonation(self, username, expires_in):
         """
-        
+        Create or return a :obj:`Session` impersonating a given user; this
+        session is distinct from the user's normal login session in that it
+        will have an independent token.
         """
         session = self.session_for_username_password(
             username, "lucky we don't check passwords, isn't it",
         )
         key = ('impersonation', session.username)
         if key in self._username_to_token:
-            return self._username_to_token[key]
+            return self._token_to_session[self._username_to_token[key]]
         subsession = self._new_session(
             username=username,
             expires=datetime.utcfromtimestamp(self._clock.seconds() +

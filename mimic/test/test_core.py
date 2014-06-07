@@ -80,6 +80,8 @@ class SessionCreationTests(SynchronousTestCase):
         clock.advance(A_LITTLE)
         A_LOT = 65432
         a = core.session_for_impersonation("pretender", A_LOT)
+        a_prime = core.session_for_impersonation("pretender", A_LOT)
+        self.assertIdentical(a, a_prime)
         b = core.session_for_token(a.token)
         self.assertEqual(a.expires, datetime.utcfromtimestamp(A_LITTLE + A_LOT))
         self.assertIdentical(a, b)
