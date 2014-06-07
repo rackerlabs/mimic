@@ -60,7 +60,6 @@ class MimicCore(object):
                 for endpoint in entry.endpoints:
                     self.uri_prefixes[(endpoint.region, str(uuid4()))] = api
 
-
     def _new_session(self, username_key=None, **attributes):
         """
         Create a new session and persist it according to its username and token
@@ -106,7 +105,6 @@ class MimicCore(object):
         if token in self._token_to_session:
             return self._token_to_session[token]
         return self._new_session(token=token)
-
 
     def session_for_api_key(self, username, api_key):
         """
@@ -180,7 +178,6 @@ class MimicCore(object):
         """
         return str(URLPath.fromString(self._base_uri)
                    .child("service").child(region).child(service_id).child(""))
-
 
     def entries_for_tenant(self, tenant_id, prefix_map):
         """
