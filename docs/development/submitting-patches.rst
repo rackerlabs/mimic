@@ -1,7 +1,11 @@
 Submitting patches
 ==================
 
-* Always make a new branch for your work.
+* If you have access to the `mimic`_ repo, always make a new branch for your
+  work.
+* If you don't have access to the `mimic`_ repo, working on branches in your
+  fork is also nice because that will you can work on more than one PR at a
+  time.
 * Patches should be small to facilitate easier review.
 * New features and significant bug fixes should be documented in the
   :doc:`/changelog`.
@@ -65,7 +69,7 @@ So, specifically:
 * No blank line at the end.
 * Use Sphinx parameter/attribute documentation `syntax`_.
 
-
+.. _`mimic`: https://github.com/rackerlabs/mimic
 .. _`Write comments as complete sentences.`: http://nedbatchelder.com/blog/201401/comments_should_be_sentences.html
 .. _`syntax`: http://sphinx-doc.org/domains.html#info-field-lists
 .. _`doc8`: https://github.com/stackforge/doc8

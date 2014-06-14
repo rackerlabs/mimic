@@ -11,7 +11,7 @@ For example:
 .. code-block:: console
 
     $ # Create a virtualenv and activate it
-    $ pip install --requirement requirements.txt
+$ pip install --requirement dev-requirements.txt
 
 You are now ready to run the tests and build the documentation.
 
@@ -31,7 +31,7 @@ Or
 
 .. code-block:: console
 
-    $ unittest discover
+    $ python -m unittest discover
 
 You can also check test coverage by using the `coverage`_ tool:
 
