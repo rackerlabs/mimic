@@ -1,9 +1,10 @@
 Submitting patches
 ==================
 
-* If you have access to the `mimic`_ repo, always make a new branch for your
-  work.
-* If you don't have access to the `mimic`_ repo, working on branches in your
+* If you have access to the `mimic`_ repository, always make a new branch for
+  your work.
+* If you don't have access to the `mimic`_ repository, working on branches in
+  your
   fork is also nice because that will you can work on more than one PR at a
   time.
 * Patches should be small to facilitate easier review.
@@ -15,11 +16,14 @@ Code
 
 When in doubt, refer to :pep:`8` for Python code (with some exceptions).
 You can check if your code meets our automated requirements by running
-``flake8`` against it:
+``flake8`` against it.  Even better would be to run the ``tox`` job:
 
 .. code-block:: console
 
-    $ flake8 --max-line-length 105 mimic
+    $ tox -e pep8
+    ...
+      pep8: commands succeeded
+      congratulations :)
 
 `Write comments as complete sentences.`_
 
@@ -56,18 +60,30 @@ be written like this:
         :param some_arg: Some argument.
         """
 
-To lint docstrings, run:
-
-.. code-block:: console
-
-    $ pep257 --ignore=D400,D401,D200,D203,D204,D205 mimic
-
 So, specifically:
 
 * Always use three double quotes.
 * Put the three double quotes on their own line.
 * No blank line at the end.
 * Use Sphinx parameter/attribute documentation `syntax`_.
+
+To lint docstrings, run our ``tox`` job to lint docs.  Optionally, we also
+provide a spell-check job for docs:
+
+.. code-block:: console
+
+    $ tox -e docs
+      docs: commands succeeded
+      congratulations :)
+
+    $ tox -e docs-spellcheck
+      docs-spellcheck: commands succeeded
+      congratulations :)
+
+The spell-check can catch jargon or abbreviations - if you are sure it is not
+an error, please add that word to the :file:`spelling_wordlist.txt` in
+alphabetical order.
+
 
 .. _`mimic`: https://github.com/rackerlabs/mimic
 .. _`Write comments as complete sentences.`: http://nedbatchelder.com/blog/201401/comments_should_be_sentences.html

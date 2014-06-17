@@ -6,3 +6,5 @@ dropin.cache
 twistd.pid
 docs/_build
 _tmp
+.tox
+*.egg-info

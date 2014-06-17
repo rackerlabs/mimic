@@ -11,7 +11,7 @@ For example:
 .. code-block:: console
 
     $ # Create a virtualenv and activate it
-$ pip install --requirement dev-requirements.txt
+    $ pip install --requirement dev-requirements.txt
 
 You are now ready to run the tests and build the documentation.
 
@@ -21,7 +21,7 @@ Running tests
 
 ``mimic`` unit tests are found in the ``mimic/test/`` directory.
 They are written as `Twisted`_ tests and can be run either with Twisted's
-`trial`_ or with ``unittest2``:
+`trial`_ or with ``unittest2``.
 
 .. code-block:: console
 
@@ -46,6 +46,19 @@ Or
     $ coverage run -m unittest discover
 
 
+You can also run the tests for other python interpreters.  We use
+`tox`_, which creates a `virtualenv`_ per tox job to run tests, linting, etc.:
+
+.. code-block:: console
+
+    $ tox
+    ...
+     py27: commands succeeded
+     pypy: commands succeeded
+     docs: commands succeeded
+     pep8: commands succeeded
+
+
 Building documentation
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -60,6 +73,12 @@ To build the documentation, run ``sphinx``:
 
 The HTML documentation index can now be found at
 ``docs/_build/html/index.html``.
+
+Alternately, you can use our ``tox`` job:
+
+.. code-block:: console
+
+    $ tox -e docs
 
 .. _`pytest`: https://pypi.python.org/pypi/pytest
 .. _`tox`: https://pypi.python.org/pypi/tox
