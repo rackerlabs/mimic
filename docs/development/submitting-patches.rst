@@ -39,8 +39,16 @@ Tests
 -----
 
 All code changes must be accompanied by unit tests with 100% code coverage (as
-measured by the tool `coverage`_.
+measured by the tool `coverage`_.  To test coverage, use our ``tox`` job:
 
+.. code-block:: console
+
+    $ tox -e cover
+    Name                                   Stmts   Miss  Cover   Missing
+    --------------------------------------------------------------------
+    ...
+      cover: commands succeeded
+      congratulations :)
 
 Documentation
 -------------
