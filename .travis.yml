@@ -15,7 +15,7 @@ before_install:
   - if [ "$TOX_ENV" = 'cover' ]; then pip install coveralls; fi
 
 install:
-  - ./.travis/install.sh
+  - if [ "$TOX_ENV" = 'pypy' ]; then ./.travis/install.sh; fi
 
 script: tox -e $TOX_ENV
 

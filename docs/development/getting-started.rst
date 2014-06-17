@@ -53,6 +53,7 @@ You can also run the tests for other python interpreters.  We use
 
     $ tox
     ...
+     py26: commands succeeded
      py27: commands succeeded
      pypy: commands succeeded
      docs: commands succeeded
