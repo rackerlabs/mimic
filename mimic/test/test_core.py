@@ -100,6 +100,18 @@ class SessionCreationTests(SynchronousTestCase):
         session2 = core.session_for_tenant_id(session.tenant_id)
         self.assertIdentical(session, session2)
 
+    def test_generate_username_from_tenant_id(self):
+        """
+        MimicCore.session_for_tenant_id will create a new session with a
+        synthetic username if no such tenant ID yet exists.
+        """
+        clock = Clock()
+        core = MimicCore(clock)
+        session = core.session_for_tenant_id("user_specified_tenant")
+        session2 = core.session_for_username_password(session.username,
+                                                      "testpass")
+        self.assertIdentical(session, session2)
+
     def test_session_for_tenant_id_with_custom_tenant(self):
         """
         MimicCore.session_for_tenant_id will return a session that can be

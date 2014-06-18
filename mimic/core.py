@@ -165,6 +165,8 @@ class MimicCore(object):
         :param unicode tenant_id: The tenant_id of a previously-created
             session.
         """
+        if tenant_id not in self._tenant_to_token:
+            return self._new_session(tenant_id=tenant_id)
         return self.session_for_token(self._tenant_to_token[tenant_id])
 
     def service_with_region(self, region_name, service_id):
