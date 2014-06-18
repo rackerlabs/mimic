@@ -15,7 +15,8 @@ For example:
 
 You are now ready to run the tests and build the documentation.
 
-Some of the `tox`_ jobs may require certain packages to be installed, so having `homebrew`_ installed would be useful if developing on Mac OS.
+Some of the `tox`_ jobs may require certain packages to be installed, so
+having `homebrew`_ installed would be useful if developing on Mac OS.
 
 
 Running tests
