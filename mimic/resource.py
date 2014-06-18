@@ -9,6 +9,9 @@ from mimic.rest.auth_api import AuthApi
 
 
 class MimicRoot(object):
+    """
+    Klein routes for the root of the mimic URI hierarchy.
+    """
 
     app = MimicApp()
 

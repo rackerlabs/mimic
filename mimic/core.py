@@ -1,5 +1,9 @@
 # -*- test-case-name: mimic.test.test_core -*-
 
+"""
+Service catalog hub and integration for Mimic application objects.
+"""
+
 from __future__ import unicode_literals
 from characteristic import attributes
 
@@ -17,6 +21,10 @@ from uuid import uuid4
 
 @attributes("username token tenant_id expires".split())
 class Session(object):
+    """
+    A mimic Session is a record of an authentication token for a particular
+    username and tenant_id.
+    """
 
     @property
     def user_id(self):
@@ -33,7 +41,10 @@ class MimicCore(object):
     """
 
     def __init__(self, clock):
-
+        """
+        Create a MimicCore with an IReactorTime to do any time-based scheduling
+        against.
+        """
         # TODO: determine this from metadata about where the listening port
         # actually is.
         self._base_uri = "http://localhost:8900/"

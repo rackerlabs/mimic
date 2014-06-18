@@ -29,6 +29,9 @@ class LoadBalancerApi(object):
     """
 
     def catalog_entries(self, tenant_id):
+        """
+        Cloud load balancer entries.
+        """
         # TODO: actually add some entries so load balancers show up in the
         # service catalog.
         return [

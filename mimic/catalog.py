@@ -1,4 +1,9 @@
+"""
+Classes which represent the objects within the service catalog.
+"""
 from uuid import uuid4
+
+__all__ = ("Endpoint", "Entry")
 
 
 class Endpoint(object):
@@ -12,12 +17,18 @@ class Endpoint(object):
     :ivar str prefix: A prefix, usually a version number, for this endpoint.
     """
     def __init__(self, tenant_id, region, endpoint_id, prefix=None):
+        """
+        Create an endpoint for a service catalog entry.
+        """
         self.tenant_id = tenant_id
         self.region = region
         self.endpoint_id = endpoint_id
         self.prefix = prefix
 
     def url_with_prefix(self, uri_prefix):
+        """
+        Generate a URL to this endpoint, given the URI prefix for the service.
+        """
         if self.tenant_id is None:
             postfix = ''
         else:
@@ -38,6 +49,11 @@ class Entry(object):
     :ivar iterable endpoints: Iterable of :obj:`Endpoint` objects.
     """
     def __init__(self, tenant_id, type, name, endpoints):
+        """
+        Create a service catalog entry with the given tenant ID, service type,
+        service name and list of endpoints (represented as :obj:`Endpoint`
+        instances).
+        """
         self.type = type
         self.tenant_id = tenant_id
         self.name = name
@@ -54,9 +70,3 @@ class Entry(object):
             Endpoint(tenant_id, region, str(uuid4()))
             for region in regions
         ])
-
-
-__all__ = [
-    "Endpoint",
-    "Entry",
-]

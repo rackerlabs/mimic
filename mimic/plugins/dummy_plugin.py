@@ -1,3 +1,7 @@
+"""
+This module presents a dummy plugin for Mimic.  It doesn't do anything
+interesting but it should illustrate how you would write a plugin yourself.
+"""
 
 from mimic.imimic import IAPIMock
 from twisted.plugin import IPlugin
@@ -9,7 +13,13 @@ from zope.interface import implementer
 
 @implementer(IAPIMock, IPlugin)
 class DummyPlugin(object):
+    """
+    Sample plugin that implements a dummy service.
+    """
     def catalog_entries(self, tenant_id):
+        """
+        Return an Entry object with a couple of sample Endpoints.
+        """
         if tenant_id is not None:
             modified = "dummy_" + tenant_id
         else:
@@ -19,7 +29,11 @@ class DummyPlugin(object):
             Endpoint(modified, "Mars", "5432", "v3k"),
         ])]
 
-    def resource_for_region(self):
+    def resource_for_region(self, uri_prefix):
+        """
+        Return an IResource provider that just serves static data at its root.
+        """
         return Data("Hello, world!", "text/plain")
 
+# Uncomment this line to activate the plugin above.
 # dummy = DummyPlugin()
