@@ -14,7 +14,7 @@ install:
 script: tox -e $TOX_ENV
 
 after_success:
-    - if [[ "${TOX_ENV:0:2}" == 'py' ]]; then source ~/.venv/bin/activate && coveralls; fi
+    - if [[ "${TOX_ENV:0:2}" == 'py' ]]; then coveralls; fi
 
 notifications:
   irc:
