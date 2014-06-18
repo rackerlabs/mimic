@@ -14,6 +14,7 @@ from six import text_type
 from mimic.imimic import IAPIMock
 from uuid import uuid4
 
+
 @attributes("username token tenant_id expires".split())
 class Session(object):
 
@@ -23,7 +24,6 @@ class Session(object):
         Return a unique numeric ID based on the username.
         """
         return text_type(hash(self.username))
-
 
 
 class MimicCore(object):
@@ -89,7 +89,6 @@ class MimicCore(object):
         self._token_to_session[session.token] = session
         self._tenant_to_token[session.tenant_id] = session.token
         return session
-
 
     def session_for_token(self, token):
         """

@@ -90,7 +90,7 @@ class CatalogGenerationTests(SynchronousTestCase):
                         "expires": "<<<timestamp>>>",
                         "tenant": {
                             "id": tenant_id,
-                            "name": tenant_id, # TODO: parameterize later
+                            "name": tenant_id,  # TODO: parameterize later
                         },
                         "RAX-AUTH:authenticatedBy": [
                             "PASSWORD",
@@ -139,7 +139,6 @@ class CatalogGenerationTests(SynchronousTestCase):
             }
         )
 
-
     def test_endpoints_response(self):
         """
         :func:`get_endpoints` returns JSON-serializable data in the format
@@ -149,6 +148,7 @@ class CatalogGenerationTests(SynchronousTestCase):
         tenant_id = 'abcdefg'
         from itertools import count
         accum = count(1)
+
         def counter():
             return next(accum)
         # Possible TODO for cloudServersOpenStack:
@@ -215,15 +215,16 @@ class APITests(SynchronousTestCase):
         """
         core = MimicCore(Clock())
         api = AuthApi(core)
+
         @attributes(["content"])
         class FakeRequest(object):
             def setResponseCode(self, responsecode):
                 pass
         request = FakeRequest(content=io.BytesIO(json.dumps(
-            {"auth":{
-                "passwordCredentials":{
-                    "username":"demoauthor",
-                    "password":"theUsersPassword"
+            {"auth": {
+                "passwordCredentials": {
+                    "username": "demoauthor",
+                    "password": "theUsersPassword"
                 }
             }}))
         )
@@ -234,4 +235,3 @@ class APITests(SynchronousTestCase):
         session = core.session_for_token(token)
         self.assertEqual(token, session.token)
         self.assertEqual(tenant_id, session.tenant_id)
-

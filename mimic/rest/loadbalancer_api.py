@@ -39,17 +39,19 @@ class LoadBalancerApi(object):
                   ])
         ]
 
-
     def resource_for_region(self, uri_prefix):
         """
-        
+        Get an :obj:`twisted.web.iweb.IResource` for the given URI prefix;
+        implement :obj:`IAPIMock`.
         """
-        return LoadBalancerApiResource(uri_prefix)
+        # NOTE: this is broken, it's wrong, it needs to return .app.resource
+        # and not the routes itself, let's have a test for that.
+        return LoadBalancerApiRoutes(uri_prefix)
 
 
-class LoadBalancerApiResource(object):
+class LoadBalancerApiRoutes(object):
     """
-    
+    Klein routes for load balancer API methods.
     """
 
     app = MimicApp()

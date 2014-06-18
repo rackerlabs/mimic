@@ -7,6 +7,7 @@ from mimic.canned_responses.mimic_presets import get_presets
 from mimic.rest.mimicapp import MimicApp
 from mimic.rest.auth_api import AuthApi
 
+
 class MimicRoot(object):
 
     app = MimicApp()
@@ -18,7 +19,6 @@ class MimicRoot(object):
         """
         self.core = core
 
-
     @app.route("/", methods=["GET"])
     def help(self, request):
         """
@@ -28,14 +28,12 @@ class MimicRoot(object):
         return ("To get started with Mimic, POST an authentication request to:"
                 "\n\n/identity/v2.0/tokens")
 
-
     @app.route("/identity", branch=True)
     def get_auth_api(self, request):
         """
         Get the identity ...
         """
         return AuthApi(self.core).app.resource()
-
 
     @app.route('/mimic/v1.0/presets', methods=['GET'])
     def get_mimic_presets(self, request):
@@ -44,7 +42,6 @@ class MimicRoot(object):
         """
         request.setResponseCode(200)
         return json.dumps(get_presets)
-
 
     @app.route("/service/<string:region_name>/<string:service_id>",
                branch=True)
@@ -57,5 +54,3 @@ class MimicRoot(object):
         """
         serviceObject = self.core.service_with_region(region_name, service_id)
         return serviceObject
-
-

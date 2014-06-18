@@ -25,8 +25,10 @@ def server_template(tenant_id, server_info, server_id, status,
     """
     if current_time is None:
         current_time = current_time_in_utc()
+
     def url(suffix):
         return str(URLPath.fromString(compute_uri_prefix).child(suffix))
+
     server_template = {
         "OS-DCF:diskConfig": "AUTO",
         "OS-EXT-STS:power_state": 1,
@@ -58,9 +60,10 @@ def server_template(tenant_id, server_info, server_id, status,
             "id": server_info['flavorRef'],
             "links": [
                 {
-                    "href": compute_uri_prefix + "{0}/flavors/{1}".format(tenant_id,
-                                                                           server_info[
-                                                                               'flavorRef']),
+                    "href": compute_uri_prefix + "{0}/flavors/{1}".format(
+                        tenant_id,
+                        server_info['flavorRef']
+                    ),
                     "rel": "bookmark"
                 }
             ]
@@ -71,10 +74,10 @@ def server_template(tenant_id, server_info, server_id, status,
             "id": server_info['imageRef'],
             "links": [
                 {
-                  "href": url("{0}/images/{1}".format(
-                      tenant_id, server_info['imageRef']
-                  )),
-                  "rel": "bookmark"
+                    "href": url("{0}/images/{1}".format(
+                        tenant_id, server_info['imageRef']
+                    )),
+                    "rel": "bookmark"
                 }
             ]
         },

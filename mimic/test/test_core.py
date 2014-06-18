@@ -33,7 +33,6 @@ class SessionCreationTests(SynchronousTestCase):
         self.assertNotEqual(session.username, session.token)
         self.assertNotEqual(session.token, session.tenant_id)
 
-
     def test_different_username_different_token(self):
         """
         Sessions are distinct if they are requested with distinct usernames.
@@ -42,7 +41,6 @@ class SessionCreationTests(SynchronousTestCase):
         a = core.session_for_username_password("a", "ignored")
         b = core.session_for_username_password("b", "ignored")
         self.assertNotEqual(a.token, b.token)
-
 
     def test_by_username_after_token(self):
         """
@@ -83,7 +81,8 @@ class SessionCreationTests(SynchronousTestCase):
         a_prime = core.session_for_impersonation("pretender", A_LOT)
         self.assertIdentical(a, a_prime)
         b = core.session_for_token(a.token)
-        self.assertEqual(a.expires, datetime.utcfromtimestamp(A_LITTLE + A_LOT))
+        self.assertEqual(
+            a.expires, datetime.utcfromtimestamp(A_LITTLE + A_LOT))
         self.assertIdentical(a, b)
         c = core.session_for_username_password("pretender", "not a password")
         self.assertNotIdentical(a, c)
@@ -112,5 +111,3 @@ class SessionCreationTests(SynchronousTestCase):
                                                      "sometenant")
         session2 = core.session_for_tenant_id("sometenant")
         self.assertIdentical(session, session2)
-
-

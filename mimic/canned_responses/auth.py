@@ -3,8 +3,8 @@
 Canned response for get auth token
 """
 from datetime import datetime, timedelta
-from random import randrange
 from mimic.catalog import Entry
+
 
 GLOBAL_MUTABLE_AUTH_STORE = {}
 GLOBAL_MUTABLE_TOKEN_STORE = {}
@@ -13,6 +13,7 @@ HARD_CODED_TOKEN = "fff73937db5047b8b12fc9691ea5b9e8"
 HARD_CODED_USER_ID = "10002"
 HARD_CODED_USER_NAME = "autoscaleaus"
 HARD_CODED_ROLES = [{"id": "1", "description": "Admin", "name": "Identity"}]
+
 
 def HARD_CODED_PREFIX(entry):
     """
@@ -29,6 +30,7 @@ def HARD_CODED_PREFIX(entry):
         port=8900 + port_offset_by_service[entry.type]
     )
 
+
 def format_timestamp(dt):
     """
     Format the given timestamp.
@@ -36,7 +38,6 @@ def format_timestamp(dt):
     :param datetime.datetime dt: A datetime.datetime object to be formatted.
     """
     return dt.strftime('%Y-%m-%dT%H:%M:%S.999-05:00')
-
 
 
 def canned_entries(tenant_id):
@@ -51,7 +52,6 @@ def canned_entries(tenant_id):
             tenant_id, "rax:load-balancer", "cloudLoadBalancers", ["ORD"]
         ),
     ]
-
 
 
 def get_token(tenant_id,

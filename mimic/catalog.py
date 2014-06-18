@@ -1,5 +1,5 @@
-
 from uuid import uuid4
+
 
 class Endpoint(object):
     """
@@ -29,7 +29,6 @@ class Endpoint(object):
         return "/".join(segments)
 
 
-
 class Entry(object):
     """
     An :obj:`Entry` is an entry in a service catalog.
@@ -44,7 +43,6 @@ class Entry(object):
         self.name = name
         self.endpoints = endpoints
 
-
     @classmethod
     def with_regions(self, tenant_id, type, name, regions):
         """
@@ -56,7 +54,6 @@ class Entry(object):
             Endpoint(tenant_id, region, str(uuid4()))
             for region in regions
         ])
-
 
 
 __all__ = [

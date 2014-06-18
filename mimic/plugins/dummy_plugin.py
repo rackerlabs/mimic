@@ -6,6 +6,7 @@ from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from zope.interface import implementer
 
+
 @implementer(IAPIMock, IPlugin)
 class DummyPlugin(object):
     def catalog_entries(self, tenant_id):

@@ -6,6 +6,7 @@ from twisted.trial.unittest import TestCase
 
 from mimic.canned_responses.nova import server_template
 
+
 class ResponseGenerationTests(TestCase):
     """
     Tests for Nova response generation.
@@ -56,7 +57,7 @@ class ResponseGenerationTests(TestCase):
                 ],
                 "public": [
                     {
-                    "addr": "198.101.241.3",
+                        "addr": "198.101.241.3",
                         "version": 4
                     },
                     {
@@ -70,33 +71,39 @@ class ResponseGenerationTests(TestCase):
                 "id": "some_flavor",
                 "links": [
                     {
-                        "href": "http://mimic.example.com/services/region/compute/some_tenant/flavors/some_flavor",
+                        "href": ("http://mimic.example.com/services/region/"
+                                 "compute/some_tenant/flavors/some_flavor"),
                         "rel": "bookmark"
                     }
                 ]
             },
-            "hostId": "33ccb6c82f3625748b6f2338f54d8e9df07cc583251e001355569056",
+            "hostId": ("33ccb6c82f3625748b6f2338f54d8e9df07cc583251e001355569"
+                       "056"),
             "id": "some_server_id",
             "image": {
                 "id": "some_image",
                 "links": [
                     {
-                        "href": "http://mimic.example.com/services/region/compute/some_tenant/images/some_image",
+                        "href": "http://mimic.example.com/services/region/"
+                        "compute/some_tenant/images/some_image",
                         "rel": "bookmark"
                     }
                 ]
             },
             "links": [
                 {
-                    "href": "http://mimic.example.com/services/region/compute/v2/some_tenant/servers/some_server_id",
+                    "href": ("http://mimic.example.com/services/region/"
+                             "compute/v2/some_tenant/servers/some_server_id"),
                     "rel": "self"
                 },
                 {
-                    "href": "http://mimic.example.com/services/region/compute/some_tenant/servers/some_server_id",
+                    "href": "http://mimic.example.com/services/region/compute/"
+                    "some_tenant/servers/some_server_id",
                     "rel": "bookmark"
                 }
             ],
-            "metadata": {"some_key": "some_value", "some_other_key": "some_other_value"},
+            "metadata": {"some_key": "some_value",
+                         "some_other_key": "some_other_value"},
             "name": "some_server_name",
             "progress": 100,
             "status": "some_status",
@@ -106,4 +113,3 @@ class ResponseGenerationTests(TestCase):
         }
         self.assertEquals(dump_json(expectation, indent=2),
                           dump_json(actual, indent=2))
-

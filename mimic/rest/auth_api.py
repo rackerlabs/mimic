@@ -43,6 +43,7 @@ class AuthApi(object):
         prefix_map = {
             # map of entry to URI prefix for that entry
         }
+
         def lookup(entry):
             return prefix_map[entry]
         return json.dumps(

@@ -46,19 +46,21 @@ class NovaApi(object):
 
     def resource_for_region(self, uri_prefix):
         """
-        
+        Get an :obj:`twisted.web.iweb.IResource` for the given URI prefix;
+        implement :obj:`IAPIMock`.
         """
         return NovaRegion(uri_prefix).app.resource()
 
 
 class NovaRegion(object):
     """
-    
+    Klein routes for the API within a Cloud Servers region.
     """
 
     def __init__(self, uri_prefix):
         """
-        
+        Create a nova region with a given URI prefix (used for generating URIs
+        to servers).
         """
         self.uri_prefix = uri_prefix
 

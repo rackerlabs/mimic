@@ -2,7 +2,8 @@
 Interfaces for Mimic.
 """
 
-from zope.interface import Interface, Attribute
+from zope.interface import Interface
+
 
 class IAPIMock(Interface):
     """
@@ -19,5 +20,5 @@ class IAPIMock(Interface):
 
     def resource_for_region(uri_prefix):
         """
-        
+        Get a resource for the given region.
         """
