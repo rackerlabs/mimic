@@ -15,6 +15,8 @@ For example:
 
 You are now ready to run the tests and build the documentation.
 
+Some of the `tox`_ jobs may require certain packages to be installed, so having `homebrew`_ installed would be useful if developing on Mac OS.
+
 
 Running tests
 ~~~~~~~~~~~~~
@@ -57,7 +59,7 @@ You can also run the tests for other python interpreters.  We use
      py27: commands succeeded
      pypy: commands succeeded
      docs: commands succeeded
-     pep8: commands succeeded
+     lint: commands succeeded
 
 
 Building documentation
@@ -81,6 +83,8 @@ Alternately, you can use our ``tox`` job:
 
     $ tox -e docs
 
+
+.. _`homebrew`: http://brew.sh/
 .. _`pytest`: https://pypi.python.org/pypi/pytest
 .. _`tox`: https://pypi.python.org/pypi/tox
 .. _`virtualenv`: https://pypi.python.org/pypi/virtualenv

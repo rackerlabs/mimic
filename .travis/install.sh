@@ -26,4 +26,4 @@ if [[ "${TOX_ENV}" == "docs-spellcheck" ]]; then
     fi
 fi
 
-pip install tox
+pip install tox coveralls

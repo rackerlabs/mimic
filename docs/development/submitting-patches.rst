@@ -20,9 +20,9 @@ You can check if your code meets our automated requirements by running
 
 .. code-block:: console
 
-    $ tox -e pep8
+    $ tox -e lint
     ...
-      pep8: commands succeeded
+      lint: commands succeeded
       congratulations :)
 
 `Write comments as complete sentences.`_
@@ -54,7 +54,25 @@ Documentation
 -------------
 
 All features should be documented with prose in the ``docs`` section.
-To ensure it builds and passes style checks you can run `doc8`_ against it.
+To ensure it builds and passes style checks you can run `doc8`_ against it or
+run our ``tox`` job to lint docs.  We also provide a spell-check job for docs:
+
+.. code-block:: console
+
+    $ tox -e docs
+      docs: commands succeeded
+      congratulations :)
+
+    $ tox -e docs-spellcheck
+      docs-spellcheck: commands succeeded
+      congratulations :)
+
+The spell-check can catch jargon or abbreviations - if you are sure it is not
+an error, please add that word to the :file:`spelling_wordlist.txt` in
+alphabetical order.
+
+Docstrings
+==========
 
 Docstrings generally follow `pep257`_, with a few exceptions.  They should
 be written like this:
@@ -75,22 +93,14 @@ So, specifically:
 * No blank line at the end.
 * Use Sphinx parameter/attribute documentation `syntax`_.
 
-To lint docstrings, run our ``tox`` job to lint docs.  Optionally, we also
-provide a spell-check job for docs:
+The same job that lints code also lints docstrings:
 
 .. code-block:: console
 
-    $ tox -e docs
-      docs: commands succeeded
+    $ tox -e lint
+    ...
+      lint: commands succeeded
       congratulations :)
-
-    $ tox -e docs-spellcheck
-      docs-spellcheck: commands succeeded
-      congratulations :)
-
-The spell-check can catch jargon or abbreviations - if you are sure it is not
-an error, please add that word to the :file:`spelling_wordlist.txt` in
-alphabetical order.
 
 
 .. _`mimic`: https://github.com/rackerlabs/mimic
