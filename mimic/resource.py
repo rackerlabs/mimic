@@ -3,6 +3,9 @@ Resources for Mimic's core.
 """
 
 import json
+
+from twisted.web.resource import NoResource
+
 from mimic.canned_responses.mimic_presets import get_presets
 from mimic.rest.mimicapp import MimicApp
 from mimic.rest.auth_api import AuthApi
@@ -56,4 +59,7 @@ class MimicRoot(object):
         resource associated with that service.
         """
         serviceObject = self.core.service_with_region(region_name, service_id)
+        if serviceObject is None:
+            # workaround for https://github.com/twisted/klein/issues/56
+            return NoResource()
         return serviceObject
