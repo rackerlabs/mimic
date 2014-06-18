@@ -93,7 +93,7 @@ def server_template(tenant_id, server_info, server_id, status,
                 "rel": "bookmark"
             }
         ],
-        "metadata": server_info.get('metadata'),
+        "metadata": server_info.get('metadata') or {},
         "name": server_info['name'],
         "progress": 100,
         "status": status,
