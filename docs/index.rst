@@ -1,14 +1,17 @@
 Welcome to Mimic's documentation!
 =================================
 
-Mimic is an API-compatible mock service for `Openstack Compute`_ and Rackspace's implementation of `Identity`_ and `Cloud Load Balancers`_. It is backed by in-memory data structure rather than a potentially expensive database.
+Mimic is an API-compatible mock service for `Openstack Compute`_ and
+Rackspace's implementation of `Identity`_ and `Cloud Load Balancers`_. It is
+backed by in-memory data structure rather than a potentially expensive
+database.
 
 Mimic helps with:
 
 * fast set-up
 * instant response
 * cost efficient
-* enables offline developmenet
+* enables offline development
 * enables ability to test unusual behaviors/errors of an api
 * acts as a central repository for mocked responses from services
 

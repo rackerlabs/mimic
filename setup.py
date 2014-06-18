@@ -9,7 +9,6 @@ setup(
     version='0.0.0',
     description='An API-compatible mock service',
     packages=find_packages(exclude=[]),
-    package_data={'': ['LICENSE']},
     package_dir={'mimic': 'mimic'},
     install_requires=[
         "characteristic==0.1.0",
@@ -20,5 +19,5 @@ setup(
         "six",
     ],
     include_package_data=True,
-    license=open('LICENSE').read()
+    license="Apache License, Version 2.0"
 )

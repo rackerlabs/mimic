@@ -4,4 +4,3 @@ jsonschema==2.0
 treq==0.2.0
 characteristic==0.1.0
 six==1.6.1
-.
