@@ -94,8 +94,9 @@ class AuthApi(object):
         # FIXME: TEST
         request.setResponseCode(200)
         prefix_map = {}
+        session = self.core.session_for_token(token_id)
         return json.dumps(get_endpoints(
-            token_id,
+            session.tenant_id,
             entry_generator=lambda tenant_id: list(
                 self.core.entries_for_tenant(tenant_id, prefix_map)),
             prefix_for_entry=prefix_map.get)
