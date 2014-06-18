@@ -1,6 +1,4 @@
 language: python
-python:
-  - "2.7"
 
 env:
   - TOX_ENV=pep8
@@ -12,11 +10,10 @@ env:
   - TOX_ENV=docs-spellcheck
 
 before_install:
-  - pip install tox
   - if [ "$TOX_ENV" = 'cover' ]; then pip install coveralls; fi
 
 install:
-  - if [ "$TOX_ENV" = 'pypy' ]; then ./.travis/install.sh; fi
+  - ./.travis/install.sh
 
 script: tox -e $TOX_ENV
 

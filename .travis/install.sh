@@ -16,4 +16,14 @@ if [[ "${TOX_ENV}" == "pypy"* ]]; then
     sudo rm -rf /usr/local/pypy/bin
 fi
 
+if [[ "${TOX_ENV}" == "docs-spellcheck" ]]; then
+    if [[ "$DARWIN" = true ]]; then
+        brew update
+        brew install enchant
+    else
+        sudo apt-get -y update
+        sudo apt-get install libenchant-dev
+    fi
+fi
+
 pip install tox
