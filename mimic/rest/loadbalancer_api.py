@@ -47,9 +47,8 @@ class LoadBalancerApi(object):
         Get an :obj:`twisted.web.iweb.IResource` for the given URI prefix;
         implement :obj:`IAPIMock`.
         """
-        # NOTE: this is broken, it's wrong, it needs to return .app.resource
-        # and not the routes itself, let's have a test for that.
-        return LoadBalancerApiRoutes(uri_prefix)
+        # TODO: unit test
+        return LoadBalancerApiRoutes(uri_prefix).app.resource()
 
 
 class LoadBalancerApiRoutes(object):
