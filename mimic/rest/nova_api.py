@@ -1,21 +1,69 @@
 """
 Defines create, delete, get, list servers and get images and flavors.
 """
+
+from uuid import uuid4
 import json
 from random import randrange
+
+from six import text_type
+
+from zope.interface import implementer
+
 from twisted.web.server import Request
+
+from twisted.plugin import IPlugin
+
 from mimic.canned_responses.nova import (get_server, list_server, get_limit,
                                          create_server, delete_server,
                                          get_image, get_flavor, list_addresses)
 from mimic.rest.mimicapp import MimicApp
+from mimic.catalog import Entry
+from mimic.catalog import Endpoint
+from mimic.imimic import IAPIMock
 
 Request.defaultContentType = 'application/json'
 
 
-class NovaApi():
+@implementer(IAPIMock, IPlugin)
+class NovaApi(object):
     """
     Rest endpoints for mocked Nova Api.
     """
+
+    def catalog_entries(self, tenant_id):
+        """
+        List catalog entries for the Nova API.
+        """
+        return [
+            Entry(
+                tenant_id, "compute", "cloudServersOpenStack",
+                [
+                    Endpoint(tenant_id, "ORD", text_type(uuid4()), prefix="v2")
+                ]
+            )
+        ]
+
+    def resource_for_region(self, uri_prefix):
+        """
+        Get an :obj:`twisted.web.iweb.IResource` for the given URI prefix;
+        implement :obj:`IAPIMock`.
+        """
+        return NovaRegion(uri_prefix).app.resource()
+
+
+class NovaRegion(object):
+    """
+    Klein routes for the API within a Cloud Servers region.
+    """
+
+    def __init__(self, uri_prefix):
+        """
+        Create a nova region with a given URI prefix (used for generating URIs
+        to servers).
+        """
+        self.uri_prefix = uri_prefix
+
     app = MimicApp()
 
     @app.route('/v2/<string:tenant_id>/servers', methods=['POST'])
@@ -25,7 +73,8 @@ class NovaApi():
         """
         server_id = 'test-server{0}-id-{0}'.format(str(randrange(9999999999)))
         content = json.loads(request.content.read())
-        response_data = create_server(tenant_id, content['server'], server_id)
+        response_data = create_server(tenant_id, content['server'], server_id,
+                                      self.uri_prefix)
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 

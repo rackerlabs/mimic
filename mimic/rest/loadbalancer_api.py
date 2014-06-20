@@ -3,26 +3,62 @@ Defines add node and delete node from load balancers
 """
 
 import json
+from uuid import uuid4
+from six import text_type
+from zope.interface import implementer
 from twisted.web.server import Request
+from twisted.plugin import IPlugin
 from mimic.canned_responses.loadbalancer import (
     add_load_balancer, del_load_balancer, list_load_balancers,
     add_node, delete_node, list_nodes)
 from mimic.rest.mimicapp import MimicApp
 from mimic.canned_responses.mimic_presets import get_presets
+from mimic.imimic import IAPIMock
+from mimic.catalog import Entry
+from mimic.catalog import Endpoint
 from random import randrange
 
 
 Request.defaultContentType = 'application/json'
 
 
+@implementer(IAPIMock, IPlugin)
 class LoadBalancerApi(object):
-
     """
     Rest endpoints for mocked Load balancer api.
     """
+
+    def catalog_entries(self, tenant_id):
+        """
+        Cloud load balancer entries.
+        """
+        # TODO: actually add some entries so load balancers show up in the
+        # service catalog.
+        return [
+            Entry(tenant_id, "rax:load-balancer", "cloudLoadBalancers",
+                  [
+                      Endpoint(tenant_id, "ORD", text_type(uuid4()),
+                               prefix="v2")
+                  ])
+        ]
+
+    def resource_for_region(self, uri_prefix):
+        """
+        Get an :obj:`twisted.web.iweb.IResource` for the given URI prefix;
+        implement :obj:`IAPIMock`.
+        """
+        # TODO: unit test
+        return LoadBalancerApiRoutes(uri_prefix).app.resource()
+
+
+class LoadBalancerApiRoutes(object):
+    """
+    Klein routes for load balancer API methods.
+    """
+
     app = MimicApp()
 
-    def __init__(self):
+    def __init__(self, uri_prefix):
         """
         Fetches the load balancer id for a failure, invalid scenarios and
         the count on the number of time 422 should be returned on add node.
@@ -31,6 +67,7 @@ class LoadBalancerApi(object):
         self.invalid_lb = get_presets['loadbalancers']['invalid_lb']
         self.count = get_presets['loadbalancers'][
             'return_422_on_add_node_count']
+        self.uri_prefix = uri_prefix
 
     @app.route('/v2/<string:tenant_id>/loadbalancers', methods=['POST'])
     def add_load_balancer(self, request, tenant_id):
