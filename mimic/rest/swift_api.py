@@ -9,6 +9,7 @@ from characteristic import attributes
 
 from mimic.imimic import IAPIMock
 from twisted.plugin import IPlugin
+from twisted.web.http import CREATED, ACCEPTED, NO_CONTENT, OK
 
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
@@ -109,5 +110,18 @@ class SwiftTenantInRegion(object):
         """
         if container_name not in self.containers:
             self.containers[container_name] = Container()
-        return b''
+            request.setResponseCode(CREATED)
+        else:
+            request.setResponseCode(ACCEPTED)
+        return b""
+
+
+    @app.route("/<string:container_name>", methods=["GET"])
+    def get_container(self, request, container_name):
+        """
+        
+        """
+        request.setRawHeaders("content-type", ["application/json"])
+        request.setResponseCode(OK)
+        return dumps([])
 
