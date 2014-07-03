@@ -85,7 +85,8 @@ class SwiftRegion(object):
         """
         key = (self.uri_prefix, tenant_id)
         if key not in self.tenants_in_regions:
-            return SwiftTenantInRegion(tenant_id).app.resource()
+            self.tenants_in_regions[tenant_id] = (
+                SwiftTenantInRegion(tenant_id).app.resource())
         return self.tenants_in_regions[tenant_id]
 
 

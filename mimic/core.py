@@ -182,7 +182,8 @@ class MimicCore(object):
         """
         key = (region_name, service_id)
         if key in self.uri_prefixes:
-            return self.uri_prefixes[key].resource_for_region(
+            api_plugin = self.uri_prefixes[key]
+            return api_plugin.resource_for_region(
                 self.uri_for_service(region_name, service_id)
             )
 
