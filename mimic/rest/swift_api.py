@@ -28,7 +28,7 @@ def normal_tenant_id_to_crazy_mosso_id(normal_tenant_id):
     :rtype: str
     """
     return (
-        b"MossoCloudFS_" +
+        "MossoCloudFS_" +
         str(uuid5(NAMESPACE_URL,
                   b"https://github.com/rackerlabs/mimic/ns/tenant/"
                   + normal_tenant_id.encode("utf-8")))
