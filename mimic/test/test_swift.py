@@ -32,10 +32,11 @@ class SwiftTests(SynchronousTestCase):
                         "username": "test1",
                         "password": "test1password",
                     },
-                                   # TODO: should this really be 'tenantId'?
+                    # TODO: should this really be 'tenantId'?
                     "tenantName": "fun_tenant",
                 }
-        }))
+            })
+        )
         self.auth_response = self.successResultOf(self.response)
         self.json_body = self.successResultOf(
             treq.json_content(self.auth_response))
@@ -70,4 +71,3 @@ class SwiftTests(SynchronousTestCase):
             self.successResultOf(treq.content(create_container_response)),
             b"",
         )
-

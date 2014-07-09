@@ -97,6 +97,7 @@ class SwiftRegion(object):
                 SwiftTenantInRegion().app.resource())
         return self.tenants_in_regions[tenant_id]
 
+
 @attributes("name".split())
 class Container(object):
     """
