@@ -1,7 +1,8 @@
 Documentation Documentation
 ===========================
 
-Here are some things we're going to document and how we're going to document them.
+Here are some things we're going to document and how we're going to document
+them.
 
 There should be a document describing how to write your own API mock plugin.
 
