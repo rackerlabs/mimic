@@ -21,7 +21,7 @@ class SessionCreationTests(SynchronousTestCase):
         such session exists for the given username).
         """
         clock = Clock()
-        core = MimicCore(clock)
+        core = MimicCore(clock, [])
         clock.advance(4321)
         session = core.session_for_username_password("example_user",
                                                      "password")
@@ -37,7 +37,7 @@ class SessionCreationTests(SynchronousTestCase):
         """
         Sessions are distinct if they are requested with distinct usernames.
         """
-        core = MimicCore(Clock())
+        core = MimicCore(Clock(), [])
         a = core.session_for_username_password("a", "ignored")
         b = core.session_for_username_password("b", "ignored")
         self.assertNotEqual(a.token, b.token)
@@ -47,7 +47,7 @@ class SessionCreationTests(SynchronousTestCase):
         MimicCore.session_for_username_password should retrieve the same
         session that was created by MimicCore.session_for_token.
         """
-        core = MimicCore(Clock())
+        core = MimicCore(Clock(), [])
         a = core.session_for_token("testtoken")
         b = core.session_for_username_password(a.username, "testpswd")
         c = core.session_for_api_key(a.username, "testapikey")
@@ -59,7 +59,7 @@ class SessionCreationTests(SynchronousTestCase):
         MimicCore.session_for_token should retrieve the same session that was
         created by MimicCore.session_for_username_password.
         """
-        core = MimicCore(Clock())
+        core = MimicCore(Clock(), [])
         a = core.session_for_username_password("username", "testpswd")
         b = core.session_for_token(a.token)
         self.assertIdentical(a, b)
@@ -73,7 +73,7 @@ class SessionCreationTests(SynchronousTestCase):
         retrieved by token_id but not username.
         """
         clock = Clock()
-        core = MimicCore(clock)
+        core = MimicCore(clock, [])
         A_LITTLE = 1234
         clock.advance(A_LITTLE)
         A_LOT = 65432
@@ -95,7 +95,7 @@ class SessionCreationTests(SynchronousTestCase):
         retrieved by tenant_id.
         """
         clock = Clock()
-        core = MimicCore(clock)
+        core = MimicCore(clock, [])
         session = core.session_for_username_password("someuser", "testpass")
         session2 = core.session_for_tenant_id(session.tenant_id)
         self.assertIdentical(session, session2)
@@ -106,7 +106,7 @@ class SessionCreationTests(SynchronousTestCase):
         synthetic username if no such tenant ID yet exists.
         """
         clock = Clock()
-        core = MimicCore(clock)
+        core = MimicCore(clock, [])
         session = core.session_for_tenant_id("user_specified_tenant")
         session2 = core.session_for_username_password(session.username,
                                                       "testpass")
@@ -118,7 +118,7 @@ class SessionCreationTests(SynchronousTestCase):
         retrieved by tenant_id.
         """
         clock = Clock()
-        core = MimicCore(clock)
+        core = MimicCore(clock, [])
         session = core.session_for_username_password("someuser", "testpass",
                                                      "sometenant")
         session2 = core.session_for_tenant_id("sometenant")

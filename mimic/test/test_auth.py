@@ -45,7 +45,7 @@ class ExampleCatalogEntry(object):
         self.name = name
         self.type = "compute"
         self.path_prefix = "/v2/"
-        self.endpoints = [ExampleCatalogEndpoint(tenant_id, n+1, idgen())
+        self.endpoints = [ExampleCatalogEndpoint(tenant_id, n + 1, idgen())
                           for n in range(endpoint_count)]
 
 
@@ -208,11 +208,11 @@ class APITests(SynchronousTestCase):
 
     def test_token_has_token(self):
         """
-        ``/identity/v2.0/tokens``) returns a JSON response with an
+        ``/identity/v2.0/tokens`` returns a JSON response with an
         access.token.id key corresponding to its MimicCore session, and
         therefore access.token.tenant.id should match that session's tenant_id.
         """
-        core = MimicCore(Clock())
+        core = MimicCore(Clock(), [])
         root = MimicRoot(core).app.resource()
 
         response = request(
@@ -223,6 +223,7 @@ class APITests(SynchronousTestCase):
                         "username": "demoauthor",
                         "password": "theUsersPassword"
                     }
+
                 }
             })
         )
