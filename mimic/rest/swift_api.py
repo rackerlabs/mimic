@@ -69,7 +69,7 @@ class SwiftMock(object):
         """
         Return an IResource implementing a public Swift region endpoint.
         """
-        return SwiftRegion(uri_prefix).app.resource()
+        return SwiftRegion(uri_prefix=uri_prefix).app.resource()
 
 
 @attributes("uri_prefix".split())
@@ -94,9 +94,8 @@ class SwiftRegion(object):
         key = (self.uri_prefix, tenant_id)
         if key not in self.tenants_in_regions:
             self.tenants_in_regions[tenant_id] = (
-                SwiftTenantInRegion(tenant_id).app.resource())
+                SwiftTenantInRegion().app.resource())
         return self.tenants_in_regions[tenant_id]
-
 
 @attributes("name".split())
 class Container(object):
@@ -129,7 +128,7 @@ class SwiftTenantInRegion(object):
         created, else returns 202.
         """
         if container_name not in self.containers:
-            self.containers[container_name] = Container()
+            self.containers[container_name] = Container(name=container_name)
             request.setResponseCode(CREATED)
         else:
             request.setResponseCode(ACCEPTED)
