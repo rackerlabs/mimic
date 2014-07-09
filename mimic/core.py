@@ -40,10 +40,17 @@ class MimicCore(object):
     mocks.
     """
 
-    def __init__(self, clock):
+    def __init__(self, clock, apis):
         """
         Create a MimicCore with an IReactorTime to do any time-based scheduling
         against.
+
+        :param clock: an IReactorTime which will be used for session timeouts
+            and determining timestamps.
+        :type clock: :obj:`twisted.internet.interfaces.IReactorTime`
+
+        :param apis: an iterable of all :obj:`IAPIMock`s that this MimicCore
+            will expose.
         """
         # TODO: determine this from metadata about where the listening port
         # actually is.
@@ -60,7 +67,6 @@ class MimicCore(object):
             # mapping of token (unicode) to username (unicode: key in
             # _token_to_session)
         }
-        apis = getPlugins(IAPIMock, plugins)
         self.uri_prefixes = {
             # map of (region, service_id) to (somewhat ad-hoc interface) "Api"
             # object.
@@ -70,6 +76,13 @@ class MimicCore(object):
             for entry in entries:
                 for endpoint in entry.endpoints:
                     self.uri_prefixes[(endpoint.region, str(uuid4()))] = api
+
+    @classmethod
+    def fromPlugins(cls, clock):
+        """
+        Create a :obj:`MimicCore` from all :obj:`IAPIMock` plugins.
+        """
+        return cls(clock, list(getPlugins(IAPIMock, plugins)))
 
     def _new_session(self, username_key=None, **attributes):
         """

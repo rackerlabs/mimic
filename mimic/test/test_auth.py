@@ -213,7 +213,7 @@ class APITests(SynchronousTestCase):
         access.token.id key corresponding to its MimicCore session, and
         therefore access.token.tenant.id should match that session's tenant_id.
         """
-        core = MimicCore(Clock())
+        core = MimicCore(Clock(), [])
         api = AuthApi(core)
 
         @attributes(["content"])

@@ -22,7 +22,7 @@ def makeService(config):
     Set up the otter-api service.
     """
     s = MultiService()
-    core = MimicCore(Clock())
+    core = MimicCore.fromPlugins(Clock())
     root = MimicRoot(core)
     site = Site(root.app.resource())
     site.displayTracebacks = False
