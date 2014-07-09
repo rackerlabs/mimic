@@ -53,7 +53,7 @@ class SwiftMock(object):
 
     def catalog_entries(self, tenant_id):
         """
-        Catalog entry for
+        Catalog entry for Swift endpoints.
         """
         if tenant_id is not None:
             modified = self.translate_tenant(tenant_id)
