@@ -1,31 +1,39 @@
 """
-API mock for OpenStack Swift / Rackspace Cloud Files™.
+API mock for OpenStack Swift / Rackspace Cloud Files.
 """
 
-from uuid import uuid4, uuid5
+from uuid import uuid4, uuid5, NAMESPACE_URL
 from six import text_type
 
 from characteristic import attributes
+from json import dumps
 
 from mimic.imimic import IAPIMock
 from twisted.plugin import IPlugin
-from twisted.web.http import CREATED, ACCEPTED, NO_CONTENT, OK
+from twisted.web.http import CREATED, ACCEPTED, OK
 
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.rest.mimicapp import MimicApp
 from zope.interface import implementer
 
+
 def normal_tenant_id_to_crazy_mosso_id(normal_tenant_id):
     """
     Convert the tenant ID used by basically everything else (keystone, nova,
     loadbalancers, and so on) into the somewhat peculiar tenant ID used by
     Cloud Files, for maximum realism.
+
+    :return: a new tenant ID that looks like a Cloud Files tenant ID
+    :rtype: str
     """
     return (
-        "MossoCloudFS_" +
-        str(uuid5("urn:whatever:openstack:swift:tenant", normal_tenant_id))
+        b"MossoCloudFS_" +
+        str(uuid5(NAMESPACE_URL,
+                  b"https://github.com/rackerlabs/mimic/ns/tenant/"
+                  + normal_tenant_id.encode("utf-8")))
     )
+
 
 @implementer(IAPIMock, IPlugin)
 class SwiftMock(object):
@@ -64,7 +72,7 @@ class SwiftMock(object):
         return SwiftRegion(uri_prefix).app.resource()
 
 
-@attributes("uri_prefix")
+@attributes("uri_prefix".split())
 class SwiftRegion(object):
     """
     :obj:`SwiftRegion` is a set of klein routes and application representing a
@@ -90,24 +98,35 @@ class SwiftRegion(object):
         return self.tenants_in_regions[tenant_id]
 
 
+@attributes("name".split())
+class Container(object):
+    """
+    Create a container object.
+    """
+
+
 class SwiftTenantInRegion(object):
     """
-    
+    A :obj:`SwiftTenantInRegion` represents a single tenant and their
+    associated storage resources within one region.
     """
+    # TODO: The lifecycle of this object is wrong, we need to store it on a
+    # session of some kind so that created containers will persist beyond the
+    # individual HTTP request where they're created.
 
     app = MimicApp()
 
-    def __init__(self, ):
+    def __init__(self):
         """
-        
+        Initialize a tenant with some containers.
         """
         self.containers = {}
-
 
     @app.route("/<string:container_name>", methods=["PUT"])
     def create_container(self, request, container_name):
         """
-        
+        Api call to create and save container.  HTTP status code of 201 if
+        created, else returns 202.
         """
         if container_name not in self.containers:
             self.containers[container_name] = Container()
@@ -116,13 +135,12 @@ class SwiftTenantInRegion(object):
             request.setResponseCode(ACCEPTED)
         return b""
 
-
     @app.route("/<string:container_name>", methods=["GET"])
     def get_container(self, request, container_name):
         """
-        
+        Api call to get a container, given the name of the container.  HTTP
+        status code of 200 when such a container exists, 404 if not.
         """
         request.setRawHeaders("content-type", ["application/json"])
         request.setResponseCode(OK)
         return dumps([])
-
