@@ -24,6 +24,12 @@ if [[ "${TOX_ENV}" == "docs-spellcheck" ]]; then
         sudo apt-get -y update
         sudo apt-get install libenchant-dev
     fi
+    cat <<EOF > ~/.aspell.en.pws
+personal_ws-1.1 en 3 UTF-8
+plugin
+serializer
+lifecycle
+EOF
 fi
 
 pip install tox coveralls
