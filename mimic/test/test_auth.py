@@ -15,7 +15,7 @@ from mimic.canned_responses.auth import (
 )
 
 
-class ExampleCatalogEndpoint:
+class ExampleCatalogEndpoint(object):
     def __init__(self, tenant, num, endpoint_id):
         self._tenant = tenant
         self._num = num
