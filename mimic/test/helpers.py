@@ -14,6 +14,7 @@ from twisted.internet.defer import succeed
 from twisted.web.client import Agent
 from twisted.web.server import Site
 from twisted.web.iweb import IBodyProducer
+from twisted.python.urlpath import URLPath
 
 from twisted.python.failure import Failure
 
@@ -40,7 +41,6 @@ class RequestTraversalAgent(object):
         """
         Implement IAgent.request.
         """
-        print('uri?', repr(uri))
         # We want to use Agent to parse the HTTP response, so let's ask it to
         # make a request against our in-memory reactor.
         response = self._realAgent.request(method, uri, headers, bodyProducer)
@@ -120,13 +120,15 @@ class SynchronousProducer(object):
         """
 
 
-def request(testCase, rootResource, method, path, body=b"",
-            scheme="http", host="localhost"):
+def request(testCase, rootResource, method, uri, body=b"",
+            baseURI='http://localhost:8900/'):
     """
     Issue a request and return a synchronous response.
     """
+    # allow for relative or absolute URIs, since we're going to the same
+    # resource no matter what
     return (
         RequestTraversalAgent(testCase, rootResource)
-        .request(method, scheme + "://" + host + path,
+        .request(method, str(URLPath.fromString(baseURI).click(uri)),
                  bodyProducer=SynchronousProducer(body))
     )
