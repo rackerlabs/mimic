@@ -1,18 +1,18 @@
-
-import io
 import json
+
+import treq
 
 from twisted.trial.unittest import SynchronousTestCase
 from twisted.internet.task import Clock
-from characteristic import attributes
 
 from mimic.core import MimicCore
-from mimic.rest.auth_api import AuthApi
+from mimic.resource import MimicRoot
 from mimic.canned_responses.auth import (
     get_token, HARD_CODED_TOKEN, HARD_CODED_USER_ID,
     HARD_CODED_USER_NAME, HARD_CODED_ROLES,
     get_endpoints
 )
+from mimic.test.helpers import request
 
 
 class ExampleCatalogEndpoint:
@@ -208,30 +208,30 @@ class APITests(SynchronousTestCase):
 
     def test_token_has_token(self):
         """
-        AuthApi.get_service_catalog_and_token (the handler for
         ``/identity/v2.0/tokens``) returns a JSON response with an
         access.token.id key corresponding to its MimicCore session, and
         therefore access.token.tenant.id should match that session's tenant_id.
         """
         core = MimicCore(Clock())
-        api = AuthApi(core)
+        root = MimicRoot(core).app.resource()
 
-        @attributes(["content"])
-        class FakeRequest(object):
-            def setResponseCode(self, responsecode):
-                pass
-        request = FakeRequest(content=io.BytesIO(json.dumps(
-            {"auth": {
-                "passwordCredentials": {
-                    "username": "demoauthor",
-                    "password": "theUsersPassword"
+        response = request(
+            self, root, "POST", "/identity/v2.0/tokens",
+            json.dumps({
+                "auth": {
+                    "passwordCredentials": {
+                        "username": "demoauthor",
+                        "password": "theUsersPassword"
+                    }
                 }
-            }}))
+            })
         )
-        result = api.get_service_catalog_and_token(request)
-        value = json.loads(result)
-        token = value['access']['token']['id']
-        tenant_id = value['access']['token']['tenant']['id']
+
+        auth_response = self.successResultOf(response)
+        json_body = self.successResultOf(treq.json_content(auth_response))
+
+        token = json_body['access']['token']['id']
+        tenant_id = json_body['access']['token']['tenant']['id']
         session = core.session_for_token(token)
         self.assertEqual(token, session.token)
         self.assertEqual(tenant_id, session.tenant_id)
