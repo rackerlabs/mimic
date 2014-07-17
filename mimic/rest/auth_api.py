@@ -4,7 +4,9 @@ Defines get token, impersonation
 """
 
 import json
+
 from twisted.web.server import Request
+from twisted.python.urlpath import URLPath
 from mimic.canned_responses.auth import get_token, get_endpoints
 from mimic.rest.mimicapp import MimicApp
 from mimic.canned_responses.auth import format_timestamp
@@ -50,7 +52,8 @@ class AuthApi(object):
             get_token(
                 session.tenant_id,
                 entry_generator=lambda tenant_id:
-                list(self.core.entries_for_tenant(tenant_id, prefix_map)),
+                list(self.core.entries_for_tenant(
+                    tenant_id, prefix_map, base_uri_from_request(request))),
                 prefix_for_entry=lookup,
                 response_token=session.token,
                 response_user_id=session.user_id,
@@ -98,6 +101,20 @@ class AuthApi(object):
         return json.dumps(get_endpoints(
             session.tenant_id,
             entry_generator=lambda tenant_id: list(
-                self.core.entries_for_tenant(tenant_id, prefix_map)),
+                self.core.entries_for_tenant(tenant_id, prefix_map,
+                                             base_uri_from_request(request))),
             prefix_for_entry=prefix_map.get)
         )
+
+
+def base_uri_from_request(request):
+    """
+    Given a request, return the base URI of the request
+
+    :param request: a twisted HTTP request
+    :type request: :class:`twisted.web.http.Request`
+
+    :return: the base uri the request was trying to access
+    :rtype: ``str``
+    """
+    return str(URLPath.fromRequest(request).click('/'))
