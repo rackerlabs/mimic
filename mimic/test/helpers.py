@@ -4,10 +4,13 @@ Helper objects for tests, mostly to allow testing HTTP routes.
 
 from __future__ import print_function
 
+import json
+
 from zope.interface import implementer
 
 from twisted.test.proto_helpers import StringTransport, MemoryReactor
 
+from twisted.internet.address import IPv4Address
 from twisted.internet.error import ConnectionDone
 from twisted.internet.defer import succeed
 
@@ -17,6 +20,8 @@ from twisted.web.iweb import IBodyProducer
 from twisted.python.urlpath import URLPath
 
 from twisted.python.failure import Failure
+
+import treq
 
 
 class RequestTraversalAgent(object):
@@ -74,6 +79,7 @@ class RequestTraversalAgent(object):
         # Connect the channel to another in-memory transport so we can collect
         # the response.
         serverTransport = StringTransport()
+        serverTransport.hostAddr = IPv4Address('TCP', '127.0.0.1', 80)
         channel.makeConnection(serverTransport)
 
         # Feed it the data that the Agent synthesized.
@@ -132,3 +138,22 @@ def request(testCase, rootResource, method, uri, body=b"",
         .request(method, str(URLPath.fromString(baseURI).click(uri)),
                  bodyProducer=SynchronousProducer(body))
     )
+
+
+def json_request(testCase, rootResource, method, uri, body=b"",
+                 baseURI='http://localhost:8900/'):
+    """
+    Issue a request with a JSON body (if there's a body at all) and return
+    synchronously with a tuple of the the response along with the JSON body
+    """
+    if body != "":
+        body = json.dumps(body)
+
+    d = request(testCase, rootResource, method, uri, body, baseURI)
+
+    def get_body(response):
+        body_d = treq.json_content(response)
+        body_d.addCallback(lambda body: (response, body))
+        return body_d
+
+    return d.addCallback(get_body)

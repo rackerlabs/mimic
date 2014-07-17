@@ -1,7 +1,3 @@
-import json
-
-import treq
-
 from twisted.trial.unittest import SynchronousTestCase
 from twisted.internet.task import Clock
 
@@ -12,10 +8,11 @@ from mimic.canned_responses.auth import (
     HARD_CODED_USER_NAME, HARD_CODED_ROLES,
     get_endpoints
 )
-from mimic.test.helpers import request
+from mimic.test.dummy import ExampleAPI
+from mimic.test.helpers import request, json_request
 
 
-class ExampleCatalogEndpoint:
+class ExampleCatalogEndpoint(object):
     def __init__(self, tenant, num, endpoint_id):
         self._tenant = tenant
         self._num = num
@@ -201,23 +198,24 @@ class CatalogGenerationTests(SynchronousTestCase):
         )
 
 
-class APITests(SynchronousTestCase):
+class GetAuthTokenAPITests(SynchronousTestCase):
     """
-    Tests for :obj:`get_service_catalog_for_token`
+    Tests for ``/identity/v2.0/tokens``, provided by
+    :obj:`mimic.rest.auth_api.AuthApi.get_token_and_service_catalog`
     """
 
-    def test_token_has_token(self):
+    def test_response_has_auth_token(self):
         """
-        ``/identity/v2.0/tokens`` returns a JSON response with an
-        access.token.id key corresponding to its MimicCore session, and
-        therefore access.token.tenant.id should match that session's tenant_id.
+        The JSON response has a access.token.id key corresponding to its
+        MimicCore session, and therefore access.token.tenant.id should match
+        that session's tenant_id.
         """
         core = MimicCore(Clock(), [])
         root = MimicRoot(core).app.resource()
 
-        response = request(
+        (response, json_body) = self.successResultOf(json_request(
             self, root, "POST", "/identity/v2.0/tokens",
-            json.dumps({
+            {
                 "auth": {
                     "passwordCredentials": {
                         "username": "demoauthor",
@@ -225,14 +223,118 @@ class APITests(SynchronousTestCase):
                     }
 
                 }
-            })
-        )
+            }
+        ))
 
-        auth_response = self.successResultOf(response)
-        json_body = self.successResultOf(treq.json_content(auth_response))
-
+        self.assertEqual(200, response.code)
         token = json_body['access']['token']['id']
         tenant_id = json_body['access']['token']['tenant']['id']
         session = core.session_for_token(token)
         self.assertEqual(token, session.token)
         self.assertEqual(tenant_id, session.tenant_id)
+
+    def test_auth_accepts_tenant_name(self):
+        """
+        If "tenantName" is passed, the tenant specified is used instead of a
+        generated tenant ID.
+        """
+        core = MimicCore(Clock(), [])
+        root = MimicRoot(core).app.resource()
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens",
+            {
+                "auth": {
+                    "passwordCredentials": {
+                        "username": "demoauthor",
+                        "password": "theUsersPassword"
+                    },
+                    "tenantName": "turtlepower"
+                }
+            }
+        ))
+
+        self.assertEqual(200, response.code)
+        self.assertEqual("turtlepower",
+                         json_body['access']['token']['tenant']['id'])
+        token = json_body['access']['token']['id']
+        session = core.session_for_token(token)
+        self.assertEqual(token, session.token)
+        self.assertEqual("turtlepower", session.tenant_id)
+
+    def test_response_service_catalog_has_base_uri(self):
+        """
+        The JSON response's service catalog whose endpoints all begin with
+        the same base URI as the request.
+        """
+        core = MimicCore(Clock(), [ExampleAPI()])
+        root = MimicRoot(core).app.resource()
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "POST", "http://mybase/identity/v2.0/tokens",
+            {
+                "auth": {
+                    "passwordCredentials": {
+                        "username": "demoauthor",
+                        "password": "theUsersPassword"
+                    }
+                }
+            }
+        ))
+
+        self.assertEqual(200, response.code)
+        services = json_body['access']['serviceCatalog']
+        self.assertEqual(1, len(services))
+
+        urls = [
+            endpoint['publicURL'] for endpoint in services[0]['endpoints']
+        ]
+        self.assertEqual(1, len(urls))
+        self.assertTrue(urls[0].startswith('http://mybase/'),
+                        '{0} does not start with "http://mybase"'
+                        .format(urls[0]))
+
+
+class GetEndpointsForTokenTests(SynchronousTestCase):
+    """
+    Tests for ``/identity/v2.0/tokens/<token>/endpoints``, provided by
+    `:obj:`mimic.rest.auth_api.AuthApi.get_endpoints_for_token`
+    """
+
+    def test_session_created_for_token(self):
+        """
+        A session is created for the token provided
+        """
+        core = MimicCore(Clock(), [])
+        root = MimicRoot(core).app.resource()
+
+        token = '1234567890'
+
+        request(
+            self, root, "GET",
+            "/identity/v2.0/tokens/{0}/endpoints".format(token)
+        )
+
+        session = core.session_for_token(token)
+        self.assertEqual(token, session.token)
+
+    def test_response_service_catalog_has_base_uri(self):
+        """
+        The JSON response's service catalog whose endpoints all begin with
+        the same base URI as the request.
+        """
+        core = MimicCore(Clock(), [ExampleAPI()])
+        root = MimicRoot(core).app.resource()
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "GET",
+            "http://mybase/identity/v2.0/tokens/1234567890/endpoints"
+        ))
+
+        self.assertEqual(200, response.code)
+        urls = [endpoint['publicURL'] for endpoint in json_body['endpoints']]
+        self.assertEqual(1, len(urls))
+
+        self.assertTrue(
+            urls[0].startswith('http://mybase/'),
+            '{0} does not start with "http://mybase"'.format(urls[0]))
