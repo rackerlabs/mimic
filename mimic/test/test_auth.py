@@ -288,11 +288,10 @@ class GetAuthTokenAPITests(SynchronousTestCase):
         urls = [
             endpoint['publicURL'] for endpoint in services[0]['endpoints']
         ]
-
-        for url in urls:
-            self.assertTrue(url.startswith('http://mybase/'),
-                            '{0} does not start with "http://mybase"'
-                            .format(url))
+        self.assertEqual(1, len(urls))
+        self.assertTrue(urls[0].startswith('http://mybase/'),
+                        '{0} does not start with "http://mybase"'
+                        .format(urls[0]))
 
 
 class GetEndpointsForTokenTests(SynchronousTestCase):
