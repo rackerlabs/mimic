@@ -29,7 +29,7 @@ class AuthApi(object):
         self.core = core
 
     @app.route('/v2.0/tokens', methods=['POST'])
-    def get_service_catalog_and_token(self, request):
+    def get_token_and_service_catalog(self, request):
         """
         Return a service catalog consisting of nova and load balancer mocked
         endpoints and an api token.
@@ -89,7 +89,7 @@ class AuthApi(object):
         }})
 
     @app.route('/v2.0/tokens/<string:token_id>/endpoints', methods=['GET'])
-    def get_service_catalog(self, request, token_id):
+    def get_endpoints_for_token(self, request, token_id):
         """
         Return a service catalog consisting of nova and load balancer mocked
         endpoints.

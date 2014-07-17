@@ -200,7 +200,8 @@ class CatalogGenerationTests(SynchronousTestCase):
 
 class GetAuthTokenAPITests(SynchronousTestCase):
     """
-    Tests for ``/identity/v2.0/tokens``
+    Tests for ``/identity/v2.0/tokens``, provided by
+    :obj:`mimic.rest.auth_api.AuthApi.get_token_and_service_catalog`
     """
 
     def test_response_has_auth_token(self):
@@ -296,7 +297,8 @@ class GetAuthTokenAPITests(SynchronousTestCase):
 
 class GetEndpointsForTokenTests(SynchronousTestCase):
     """
-    Tests for ``/identity/v2.0/tokens/<token>/endpoints``
+    Tests for ``/identity/v2.0/tokens/<token>/endpoints``, provided by
+    `:obj:`mimic.rest.auth_api.AuthApi.get_endpoints_for_token`
     """
 
     def test_session_created_for_token(self):
