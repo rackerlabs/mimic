@@ -12,10 +12,11 @@ from mimic.canned_responses.auth import (
     HARD_CODED_USER_NAME, HARD_CODED_ROLES,
     get_endpoints
 )
+from mimic.test.dummy import ExampleAPI
 from mimic.test.helpers import request
 
 
-class ExampleCatalogEndpoint:
+class ExampleCatalogEndpoint(object):
     def __init__(self, tenant, num, endpoint_id):
         self._tenant = tenant
         self._num = num
@@ -273,7 +274,7 @@ class GetAuthTokenAPITests(SynchronousTestCase):
         The JSON response's service catalog whose endpoints all begin with
         the same base URI as the request.
         """
-        core = MimicCore(Clock(), [])
+        core = MimicCore(Clock(), [ExampleAPI()])
         root = MimicRoot(core).app.resource()
 
         d = request(
@@ -291,14 +292,15 @@ class GetAuthTokenAPITests(SynchronousTestCase):
         auth_response = self.successResultOf(d)
         json_body = self.successResultOf(treq.json_content(auth_response))
 
+        services = json_body['access']['serviceCatalog']
+        self.assertEqual(1, len(services))
+
         urls = [
-            endpoint['publicURL']
-            for service in json_body['access']['serviceCatalog']
-            for endpoint in service['endpoints']
+            endpoint['publicURL'] for endpoint in services[0]['endpoints']
         ]
 
         for url in urls:
-            self.assertTrue(url.startswith('http://mybase'),
+            self.assertTrue(url.startswith('http://mybase/'),
                             '{0} does not start with "http://mybase"'
                             .format(url))
 
@@ -330,7 +332,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         The JSON response's service catalog whose endpoints all begin with
         the same base URI as the request.
         """
-        core = MimicCore(Clock(), [])
+        core = MimicCore(Clock(), [ExampleAPI()])
         root = MimicRoot(core).app.resource()
 
         d = request(
@@ -342,8 +344,8 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         json_body = self.successResultOf(treq.json_content(response))
 
         urls = [endpoint['publicURL'] for endpoint in json_body['endpoints']]
+        self.assertEqual(1, len(urls))
 
-        for url in urls:
-            self.assertTrue(url.startswith('http://mybase'),
-                            '{0} does not start with "http://mybase"'
-                            .format(url))
+        self.assertTrue(
+            urls[0].startswith('http://mybase/'),
+            '{0} does not start with "http://mybase"'.format(urls[0]))

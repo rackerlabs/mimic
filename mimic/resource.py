@@ -8,7 +8,7 @@ from twisted.web.resource import NoResource
 
 from mimic.canned_responses.mimic_presets import get_presets
 from mimic.rest.mimicapp import MimicApp
-from mimic.rest.auth_api import AuthApi
+from mimic.rest.auth_api import AuthApi, base_uri_from_request
 
 
 class MimicRoot(object):
@@ -58,7 +58,9 @@ class MimicRoot(object):
         dynamically-generated UUID for a particular plugin, retrieve the
         resource associated with that service.
         """
-        serviceObject = self.core.service_with_region(region_name, service_id)
+        serviceObject = self.core.service_with_region(
+            region_name, service_id, base_uri_from_request(request))
+
         if serviceObject is None:
             # workaround for https://github.com/twisted/klein/issues/56
             return NoResource()

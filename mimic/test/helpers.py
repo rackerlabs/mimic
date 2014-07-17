@@ -8,6 +8,7 @@ from zope.interface import implementer
 
 from twisted.test.proto_helpers import StringTransport, MemoryReactor
 
+from twisted.internet.address import IPv4Address
 from twisted.internet.error import ConnectionDone
 from twisted.internet.defer import succeed
 
@@ -74,6 +75,7 @@ class RequestTraversalAgent(object):
         # Connect the channel to another in-memory transport so we can collect
         # the response.
         serverTransport = StringTransport()
+        serverTransport.hostAddr = IPv4Address('TCP', '127.0.0.1', 80)
         channel.makeConnection(serverTransport)
 
         # Feed it the data that the Agent synthesized.
