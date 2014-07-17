@@ -78,7 +78,8 @@ class CatalogGenerationTests(SynchronousTestCase):
         self.assertEqual(
             get_token(
                 tenant_id=tenant_id, timestamp=lambda dt: "<<<timestamp>>>",
-                entry_generator=example_endpoints(lambda: 1)
+                entry_generator=example_endpoints(lambda: 1),
+                prefix_for_entry=lambda e: 'prefix'
             ),
             {
                 "access": {
@@ -158,6 +159,7 @@ class CatalogGenerationTests(SynchronousTestCase):
             get_endpoints(
                 tenant_id=tenant_id,
                 entry_generator=example_endpoints(counter),
+                prefix_for_entry=lambda e: 'prefix'
             ),
             {
                 "endpoints": [
