@@ -187,7 +187,7 @@ class MimicCore(object):
             resource exists within.
         :param unicode service_id: the UUID for the service for the
             specified region
-        :param unicode base_uri: the base uri to use instead of the default -
+        :param str base_uri: the base uri to use instead of the default -
             most likely comes from a request URI
 
         :return: A resource.
@@ -206,7 +206,7 @@ class MimicCore(object):
             resource exists within.
         :param unicode service_id: the UUID for the service for the
             specified region
-        :param unicode base_uri: the base uri to use instead of the default -
+        :param str base_uri: the base uri to use instead of the default -
             most likely comes from a request URI
 
         :return: The full URI locating the service for that region
@@ -221,7 +221,7 @@ class MimicCore(object):
 
         :param unicode tenant_id: A fictional tenant ID.
         :param dict prefix_map: a mapping of entries to uris
-        :param unicode base_uri: the base uri to use instead of the default -
+        :param str base_uri: the base uri to use instead of the default -
             most likely comes from a request URI
 
         :return: The full URI locating the service for that region
