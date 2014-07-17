@@ -1,7 +1,3 @@
-import json
-
-import treq
-
 from twisted.trial.unittest import SynchronousTestCase
 from twisted.internet.task import Clock
 
@@ -13,7 +9,7 @@ from mimic.canned_responses.auth import (
     get_endpoints
 )
 from mimic.test.dummy import ExampleAPI
-from mimic.test.helpers import request
+from mimic.test.helpers import request, json_request
 
 
 class ExampleCatalogEndpoint(object):
@@ -216,9 +212,9 @@ class GetAuthTokenAPITests(SynchronousTestCase):
         core = MimicCore(Clock(), [])
         root = MimicRoot(core).app.resource()
 
-        d = request(
+        (response, json_body) = self.successResultOf(json_request(
             self, root, "POST", "/identity/v2.0/tokens",
-            json.dumps({
+            {
                 "auth": {
                     "passwordCredentials": {
                         "username": "demoauthor",
@@ -226,12 +222,10 @@ class GetAuthTokenAPITests(SynchronousTestCase):
                     }
 
                 }
-            })
-        )
+            }
+        ))
 
-        auth_response = self.successResultOf(d)
-        json_body = self.successResultOf(treq.json_content(auth_response))
-
+        self.assertEqual(200, response.code)
         token = json_body['access']['token']['id']
         tenant_id = json_body['access']['token']['tenant']['id']
         session = core.session_for_token(token)
@@ -246,9 +240,9 @@ class GetAuthTokenAPITests(SynchronousTestCase):
         core = MimicCore(Clock(), [])
         root = MimicRoot(core).app.resource()
 
-        d = request(
+        (response, json_body) = self.successResultOf(json_request(
             self, root, "POST", "/identity/v2.0/tokens",
-            json.dumps({
+            {
                 "auth": {
                     "passwordCredentials": {
                         "username": "demoauthor",
@@ -256,12 +250,10 @@ class GetAuthTokenAPITests(SynchronousTestCase):
                     },
                     "tenantName": "turtlepower"
                 }
-            })
-        )
+            }
+        ))
 
-        auth_response = self.successResultOf(d)
-        json_body = self.successResultOf(treq.json_content(auth_response))
-
+        self.assertEqual(200, response.code)
         self.assertEqual("turtlepower",
                          json_body['access']['token']['tenant']['id'])
         token = json_body['access']['token']['id']
@@ -277,21 +269,19 @@ class GetAuthTokenAPITests(SynchronousTestCase):
         core = MimicCore(Clock(), [ExampleAPI()])
         root = MimicRoot(core).app.resource()
 
-        d = request(
+        (response, json_body) = self.successResultOf(json_request(
             self, root, "POST", "http://mybase/identity/v2.0/tokens",
-            json.dumps({
+            {
                 "auth": {
                     "passwordCredentials": {
                         "username": "demoauthor",
                         "password": "theUsersPassword"
                     }
                 }
-            })
-        )
+            }
+        ))
 
-        auth_response = self.successResultOf(d)
-        json_body = self.successResultOf(treq.json_content(auth_response))
-
+        self.assertEqual(200, response.code)
         services = json_body['access']['serviceCatalog']
         self.assertEqual(1, len(services))
 
@@ -335,14 +325,12 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         core = MimicCore(Clock(), [ExampleAPI()])
         root = MimicRoot(core).app.resource()
 
-        d = request(
+        (response, json_body) = self.successResultOf(json_request(
             self, root, "GET",
             "http://mybase/identity/v2.0/tokens/1234567890/endpoints"
-        )
+        ))
 
-        response = self.successResultOf(d)
-        json_body = self.successResultOf(treq.json_content(response))
-
+        self.assertEqual(200, response.code)
         urls = [endpoint['publicURL'] for endpoint in json_body['endpoints']]
         self.assertEqual(1, len(urls))
 
