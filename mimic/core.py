@@ -11,7 +11,6 @@ from twisted.python.urlpath import URLPath
 from twisted.plugin import getPlugins
 from mimic import plugins
 
-
 from datetime import datetime, timedelta
 from six import text_type
 
