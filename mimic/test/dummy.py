@@ -11,6 +11,7 @@ from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.imimic import IAPIMock
 
+
 class ExampleResource(Resource):
     """
     Simple resource that returns a string as the response
@@ -18,9 +19,15 @@ class ExampleResource(Resource):
     isLeaf = True
 
     def __init__(self, response_message):
+        """
+        Has a response message to return when rendered
+        """
         self.response_message = response_message
 
     def render_GET(self, request):
+        """
+        Render whatever message was passed in
+        """
         return self.response_message
 
 

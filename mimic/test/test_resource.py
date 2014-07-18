@@ -1,10 +1,11 @@
 from twisted.internet.task import Clock
 from twisted.trial.unittest import SynchronousTestCase
 
+from mimic.canned_responses.mimic_presets import get_presets
 from mimic.core import MimicCore
 from mimic.resource import MimicRoot
 from mimic.test.dummy import ExampleAPI
-from mimic.test.helpers import request, request_with_content
+from mimic.test.helpers import json_request, request, request_with_content
 
 
 class ServiceResourceTests(SynchronousTestCase):
@@ -96,3 +97,43 @@ class ServiceResourceTests(SynchronousTestCase):
         ))
         self.assertEqual(200, response.code)
         self.assertEqual('response!', content)
+
+
+class RootAndPresetTests(SynchronousTestCase):
+    """
+    Tests for ``/`` (handled by :func:`MimicRoot.help`) and
+    ``/mimic/v1.0/presets`` (handled by :func:`MimicRoot.get_mimic_presets`)
+
+    These are placeholder tests because these two endpoints don't do much yet.
+    """
+    def test_root(self):
+        """
+        The root (``/``, handled by :func:`MimicRoot.help`) has a bit of help
+        text pointing to the identity endpoint
+        """
+        core = MimicCore(Clock(), [])
+        root = MimicRoot(core).app.resource()
+
+        (response, content) = self.successResultOf(request_with_content(
+            self, root, 'GET', '/'))
+        self.assertEqual(200, response.code)
+        self.assertEqual(['text/plain'],
+                         response.headers.getRawHeaders('content-type'))
+        self.assertIn(' POST ', content)
+        self.assertIn('/identity/v2.0/tokens', content)
+
+    def test_presets(self):
+        """
+        ``/mimic/v1.0/presets`` (handled by
+        :func:`MimicRoot.get_mimic_presets`), returns the presets as a JSON
+        body with the right headers.
+        """
+        core = MimicCore(Clock(), [])
+        root = MimicRoot(core).app.resource()
+
+        (response, json_content) = self.successResultOf(json_request(
+            self, root, 'GET', '/mimic/v1.0/presets'))
+        self.assertEqual(200, response.code)
+        self.assertEqual(['application/json'],
+                         response.headers.getRawHeaders('content-type'))
+        self.assertEqual(get_presets, json_content)
