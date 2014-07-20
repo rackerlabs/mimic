@@ -102,7 +102,7 @@ class MimicCore(object):
             if attributes.get(key, None) is None:
                 attributes[key] = key + "_" + text_type(uuid4())
         if attributes.get('tenant_id', None) is None:
-            attributes['tenant_id'] = text_type(uuid4().int)    
+            attributes['tenant_id'] = text_type(uuid4().int)   
         if 'expires' not in attributes:
             attributes['expires'] = (
                 datetime.utcfromtimestamp(self._clock.seconds())
