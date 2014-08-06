@@ -7,6 +7,11 @@ env:
   - TOX_ENV=pypy
   - TOX_ENV=docs
   - TOX_ENV=docs-spellcheck
+  - TOX_ENV=docs-linkcheck
+
+matrix:
+  allow_failures:
+    - env: "TOX_ENV=docs-linkcheck"
 
 install:
   - ./.travis/install.sh

@@ -11,7 +11,6 @@ from twisted.python.urlpath import URLPath
 from twisted.plugin import getPlugins
 from mimic import plugins
 
-
 from datetime import datetime, timedelta
 from six import text_type
 
@@ -52,10 +51,6 @@ class MimicCore(object):
         :param apis: an iterable of all :obj:`IAPIMock`s that this MimicCore
             will expose.
         """
-        # TODO: determine this from metadata about where the listening port
-        # actually is.
-        self._base_uri = "http://localhost:8900/"
-
         self._clock = clock
         self._token_to_session = {
             # mapping of token (unicode) to session (Session)
@@ -182,13 +177,17 @@ class MimicCore(object):
             return self._new_session(tenant_id=tenant_id)
         return self.session_for_token(self._tenant_to_token[tenant_id])
 
-    def service_with_region(self, region_name, service_id):
+    def service_with_region(self, region_name, service_id, base_uri):
         """
         Given the name of a region and a mimic internal service ID, get a
         resource for that service.
 
         :param unicode region_name: the name of the region that the service
             resource exists within.
+        :param unicode service_id: the UUID for the service for the
+            specified region
+        :param str base_uri: the base uri to use instead of the default -
+            most likely comes from a request URI
 
         :return: A resource.
         :rtype: :obj:`twisted.web.iweb.IResource`
@@ -197,23 +196,39 @@ class MimicCore(object):
         if key in self.uri_prefixes:
             api_plugin = self.uri_prefixes[key]
             return api_plugin.resource_for_region(
-                self.uri_for_service(region_name, service_id)
+                self.uri_for_service(region_name, service_id, base_uri)
             )
 
-    def uri_for_service(self, region, service_id):
+    def uri_for_service(self, region, service_id, base_uri):
         """
         Generate a URI prefix for a given region and service ID.
+
+        :param unicode region_name: the name of the region that the service
+            resource exists within.
+        :param unicode service_id: the UUID for the service for the
+            specified region
+        :param str base_uri: the base uri to use instead of the default -
+            most likely comes from a request URI
+
+        :return: The full URI locating the service for that region
         """
-        return str(URLPath.fromString(self._base_uri)
+        return str(URLPath.fromString(base_uri)
                    .child("service").child(region).child(service_id).child(""))
 
-    def entries_for_tenant(self, tenant_id, prefix_map):
+    def entries_for_tenant(self, tenant_id, prefix_map, base_uri):
         """
-        Get all the :obj:`mimic.catalog.Entry` objects for the given tenant ID.
+        Get all the :obj:`mimic.catalog.Entry` objects for the given tenant
+        ID.
 
         :param unicode tenant_id: A fictional tenant ID.
+        :param dict prefix_map: a mapping of entries to uris
+        :param str base_uri: the base uri to use instead of the default -
+            most likely comes from a request URI
+
+        :return: The full URI locating the service for that region
         """
         for (region, service_id), api in sorted(self.uri_prefixes.items()):
             for entry in api.catalog_entries(tenant_id):
-                prefix_map[entry] = self.uri_for_service(region, service_id)
+                prefix_map[entry] = self.uri_for_service(region, service_id,
+                                                         base_uri)
                 yield entry
