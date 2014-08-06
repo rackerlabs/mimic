@@ -251,10 +251,20 @@ class NovaAPITests(SynchronousTestCase):
 
     def test_list_servers_with_details_with_args(self):
         """
-        :func:`list_servers_with_details` on
-        ``GET /v2.0/<tenant_id>/servers/detail`` when a server with the given
-        name exists
+        :func:`list_servers_with_details`, used by
+        ``GET /v2.0/<tenant_id>/servers/detail``, returns the server details
+        for only the servers of a given name
         """
+        request(
+            self, self.root, "POST", self.uri + '/servers',
+            json.dumps({
+                "server": {
+                    "name": 'non-matching-name',
+                    "imageRef": "test-image",
+                    "flavorRef": "test-flavor"
+                }
+            }))
+
         response, body = self.successResultOf(json_request(
             self, self.root, "GET",
             "{0}/servers/detail?name={1}".format(self.uri, self.server_name)))
@@ -265,9 +275,9 @@ class NovaAPITests(SynchronousTestCase):
 
     def test_list_servers_with_details_with_args_negative(self):
         """
-        :func:`list_servers_with_details` on
-        ``GET /v2.0/<tenant_id>/servers/detail`` when a server with the given
-        name does not exist
+        :func:`list_servers_with_details`, used by
+        ``GET /v2.0/<tenant_id>/servers/detail``, returns no servers when
+        there aren't any that match the given name
         """
         response, body = self.successResultOf(json_request(
             self, self.root, "GET",
