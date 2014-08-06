@@ -52,6 +52,18 @@ class NovaApi(object):
         return NovaRegion(uri_prefix).app.resource()
 
 
+def _list_servers(request, tenant_id, details=False):
+    """
+    Return a list of servers, possibly filtered by name, possibly with details
+    """
+    server_name = None
+    if 'name' in request.args:
+        server_name = request.args['name'][0]
+    response_data = list_server(tenant_id, server_name, details=details)
+    request.setResponseCode(response_data[1])
+    return json.dumps(response_data[0])
+
+
 class NovaRegion(object):
     """
     Klein routes for the API within a Cloud Servers region.
@@ -92,21 +104,14 @@ class NovaRegion(object):
         """
         Returns list of servers that were created by the mocks, with the given name.
         """
-        server_name = ''
-        if 'name' in request.args:
-            server_name = request.args['name'][0]
-        response_data = list_server(tenant_id, server_name, details=False)
-        request.setResponseCode(response_data[1])
-        return json.dumps(response_data[0])
+        return _list_servers(request, tenant_id)
 
     @app.route('/v2/<string:tenant_id>/servers/detail', methods=['GET'])
     def list_servers_with_details(self, request, tenant_id):
         """
         Returns list of servers that were created by the mocks, with details such as the metadata.
         """
-        response_data = list_server(tenant_id)
-        request.setResponseCode(response_data[1])
-        return json.dumps(response_data[0])
+        return _list_servers(request, tenant_id, details=True)
 
     @app.route('/v2/<string:tenant_id>/servers/<string:server_id>', methods=['DELETE'])
     def delete_server(self, request, tenant_id, server_id):
