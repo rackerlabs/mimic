@@ -92,7 +92,7 @@ class NovaRegion(object):
         """
         Returns list of servers that were created by the mocks, with the given name.
         """
-        server_name = ''
+        server_name = None
         if 'name' in request.args:
             server_name = request.args['name'][0]
         response_data = list_server(tenant_id, server_name, details=False)
@@ -104,7 +104,10 @@ class NovaRegion(object):
         """
         Returns list of servers that were created by the mocks, with details such as the metadata.
         """
-        response_data = list_server(tenant_id)
+        server_name = None
+        if 'name' in request.args:
+            server_name = request.args['name'][0]
+        response_data = list_server(tenant_id, server_name)
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 

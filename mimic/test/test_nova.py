@@ -10,7 +10,7 @@ from twisted.internet.task import Clock
 from mimic.canned_responses.nova import server_template
 from mimic.core import MimicCore
 from mimic.resource import MimicRoot
-from mimic.test.helpers import request
+from mimic.test.helpers import json_request, request
 from mimic.rest.nova_api import NovaApi
 
 
@@ -248,6 +248,32 @@ class NovaAPITests(SynchronousTestCase):
                          self.server_id)
         self.assertEqual(len(list_servers_detail_response_body['servers']), 1)
         self.assertEqual(list_servers_detail_response_body['servers'][0]['status'], 'ACTIVE')
+
+    def test_list_servers_with_details_with_args(self):
+        """
+        :func:`list_servers_with_details` on
+        ``GET /v2.0/<tenant_id>/servers/detail`` when a server with the given
+        name exists
+        """
+        response, body = self.successResultOf(json_request(
+            self, self.root, "GET",
+            "{0}/servers/detail?name={1}".format(self.uri, self.server_name)))
+        self.assertEqual(response.code, 200)
+        self.assertEqual(body['servers'][0]['id'], self.server_id)
+        self.assertEqual(len(body['servers']), 1)
+        self.assertEqual(body['servers'][0]['status'], 'ACTIVE')
+
+    def test_list_servers_with_details_with_args_negative(self):
+        """
+        :func:`list_servers_with_details` on
+        ``GET /v2.0/<tenant_id>/servers/detail`` when a server with the given
+        name does not exist
+        """
+        response, body = self.successResultOf(json_request(
+            self, self.root, "GET",
+            '{0}/servers/detail?name=no_server'.format(self.uri)))
+        self.assertEqual(response.code, 200)
+        self.assertEqual(len(body['servers']), 0)
 
     def test_delete_server(self):
         """
