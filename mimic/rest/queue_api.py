@@ -76,6 +76,7 @@ class QueueApiRoutes(object):
         queue_id = randrange(99999)
         response_data = add_queue(queue_id, queue_name, tenant_id)
         request.setResponseCode(response_data[1])
+        return json.dumps(response_data[0])
 
     @app.route("/v1/<string:tenant_id>/queues", methods=['GET'])
     def list_queues(self, request, tenant_id):
