@@ -1,4 +1,3 @@
-
 from __future__ import unicode_literals
 
 from datetime import datetime
@@ -147,7 +146,7 @@ class CoreBuildingTests(SynchronousTestCase):
         """
         core = MimicCore.fromPlugins(Clock())
         self.assertEqual(
-            set((nova_plugin.nova, loadbalancer_plugin.loadbalancer)),
+            set((nova_plugin.nova, loadbalancer_plugin.loadbalancer, queue_plugin.queue)),
             set(core.uri_prefixes.values()))
         self.assertEqual(
             2, len(list(core.entries_for_tenant('any_tenant', {},
