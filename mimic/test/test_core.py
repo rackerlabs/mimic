@@ -149,5 +149,5 @@ class CoreBuildingTests(SynchronousTestCase):
             set((nova_plugin.nova, loadbalancer_plugin.loadbalancer, queue_plugin.queue)),
             set(core.uri_prefixes.values()))
         self.assertEqual(
-            2, len(list(core.entries_for_tenant('any_tenant', {},
+            3, len(list(core.entries_for_tenant('any_tenant', {},
                                                 'http://mimic'))))
