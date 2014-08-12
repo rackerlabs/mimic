@@ -7,7 +7,7 @@ from twisted.internet.task import Clock
 from twisted.trial.unittest import SynchronousTestCase
 
 from mimic.core import MimicCore
-from mimic.plugins import nova_plugin, loadbalancer_plugin
+from mimic.plugins import nova_plugin, loadbalancer_plugin, queue_plugin
 
 
 class SessionCreationTests(SynchronousTestCase):
