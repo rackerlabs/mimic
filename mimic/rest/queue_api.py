@@ -16,6 +16,7 @@ from mimic.rest.mimicapp import MimicApp
 from zope.interface import implementer
 from random import randrange
 
+
 @implementer(IAPIMock, IPlugin)
 class QueueApi(object):
     """
@@ -28,7 +29,7 @@ class QueueApi(object):
         implement :obj:`IAPIMock`.
         """
         return QueueApiRoutes(uri_prefix).app.resource()
-     
+
     def catalog_entries(self, tenant_id):
         """
         Catalog entry for Queues endpoints.
@@ -52,6 +53,7 @@ class QueueApi(object):
             # ])
         ]
 
+
 class QueueApiRoutes(object):
     """
     Klein routes for queue API methods.
@@ -64,13 +66,12 @@ class QueueApiRoutes(object):
         Create a queue region with a given URI prefix (used for generating URIs
         to queues).
         """
-
         self.uri_prefix = uri_prefix
      
     @app.route("/v1/<string:tenant_id>/queues/<string:queue_name>", methods=['PUT'])
     def create_queue(self, request, tenant_id, queue_name):
         """
-        Api call to create and save queue.  HTTP status code of 201.
+        Api call to create and save queue. HTTP status code of 201.
         """  
         queue_id = randrange(99999)  
         response_data = add_queue(queue_id, queue_name, tenant_id)

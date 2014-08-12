@@ -24,7 +24,7 @@ def add_queue(queue_id, queue_name, tenant_id):
     queue_cache[queue_id].update({"tenant_id": tenant_id})
     new_queue = deepcopy(queue_cache[queue_id])
     del new_queue["tenant_id"]
-    return  None, 201
+    return None, 201
 
 
 def list_queues(tenant_id):
