@@ -33,7 +33,7 @@ class QueueApi(object):
     def catalog_entries(self, tenant_id):
         """
         Catalog entry for Queues endpoints.
-        """      
+        """
         return [
             Entry(tenant_id, "rax:queues", "cloudQueues", [
                 Endpoint(tenant_id, "ORD", text_type(uuid4()), prefix="v1")
@@ -67,13 +67,13 @@ class QueueApiRoutes(object):
         to queues).
         """
         self.uri_prefix = uri_prefix
-     
+
     @app.route("/v1/<string:tenant_id>/queues/<string:queue_name>", methods=['PUT'])
     def create_queue(self, request, tenant_id, queue_name):
         """
         Api call to create and save queue. HTTP status code of 201.
-        """  
-        queue_id = randrange(99999)  
+        """
+        queue_id = randrange(99999)
         response_data = add_queue(queue_id, queue_name, tenant_id)
         request.setResponseCode(response_data[1])
 
