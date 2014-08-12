@@ -58,8 +58,6 @@ class QueueAPITests(SynchronousTestCase):
         """
         list_queues = request(self, self.root, "GET", self.uri + '/queues')
         list_queues_response = self.successResultOf(list_queues)
-        list_queues_response_body = self.successResultOf(
-            treq.json_content(list_queues_response))
         self.assertEqual(list_queues_response.code, 200)
 
     def test_delete_queue(self):
@@ -70,4 +68,3 @@ class QueueAPITests(SynchronousTestCase):
         delete_queue_response = self.successResultOf(delete_queue)
         self.assertEqual(delete_queue_response.code, 201)
         self.assertEqual(self.successResultOf(treq.content(delete_queue_response)), 'null')
-
