@@ -38,19 +38,6 @@ class QueueApi(object):
             Entry(tenant_id, "rax:queues", "cloudQueues", [
                 Endpoint(tenant_id, "ORD", text_type(uuid4()), prefix="v1")
             ])
-            # ,
-            # Entry(tenant_id, "rax:queues", "cloudQueues", [
-            #     Endpoint(tenant_id, "SYD", text_type(uuid4()), prefix="v1"),
-            # ]),
-            # Entry(tenant_id, "rax:queues", "cloudQueues", [
-            #     Endpoint(tenant_id, "IAD", text_type(uuid4()), prefix="v1"),
-            # ]),
-            # Entry(tenant_id, "rax:queues", "cloudQueues", [
-            #     Endpoint(tenant_id, "HKG", text_type(uuid4()), prefix="v1"),
-            # ]),
-            # Entry(tenant_id, "rax:queues", "cloudQueues", [
-            #     Endpoint(tenant_id, "DFW", text_type(uuid4()), prefix="v1"),
-            # ])
         ]
 
 
