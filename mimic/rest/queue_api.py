@@ -2,7 +2,7 @@
 API mock for Rackspace Queues.
 """
 import json
-from uuid import uuid4, uuid5, NAMESPACE_URL
+from uuid import uuid4
 from six import text_type
 
 from mimic.imimic import IAPIMock
@@ -15,8 +15,6 @@ from mimic.catalog import Endpoint
 from mimic.rest.mimicapp import MimicApp
 from zope.interface import implementer
 from random import randrange
-
-
 
 @implementer(IAPIMock, IPlugin)
 class QueueApi(object):
@@ -53,13 +51,19 @@ class QueueApi(object):
             #     Endpoint(tenant_id, "DFW", text_type(uuid4()), prefix="v1"),
             # ])
         ]
-   
 
 class QueueApiRoutes(object):
+    """
+    Klein routes for queue API methods.
+    """
 
     app = MimicApp()
 
     def __init__(self, uri_prefix):
+        """
+        Create a queue region with a given URI prefix (used for generating URIs
+        to queues).
+        """
 
         self.uri_prefix = uri_prefix
      
