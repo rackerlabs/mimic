@@ -62,12 +62,10 @@ class MimicCore(object):
             # mapping of token (unicode) to username (unicode: key in
             # _token_to_session)
         }
-        self._api_to_uuid = {}
         self._uuid_to_api = {}
 
         for api in apis:
             this_api_id = str(uuid4())
-            self._api_to_uuid[api] = this_api_id
             self._uuid_to_api[this_api_id] = api
 
     @classmethod
