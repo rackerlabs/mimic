@@ -1,4 +1,3 @@
-
 from __future__ import unicode_literals
 
 from datetime import datetime
@@ -8,7 +7,7 @@ from twisted.internet.task import Clock
 from twisted.trial.unittest import SynchronousTestCase
 
 from mimic.core import MimicCore
-from mimic.plugins import nova_plugin, loadbalancer_plugin
+from mimic.plugins import nova_plugin, loadbalancer_plugin, queue_plugin
 
 
 class SessionCreationTests(SynchronousTestCase):
@@ -147,8 +146,8 @@ class CoreBuildingTests(SynchronousTestCase):
         """
         core = MimicCore.fromPlugins(Clock())
         self.assertEqual(
-            set((nova_plugin.nova, loadbalancer_plugin.loadbalancer)),
+            set((nova_plugin.nova, loadbalancer_plugin.loadbalancer, queue_plugin.queue)),
             set(core.uri_prefixes.values()))
         self.assertEqual(
-            2, len(list(core.entries_for_tenant('any_tenant', {},
+            3, len(list(core.entries_for_tenant('any_tenant', {},
                                                 'http://mimic'))))
