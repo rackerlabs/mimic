@@ -54,7 +54,7 @@ class AuthApi(object):
                 entry_generator=lambda tenant_id:
                 list(self.core.entries_for_tenant(
                     tenant_id, prefix_map, base_uri_from_request(request))),
-                prefix_for_entry=lookup,
+                prefix_for_endpoint=lookup,
                 response_token=session.token,
                 response_user_id=session.user_id,
                 response_user_name=session.username,
@@ -103,7 +103,7 @@ class AuthApi(object):
             entry_generator=lambda tenant_id: list(
                 self.core.entries_for_tenant(tenant_id, prefix_map,
                                              base_uri_from_request(request))),
-            prefix_for_entry=prefix_map.get)
+            prefix_for_endpoint=prefix_map.get)
         )
 
 

@@ -62,15 +62,13 @@ class MimicCore(object):
             # mapping of token (unicode) to username (unicode: key in
             # _token_to_session)
         }
-        self.uri_prefixes = {
-            # map of (region, service_id) to (somewhat ad-hoc interface) "Api"
-            # object.
-        }
+        self._api_to_uuid = {}
+        self._uuid_to_api = {}
+
         for api in apis:
-            entries = api.catalog_entries(tenant_id=None)
-            for entry in entries:
-                for endpoint in entry.endpoints:
-                    self.uri_prefixes[(endpoint.region, str(uuid4()))] = api
+            this_api_id = str(uuid4())
+            self._api_to_uuid[api] = this_api_id
+            self._uuid_to_api[this_api_id] = api
 
     @classmethod
     def fromPlugins(cls, clock):
@@ -192,41 +190,54 @@ class MimicCore(object):
         :return: A resource.
         :rtype: :obj:`twisted.web.iweb.IResource`
         """
-        key = (region_name, service_id)
-        if key in self.uri_prefixes:
-            return self.uri_prefixes[key].resource_for_region(
-                self.uri_for_service(region_name, service_id, base_uri))
+        if service_id in self._uuid_to_api:
+            api = self._uuid_to_api[service_id]
+            return api.resource_for_region(
+                self.uri_for_service(region_name, service_id, base_uri)
+            )
 
     def uri_for_service(self, region, service_id, base_uri):
         """
         Generate a URI prefix for a given region and service ID.
 
-        :param unicode region_name: the name of the region that the service
-            resource exists within.
-        :param unicode service_id: the UUID for the service for the
-            specified region
-        :param str base_uri: the base uri to use instead of the default -
-            most likely comes from a request URI
+        Each plugin loaded into mimic generates a list of catalog entries; each
+        catalog entry has a list of endpoints.  Each endpoint has a URI
+        associated with it, which we call a "URI prefix", because the endpoint
+        will have numerous other URIs beneath it in the hierarchy, generally
+        starting with a version number and tenant ID.  The URI prefixes
+        generated for this function point to the top of the endpoint's
+        hierarchy, not including any tenant information.
+
+        :param unicode region: the name of the region that the service resource
+            exists within.
+        :param unicode service_id: the UUID for the service for the specified
+            region
+        :param str base_uri: the base uri to use instead of the default - most
+            likely comes from a request URI
 
         :return: The full URI locating the service for that region
+        :rtype: ``str``
         """
         return str(URLPath.fromString(base_uri)
-                   .child("service").child(region).child(service_id).child(""))
+                   .child("service").child(service_id).child(region).child(""))
 
     def entries_for_tenant(self, tenant_id, prefix_map, base_uri):
         """
-        Get all the :obj:`mimic.catalog.Entry` objects for the given tenant
-        ID.
+        Get all the :obj:`mimic.catalog.Entry` objects for the given tenant ID,
+        populating a mapping of :obj:`mimic.catalog.Entry` to URI prefixes (as
+        described by :pyobj:`MimicCore.uri_for_service`) for that entry.
 
         :param unicode tenant_id: A fictional tenant ID.
         :param dict prefix_map: a mapping of entries to uris
-        :param str base_uri: the base uri to use instead of the default -
-            most likely comes from a request URI
+        :param str base_uri: the base uri to use instead of the default - most
+            likely comes from a request URI
 
         :return: The full URI locating the service for that region
         """
-        for (region, service_id), api in sorted(self.uri_prefixes.items()):
+        for service_id, api in self._uuid_to_api.items():
             for entry in api.catalog_entries(tenant_id):
-                prefix_map[entry] = self.uri_for_service(region, service_id,
-                                                         base_uri)
+                for endpoint in entry.endpoints:
+                    prefix_map[endpoint] = self.uri_for_service(
+                        endpoint.region, service_id, base_uri
+                    )
                 yield entry

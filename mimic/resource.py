@@ -49,9 +49,9 @@ class MimicRoot(object):
         request.setResponseCode(200)
         return json.dumps(get_presets)
 
-    @app.route("/service/<string:region_name>/<string:service_id>",
+    @app.route("/service/<string:service_id>/<string:region_name>",
                branch=True)
-    def get_service_resource(self, request, region_name, service_id):
+    def get_service_resource(self, request, service_id, region_name):
         """
         Based on the URL prefix of a region and a service, where the region is
         an identifier (like ORD, DFW, etc) and service is a

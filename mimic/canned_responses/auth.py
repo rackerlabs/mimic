@@ -25,7 +25,7 @@ def format_timestamp(dt):
 
 def get_token(tenant_id,
               entry_generator,
-              prefix_for_entry,
+              prefix_for_endpoint,
               timestamp=format_timestamp,
               response_token=HARD_CODED_TOKEN,
               response_user_id=HARD_CODED_USER_ID,
@@ -51,7 +51,7 @@ def get_token(tenant_id,
                         "region": endpoint.region,
                         "tenantId": endpoint.tenant_id,
                         "publicURL": endpoint.url_with_prefix(
-                            prefix_for_entry(entry)
+                            prefix_for_endpoint(endpoint)
                         ),
                     }
             yield {
@@ -81,7 +81,7 @@ def get_token(tenant_id,
     }
 
 
-def get_endpoints(tenant_id, entry_generator, prefix_for_entry):
+def get_endpoints(tenant_id, entry_generator, prefix_for_endpoint):
     """
     Canned response for Identity's get endpoints call.  This returns endpoints
     only for the services implemented by Mimic.
@@ -96,7 +96,7 @@ def get_endpoints(tenant_id, entry_generator, prefix_for_entry):
                 "region": endpoint.region,
                 "tenantId": endpoint.tenant_id,
                 "publicURL": endpoint.url_with_prefix(
-                    prefix_for_entry(entry)
+                    prefix_for_endpoint(endpoint)
                 ),
                 "name": entry.name,
                 "type": entry.type,
