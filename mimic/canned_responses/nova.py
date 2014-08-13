@@ -12,7 +12,6 @@ from mimic.util.helper import (not_found_response, invalid_resource,
 import json
 
 
-server_addresses_cache = {}
 s_cache = {}
 
 
