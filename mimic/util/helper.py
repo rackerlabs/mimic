@@ -49,7 +49,17 @@ def current_time_in_utc():
 def set_resource_status(updated_time, time_delta, status='ACTIVE'):
     """
     Given the updated_time and time delta, if the updated_time + time_delta is
-    greater than the current time in UTC, returns the given status.
+    greater than the current time in UTC, returns the given status; otherwise
+    return None.
+
+    :param str updated_time: The time that the server was last updated by a
+        client.
+    :param int time_delta: The delta, in seconds, from ``updated_time``.
+    :param str status: The status to return if the time_delta has expired (i.e.
+        the wall clock has advanced more than ``time_delta`` past
+        ``updated_time``).
+
+    :return: ``status`` or ``None``.
     """
     if (datetime.strptime(updated_time, fmt) + timedelta(seconds=time_delta)) < \
             datetime.utcnow():

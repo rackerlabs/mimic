@@ -12,7 +12,6 @@ from mimic.util.helper import (not_found_response, invalid_resource,
 import json
 
 
-server_addresses_cache = {}
 s_cache = {}
 
 
@@ -234,12 +233,16 @@ def get_limit():
 
 def set_server_state(server_id):
     """
-    If the server status is not active, sets the state of the server based on the
-    server metadata
+    If the server status is not active, sets the state of the server based on
+    the server metadata.
+
+    :param str server_id: the ID of a server, a key present in
+        :pyobj:`s_cache`.
     """
     if s_cache[server_id]['status'] != "ACTIVE":
-            if 'server_building' in s_cache[server_id]['metadata']:
-                status = set_resource_status(
-                    s_cache[server_id]['updated'],
-                    int(s_cache[server_id]['metadata']['server_building']))
-                s_cache[server_id]['status'] = status or s_cache[server_id]['status']
+        if 'server_building' in s_cache[server_id]['metadata']:
+            status = set_resource_status(
+                s_cache[server_id]['updated'],
+                int(s_cache[server_id]['metadata']['server_building']))
+            s_cache[server_id]['status'] = (status or
+                                            s_cache[server_id]['status'])

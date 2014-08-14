@@ -25,7 +25,7 @@ https://github.com/rackerlabs/mimic/blob/master/mimic/rest/nova_api.py
 1. LIST servers - Lists servers on the tenant, in mimic
 2. POST server - Creates a server in mimic *(look at the 'Errors or unusual behaviors supported for compute' below)*
 3. GET server - Returns the server, if it exists in mimic else returns a 404
-4. DELETE server - Deletes the server, if it exists in mimcic else returns 404
+4. DELETE server - Deletes the server, if it exists in mimic else returns 404
 5. LIST addresses - Lists the private and public Ips for the given server. 404 if not found.
 6. GET image - If the image ID is anything but what is listed in the mimic presets, `invalid_image_ref`
 			   returns 200. Else returns a 400.
