@@ -231,7 +231,7 @@ class GetAuthTokenAPITests(SynchronousTestCase):
         self.assertEqual(200, response.code)
         token = json_body['access']['token']['id']
         tenant_id = json_body['access']['token']['tenant']['id']
-        session = core.session_for_token(token)
+        session = core.sessions.session_for_token(token)
         self.assertEqual(token, session.token)
         self.assertEqual(tenant_id, session.tenant_id)
 
@@ -260,7 +260,7 @@ class GetAuthTokenAPITests(SynchronousTestCase):
         self.assertEqual("turtlepower",
                          json_body['access']['token']['tenant']['id'])
         token = json_body['access']['token']['id']
-        session = core.session_for_token(token)
+        session = core.sessions.session_for_token(token)
         self.assertEqual(token, session.token)
         self.assertEqual("turtlepower", session.tenant_id)
 
@@ -317,7 +317,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
             "/identity/v2.0/tokens/{0}/endpoints".format(token)
         )
 
-        session = core.session_for_token(token)
+        session = core.sessions.session_for_token(token)
         self.assertEqual(token, session.token)
 
     def test_response_service_catalog_has_base_uri(self):
