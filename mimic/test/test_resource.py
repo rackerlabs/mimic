@@ -8,6 +8,17 @@ from mimic.test.dummy import ExampleAPI
 from mimic.test.helpers import json_request, request, request_with_content
 
 
+def one_api(testCase, core):
+    """
+    Get the only API registered against a given MimicCore.
+
+    :return: 2-tuple of ``region`` and ``service_id``
+    """
+    service_id, api = core._uuid_to_api.items()[0]
+    region = api.catalog_entries(tenant_id=None)[0].endpoints[0].region
+    return (region, service_id)
+
+
 class ServiceResourceTests(SynchronousTestCase):
     """
     Tests for ``/service/*`` endpoints, handled by
@@ -25,16 +36,16 @@ class ServiceResourceTests(SynchronousTestCase):
         root = MimicRoot(core).app.resource()
 
         # get the region and service id registered for the example API
-        (region, service_id) = core.uri_prefixes.keys()[0]
+        (region, service_id) = one_api(self, core)
 
         request(
             self, root, "GET",
-            "http://mybase/service/{0}/{1}/more/stuff".format(region,
-                                                              service_id)
+            "http://mybase/service/{0}/{1}/more/stuff".format(service_id,
+                                                              region)
         )
 
         self.assertEqual(
-            "http://mybase/service/{0}/{1}/".format(region, service_id),
+            "http://mybase/service/{0}/{1}/".format(service_id, region),
             example.store['uri_prefix'])
 
     def test_service_endpoint_returns_404_if_wrong_service_id(self):
@@ -49,11 +60,11 @@ class ServiceResourceTests(SynchronousTestCase):
         root = MimicRoot(core).app.resource()
 
         # get the region and service id registered for the example API
-        (region, service_id) = core.uri_prefixes.keys()[0]
+        (region, service_id) = one_api(self, core)
 
         response = self.successResultOf(request(
             self, root, "GET",
-            "http://mybase/service/{0}/not_{1}".format(region, service_id)
+            "http://mybase/service/not_{0}/{1}".format(service_id, region)
         ))
         self.assertEqual(404, response.code)
         self.assertEqual([], example.store.keys())
@@ -70,11 +81,11 @@ class ServiceResourceTests(SynchronousTestCase):
         root = MimicRoot(core).app.resource()
 
         # get the region and service id registered for the example API
-        (region, service_id) = core.uri_prefixes.keys()[0]
+        (region, service_id) = one_api(self, core)
 
         response = self.successResultOf(request(
             self, root, "GET",
-            "http://mybase/service/not_{0}/{1}".format(region, service_id)
+            "http://mybase/service/not_{0}/{1}".format(service_id, region)
         ))
         self.assertEqual(404, response.code)
         self.assertEqual([], example.store.keys())
@@ -89,11 +100,11 @@ class ServiceResourceTests(SynchronousTestCase):
         root = MimicRoot(core).app.resource()
 
         # get the region and service id registered for the example API
-        (region, service_id) = core.uri_prefixes.keys()[0]
+        (region, service_id) = one_api(self, core)
 
         (response, content) = self.successResultOf(request_with_content(
             self, root, "GET",
-            "http://mybase/service/{0}/{1}".format(region, service_id)
+            "http://mybase/service/{0}/{1}".format(service_id, region)
         ))
         self.assertEqual(200, response.code)
         self.assertEqual('response!', content)

@@ -130,13 +130,13 @@ class CoreBuildingTests(SynchronousTestCase):
     """
     Tests for creating a :class:`MimicCore` object with plugins
     """
-    def test_no_uri_prefixes_if_no_plugins(self):
+    def test_no_uuids_if_no_plugins(self):
         """
         If there are no plugins provided to :class:`MimicCore`, there are no
         uri prefixes or entries for the tenant.
         """
         core = MimicCore(Clock(), [])
-        self.assertEqual(0, len(core.uri_prefixes))
+        self.assertEqual(0, len(core._uuid_to_api))
         self.assertEqual([], list(core.entries_for_tenant('any_tenant', {},
                                                           'http://mimic')))
 
@@ -148,7 +148,7 @@ class CoreBuildingTests(SynchronousTestCase):
         core = MimicCore.fromPlugins(Clock())
         self.assertEqual(
             set((nova_plugin.nova, loadbalancer_plugin.loadbalancer)),
-            set(core.uri_prefixes.values()))
+            set(core._uuid_to_api.values()))
         self.assertEqual(
             2, len(list(core.entries_for_tenant('any_tenant', {},
                                                 'http://mimic'))))
