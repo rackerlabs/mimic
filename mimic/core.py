@@ -10,7 +10,7 @@ from twisted.python.urlpath import URLPath
 from twisted.plugin import getPlugins
 from mimic import plugins
 
-from mimic.imimic import IAPIMock
+from mimic.imimic import IAPIMock, IControllable
 from mimic.session import SessionStore
 
 from uuid import uuid4
@@ -37,7 +37,8 @@ class MimicCore(object):
         self._uuid_to_api = {}
         self.sessions = SessionStore(clock)
 
-        for api in apis:
+        for api in list(apis) + [api.control_plane() for api in apis
+                                 if IControllable.providedBy(api)]:
             this_api_id = str(uuid4())
             self._uuid_to_api[this_api_id] = api
 

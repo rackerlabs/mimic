@@ -106,6 +106,9 @@ def create_server(tenant_id, server_info, server_id, compute_uri_prefix,
     Canned response for create server and adds the server to the server cache.
     """
     status = "ACTIVE"
+    alternate_response = s_cache.server_creation_check(server_id, server_info)
+    if alternate_response is not None:
+        return alternate_response
     if 'metadata' in server_info:
         if 'create_server_failure' in server_info['metadata']:
             dict_meta = json.loads(server_info['metadata']['create_server_failure'])
