@@ -29,7 +29,14 @@ Request.defaultContentType = 'application/json'
 class NovaApi(object):
     """
     Rest endpoints for mocked Nova Api.
+
+    :ivar dict _tenant_cache: A mapping of tenant_id (bytes) to a "server
+        cache" (dictionary), which itself maps server_id to a JSON-serializable
+        data structure of the 'server' key of GET responses.
     """
+
+    def __init__(self):
+        self._tenant_cache = {}
 
     def catalog_entries(self, tenant_id):
         """
@@ -49,7 +56,7 @@ class NovaApi(object):
         Get an :obj:`twisted.web.iweb.IResource` for the given URI prefix;
         implement :obj:`IAPIMock`.
         """
-        return NovaRegion(uri_prefix).app.resource()
+        return NovaRegion(uri_prefix, self._tenant_cache).app.resource()
 
 
 def _list_servers(request, tenant_id, details=False):
@@ -67,9 +74,11 @@ def _list_servers(request, tenant_id, details=False):
 class NovaRegion(object):
     """
     Klein routes for the API within a Cloud Servers region.
+
+    :var dict tenant_cache: see :pyobj:`NovaApi`.tenant_cache.
     """
 
-    def __init__(self, uri_prefix):
+    def __init__(self, uri_prefix, tenant_cache):
         """
         Create a nova region with a given URI prefix (used for generating URIs
         to servers).
