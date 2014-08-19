@@ -12,9 +12,6 @@ from mimic.util.helper import (not_found_response, invalid_resource,
 import json
 
 
-s_cache = {}
-
-
 def server_template(tenant_id, server_info, server_id, status,
                     current_time=None,
                     ipsegment=lambda: randrange(255),
