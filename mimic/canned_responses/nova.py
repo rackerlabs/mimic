@@ -100,7 +100,8 @@ def server_template(tenant_id, server_info, server_id, status,
     return server_template
 
 
-def create_server(tenant_id, server_info, server_id, compute_uri_prefix):
+def create_server(tenant_id, server_info, server_id, compute_uri_prefix,
+                  s_cache):
     """
     Canned response for create server and adds the server to the server cache.
     """
@@ -127,25 +128,25 @@ def create_server(tenant_id, server_info, server_id, compute_uri_prefix):
                    "adminPass": "testpassword"}}, 202
 
 
-def get_server(server_id):
+def get_server(server_id, s_cache):
     """
     Verify if the given server_id exists in the server cache. If true, return server
     data else return None
     """
     if server_id in s_cache:
-        set_server_state(server_id)
+        set_server_state(server_id, s_cache)
         return {'server': s_cache[server_id]}, 200
     else:
         return not_found_response(), 404
 
 
-def list_server(tenant_id, name=None, details=True):
+def list_server(tenant_id, s_cache, name=None, details=True):
     """
     Return a list of all servers in the server cache with the given tenant_id
     """
     response = {k: v for (k, v) in s_cache.items() if tenant_id == v['tenant_id']}
     for each in response:
-        set_server_state(each)
+        set_server_state(each, s_cache)
     if name:
         response = {k: v for (k, v) in response.items() if name in v['name']}
     if details:
@@ -155,7 +156,7 @@ def list_server(tenant_id, name=None, details=True):
                 for values in response.values()]}, 200
 
 
-def delete_server(server_id):
+def delete_server(server_id, s_cache):
     """
     Returns True if the server was deleted from the cache, else returns false.
     """
@@ -172,7 +173,7 @@ def delete_server(server_id):
         return not_found_response(), 404
 
 
-def list_addresses(server_id):
+def list_addresses(server_id, s_cache):
     """
     Returns the public and private ip address for the given server
     """
@@ -182,7 +183,7 @@ def list_addresses(server_id):
         return not_found_response(), 404
 
 
-def get_image(image_id):
+def get_image(image_id, s_cache):
     """
     Canned response for get image. The image id provided is substituted in the response,
     if not one of the invalid image ids specified in mimic_presets.
@@ -192,7 +193,7 @@ def get_image(image_id):
     return {'image': {'status': 'ACTIVE', 'id': image_id}}, 200
 
 
-def get_flavor(flavor_id):
+def get_flavor(flavor_id, s_cache):
     """
     Canned response for get flavor.
     The flavor id provided is substituted in the response
@@ -203,7 +204,7 @@ def get_flavor(flavor_id):
                        'id': flavor_id}}, 200
 
 
-def get_limit():
+def get_limit(s_cache):
     """
     Canned response for limits for servers. Returns only the absolute limits
     """
@@ -228,7 +229,7 @@ def get_limit():
                           "maxTotalRAMSize": 256000}}}
 
 
-def set_server_state(server_id):
+def set_server_state(server_id, s_cache):
     """
     If the server status is not active, sets the state of the server based on
     the server metadata.

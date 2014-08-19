@@ -42,7 +42,7 @@ class LoadBalancerApi(object):
                   ])
         ]
 
-    def resource_for_region(self, uri_prefix):
+    def resource_for_region(self, region, uri_prefix):
         """
         Get an :obj:`twisted.web.iweb.IResource` for the given URI prefix;
         implement :obj:`IAPIMock`.

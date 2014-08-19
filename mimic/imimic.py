@@ -18,7 +18,7 @@ class IAPIMock(Interface):
             Mimic.
         """
 
-    def resource_for_region(uri_prefix):
+    def resource_for_region(region, uri_prefix):
         """
         Get a resource for the given region.
         """

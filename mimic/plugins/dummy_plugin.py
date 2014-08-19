@@ -29,7 +29,7 @@ class DummyPlugin(object):
             Endpoint(modified, "Mars", "5432", "v3k"),
         ])]
 
-    def resource_for_region(self, uri_prefix):
+    def resource_for_region(self, region, guri_prefix):
         """
         Return an IResource provider that just serves static data at its root.
         """

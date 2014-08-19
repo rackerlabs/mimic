@@ -66,6 +66,7 @@ class MimicCore(object):
         if service_id in self._uuid_to_api:
             api = self._uuid_to_api[service_id]
             return api.resource_for_region(
+                region_name,
                 self.uri_for_service(region_name, service_id, base_uri)
             )
 
