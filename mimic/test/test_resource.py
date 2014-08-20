@@ -40,12 +40,11 @@ class ServiceResourceTests(SynchronousTestCase):
 
         request(
             self, root, "GET",
-            "http://mybase/service/{0}/{1}/more/stuff".format(service_id,
-                                                              region)
+            "http://mybase/mimic/{0}/{1}/more/stuff".format(service_id, region)
         )
 
         self.assertEqual(
-            "http://mybase/service/{0}/{1}/".format(service_id, region),
+            "http://mybase/mimic/{0}/{1}/".format(service_id, region),
             example.store['uri_prefix'])
 
     def test_service_endpoint_returns_404_if_wrong_service_id(self):
@@ -104,7 +103,7 @@ class ServiceResourceTests(SynchronousTestCase):
 
         (response, content) = self.successResultOf(request_with_content(
             self, root, "GET",
-            "http://mybase/service/{0}/{1}".format(service_id, region)
+            "http://mybase/mimic/{0}/{1}".format(service_id, region)
         ))
         self.assertEqual(200, response.code)
         self.assertEqual('response!', content)
