@@ -24,17 +24,30 @@ from mimic.imimic import IAPIMock
 
 Request.defaultContentType = 'application/json'
 
-@implementer(IAPIMock)
-class MimicNova(object):
+@implementer(IAPIMock, IPlugin)
+class NovaErrorInjection(object):
     """
     
     """
 
-    def catalog_entries(self):
+    def __init__(self, nova_api):
         """
         
         """
+        self.nova_api = nova_api
+
+    def catalog_entries(self, tenant_id):
+        """
         
+        """
+        return [
+            Entry(
+                tenant_id, "compute-mock", "computeMimicErrorInjection",
+                [
+                    Endpoint()
+                ]
+            )
+        ]
 
 
 

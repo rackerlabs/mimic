@@ -37,8 +37,7 @@ class MimicCore(object):
         self._uuid_to_api = {}
         self.sessions = SessionStore(clock)
 
-        for api in list(apis) + [api.control_plane() for api in apis
-                                 if IControllable.providedBy(api)]:
+        for api in apis:
             this_api_id = str(uuid4())
             self._uuid_to_api[this_api_id] = api
 
