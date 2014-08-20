@@ -49,7 +49,7 @@ class MimicRoot(object):
         request.setResponseCode(200)
         return json.dumps(get_presets)
 
-    @app.route("/service/<string:service_id>/<string:region_name>",
+    @app.route("/mimic/<string:service_id>/<string:region_name>",
                branch=True)
     def get_service_resource(self, request, service_id, region_name):
         """
