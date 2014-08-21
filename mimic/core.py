@@ -10,7 +10,7 @@ from twisted.python.urlpath import URLPath
 from twisted.plugin import getPlugins
 from mimic import plugins
 
-from mimic.imimic import IAPIMock, IControllable
+from mimic.imimic import IAPIMock
 from mimic.session import SessionStore
 
 from uuid import uuid4

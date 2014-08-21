@@ -28,9 +28,12 @@ class CoreBuildingTests(SynchronousTestCase):
         :class:`MimicCore`, the nova and loadbalancer plugins are included.
         """
         core = MimicCore.fromPlugins(Clock())
+        plugin_apis = set((nova_plugin.nova, loadbalancer_plugin.loadbalancer,
+                           nova_plugin.nova_control_plane))
         self.assertEqual(
-            set((nova_plugin.nova, loadbalancer_plugin.loadbalancer)),
+            plugin_apis,
             set(core._uuid_to_api.values()))
         self.assertEqual(
-            2, len(list(core.entries_for_tenant('any_tenant', {},
-                                                'http://mimic'))))
+            len(plugin_apis),
+            len(list(core.entries_for_tenant('any_tenant', {},
+                                             'http://mimic'))))
