@@ -24,6 +24,7 @@ from mimic.imimic import IAPIMock
 
 Request.defaultContentType = 'application/json'
 
+
 @implementer(IAPIMock, IPlugin)
 class NovaErrorInjection(object):
     """
@@ -35,7 +36,6 @@ class NovaErrorInjection(object):
         Construct a NovaErrorInjection around a :obj:`NovaApi`.
         """
         self.nova_api = nova_api
-
 
     def catalog_entries(self, tenant_id):
         """
@@ -51,7 +51,6 @@ class NovaErrorInjection(object):
                 ]
             )
         ]
-
 
     def resource_for_region(self):
         """
@@ -97,12 +96,6 @@ class NovaApi(object):
             uri_prefix, self._region_cache.setdefault(region, {})
         ).app.resource()
 
-    def control_plane(self):
-        """
-        
-        """
-        return MimicNova()
-
 
 def _list_servers(request, tenant_id, s_cache, details=False):
     """
@@ -116,47 +109,53 @@ def _list_servers(request, tenant_id, s_cache, details=False):
     request.setResponseCode(response_data[1])
     return json.dumps(response_data[0])
 
+
 class Matcher(object):
     """
-    
+    Sketch: a class that matches stuff.
     """
 
     def does_match_server(self, server_id, server_info):
         """
-        
+        Sketch: Does this matcher match the given server?
         """
         return (self.condition.matches_id(server_id) or
                 self.condition.matches_metadata(server_info['metadata']))
 
 
-
 class S_Cache(dict):
     """
-    
+    Sketch: A replacement for s_cache-as-dictionary,
+    s_cache-as-object-with-methods-and-attributes.  It's still a dictionary so
+    that we can continue to treat it as one in the slightly crufty
+    canned_responses module that expects dumb data structures rather than a
+    structured object.
     """
     def __init__(self):
         """
-        
+        Create an S_Cache with a list of matchers.
         """
         self.matchers = []
 
-
     def add_failure_matcher(self, condition, response):
         """
-        
+        Add a matcher that creates a canned failure, with a 'response' object.
         """
         self.matchers.append(Matcher(condition, response))
 
-
     def server_creation_check(self, server_id, server_info):
         """
-        
+        Called for each server creation.
+
+        Either returns None if server creation should proceed as normal,
+        otherwise it returns a "response" object if a matcher added with
+        add_failure_matcher matches the server ID and server information
+        passed.
         """
         for matcher in self.matchers:
             if matcher.does_match_server(server_id, server_info):
                 return matcher.response_for_server(server_id, server_info)
         return None
-
 
 
 class NovaRegion(object):
