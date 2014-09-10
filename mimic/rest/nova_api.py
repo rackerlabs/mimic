@@ -163,8 +163,8 @@ class NovaRegion(object):
     Klein routes for the API within a Cloud Servers region.
 
     :ivar dict _tenant_cache: a mapping of tenant_id (bytes) to a "server
-        cache" (dictionary), which itself maps server_id to a JSON-serializable
-        data structure of the 'server' key of GET responses.
+        cache" (:obj:`S_Cache`), which itself maps server_id to a
+        JSON-serializable data structure of the 'server' key of GET responses.
     """
 
     def __init__(self, uri_prefix, tenant_cache):
