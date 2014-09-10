@@ -111,8 +111,11 @@ def create_server(tenant_id, server_info, server_id, compute_uri_prefix,
         return alternate_response
     if 'metadata' in server_info:
         if 'create_server_failure' in server_info['metadata']:
-            dict_meta = json.loads(server_info['metadata']['create_server_failure'])
-            return invalid_resource(dict_meta['message'], dict_meta['code']), dict_meta['code']
+            dict_meta = (
+                json.loads(server_info['metadata']['create_server_failure'])
+            )
+            return (invalid_resource(dict_meta['message'], dict_meta['code']),
+                    dict_meta['code'])
 
         if 'server_building' in server_info['metadata']:
             status = "BUILD"
@@ -124,17 +127,23 @@ def create_server(tenant_id, server_info, server_id, compute_uri_prefix,
         tenant_id, server_info, server_id, status,
         compute_uri_prefix=compute_uri_prefix,
     )
-    return {
-        'server': {"OS-DCF:diskConfig": s_cache[server_id]['OS-DCF:diskConfig'],
-                   "id": s_cache[server_id]['id'],
-                   "links": s_cache[server_id]['links'],
-                   "adminPass": "testpassword"}}, 202
+    return (
+        {
+            'server': {
+                "OS-DCF:diskConfig": s_cache[server_id]['OS-DCF:diskConfig'],
+                "id": s_cache[server_id]['id'],
+                "links": s_cache[server_id]['links'],
+                "adminPass": "testpassword"
+            }
+        },
+        202
+    )
 
 
 def get_server(server_id, s_cache):
     """
-    Verify if the given server_id exists in the server cache. If true, return server
-    data else return None
+    Verify if the given server_id exists in the server cache.  If true, return
+    server data else return None
     """
     if server_id in s_cache:
         set_server_state(server_id, s_cache)
@@ -147,7 +156,8 @@ def list_server(tenant_id, s_cache, name=None, details=True):
     """
     Return a list of all servers in the server cache with the given tenant_id
     """
-    response = {k: v for (k, v) in s_cache.items() if tenant_id == v['tenant_id']}
+    response = {k: v for (k, v) in s_cache.items()
+                if tenant_id == v['tenant_id']}
     for each in response:
         set_server_state(each, s_cache)
     if name:
@@ -155,8 +165,11 @@ def list_server(tenant_id, s_cache, name=None, details=True):
     if details:
         return {'servers': [values for values in response.values()]}, 200
     else:
-        return {'servers': [{'name': values['name'], 'links':values['links'], 'id':values['id']}
-                for values in response.values()]}, 200
+        return ({'servers': [{'name': values['name'],
+                              'links':values['links'],
+                              'id':values['id']}
+                             for values in response.values()]},
+                200)
 
 
 def delete_server(server_id, s_cache):
@@ -165,11 +178,16 @@ def delete_server(server_id, s_cache):
     """
     if server_id in s_cache:
         if 'delete_server_failure' in s_cache[server_id]['metadata']:
-            del_meta = json.loads(s_cache[server_id]['metadata']['delete_server_failure'])
+            del_meta = json.loads(
+                s_cache[server_id]['metadata']['delete_server_failure']
+            )
             if del_meta['times'] != 0:
                 del_meta['times'] = del_meta['times'] - 1
-                s_cache[server_id]['metadata']['delete_server_failure'] = json.dumps(del_meta)
-                return invalid_resource('server error', del_meta['code']), del_meta['code']
+                s_cache[server_id]['metadata']['delete_server_failure'] = (
+                    json.dumps(del_meta)
+                )
+                return (invalid_resource('server error', del_meta['code']),
+                        del_meta['code'])
         del s_cache[server_id]
         return True, 204
     else:
@@ -188,11 +206,15 @@ def list_addresses(server_id, s_cache):
 
 def get_image(image_id, s_cache):
     """
-    Canned response for get image. The image id provided is substituted in the response,
-    if not one of the invalid image ids specified in mimic_presets.
+    Canned response for get image.  The image id provided is substituted in the
+    response, if not one of the invalid image ids specified in mimic_presets.
     """
-    if any([image_id in get_presets['servers']['invalid_image_ref'], image_id.endswith('Z')]):
-        return invalid_resource('Invalid imageRef provided.', 400), 400
+    if (
+            image_id in get_presets['servers']['invalid_image_ref'] or
+            image_id.endswith('Z')
+    ):
+        return (invalid_resource('Invalid imageRef provided.', 400),
+                400)
     return {'image': {'status': 'ACTIVE', 'id': image_id}}, 200
 
 
@@ -202,9 +224,11 @@ def get_flavor(flavor_id, s_cache):
     The flavor id provided is substituted in the response
     """
     if flavor_id in get_presets['servers']['invalid_flavor_ref']:
-        return invalid_resource('Invalid flavorRef provided.', 400), 400
-    return {'flavor': {'name': '512MB Standard Instance',
-                       'id': flavor_id}}, 200
+        return (invalid_resource('Invalid flavorRef provided.', 400),
+                400)
+    return ({'flavor': {'name': '512MB Standard Instance',
+                        'id': flavor_id}},
+            200)
 
 
 def get_limit(s_cache):
