@@ -4,6 +4,7 @@ Defines create, delete, get, list servers and get images and flavors.
 
 from uuid import uuid4
 import json
+import collections
 from random import randrange
 
 from six import text_type
@@ -52,7 +53,7 @@ class NovaErrorInjection(object):
             )
         ]
 
-    def resource_for_region(self, region, uri_prefix):
+    def resource_for_region(self, region, uri_prefix, session_store):
         """
         TODO: implement some control APIs.
         """
@@ -63,16 +64,13 @@ class NovaErrorInjection(object):
 class NovaApi(object):
     """
     Rest endpoints for mocked Nova Api.
-
-    :ivar dict _region_cache: A mapping of (region (bytes)) to a tenant cache;
-        see :pyobj:`NovaRegion`
     """
 
-    def __init__(self):
+    def __init__(self, regions=["ORD"]):
         """
         Create a NovaApi with an empty region cache, no servers or tenants yet.
         """
-        self._region_cache = {}
+        self._regions = regions
 
     def catalog_entries(self, tenant_id):
         """
@@ -82,19 +80,20 @@ class NovaApi(object):
             Entry(
                 tenant_id, "compute", "cloudServersOpenStack",
                 [
-                    Endpoint(tenant_id, "ORD", text_type(uuid4()), prefix="v2")
+                    Endpoint(tenant_id, region, text_type(uuid4()),
+                             prefix="v2")
+                    for region in self._regions
                 ]
             )
         ]
 
-    def resource_for_region(self, region, uri_prefix):
+    def resource_for_region(self, region, uri_prefix, session_store):
         """
         Get an :obj:`twisted.web.iweb.IResource` for the given URI prefix;
         implement :obj:`IAPIMock`.
         """
-        return NovaRegion(
-            uri_prefix, self._region_cache.setdefault(region, {})
-        ).app.resource()
+        return (NovaRegion(self, uri_prefix, session_store, region)
+                .app.resource())
 
 
 def _list_servers(request, tenant_id, s_cache, details=False):
@@ -167,20 +166,25 @@ class NovaRegion(object):
         JSON-serializable data structure of the 'server' key of GET responses.
     """
 
-    def __init__(self, uri_prefix, tenant_cache):
+    def __init__(self, api_mock, uri_prefix, session_store, name):
         """
         Create a nova region with a given URI prefix (used for generating URIs
         to servers).
         """
         self.uri_prefix = uri_prefix
-        self._tenant_cache = tenant_cache
+        self._api_mock = api_mock
+        self._session_store = session_store
+        self._name = name
 
     def _server_cache_for_tenant(self, tenant_id):
         """
         Get the given server-cache object for the given tenant, creating one if
         there isn't one.
         """
-        return self._tenant_cache.setdefault(tenant_id, S_Cache())
+        return (self._session_store.session_for_tenant_id(tenant_id)
+                .data_for_api(self._api_mock,
+                              lambda: collections.defaultdict(S_Cache))
+                [self._name])
 
     app = MimicApp()
 

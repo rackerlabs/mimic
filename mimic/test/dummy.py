@@ -52,7 +52,7 @@ class ExampleAPI(object):
         endpoints = [Endpoint(tenant_id, each[0], 'uuid', each[1]) for each in self.regions_and_versions]
         return [Entry(tenant_id, "serviceType", "serviceName", endpoints)]
 
-    def resource_for_region(self, region, uri_prefix):
+    def resource_for_region(self, region, uri_prefix, session_store):
         """
         Return no resource.
         """
