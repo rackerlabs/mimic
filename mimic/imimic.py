@@ -22,9 +22,3 @@ class IAPIMock(Interface):
         """
         Get a resource for the given region.
         """
-
-
-class IControllable(object):
-    """
-    An :obj:`IControllable` is an API mock
-    """
