@@ -52,7 +52,7 @@ class NovaErrorInjection(object):
             )
         ]
 
-    def resource_for_region(self):
+    def resource_for_region(self, region, uri_prefix):
         """
         TODO: implement some control APIs.
         """
