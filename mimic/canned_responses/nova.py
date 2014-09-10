@@ -156,12 +156,16 @@ def list_server(tenant_id, s_cache, name=None, details=True):
     """
     Return a list of all servers in the server cache with the given tenant_id
     """
-    response = {k: v for (k, v) in s_cache.items()
-                if tenant_id == v['tenant_id']}
+    response = dict(
+        (k, v) for (k, v) in s_cache.items()
+        if tenant_id == v['tenant_id']
+    )
     for each in response:
         set_server_state(each, s_cache)
     if name:
-        response = {k: v for (k, v) in response.items() if name in v['name']}
+        response = dict(
+            (k, v) for (k, v) in response.items() if name in v['name']
+        )
     if details:
         return {'servers': [values for values in response.values()]}, 200
     else:
