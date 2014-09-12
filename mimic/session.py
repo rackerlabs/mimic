@@ -18,12 +18,28 @@ class Session(object):
     username and tenant_id.
     """
 
+    def __init__(self):
+        """
+        Each session has an associated mapping of :obj:`IAPIMock` to data for
+        that API.  For example, Nova might store the servers for that tenant,
+        Swift might store objects for that tenant.
+        """
+        self._api_objects = {}
+
     @property
     def user_id(self):
         """
         Return a unique numeric ID based on the username.
         """
         return text_type(hash(self.username))
+
+    def data_for_api(self, api_mock, data_factory):
+        """
+        Get the application data for a given API, creating it if necessary.
+        """
+        if api_mock not in self._api_objects:
+            self._api_objects[api_mock] = data_factory()
+        return self._api_objects[api_mock]
 
 
 class SessionStore(object):

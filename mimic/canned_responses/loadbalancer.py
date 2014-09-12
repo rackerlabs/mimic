@@ -88,7 +88,10 @@ def list_load_balancers(tenant_id):
     Returns the list of load balancers with the given tenant id with response
     code 200. If no load balancers are found returns empty list.
     """
-    response = {k: v for (k, v) in lb_cache.items() if tenant_id == v['tenant_id']}
+    response = dict(
+        (k, v) for (k, v) in lb_cache.items()
+        if tenant_id == v['tenant_id']
+    )
     return {'loadBalancers': response.values() or []}, 200
 
 

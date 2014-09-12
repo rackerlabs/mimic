@@ -82,7 +82,8 @@ class AuthApi(object):
         expires_in = content['RAX-AUTH:impersonation']['expire-in-seconds']
         username = content['RAX-AUTH:impersonation']['user']['username']
 
-        session = self.core.sessions.session_for_impersonation(username, expires_in)
+        session = self.core.sessions.session_for_impersonation(username,
+                                                               expires_in)
         return json.dumps({"access": {
             "token": {"id": session.token,
                       "expires": format_timestamp(session.expires)}
