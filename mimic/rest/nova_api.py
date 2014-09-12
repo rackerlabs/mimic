@@ -27,40 +27,6 @@ Request.defaultContentType = 'application/json'
 
 
 @implementer(IAPIMock, IPlugin)
-class NovaErrorInjection(object):
-    """
-    Construct an error injector as a separate service in the service catalog.
-    """
-
-    def __init__(self, nova_api):
-        """
-        Construct a NovaErrorInjection around a :obj:`NovaApi`.
-        """
-        self.nova_api = nova_api
-
-    def catalog_entries(self, tenant_id):
-        """
-        Construct a single catalog entry.
-        """
-        return [
-            Entry(
-                tenant_id, "mimic-control-compute",
-                "computeMimicErrorInjection",
-                [
-                    Endpoint(tenant_id, "all", text_type(uuid4()),
-                             prefix="mimic-v2"),
-                ]
-            )
-        ]
-
-    def resource_for_region(self, region, uri_prefix, session_store):
-        """
-        TODO: implement some control APIs.
-        """
-        return None
-
-
-@implementer(IAPIMock, IPlugin)
 class NovaApi(object):
     """
     Rest endpoints for mocked Nova Api.
