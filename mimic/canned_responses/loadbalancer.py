@@ -22,7 +22,8 @@ lb_node_id_cache = {}
 lb_cache = {}
 
 
-def load_balancer_example(lb_info, lb_id, status):
+def load_balancer_example(lb_info, lb_id, status,
+                          current_time=current_time_in_utc):
     """
     Create load balancer response example
     """
