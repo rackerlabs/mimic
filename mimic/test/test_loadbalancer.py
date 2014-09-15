@@ -38,7 +38,7 @@ class ResponseGenerationTests(SynchronousTestCase):
         input_lb_status = "ACTIVE"
 
         actual = load_balancer_example(input_lb_info, input_lb_id, input_lb_status,
-                                       input_lb_time)
+                                       lambda: input_lb_time)
 
         lb_example = {"name": expect_lb_name,
                       "id": input_lb_id,
