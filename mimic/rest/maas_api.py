@@ -69,3 +69,31 @@ class MaasMock(object):
         """
         request.setResponseCode(200)
         return json.dumps({"entities": []})
+
+    @app.route('/v1.0/<string:tenant_id>/__experiments/json_home', methods=['GET'])
+    def service_json_home(self, request, tenant_id):
+      request.setResponseCode(200)
+      return file('mimic/rest/cloudMonitoring_json_home.json').read()
+
+    @app.route('/v1.0/<string:tenant_id>/views/agent_host_info', methods=['GET'])
+    def view_agent_host_info(self, request, tenant_id):
+      request.setResponseCode(400)
+      return """{
+        "type": "agentDoesNotExist",
+        "code": 400,
+        "message": "Agent does not exist",
+        "details": "Agent c302622d-7612-4485-af8b-8363d8ce9184 does not exist.",
+        "txnId": ".rh-quqy.h-ord1-maas-prod-api1.r-1wej75Ht.c-21273930.ts-1410911874749.v-858fee7"
+      }"""
+
+    @app.route('/v1.0/<string:tenant_id>/views/metric_list', methods=['GET'])
+    def views_metric_list(self, request, tenant_id):
+      request.setResponseCode(200)
+      return file('mimic/rest/metric_list.json').read()
+           
+    @app.route('/v1.0/<string:tenant_id>/__experiments/multiplot', methods=['POST'])
+    def multiplot(self, request, tenant_id):
+      request.setResponseCode(200)
+      return file('mimic/rest/multiplot.json').read()
+
+

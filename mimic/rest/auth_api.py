@@ -36,7 +36,12 @@ class AuthApi(object):
         """
         content = json.loads(request.content.read())
         # tenant_id = content['auth'].get('tenantName', None)
-        credentials = content['auth']['passwordCredentials']
+        if 'passwordCredentials' in content['auth']:
+          credentials = content['auth']['passwordCredentials']
+        else:
+          credentials = {}
+          credentials['username'] = content['auth']['tenantId']
+          credentials['password'] = content['auth']['token']['id']
         session = self.core.sessions.session_for_username_password(
             credentials['username'], credentials['password'],
             content['auth'].get('tenantName', None),
@@ -48,18 +53,18 @@ class AuthApi(object):
 
         def lookup(entry):
             return prefix_map[entry]
-        return json.dumps(
-            get_token(
-                session.tenant_id,
-                entry_generator=lambda tenant_id:
-                list(self.core.entries_for_tenant(
-                    tenant_id, prefix_map, base_uri_from_request(request))),
-                prefix_for_endpoint=lookup,
-                response_token=session.token,
-                response_user_id=session.user_id,
-                response_user_name=session.username,
-            )
-        )
+        result =  get_token(
+                      session.tenant_id,
+                      entry_generator=lambda tenant_id:
+                      list(self.core.entries_for_tenant(
+                          tenant_id, prefix_map, base_uri_from_request(request))),
+                      prefix_for_endpoint=lookup,
+                      response_token=session.token,
+                      response_user_id=session.user_id,
+                      response_user_name=session.username,
+                  )
+        result['access']['user']['roles'].append({'description':'User Admin Role.','id':'3','name':'identity:user-admin'})
+        return json.dumps(result)
 
     @app.route('/v1.1/mosso/<string:tenant_id>', methods=['GET'])
     def get_username(self, request, tenant_id):
