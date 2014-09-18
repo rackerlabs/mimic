@@ -3,12 +3,15 @@ Defines the preset values in the mimic api.
 """
 
 
-get_presets = {"loadbalancers": {"lb_name-BUILD": "Keeps the load balancer in building state"
-                                                  "for 10 seconds. Used only on create load balancer",
-                                 "lb_name-PENDING_UPDATE": "Changes the load balancer to PENDING-UPDATE"
-                                                           "state",
-                                 "time": 30,  # "Time in seconds, determines the given lb status (other
-                                 #  "than the ACTIVE state) lasts. Defaults to 30 seconds",
+get_presets = {"loadbalancers": {"lb_building": "On create load balancer, keeps the load balancer in "
+                                                "building state for given seconds",
+                                 "lb_error_state": "Puts the LB in error state, and such an LB can only"
+                                                   "be deleted",
+                                 "lb_pending_update": "Changes the load balancer to PENDING-UPDATE"
+                                                      "state for the given number, any action"
+                                                      "other than delete is performed on the server",
+                                 "lb_pending_delete": "Changes the load balancer to PENDING-DELETE"
+                                                      "state for the given seconds, when deleted",
                                  "failing_lb_id": "175647",
                                  "invalid_lb": "3909",
                                  "return_422_on_add_node_count": 3},
