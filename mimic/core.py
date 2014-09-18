@@ -38,7 +38,7 @@ class MimicCore(object):
         self.sessions = SessionStore(clock)
 
         for api in apis:
-            this_api_id = str(uuid4())
+            this_api_id = (api.__class__.__name__) + '-' + str(uuid4().get_hex()[0:6])
             self._uuid_to_api[this_api_id] = api
 
     @classmethod
