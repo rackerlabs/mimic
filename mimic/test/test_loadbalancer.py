@@ -1,7 +1,11 @@
-
+import json
+import treq
 
 from twisted.trial.unittest import SynchronousTestCase
 from mimic.canned_responses.loadbalancer import load_balancer_example
+from mimic.test.fixtures import MimicTestFixture
+from mimic.rest.loadbalancer_api import LoadBalancerApi
+from mimic.test.helpers import request
 
 
 class ResponseGenerationTests(SynchronousTestCase):
@@ -65,3 +69,36 @@ class ResponseGenerationTests(SynchronousTestCase):
                       "contentCaching": {"enabled": False}}
 
         self.assertEqual(actual, lb_example)
+
+
+class LoadbalancerAPITests(SynchronousTestCase):
+    """
+    Tests for the Loadbalancer plugin API
+    """
+
+    def setUp(self):
+        """
+        Create a :obj:`MimicCore` with :obj:`LoadBalancerApi` as the only plugin
+        """
+        fixture = MimicTestFixture(self, [LoadBalancerApi()])
+        self.root = fixture.root
+        self.lb_uri = fixture.get_service_endpoint('cloudLoadBalancers')
+
+    def test_add_load_balancer(self):
+        """
+        Test to verify :func:`add_load_balancer` on ``POST /v2/<tenant_id>/loadbancers``
+        """
+        create_lb = request(
+            self, self.root, "POST", self.lb_uri + '/loadbalancers',
+            json.dumps({
+                "loadBalancer": {
+                    "name": "mimic_lb",
+                    "protocol": "HTTP",
+                    "virtualIps": [{"type": "PUBLIC"}]
+                }
+            })
+        )
+        create_lb_response = self.successResultOf(create_lb)
+        create_lb_response_body = self.successResultOf(treq.json_content(create_lb_response))
+        self.assertEqual(create_lb_response.code, 202)
+        self.assertEqual(create_lb_response_body['loadBalancer']['name'], "mimic_lb")
