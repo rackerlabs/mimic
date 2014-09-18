@@ -6,14 +6,15 @@ Service catalog hub and integration for Mimic application objects.
 
 from __future__ import unicode_literals
 
+import binascii
+import os
+
 from twisted.python.urlpath import URLPath
 from twisted.plugin import getPlugins
 from mimic import plugins
 
 from mimic.imimic import IAPIMock
 from mimic.session import SessionStore
-
-from uuid import uuid4
 
 
 class MimicCore(object):
@@ -38,7 +39,8 @@ class MimicCore(object):
         self.sessions = SessionStore(clock)
 
         for api in apis:
-            this_api_id = (api.__class__.__name__) + '-' + str(uuid4().get_hex()[0:6])
+            this_api_id = ((api.__class__.__name__) + '-' +
+                           str(binascii.hexlify(os.urandom(3))))
             self._uuid_to_api[this_api_id] = api
 
     @classmethod
