@@ -164,7 +164,6 @@ def get_nodes(lb_id, node_id):
     """
     Returns the node on the load balancer
     """
-
     if lb_id in lb_cache:
         _verify_and_update_lb_state(lb_id, False)
 
@@ -214,7 +213,6 @@ def list_nodes(lb_id):
     """
     Returns the list of nodes remaining on the load balancer
     """
-
     if lb_id in lb_cache:
         _verify_and_update_lb_state(lb_id, False)
 
@@ -277,7 +275,10 @@ def _prep_for_list(lb_list):
     """
     entries_to_keep = ('name', 'protocol', 'id', 'port', 'algorithm', 'status', 'timeout',
                        'created', 'virtualIps', 'updated', 'nodeCount')
-    return [{entry: each[entry] for entry in entries_to_keep} for each in lb_list]
+    filtered_lb_list = []
+    for each in lb_list:
+        filtered_lb_list.append(dict((entry, each[entry]) for entry in entries_to_keep))
+    return filtered_lb_list
 
 
 def _verify_and_update_lb_state(lb_id, set_state=True):
