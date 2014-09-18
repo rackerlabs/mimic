@@ -94,7 +94,7 @@ class MimicCore(object):
         :rtype: ``str``
         """
         return str(URLPath.fromString(base_uri)
-                   .child("APIs").child(service_id).child(region).child(""))
+                   .child("mimicking").child(service_id).child(region).child(""))
 
     def entries_for_tenant(self, tenant_id, prefix_map, base_uri):
         """
