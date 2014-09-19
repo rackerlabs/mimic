@@ -71,10 +71,13 @@ class SwiftMock(object):
         """
         Return an IResource implementing a public Swift region endpoint.
         """
-        return SwiftRegion(uri_prefix=uri_prefix).app.resource()
+        return SwiftRegion(
+            api=self,
+            uri_prefix=uri_prefix,
+            session_store=session_store).app.resource()
 
 
-@attributes("uri_prefix".split())
+@attributes("api uri_prefix session_store".split())
 class SwiftRegion(object):
     """
     :obj:`SwiftRegion` is a set of klein routes and application representing a
@@ -83,21 +86,15 @@ class SwiftRegion(object):
 
     app = MimicApp()
 
-    # global for now, fix this with per-session state
-    tenants_in_regions = {
-        # map (uri_prefix, tenant_id) to SwiftTenantInRegion
-    }
-
     @app.route("/v1/<string:tenant_id>", branch=True)
     def get_one_tenant_resource(self, request, tenant_id):
         """
         Get a resource for a tenant in this region.
         """
-        key = (self.uri_prefix, tenant_id)
-        if key not in self.tenants_in_regions:
-            self.tenants_in_regions[tenant_id] = (
-                SwiftTenantInRegion().app.resource())
-        return self.tenants_in_regions[tenant_id]
+        return (self.session_store.session_for_tenant_id(tenant_id)
+                .data_for_api(self.api,
+                              lambda:
+                              SwiftTenantInRegion().app.resource()))
 
 
 @attributes("name".split())
@@ -112,9 +109,6 @@ class SwiftTenantInRegion(object):
     A :obj:`SwiftTenantInRegion` represents a single tenant and their
     associated storage resources within one region.
     """
-    # TODO: The lifecycle of this object is wrong, we need to store it on a
-    # session of some kind so that created containers will persist beyond the
-    # individual HTTP request where they're created.
 
     app = MimicApp()
 
