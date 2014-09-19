@@ -143,6 +143,11 @@ class SwiftTenantInRegion(object):
         Api call to get a container, given the name of the container.  HTTP
         status code of 200 when such a container exists, 404 if not.
         """
-        request.setRawHeaders("content-type", ["application/json"])
+        request.responseHeaders.setRawHeaders("content-type",
+                                              ["application/json"])
+        request.responseHeaders.setRawHeaders("x-container-object-count",
+                                              ["0"])
+        request.responseHeaders.setRawHeaders("x-container-bytes-used",
+                                              ["0"])
         request.setResponseCode(OK)
         return dumps([])

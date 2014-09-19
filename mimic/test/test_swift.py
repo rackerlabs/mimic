@@ -71,3 +71,32 @@ class SwiftTests(SynchronousTestCase):
             self.successResultOf(treq.content(create_container_response)),
             b"",
         )
+
+    def test_get_container(self):
+        """
+        Creating a container and immediately retrieving it yields an empty list
+        (since there are no objects) and several headers indicating that no
+        objects are in the container and they consume no space.
+        """
+        # create a container
+        uri = (self.json_body['access']['serviceCatalog'][0]['endpoints'][0]
+               ['publicURL'] + '/testcontainer')
+        create_container = request(self, self.root, "PUT", uri)
+        self.successResultOf(create_container)
+        container_response = self.successResultOf(
+            request(self, self.root, "GET", uri)
+        )
+        container_contents = self.successResultOf(
+            treq.json_content(container_response)
+        )
+        self.assertEqual(container_contents, [])
+        self.assertEqual(
+            container_response.headers.getRawHeaders(
+                "X-Container-Object-Count")[0], "0"
+        )
+        self.assertEqual(
+            container_response.headers.getRawHeaders(
+                "X-Container-Bytes-Used")[0], "0"
+        )
+
+
