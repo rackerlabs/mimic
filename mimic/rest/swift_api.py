@@ -17,6 +17,7 @@ from twisted.web.http import CREATED, ACCEPTED, OK
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.rest.mimicapp import MimicApp
+from twisted.web.resource import NoResource
 from zope.interface import implementer
 
 
@@ -137,11 +138,14 @@ class SwiftTenantInRegion(object):
         Api call to get a container, given the name of the container.  HTTP
         status code of 200 when such a container exists, 404 if not.
         """
-        request.responseHeaders.setRawHeaders("content-type",
-                                              ["application/json"])
-        request.responseHeaders.setRawHeaders("x-container-object-count",
-                                              ["0"])
-        request.responseHeaders.setRawHeaders("x-container-bytes-used",
-                                              ["0"])
-        request.setResponseCode(OK)
-        return dumps([])
+        if container_name in self.containers:
+            request.responseHeaders.setRawHeaders("content-type",
+                                                  ["application/json"])
+            request.responseHeaders.setRawHeaders("x-container-object-count",
+                                                  ["0"])
+            request.responseHeaders.setRawHeaders("x-container-bytes-used",
+                                                  ["0"])
+            request.setResponseCode(OK)
+            return dumps([])
+        else:
+            return NoResource()

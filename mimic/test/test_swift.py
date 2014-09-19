@@ -114,11 +114,11 @@ class SwiftTests(SynchronousTestCase):
         self.assertEqual(container_response.code, 404)
         self.assertEqual(
             container_response.headers.getRawHeaders(
-                "X-Container-Object-Count"), []
+                "X-Container-Object-Count"), None
         )
         self.assertEqual(
             container_response.headers.getRawHeaders(
-                "X-Container-Bytes-Used"), []
+                "X-Container-Bytes-Used"), None
         )
 
 
