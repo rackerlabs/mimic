@@ -100,7 +100,6 @@ class SwiftTests(SynchronousTestCase):
                 "X-Container-Bytes-Used")[0], "0"
         )
 
-
     def test_get_no_container(self):
         """
         GETing a container that has not been created results in a 404.
@@ -120,5 +119,3 @@ class SwiftTests(SynchronousTestCase):
             container_response.headers.getRawHeaders(
                 "X-Container-Bytes-Used"), None
         )
-
-
