@@ -1,17 +1,14 @@
 
-
 import itertools
 import json
 import treq
 
 from twisted.trial.unittest import SynchronousTestCase
-from twisted.internet.task import Clock
 
 from mimic.canned_responses.nova import server_template
-from mimic.core import MimicCore
-from mimic.resource import MimicRoot
 from mimic.test.helpers import json_request, request
 from mimic.rest.nova_api import NovaApi
+from mimic.test.fixtures import APIMockHelper
 
 
 class ResponseGenerationTests(SynchronousTestCase):
@@ -134,25 +131,11 @@ class NovaAPITests(SynchronousTestCase):
         Create a :obj:`MimicCore` with :obj:`NovaApi` as the only plugin,
         and create a server
         """
-        self.core = MimicCore(Clock(), [NovaApi(["ORD", "MIMIC"])])
-        self.root = MimicRoot(self.core).app.resource()
-        self.response = request(
-            self, self.root, "POST", "/identity/v2.0/tokens",
-            json.dumps({
-                "auth": {
-                    "passwordCredentials": {
-                        "username": "test1",
-                        "password": "test1password",
-                    },
-                }
-            })
-        )
-        self.auth_response = self.successResultOf(self.response)
-        self.service_catalog_json = self.successResultOf(
-            treq.json_content(self.auth_response))
-        self.uri = self.nth_endpoint_public(0)
+        fixture = APIMockHelper(self, [NovaApi(["ORD", "MIMIC"])])
+        self.root = fixture.root
+        self.uri = fixture.uri
         self.server_name = 'test_server'
-        self.create_server = request(
+        create_server = request(
             self, self.root, "POST", self.uri + '/servers',
             json.dumps({
                 "server": {
@@ -161,19 +144,11 @@ class NovaAPITests(SynchronousTestCase):
                     "flavorRef": "test-flavor"
                 }
             }))
-        self.create_server_response = self.successResultOf(self.create_server)
-        self.create_server_response_body = self.successResultOf(
+        self.create_server_response = self.successResultOf(create_server)
+        create_server_response_body = self.successResultOf(
             treq.json_content(self.create_server_response))
-        self.server_id = self.create_server_response_body['server']['id']
-
-    def nth_endpoint_public(self, n):
-        """
-        Return the publicURL for the ``n``th endpoint.
-        """
-        return (
-            self.service_catalog_json
-            ['access']['serviceCatalog'][0]['endpoints'][n]['publicURL']
-        )
+        self.server_id = create_server_response_body['server']['id']
+        self.nth_endpoint_public = fixture.nth_endpoint_public
 
     def test_create_server(self):
         """
