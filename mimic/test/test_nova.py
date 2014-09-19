@@ -8,7 +8,7 @@ from twisted.trial.unittest import SynchronousTestCase
 from mimic.canned_responses.nova import server_template
 from mimic.test.helpers import json_request, request
 from mimic.rest.nova_api import NovaApi
-from mimic.test.fixtures import MimicTestFixture
+from mimic.test.fixtures import APIMockHelper
 
 
 class ResponseGenerationTests(SynchronousTestCase):
@@ -131,7 +131,7 @@ class NovaAPITests(SynchronousTestCase):
         Create a :obj:`MimicCore` with :obj:`NovaApi` as the only plugin,
         and create a server
         """
-        fixture = MimicTestFixture(self, [NovaApi(["ORD", "MIMIC"])])
+        fixture = APIMockHelper(self, [NovaApi(["ORD", "MIMIC"])])
         self.root = fixture.root
         self.uri = fixture.uri
         self.server_name = 'test_server'

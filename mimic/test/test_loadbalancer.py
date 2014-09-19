@@ -7,7 +7,7 @@ import treq
 
 from twisted.trial.unittest import SynchronousTestCase
 from mimic.canned_responses.loadbalancer import load_balancer_example
-from mimic.test.fixtures import MimicTestFixture
+from mimic.test.fixtures import APIMockHelper
 from mimic.rest.loadbalancer_api import LoadBalancerApi
 from mimic.test.helpers import request
 
@@ -84,7 +84,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
         """
         Create a :obj:`MimicCore` with :obj:`LoadBalancerApi` as the only plugin
         """
-        fixture = MimicTestFixture(self, [LoadBalancerApi()])
+        fixture = APIMockHelper(self, [LoadBalancerApi()])
         self.root = fixture.root
         self.uri = fixture.uri
 

@@ -9,14 +9,15 @@ import json
 import treq
 
 
-class MimicTestFixture(object):
+class APIMockHelper(object):
     """
     Provides common functionality for mimic tests
     """
 
     def __init__(self, test_case, apis):
         """
-        apis is a list of the APIs to be initiated
+        Initialize a mimic core and the specified :obj:`mimic.imimic.IAPIMock`s
+        :param apis: A list of :obj:`mimic.imimic.IAPIMock` objects to be initialized
         """
         self.core = MimicCore(Clock(), apis)
         self.root = MimicRoot(self.core).app.resource()
@@ -40,7 +41,7 @@ class MimicTestFixture(object):
     def nth_endpoint_public(self, n):
         """
         Return the publicURL for the ``n``th endpoint.
-        TODO: Consider that this might be a problem if you create more than one api
+        :param n: The index of the endpoint in the first catalog entry to return
         """
         return (
             self.service_catalog_json
