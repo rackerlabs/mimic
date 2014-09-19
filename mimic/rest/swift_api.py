@@ -1,3 +1,5 @@
+# -*- test-case-name: mimic.test.test_swift -*-
+
 """
 API mock for OpenStack Swift / Rackspace Cloud Files.
 """
@@ -65,7 +67,7 @@ class SwiftMock(object):
             ])
         ]
 
-    def resource_for_region(self, uri_prefix):
+    def resource_for_region(self, region, uri_prefix, session_store):
         """
         Return an IResource implementing a public Swift region endpoint.
         """
