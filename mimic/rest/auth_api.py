@@ -37,7 +37,7 @@ class AuthApi(object):
         content = json.loads(request.content.read())
         # tenant_id = content['auth'].get('tenantName', None)
         credentials = content['auth']['passwordCredentials']
-        session = self.core.session_for_username_password(
+        session = self.core.sessions.session_for_username_password(
             credentials['username'], credentials['password'],
             content['auth'].get('tenantName', None),
         )
@@ -54,7 +54,7 @@ class AuthApi(object):
                 entry_generator=lambda tenant_id:
                 list(self.core.entries_for_tenant(
                     tenant_id, prefix_map, base_uri_from_request(request))),
-                prefix_for_entry=lookup,
+                prefix_for_endpoint=lookup,
                 response_token=session.token,
                 response_user_id=session.user_id,
                 response_user_name=session.username,
@@ -68,7 +68,7 @@ class AuthApi(object):
         """
         # FIXME: TEST
         request.setResponseCode(301)
-        session = self.core.session_for_tenant_id(tenant_id)
+        session = self.core.sessions.session_for_tenant_id(tenant_id)
         return json.dumps(dict(user=dict(id=session.username)))
 
     @app.route('/v2.0/RAX-AUTH/impersonation-tokens', methods=['POST'])
@@ -82,7 +82,8 @@ class AuthApi(object):
         expires_in = content['RAX-AUTH:impersonation']['expire-in-seconds']
         username = content['RAX-AUTH:impersonation']['user']['username']
 
-        session = self.core.session_for_impersonation(username, expires_in)
+        session = self.core.sessions.session_for_impersonation(username,
+                                                               expires_in)
         return json.dumps({"access": {
             "token": {"id": session.token,
                       "expires": format_timestamp(session.expires)}
@@ -97,13 +98,13 @@ class AuthApi(object):
         # FIXME: TEST
         request.setResponseCode(200)
         prefix_map = {}
-        session = self.core.session_for_token(token_id)
+        session = self.core.sessions.session_for_token(token_id)
         return json.dumps(get_endpoints(
             session.tenant_id,
             entry_generator=lambda tenant_id: list(
                 self.core.entries_for_tenant(tenant_id, prefix_map,
                                              base_uri_from_request(request))),
-            prefix_for_entry=prefix_map.get)
+            prefix_for_endpoint=prefix_map.get)
         )
 
 

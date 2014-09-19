@@ -36,22 +36,23 @@ class ExampleAPI(object):
     """
     Example API that returns NoResource
     """
-    def __init__(self, response_message="default message"):
+    def __init__(self, response_message="default message", regions_and_versions=[('ORD', 'v1')]):
         """
         Has a dictionary to store information from calls, for testing
         purposes
         """
         self.store = {}
+        self.regions_and_versions = regions_and_versions
         self.response_message = response_message
 
     def catalog_entries(self, tenant_id):
         """
         List catalog entries for the Nova API.
         """
-        return [Entry(tenant_id, "serviceType", "serviceName",
-                      [Endpoint(tenant_id, "ORD", 'uuid')])]
+        endpoints = [Endpoint(tenant_id, each[0], 'uuid', each[1]) for each in self.regions_and_versions]
+        return [Entry(tenant_id, "serviceType", "serviceName", endpoints)]
 
-    def resource_for_region(self, uri_prefix):
+    def resource_for_region(self, region, uri_prefix, session_store):
         """
         Return no resource.
         """

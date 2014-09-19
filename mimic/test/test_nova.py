@@ -134,7 +134,7 @@ class NovaAPITests(SynchronousTestCase):
         Create a :obj:`MimicCore` with :obj:`NovaApi` as the only plugin,
         and create a server
         """
-        self.core = MimicCore(Clock(), [NovaApi()])
+        self.core = MimicCore(Clock(), [NovaApi(["ORD", "MIMIC"])])
         self.root = MimicRoot(self.core).app.resource()
         self.response = request(
             self, self.root, "POST", "/identity/v2.0/tokens",
@@ -148,9 +148,9 @@ class NovaAPITests(SynchronousTestCase):
             })
         )
         self.auth_response = self.successResultOf(self.response)
-        self.json_body = self.successResultOf(
+        self.service_catalog_json = self.successResultOf(
             treq.json_content(self.auth_response))
-        self.uri = self.json_body['access']['serviceCatalog'][0]['endpoints'][0]['publicURL']
+        self.uri = self.nth_endpoint_public(0)
         self.server_name = 'test_server'
         self.create_server = request(
             self, self.root, "POST", self.uri + '/servers',
@@ -165,6 +165,15 @@ class NovaAPITests(SynchronousTestCase):
         self.create_server_response_body = self.successResultOf(
             treq.json_content(self.create_server_response))
         self.server_id = self.create_server_response_body['server']['id']
+
+    def nth_endpoint_public(self, n):
+        """
+        Return the publicURL for the ``n``th endpoint.
+        """
+        return (
+            self.service_catalog_json
+            ['access']['serviceCatalog'][0]['endpoints'][n]['publicURL']
+        )
 
     def test_create_server(self):
         """
@@ -362,3 +371,16 @@ class NovaAPITests(SynchronousTestCase):
                                  self.uri + '/servers/non-existant-server/ips')
         get_server_ips_response = self.successResultOf(get_server_ips)
         self.assertEqual(get_server_ips_response.code, 404)
+
+    def test_different_region_same_server(self):
+        """
+        Creating a server in one nova region should not create it in other nova
+        regions.
+        """
+        other_region_servers = self.successResultOf(
+            treq.json_content(
+                self.successResultOf(request(self, self.root, "GET",
+                                             self.nth_endpoint_public(1)
+                                             + "/servers/")))
+        )["servers"]
+        self.assertEqual(other_region_servers, [])

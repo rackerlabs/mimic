@@ -79,7 +79,7 @@ class CatalogGenerationTests(SynchronousTestCase):
             get_token(
                 tenant_id=tenant_id, timestamp=lambda dt: "<<<timestamp>>>",
                 entry_generator=example_endpoints(lambda: 1),
-                prefix_for_entry=lambda e: 'prefix'
+                prefix_for_endpoint=lambda e: 'prefix'
             ),
             {
                 "access": {
@@ -159,7 +159,7 @@ class CatalogGenerationTests(SynchronousTestCase):
             get_endpoints(
                 tenant_id=tenant_id,
                 entry_generator=example_endpoints(counter),
-                prefix_for_entry=lambda e: 'prefix'
+                prefix_for_endpoint=lambda e: 'prefix'
             ),
             {
                 "endpoints": [
@@ -231,7 +231,7 @@ class GetAuthTokenAPITests(SynchronousTestCase):
         self.assertEqual(200, response.code)
         token = json_body['access']['token']['id']
         tenant_id = json_body['access']['token']['tenant']['id']
-        session = core.session_for_token(token)
+        session = core.sessions.session_for_token(token)
         self.assertEqual(token, session.token)
         self.assertEqual(tenant_id, session.tenant_id)
 
@@ -260,7 +260,7 @@ class GetAuthTokenAPITests(SynchronousTestCase):
         self.assertEqual("turtlepower",
                          json_body['access']['token']['tenant']['id'])
         token = json_body['access']['token']['id']
-        session = core.session_for_token(token)
+        session = core.sessions.session_for_token(token)
         self.assertEqual(token, session.token)
         self.assertEqual("turtlepower", session.tenant_id)
 
@@ -317,7 +317,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
             "/identity/v2.0/tokens/{0}/endpoints".format(token)
         )
 
-        session = core.session_for_token(token)
+        session = core.sessions.session_for_token(token)
         self.assertEqual(token, session.token)
 
     def test_response_service_catalog_has_base_uri(self):
@@ -340,3 +340,28 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         self.assertTrue(
             urls[0].startswith('http://mybase/'),
             '{0} does not start with "http://mybase"'.format(urls[0]))
+
+    def test_api_service_endpoints_are_not_duplicated(self):
+        """
+        The service catalog should not duplicate endpoints for an entry/endpoints
+        """
+        regions_and_versions_list = [("ORD", "v1"), ("DFW", "v1"), ("DFW", "v2"), ("IAD", "v3")]
+        core = MimicCore(Clock(), [ExampleAPI(regions_and_versions=regions_and_versions_list)])
+        root = MimicRoot(core).app.resource()
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens",
+            {
+                "auth": {
+                    "passwordCredentials": {
+                        "username": "demoauthor",
+                        "password": "theUsersPassword"
+                    }
+
+                }
+            }
+        ))
+        service_catalog = json_body["access"]["serviceCatalog"]
+        self.assertEqual(len(service_catalog), 1)
+        endpoints_list = service_catalog[0]["endpoints"]
+        self.assertEqual(len(endpoints_list), 4)

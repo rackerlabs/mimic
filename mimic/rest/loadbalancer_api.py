@@ -10,7 +10,7 @@ from twisted.web.server import Request
 from twisted.plugin import IPlugin
 from mimic.canned_responses.loadbalancer import (
     add_load_balancer, del_load_balancer, list_load_balancers,
-    add_node, delete_node, list_nodes)
+    add_node, delete_node, list_nodes, get_load_balancers, get_nodes)
 from mimic.rest.mimicapp import MimicApp
 from mimic.canned_responses.mimic_presets import get_presets
 from mimic.imimic import IAPIMock
@@ -42,7 +42,7 @@ class LoadBalancerApi(object):
                   ])
         ]
 
-    def resource_for_region(self, uri_prefix):
+    def resource_for_region(self, region, uri_prefix, session_store):
         """
         Get an :obj:`twisted.web.iweb.IResource` for the given URI prefix;
         implement :obj:`IAPIMock`.
@@ -81,6 +81,15 @@ class LoadBalancerApiRoutes(object):
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
+    @app.route('/v2/<string:tenant_id>/loadbalancers/<int:lb_id>', methods=['GET'])
+    def get_load_balancers(self, request, tenant_id, lb_id):
+        """
+        Returns a list of all load balancers created using mimic with response code 200
+        """
+        response_data = get_load_balancers(lb_id)
+        request.setResponseCode(response_data[1])
+        return json.dumps(response_data[0])
+
     @app.route('/v2/<string:tenant_id>/loadbalancers', methods=['GET'])
     def list_load_balancers(self, request, tenant_id):
         """
@@ -116,6 +125,16 @@ class LoadBalancerApiRoutes(object):
         content = json.loads(request.content.read())
         node_list = content['nodes']
         response_data = add_node(node_list, lb_id)
+        request.setResponseCode(response_data[1])
+        return json.dumps(response_data[0])
+
+    @app.route('/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/nodes/<int:node_id>',
+               methods=['GET'])
+    def get_nodes(self, request, tenant_id, lb_id, node_id):
+        """
+        Returns a 200 response code and list of nodes on the load balancer
+        """
+        response_data = get_nodes(lb_id, node_id)
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
