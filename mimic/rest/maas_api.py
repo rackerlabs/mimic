@@ -52,6 +52,11 @@ class MaasMock(object):
     """
     Klein routes for the Monitoring API.
     """
+    json_home = None
+    overview_dictionary = None
+    entities_dictionary = None
+    metrics_dictionary = None
+    multiplot_dictionary = None
 
     def __init__(self, uri_prefix):
         """
@@ -59,6 +64,11 @@ class MaasMock(object):
         to servers).
         """
         self.uri_prefix = uri_prefix
+        self.json_home = json.loads(file('mimic/rest/cloudMonitoring_json_home.json').read()) 
+        self.overview_dictionary = json.loads(file('mimic/rest/overview_response.json').read())
+        self.entities_dictionary = json.loads(file('mimic/rest/entities_response.json').read())
+        self.metrics_dictionary = json.loads(file('mimic/rest/metric_list.json').read())
+        self.multiplot_dictionary = json.loads(file('mimic/rest/multiplot.json').read())
 
     app = MimicApp()
 
@@ -68,12 +78,20 @@ class MaasMock(object):
         Returns a list of entities with Response code 200.
         """
         request.setResponseCode(200)
-        return json.dumps({"entities": []})
+        return json.dumps(self.entities_dictionary)
+
+    @app.route('/v1.0/<string:tenant_id>/overview', methods=['GET'])
+    def overview(self, request, tenant_id):
+        """
+        Returns a list of entities with Response code 200.
+        """
+        request.setResponseCode(200)
+        return json.dumps(self.overview_dictionary)
 
     @app.route('/v1.0/<string:tenant_id>/__experiments/json_home', methods=['GET'])
     def service_json_home(self, request, tenant_id):
       request.setResponseCode(200)
-      return file('mimic/rest/cloudMonitoring_json_home.json').read()
+      return json.dumps(self.json_home) 
 
     @app.route('/v1.0/<string:tenant_id>/views/agent_host_info', methods=['GET'])
     def view_agent_host_info(self, request, tenant_id):
@@ -89,11 +107,12 @@ class MaasMock(object):
     @app.route('/v1.0/<string:tenant_id>/views/metric_list', methods=['GET'])
     def views_metric_list(self, request, tenant_id):
       request.setResponseCode(200)
-      return file('mimic/rest/metric_list.json').read()
-           
+      return json.dumps(self.metrics_dictionary) 
+       
     @app.route('/v1.0/<string:tenant_id>/__experiments/multiplot', methods=['POST'])
     def multiplot(self, request, tenant_id):
       request.setResponseCode(200)
-      return file('mimic/rest/multiplot.json').read()
+      return json.dumps(self.multiplot_dictionary) 
 
+    
 
