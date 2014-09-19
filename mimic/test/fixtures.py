@@ -41,7 +41,7 @@ class APIMockHelper(object):
     def nth_endpoint_public(self, n):
         """
         Return the publicURL for the ``n``th endpoint.
-        :param n: The index of the endpoint in the first catalog entry to return
+        :param int n: The index of the endpoint in the first catalog entry to return
         """
         return (
             self.service_catalog_json
@@ -53,6 +53,9 @@ class APIMockHelper(object):
         Return the publicURL for the given service and region. Note that if there are multiple
         endpoints for a given region, the first will be returned, and if no region is specified,
         the first endpoint will be returned.
+        :param unicode service_name: The name of the service for which to get an endpoint as
+            listed in the service catalog
+        :param unicode region: The service catalog region of the desired endpoint
         """
         for service in self.service_catalog_json['access']['serviceCatalog']:
             if service['name'] == service_name:
