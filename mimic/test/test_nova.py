@@ -1,5 +1,4 @@
 
-
 import itertools
 import json
 import treq
@@ -135,10 +134,21 @@ class NovaAPITests(SynchronousTestCase):
         fixture = MimicTestFixture(self, [NovaApi(["ORD", "MIMIC"])])
         self.root = fixture.root
         self.uri = fixture.uri
-        self.server_name = fixture.server_name
-        self.server_id = fixture.server_id
+        self.server_name = 'test_server'
+        create_server = request(
+            self, self.root, "POST", self.uri + '/servers',
+            json.dumps({
+                "server": {
+                    "name": self.server_name,
+                    "imageRef": "test-image",
+                    "flavorRef": "test-flavor"
+                }
+            }))
+        self.create_server_response = self.successResultOf(create_server)
+        create_server_response_body = self.successResultOf(
+            treq.json_content(self.create_server_response))
+        self.server_id = create_server_response_body['server']['id']
         self.nth_endpoint_public = fixture.nth_endpoint_public
-        self.create_server_response = fixture.create_server_response
 
     def test_create_server(self):
         """

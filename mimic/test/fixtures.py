@@ -1,3 +1,6 @@
+"""
+Define fixtures to provide common functionality for Mimic testing
+"""
 from mimic.test.helpers import request
 from mimic.core import MimicCore
 from mimic.resource import MimicRoot
@@ -32,25 +35,7 @@ class MimicTestFixture(object):
         auth_response = test_case.successResultOf(response)
         self.service_catalog_json = test_case.successResultOf(
             treq.json_content(auth_response))
-        # The following section is specific to the legacy NovaAPI tests
-        try:
-            self.uri = self.nth_endpoint_public(0)
-            self.server_name = 'test_server'
-            create_server = request(
-                self, self.root, "POST", self.uri + '/servers',
-                json.dumps({
-                    "server": {
-                        "name": self.server_name,
-                        "imageRef": "test-image",
-                        "flavorRef": "test-flavor"
-                    }
-                }))
-            self.create_server_response = test_case.successResultOf(create_server)
-            create_server_response_body = test_case.successResultOf(
-                treq.json_content(self.create_server_response))
-            self.server_id = create_server_response_body['server']['id']
-        except:
-            pass
+        self.uri = self.nth_endpoint_public(0)
 
     def nth_endpoint_public(self, n):
         """
@@ -66,8 +51,7 @@ class MimicTestFixture(object):
         """
         Return the publicURL for the given service and region. Note that if there are multiple
         endpoints for a given region, the first will be returned, and if no region is specified,
-        the first endpoint will be returned. If the service_name or region are not in the catalog,
-        this function will produce and exception
+        the first endpoint will be returned.
         """
         for service in self.service_catalog_json['access']['serviceCatalog']:
             if service['name'] == service_name:
