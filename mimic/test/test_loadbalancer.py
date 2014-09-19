@@ -1,7 +1,15 @@
+"""
+Unit tests for the
+"""
 
+import json
+import treq
 
 from twisted.trial.unittest import SynchronousTestCase
 from mimic.canned_responses.loadbalancer import load_balancer_example
+from mimic.test.fixtures import APIMockHelper
+from mimic.rest.loadbalancer_api import LoadBalancerApi
+from mimic.test.helpers import request
 
 
 class ResponseGenerationTests(SynchronousTestCase):
@@ -65,3 +73,93 @@ class ResponseGenerationTests(SynchronousTestCase):
                       "contentCaching": {"enabled": False}}
 
         self.assertEqual(actual, lb_example)
+
+
+class LoadbalancerAPITests(SynchronousTestCase):
+    """
+    Tests for the Loadbalancer plugin API
+    """
+
+    def setUp(self):
+        """
+        Create a :obj:`MimicCore` with :obj:`LoadBalancerApi` as the only plugin
+        """
+        fixture = APIMockHelper(self, [LoadBalancerApi()])
+        self.root = fixture.root
+        self.uri = fixture.uri
+
+    def _create_loadbalancer(self, name):
+        """
+        Helper methond to create a load balancer and return the lb_id
+        """
+        create_lb = request(
+            self, self.root, "POST", self.uri + '/loadbalancers',
+            json.dumps({
+                "loadBalancer": {
+                    "name": name,
+                    "protocol": "HTTP",
+                    "virtualIps": [{"type": "PUBLIC"}]
+                }
+            })
+        )
+        create_lb_response = self.successResultOf(create_lb)
+        create_lb_response_body = self.successResultOf(treq.json_content(create_lb_response))
+        return create_lb_response_body['loadBalancer']['id']
+
+    def test_add_load_balancer(self):
+        """
+        Test to verify :func:`add_load_balancer` on ``POST /v1.0/<tenant_id>/loadbalancers``
+        """
+        lb_name = 'mimic_lb'
+        create_lb = request(
+            self, self.root, "POST", self.uri + '/loadbalancers',
+            json.dumps({
+                "loadBalancer": {
+                    "name": lb_name,
+                    "protocol": "HTTP",
+                    "virtualIps": [{"type": "PUBLIC"}]
+                }
+            })
+        )
+        create_lb_response = self.successResultOf(create_lb)
+        create_lb_response_body = self.successResultOf(treq.json_content(create_lb_response))
+        self.assertEqual(create_lb_response.code, 202)
+        self.assertEqual(create_lb_response_body['loadBalancer']['name'], lb_name)
+
+    def test_list_loadbalancers(self):
+        """
+        Test to verify :func:`list_load_balancers` with on ``GET /v1.0/<tenant_id>/loadbalancers``
+        Create two load balancers, then list them and verify the ids
+        """
+        test1_id = self._create_loadbalancer('test1')
+        test2_id = self._create_loadbalancer('test2')
+        list_lb = request(self, self.root, "GET", self.uri + '/loadbalancers')
+        list_lb_response = self.successResultOf(list_lb)
+        list_lb_response_body = self.successResultOf(treq.json_content(list_lb_response))
+        self.assertEqual(list_lb_response.code, 200)
+        self.assertEqual(len(list_lb_response_body['loadBalancers']), 2)
+        self.assertTrue(list_lb_response_body['loadBalancers'][0]['id'] in [test1_id, test2_id])
+        self.assertTrue(list_lb_response_body['loadBalancers'][1]['id'] in [test1_id, test2_id])
+        self.assertTrue(list_lb_response_body['loadBalancers'][0]['id'] !=
+                        list_lb_response_body['loadBalancers'][1]['id'])
+
+    def test_delete_loadbalancer(self):
+        """
+        Test to verify :func:`delete_load_balancer` with on
+        ``DELETE /v1.0/<tenant_id>/loadbalancers/<lb_id>``
+        Create two load balancers, then list them and verify the ids
+        """
+        # These will fail if the servers weren't created
+        test1_id = self._create_loadbalancer('test1')
+        test2_id = self._create_loadbalancer('test2')
+        delete_lb = request(self, self.root, 'DELETE', self.uri + '/loadbalancers/' + str(test1_id))
+        del_lb_response = self.successResultOf(delete_lb)
+        # This response code does not match the Rackspace documentation which specifies a 200 response
+        # See comment: http://bit.ly/1AVHs3v
+        self.assertEqual(del_lb_response.code, 202)
+        # List lb to make sure the correct lb is gone and the other remains
+        list_lb = request(self, self.root, "GET", self.uri + '/loadbalancers')
+        list_lb_response = self.successResultOf(list_lb)
+        list_lb_response_body = self.successResultOf(treq.json_content(list_lb_response))
+        self.assertTrue(len(list_lb_response_body['loadBalancers']), 1)
+        self.assertTrue(list_lb_response_body['loadBalancers'][0]['id'] == test2_id)
