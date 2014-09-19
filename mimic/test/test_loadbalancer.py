@@ -152,10 +152,11 @@ class LoadbalancerAPITests(SynchronousTestCase):
         # These will fail if the servers weren't created
         test1_id = self._create_loadbalancer('test1')
         test2_id = self._create_loadbalancer('test2')
-        print test1_id
-        delete_lb = request(self, self.root, 'DELETE', self.uri + '/loadbalancers' + str(test1_id))
+        delete_lb = request(self, self.root, 'DELETE', self.uri + '/loadbalancers/' + str(test1_id))
         del_lb_response = self.successResultOf(delete_lb)
-        self.assertEqual(del_lb_response.code, 200)
+        # This response code does not match the Rackspace documentation which specifies a 200 response
+        # See comment: http://bit.ly/1AVHs3v
+        self.assertEqual(del_lb_response.code, 202)
         # List lb to make sure the correct lb is gone and the other remains
         list_lb = request(self, self.root, "GET", self.uri + '/loadbalancers')
         list_lb_response = self.successResultOf(list_lb)
