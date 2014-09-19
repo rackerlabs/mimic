@@ -86,6 +86,7 @@ class SwiftTests(SynchronousTestCase):
         container_response = self.successResultOf(
             request(self, self.root, "GET", uri)
         )
+        self.assertEqual(container_response.code, 200)
         container_contents = self.successResultOf(
             treq.json_content(container_response)
         )
@@ -97,6 +98,27 @@ class SwiftTests(SynchronousTestCase):
         self.assertEqual(
             container_response.headers.getRawHeaders(
                 "X-Container-Bytes-Used")[0], "0"
+        )
+
+
+    def test_get_no_container(self):
+        """
+        GETing a container that has not been created results in a 404.
+        """
+        # create a container
+        uri = (self.json_body['access']['serviceCatalog'][0]['endpoints'][0]
+               ['publicURL'] + '/testcontainer')
+        container_response = self.successResultOf(
+            request(self, self.root, "GET", uri)
+        )
+        self.assertEqual(container_response.code, 404)
+        self.assertEqual(
+            container_response.headers.getRawHeaders(
+                "X-Container-Object-Count"), []
+        )
+        self.assertEqual(
+            container_response.headers.getRawHeaders(
+                "X-Container-Bytes-Used"), []
         )
 
 
