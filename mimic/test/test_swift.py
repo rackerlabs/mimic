@@ -119,3 +119,32 @@ class SwiftTests(SynchronousTestCase):
             container_response.headers.getRawHeaders(
                 "X-Container-Bytes-Used"), None
         )
+
+    def test_put_object(self):
+        """
+        PUTting an object into a container causes the container to list that
+        object.
+        """
+        # create a container
+        uri = (self.json_body['access']['serviceCatalog'][0]['endpoints'][0]
+               ['publicURL'] + '/testcontainer')
+        create_container = request(self, self.root, "PUT", uri)
+        self.successResultOf(create_container)
+        BODY = b'some bytes'
+        object_response = request(self, self.root,
+                                  "PUT", uri + "/" + "testobject",
+                                  headers={"content-type": ["text/plain"]},
+                                  body=BODY)
+        self.assertEqual(self.successResultOf(object_response).code,
+                         201)
+        container_response = self.successResultOf(
+            request(self, self.root, "GET", uri)
+        )
+        self.assertEqual(container_response.code, 200)
+        container_contents = self.successResultOf(
+            treq.json_content(container_response)
+        )
+        self.assertEqual(len(container_contents), 1)
+        self.assertEqual(container_contents[0]['name'], "testobject")
+        self.assertEqual(container_contents[0]['content_type'], "text/plain")
+        self.assertEqual(container_contents[0]['bytes'], len(BODY))

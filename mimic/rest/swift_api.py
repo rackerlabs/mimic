@@ -7,7 +7,7 @@ API mock for OpenStack Swift / Rackspace Cloud Files.
 from uuid import uuid4, uuid5, NAMESPACE_URL
 from six import text_type
 
-from characteristic import attributes
+from characteristic import attributes, Attribute
 from json import dumps
 
 from mimic.imimic import IAPIMock
@@ -98,10 +98,29 @@ class SwiftRegion(object):
                               SwiftTenantInRegion().app.resource()))
 
 
-@attributes("name".split())
+@attributes(["name", "content_type", "data"])
+class Object(object):
+    """
+    A Python object (i.e. instance) representing a Swift object (i.e. bag of
+    octets).
+    """
+
+    def as_json(self):
+        """
+        Create a JSON-serializable representation of the contents of this
+        object.
+        """
+        return {
+            "name": self.name,
+            "content_type": self.content_type,
+            "bytes": len(self.data),
+        }
+
+
+@attributes(["name", Attribute("objects", default_factory=dict)])
 class Container(object):
     """
-    Create a container object.
+    A Swift container (collection of :obj:`Object`.)
     """
 
 
@@ -146,6 +165,32 @@ class SwiftTenantInRegion(object):
             request.responseHeaders.setRawHeaders("x-container-bytes-used",
                                                   ["0"])
             request.setResponseCode(OK)
-            return dumps([])
+            return dumps([
+                obj.as_json() for obj in
+                self.containers[container_name].objects.values()
+            ])
         else:
             return NoResource()
+
+    @app.route("/<string:container_name>/<string:object_name>",
+               methods=["GET"])
+    def get_object(self, request, container_name, object_name):
+        """
+        Get an object from a container.
+        """
+        return self.containers[container_name].objects[object_name]
+
+    @app.route("/<string:container_name>/<string:object_name>",
+               methods=["PUT"])
+    def put_object(self, request, container_name, object_name):
+        """
+        Create or update an object in a container.
+        """
+        request.setResponseCode(201)
+        container = self.containers[container_name]
+        container.objects[object_name] = Object(
+            name=object_name, data=request.content.read(),
+            content_type=
+            request.requestHeaders.getRawHeaders('content-type')[0]
+        )
+        return b''
