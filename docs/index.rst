@@ -22,6 +22,7 @@ Documentation
     :maxdepth: 2
 
     development/index
+    doc-doc
     changelog
 
 

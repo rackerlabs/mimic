@@ -31,8 +31,8 @@ class AuthApi(object):
     @app.route('/v2.0/tokens', methods=['POST'])
     def get_token_and_service_catalog(self, request):
         """
-        Return a service catalog consisting of nova and load balancer mocked
-        endpoints and an api token.
+        Return a service catalog consisting of all plugin endpoints and an api
+        token.
         """
         content = json.loads(request.content.read())
         # tenant_id = content['auth'].get('tenantName', None)
