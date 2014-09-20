@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='mimic',
-    version='0.0.0',
+    version='1.0.0',
     description='An API-compatible mock service',
     packages=find_packages(exclude=[]),
     package_dir={'mimic': 'mimic'},
