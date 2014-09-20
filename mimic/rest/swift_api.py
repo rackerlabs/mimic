@@ -188,9 +188,9 @@ class SwiftTenantInRegion(object):
         """
         request.setResponseCode(201)
         container = self.containers[container_name]
+        content_type = request.requestHeaders.getRawHeaders('content-type')[0]
         container.objects[object_name] = Object(
             name=object_name, data=request.content.read(),
-            content_type=
-            request.requestHeaders.getRawHeaders('content-type')[0]
+            content_type=content_type
         )
         return b''
