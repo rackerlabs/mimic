@@ -2,6 +2,7 @@
 import itertools
 import json
 import treq
+import time
 
 from twisted.trial.unittest import SynchronousTestCase
 
@@ -359,3 +360,157 @@ class NovaAPITests(SynchronousTestCase):
                                              + "/servers/")))
         )["servers"]
         self.assertEqual(other_region_servers, [])
+
+
+class NovaAPINegativeTests(SynchronousTestCase):
+
+    """
+    Tests for the Nova plugin api for error injections
+    """
+
+    def setUp(self):
+        """
+        Create a :obj:`MimicCore` with :obj:`NovaApi` as the only plugin,
+        and create a server
+        """
+        fixture = APIMockHelper(self, [NovaApi(["ORD", "MIMIC"])])
+        self.root = fixture.root
+        self.uri = fixture.uri
+
+    def _create_server(self, name=None, imageRef=None,
+                       flavorRef=None, metadata=None):
+        """
+        Creates a server with the given specifications and returns the response
+        object
+        :param name: Name of the server
+        :param imageRef: Image of the server
+        :param flavorRef: Flavor size of the server
+        :param metadat: Metadata of the server
+        """
+        create_server = request(
+            self, self.root, "POST", self.uri + '/servers',
+            json.dumps({
+                "server": {
+                    "name": name or 'test_server',
+                    "imageRef": imageRef or "test-image",
+                    "flavorRef": flavorRef or "test-flavor",
+                    "metadata": metadata or {}
+                }
+            }))
+        create_server_response = self.successResultOf(create_server)
+        return create_server_response
+
+    def test_create_server_faiure(self):
+        """
+        Test to verify :func:`create_server` fails with given error message
+        and response code in the metadata.
+        """
+        metadata = {"create_server_failure": "{\"message\": \"Create server failure\","
+                                             "\"code\": 500}"}
+        create_server_response = self._create_server(metadata=metadata)
+        self.assertEquals(create_server_response.code, 500)
+        create_server_response_body = self.successResultOf(
+            treq.json_content(create_server_response))
+        self.assertEquals(create_server_response_body['message'], "Create server failure")
+        self.assertEquals(create_server_response_body['code'], 500)
+
+    def test_server_in_building_state_for_specified_time(self):
+        """
+        Test to verify :func:`create_server` creates a server in BUILD
+        status for the time specified in the metadata.
+        """
+        metadata = {"server_building": 1}
+        # create server with metadata to keep the server in building state for 3 seconds
+        create_server_response = self._create_server(metadata=metadata)
+        # verify the create server was successful
+        self.assertEquals(create_server_response.code, 202)
+        create_server_response_body = self.successResultOf(
+            treq.json_content(create_server_response))
+        # get server and verify status is BUILD
+        get_server = request(self, self.root, "GET", self.uri + '/servers/' +
+                             create_server_response_body["server"]["id"])
+        get_server_response = self.successResultOf(get_server)
+        get_server_response_body = self.successResultOf(
+            treq.json_content(get_server_response))
+        self.assertEquals(get_server_response_body['server']['status'], "BUILD")
+        # get server and verify status changed to active
+        time.sleep(1)  # This should change when the Clock(0 is implemented
+        get_server = request(self, self.root, "GET", self.uri + '/servers/' +
+                             create_server_response_body["server"]["id"])
+        get_server_response = self.successResultOf(get_server)
+        get_server_response_body = self.successResultOf(
+            treq.json_content(get_server_response))
+        self.assertEquals(get_server_response_body['server']['status'], "ACTIVE")
+
+    def test_server_in_error_state(self):
+        """
+        Test to verify :func:`create_server` creates a server in ERROR state.
+        """
+        metadata = {"server_error": 1}
+        # create server with metadata to set status in ERROR
+        create_server_response = self._create_server(metadata=metadata)
+        # verify the create server was successful
+        self.assertEquals(create_server_response.code, 202)
+        create_server_response_body = self.successResultOf(
+            treq.json_content(create_server_response))
+        # get server and verify status is ERROR
+        get_server = request(self, self.root, "GET", self.uri + '/servers/' +
+                             create_server_response_body["server"]["id"])
+        get_server_response = self.successResultOf(get_server)
+        get_server_response_body = self.successResultOf(
+            treq.json_content(get_server_response))
+        self.assertEquals(get_server_response_body['server']['status'], "ERROR")
+
+    def test_delete_server_fails_specified_number_of_times(self):
+        """
+        Test to verify :func: `delete_server` does not delete the server,
+        and returns the given response code, the number of times specified
+        in the metadata
+        """
+        metadata = {"delete_server_failure": "{\"times\": 1,"
+                                             "\"code\": 500}"}
+        # create server and verify it was successful
+        create_server_response = self._create_server(metadata=metadata)
+        self.assertEquals(create_server_response.code, 202)
+        create_server_response_body = self.successResultOf(
+            treq.json_content(create_server_response))
+        # delete server and verify the response
+        delete_server = request(self, self.root, "DELETE", self.uri + '/servers/'
+                                + create_server_response_body["server"]["id"])
+        delete_server_response = self.successResultOf(delete_server)
+        self.assertEqual(delete_server_response.code, 500)
+        # get server and verify the server was not deleted
+        get_server = request(self, self.root, "GET", self.uri + '/servers/' +
+                             create_server_response_body["server"]["id"])
+        get_server_response = self.successResultOf(get_server)
+        self.assertEquals(get_server_response.code, 200)
+        # delete server again and verify the response
+        delete_server = request(self, self.root, "DELETE", self.uri + '/servers/'
+                                + create_server_response_body["server"]["id"])
+        delete_server_response = self.successResultOf(delete_server)
+        self.assertEqual(delete_server_response.code, 204)
+        self.assertEqual(self.successResultOf(treq.content(delete_server_response)),
+                         b"")
+        # get server and verify the server was deleted this time
+        get_server = request(self, self.root, "GET", self.uri + '/servers/' +
+                             create_server_response_body["server"]["id"])
+        get_server_response = self.successResultOf(get_server)
+        self.assertEquals(get_server_response.code, 404)
+
+    def test_get_invalid_image(self):
+        """
+        Test to verify :func:`get_image` when invalid image from the
+        :obj: `mimic_presets` is provided or if image id ends with Z.
+        """
+        get_server_image = request(self, self.root, "GET", self.uri + '/images/test-image-idZ')
+        get_server_image_response = self.successResultOf(get_server_image)
+        self.assertEqual(get_server_image_response.code, 400)
+
+    def test_get_server_flavor(self):
+        """
+        Test to verify :func:`get_flavor` when invalid flavor from the
+        :obj: `mimic_presets` is provided.
+        """
+        get_server_flavor = request(self, self.root, "GET", self.uri + '/flavors/1')
+        get_server_flavor_response = self.successResultOf(get_server_flavor)
+        self.assertEqual(get_server_flavor_response.code, 400)
