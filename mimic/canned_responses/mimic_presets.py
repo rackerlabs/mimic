@@ -11,10 +11,7 @@ get_presets = {"loadbalancers": {"lb_building": "On create load balancer, keeps 
                                                       "state for the given number, any action"
                                                       "other than delete is performed on the server",
                                  "lb_pending_delete": "Changes the load balancer to PENDING-DELETE"
-                                                      "state for the given seconds, when deleted",
-                                 "failing_lb_id": "175647",
-                                 "invalid_lb": "3909",
-                                 "return_422_on_add_node_count": 3},
+                                                      "state for the given seconds, when deleted"},
                "servers": {"create_server_failure": "{\"message\": \"given message\","
                                                     "\"code\": given code}",
                            "delete_server_failure": "{\"code\": given code,"

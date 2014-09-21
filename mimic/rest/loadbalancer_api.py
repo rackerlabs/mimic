@@ -63,10 +63,6 @@ class LoadBalancerApiRoutes(object):
         Fetches the load balancer id for a failure, invalid scenarios and
         the count on the number of time 422 should be returned on add node.
         """
-        self.failing_lb_id = get_presets['loadbalancers']['failing_lb_id']
-        self.invalid_lb = get_presets['loadbalancers']['invalid_lb']
-        self.count = get_presets['loadbalancers'][
-            'return_422_on_add_node_count']
         self.uri_prefix = uri_prefix
 
     @app.route('/v2/<string:tenant_id>/loadbalancers', methods=['POST'])
@@ -114,14 +110,6 @@ class LoadBalancerApiRoutes(object):
         """
         Return a successful add node response with code 200
         """
-        if str(lb_id) == self.failing_lb_id:
-            if self.count != 0:
-                self.count = self.count - 1
-                request.setResponseCode(422)
-                return json.dumps({'message': "Load Balancer {0} has a status of 'PENDING_UPDATE' \
-                    and is considered immutable.".format(lb_id), 'code': 422})
-        if str(lb_id) == self.invalid_lb:
-            return request.setResponseCode(404)
         content = json.loads(request.content.read())
         node_list = content['nodes']
         response_data = add_node(node_list, lb_id)
