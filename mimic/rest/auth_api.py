@@ -66,7 +66,6 @@ class AuthApi(object):
         """
         Returns response with random usernames.
         """
-        # FIXME: TEST
         request.setResponseCode(301)
         session = self.core.sessions.session_for_tenant_id(tenant_id)
         return json.dumps(dict(user=dict(id=session.username)))
@@ -76,7 +75,6 @@ class AuthApi(object):
         """
         Return a token id with expiration.
         """
-        # FIXME: TEST
         request.setResponseCode(200)
         content = json.loads(request.content.read())
         expires_in = content['RAX-AUTH:impersonation']['expire-in-seconds']
