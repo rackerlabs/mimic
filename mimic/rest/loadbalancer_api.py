@@ -12,7 +12,6 @@ from mimic.canned_responses.loadbalancer import (
     add_load_balancer, del_load_balancer, list_load_balancers,
     add_node, delete_node, list_nodes, get_load_balancers, get_nodes)
 from mimic.rest.mimicapp import MimicApp
-from mimic.canned_responses.mimic_presets import get_presets
 from mimic.imimic import IAPIMock
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint

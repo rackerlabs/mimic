@@ -4,6 +4,7 @@ Unit tests for the
 
 import json
 import treq
+import time
 
 from twisted.trial.unittest import SynchronousTestCase
 from mimic.canned_responses.loadbalancer import load_balancer_example
@@ -430,3 +431,199 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
             str(self.create_lb_response_body["loadBalancer"]["id"]) + '/nodes/123')
         delete_node_response = self.successResultOf(delete_nodes)
         self.assertEqual(delete_node_response.code, 404)
+
+
+class LoadbalancerAPINegativeTests(SynchronousTestCase):
+    """
+    Tests for the Loadbalancer plugin API for error injection
+    """
+
+    def setUp(self):
+        """
+        Create a :obj:`MimicCore` with :obj:`LoadBalancerApi` as the only plugin
+        """
+        fixture = APIMockHelper(self, [LoadBalancerApi()])
+        self.root = fixture.root
+        self.uri = fixture.uri
+
+    def _create_loadbalancer_for_given_metadata(self, metadata=None):
+        """
+        Helper method to create a load balancer with the given metadata
+        """
+        create_lb = request(
+            self, self.root, "POST", self.uri + '/loadbalancers',
+            json.dumps({
+                "loadBalancer": {
+                    "name": "test_lb",
+                    "protocol": "HTTP",
+                    "virtualIps": [{"type": "PUBLIC"}],
+                    "metadata": metadata or []
+                }
+            })
+        )
+        create_lb_response = self.successResultOf(create_lb)
+        return create_lb_response
+
+    def _add_node_to_lb(self, lb_id):
+        """
+        Adds a node to the load balancer and returns the response object
+        """
+        create_node = request(
+            self, self.root, "POST", self.uri + '/loadbalancers/'
+            + str(lb_id) + '/nodes',
+            json.dumps({"nodes": [{"address": "127.0.0.1",
+                                   "port": 80,
+                                   "condition": "ENABLED",
+                                   "type": "PRIMARY"}]})
+        )
+        create_node_response = self.successResultOf(create_node)
+        return create_node_response
+
+    def _get_loadbalancer(self, lb_id):
+        """
+        Makes the `GET` call for the given loadbalancer id and returns the
+        load balancer object.
+        """
+        get_lb = request(self, self.root, "GET", self.uri + '/loadbalancers/' + str(lb_id))
+        get_lb_response = self.successResultOf(get_lb)
+        get_lb_response_body = self.successResultOf(treq.json_content(get_lb_response))
+        return get_lb_response_body
+
+    def _delete_loadbalancer(self, lb_id):
+        """
+        Deletes the given load balancer id and returns the response
+        """
+        delete_lb = request(self, self.root, "DELETE", self.uri + '/loadbalancers/' +
+                            str(lb_id))
+        return self.successResultOf(delete_lb)
+
+    def test_create_load_balancer_in_building_state(self):
+        """
+        Test to verify the created load balancer remains in building
+        state for the time is seconds specified in the metadata.
+        Adding a node to a lb in BUILD status results in 422.
+        """
+        metadata = [{"key": "lb_building", "value": 1}]
+        create_response = self._create_loadbalancer_for_given_metadata(metadata)
+        self.assertEqual(create_response.code, 202)
+        create_lb_response_body = self.successResultOf(treq.json_content(create_response))
+        lb = create_lb_response_body["loadBalancer"]
+        self.assertEqual(lb["status"], "BUILD")
+        create_node_response = self._add_node_to_lb(lb["id"])
+        self.assertEqual(create_node_response.code, 422)
+
+    def test_load_balancer_goes_into_error_state_when_adding_node(self):
+        """
+        Test to verify a load balancer goes into error state when adding a node.
+        Adding a node to a loadbalancer in ERROR state results in 422.
+        And such a load balancer can only be deleted.
+        """
+        metadata = [{"key": "lb_error_state", "value": "error"}]
+        create_response = self._create_loadbalancer_for_given_metadata(metadata)
+        self.assertEqual(create_response.code, 202)
+        create_lb_response_body = self.successResultOf(treq.json_content(create_response))
+        lb = create_lb_response_body["loadBalancer"]
+        self.assertEqual(lb["status"], "ACTIVE")
+        create_node_response = self._add_node_to_lb(lb["id"])
+        self.assertEqual(create_node_response.code, 200)
+        # get loadbalncer after adding node and verify its in error state
+        errored_lb = self._get_loadbalancer(lb["id"])
+        self.assertEqual(errored_lb["loadBalancer"]["status"], "ERROR")
+        # adding another node to a lb in ERROR state, results in 422
+        create_node_response = self._add_node_to_lb(lb["id"])
+        self.assertEqual(create_node_response.code, 422)
+        # An lb in ERROR state can be deleted
+        delete_lb = request(self, self.root, "DELETE", self.uri + '/loadbalancers/' +
+                            str(lb["id"]))
+        delete_lb_response = self.successResultOf(delete_lb)
+        self.assertEqual(delete_lb_response.code, 202)
+
+    def test_load_balancer_goes_into_pending_update_state(self):
+        """
+        Test to verify a load balancer goes into PENDING-UPDATE state, for
+        the given time in seconds when any action other than DELETE is performed
+        on the lb.
+        Adding a node to a loadbalancer in PENDING-UPDATE state results in 422.
+        And such a load balancer can be deleted.
+        """
+        metadata = [{"key": "lb_pending_update", "value": 30}]
+        create_response = self._create_loadbalancer_for_given_metadata(metadata)
+        self.assertEqual(create_response.code, 202)
+        create_lb_response_body = self.successResultOf(treq.json_content(create_response))
+        lb = create_lb_response_body["loadBalancer"]
+        self.assertEqual(lb["status"], "ACTIVE")
+        create_node_response = self._add_node_to_lb(lb["id"])
+        self.assertEqual(create_node_response.code, 200)
+        # get loadbalncer after adding node and verify its in PENDING-UPDATE state
+        errored_lb = self._get_loadbalancer(lb["id"])
+        self.assertEqual(errored_lb["loadBalancer"]["status"], "PENDING-UPDATE")
+        # Trying to add/list/delete node on a lb in PENDING-UPDATE state, results in 422
+        create_node_response = self._add_node_to_lb(lb["id"])
+        self.assertEqual(create_node_response.code, 422)
+        delete_nodes = request(
+            self, self.root, "DELETE", self.uri + '/loadbalancers/' +
+            str(lb["id"]) + '/nodes/123')
+        self.assertEqual(self.successResultOf(delete_nodes).code, 422)
+        # An lb in PENDING-UPDATE state can be deleted
+        delete_lb = request(self, self.root, "DELETE", self.uri + '/loadbalancers/' +
+                            str(lb["id"]))
+        delete_lb_response = self.successResultOf(delete_lb)
+        self.assertEqual(delete_lb_response.code, 202)
+
+    def test_load_balancer_reverts_from_pending_update_state(self):
+        """
+        Test to verify a load balancer goes into PENDING-UPDATE state, for
+        the given time in seconds.
+        """
+        metadata = [{"key": "lb_pending_update", "value": 1}]
+        create_response = self._create_loadbalancer_for_given_metadata(metadata)
+        self.assertEqual(create_response.code, 202)
+        create_lb_response_body = self.successResultOf(treq.json_content(create_response))
+        lb = create_lb_response_body["loadBalancer"]
+        self.assertEqual(lb["status"], "ACTIVE")
+        create_node_response = self._add_node_to_lb(lb["id"])
+        self.assertEqual(create_node_response.code, 200)
+        # get loadbalncer after adding node and verify its in PENDING-UPDATE state
+        errored_lb = self._get_loadbalancer(lb["id"])
+        self.assertEqual(errored_lb["loadBalancer"]["status"], "PENDING-UPDATE")
+        time.sleep(1)  # This should go when issue #31 (Clock) is addressed
+        # get loadbalncer after adding node and verify its in ACTIVE state
+        errored_lb = self._get_loadbalancer(lb["id"])
+        self.assertEqual(errored_lb["loadBalancer"]["status"], "ACTIVE")
+
+    def test_delete_load_balancer_and_pending_delete_state(self):
+        """
+        Test to verify a load balancer goes into PENDING-DELETE state, for
+        the given time in seconds and then goes into a DELETED status.
+        Also, verify when a load balancer in PENDING-DELETE or DELETED status
+        is deleted, response code 400 is returned.
+        """
+        metadata = [{"key": "lb_pending_delete", "value": 1}]
+        create_response = self._create_loadbalancer_for_given_metadata(metadata)
+        self.assertEqual(create_response.code, 202)
+        create_lb_response_body = self.successResultOf(treq.json_content(create_response))
+        lb = create_lb_response_body["loadBalancer"]
+        self.assertEqual(lb["status"], "ACTIVE")
+        # Verify the lb status goes into PENDING-DELETE
+        self.assertEqual(self._delete_loadbalancer(lb["id"]).code, 202)
+        deleted_lb = self._get_loadbalancer(lb["id"])
+        self.assertEqual(deleted_lb["loadBalancer"]["status"], "PENDING-DELETE")
+        # Trying to delete a lb in PENDING-DELETE status results in 400
+        self.assertEqual(self._delete_loadbalancer(lb["id"]).code, 400)
+        time.sleep(1)
+        # Lb goes into DELETED status after time specified in metadata
+        deleted_lb = self._get_loadbalancer(lb["id"])
+        self.assertEqual(deleted_lb["loadBalancer"]["status"], "DELETED")
+        # Trying to delete a lb in DELETED status results in 400
+        self.assertEqual(self._delete_loadbalancer(lb["id"]).code, 400)
+        # GET node on load balancer in DELETED status results in 410
+        get_node = request(
+            self, self.root, "GET", self.uri + '/loadbalancers/' +
+            str(lb["id"]) + '/nodes/123')
+        get_node_response = self.successResultOf(get_node)
+        self.assertEqual(get_node_response.code, 410)
+        # List node on load balancer in DELETED status results in 410
+        list_nodes = request(
+            self, self.root, "GET", self.uri + '/loadbalancers/' + str(lb["id"])
+            + '/nodes')
+        self.assertEqual(self.successResultOf(list_nodes).code, 410)

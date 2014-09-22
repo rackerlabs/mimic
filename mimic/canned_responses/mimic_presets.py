@@ -2,13 +2,12 @@
 Defines the preset values in the mimic api.
 """
 
-
 get_presets = {"loadbalancers": {"lb_building": "On create load balancer, keeps the load balancer in "
                                                 "building state for given seconds",
                                  "lb_error_state": "Puts the LB in error state, and such an LB can only"
                                                    "be deleted",
                                  "lb_pending_update": "Changes the load balancer to PENDING-UPDATE"
-                                                      "state for the given number, any action"
+                                                      "state for the given number of seconds, any action"
                                                       "other than delete is performed on the server",
                                  "lb_pending_delete": "Changes the load balancer to PENDING-DELETE"
                                                       "state for the given seconds, when deleted"},
