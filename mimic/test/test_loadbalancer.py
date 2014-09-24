@@ -47,7 +47,7 @@ class ResponseGenerationTests(SynchronousTestCase):
         input_lb_status = "ACTIVE"
 
         actual = load_balancer_example(input_lb_info, input_lb_id, input_lb_status,
-                                       lambda: input_lb_time)
+                                       input_lb_time)
 
         lb_example = {"name": expect_lb_name,
                       "id": input_lb_id,
@@ -85,9 +85,9 @@ class LoadbalancerAPITests(SynchronousTestCase):
         """
         Create a :obj:`MimicCore` with :obj:`LoadBalancerApi` as the only plugin
         """
-        fixture = APIMockHelper(self, [LoadBalancerApi()])
-        self.root = fixture.root
-        self.uri = fixture.uri
+        helper = APIMockHelper(self, [LoadBalancerApi()])
+        self.root = helper.root
+        self.uri = helper.uri
 
     def _create_loadbalancer(self, name=None):
         """
@@ -243,9 +243,9 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         Create a :obj:`MimicCore` with :obj:`LoadBalancerApi` as the only plugin.
         And create a load balancer and add nodes to the load balancer.
         """
-        fixture = APIMockHelper(self, [LoadBalancerApi()])
-        self.root = fixture.root
-        self.uri = fixture.uri
+        helper = APIMockHelper(self, [LoadBalancerApi()])
+        self.root = helper.root
+        self.uri = helper.uri
         create_lb = request(
             self, self.root, "POST", self.uri + '/loadbalancers',
             json.dumps({
@@ -442,9 +442,10 @@ class LoadbalancerAPINegativeTests(SynchronousTestCase):
         """
         Create a :obj:`MimicCore` with :obj:`LoadBalancerApi` as the only plugin
         """
-        fixture = APIMockHelper(self, [LoadBalancerApi()])
-        self.root = fixture.root
-        self.uri = fixture.uri
+        helper = APIMockHelper(self, [LoadBalancerApi()])
+        self.root = helper.root
+        self.uri = helper.uri
+        self.helper = helper
 
     def _create_loadbalancer_for_given_metadata(self, metadata=None):
         """
@@ -586,7 +587,7 @@ class LoadbalancerAPINegativeTests(SynchronousTestCase):
         # get loadbalncer after adding node and verify its in PENDING-UPDATE state
         errored_lb = self._get_loadbalancer(lb["id"])
         self.assertEqual(errored_lb["loadBalancer"]["status"], "PENDING-UPDATE")
-        time.sleep(1)  # This should go when issue #31 (Clock) is addressed
+        self.helper.clock.advance(1.0)
         # get loadbalncer after adding node and verify its in ACTIVE state
         errored_lb = self._get_loadbalancer(lb["id"])
         self.assertEqual(errored_lb["loadBalancer"]["status"], "ACTIVE")
@@ -610,7 +611,7 @@ class LoadbalancerAPINegativeTests(SynchronousTestCase):
         self.assertEqual(deleted_lb["loadBalancer"]["status"], "PENDING-DELETE")
         # Trying to delete a lb in PENDING-DELETE status results in 400
         self.assertEqual(self._delete_loadbalancer(lb["id"]).code, 400)
-        time.sleep(1)
+        self.helper.clock.advance(1.0000001)
         # Lb goes into DELETED status after time specified in metadata
         deleted_lb = self._get_loadbalancer(lb["id"])
         self.assertEqual(deleted_lb["loadBalancer"]["status"], "DELETED")

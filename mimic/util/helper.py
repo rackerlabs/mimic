@@ -67,8 +67,10 @@ def set_resource_status(updated_time, time_delta, status='ACTIVE',
 
     :return: ``status`` or ``None``.
     """
-    now = datetime.utcfromtimestamp(current_timestamp)
-    then = datetime.strptime(updated_time, fmt)
-    when = then + timedelta(seconds=int(time_delta))
-    if now > when:
+    current_datetime = datetime.utcfromtimestamp(current_timestamp)
+    last_updated_datetime = datetime.strptime(updated_time, fmt)
+    expiration_interval = timedelta(seconds=int(time_delta))
+    expiration_datetime = last_updated_datetime + expiration_interval
+
+    if current_datetime >= expiration_datetime:
         return status

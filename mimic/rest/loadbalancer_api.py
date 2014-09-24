@@ -1,3 +1,4 @@
+# -*- test-case-name: mimic.test.test_loadbalancer -*-
 """
 Defines add node and delete node from load balancers
 """
@@ -47,7 +48,7 @@ class LoadBalancerApi(object):
         implement :obj:`IAPIMock`.
         """
         # TODO: unit test
-        return LoadBalancerApiRoutes(uri_prefix).app.resource()
+        return LoadBalancerApiRoutes(uri_prefix, session_store).app.resource()
 
 
 class LoadBalancerApiRoutes(object):
@@ -57,12 +58,13 @@ class LoadBalancerApiRoutes(object):
 
     app = MimicApp()
 
-    def __init__(self, uri_prefix):
+    def __init__(self, uri_prefix, session_store):
         """
         Fetches the load balancer id for a failure, invalid scenarios and
         the count on the number of time 422 should be returned on add node.
         """
         self.uri_prefix = uri_prefix
+        self._session_store = session_store
 
     @app.route('/v2/<string:tenant_id>/loadbalancers', methods=['POST'])
     def add_load_balancer(self, request, tenant_id):
@@ -72,7 +74,8 @@ class LoadBalancerApiRoutes(object):
         """
         lb_id = randrange(99999)
         content = json.loads(request.content.read())
-        response_data = add_load_balancer(tenant_id, content['loadBalancer'], lb_id)
+        response_data = add_load_balancer(tenant_id, content['loadBalancer'], lb_id,
+                                          self._session_store.clock.seconds())
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
@@ -81,7 +84,9 @@ class LoadBalancerApiRoutes(object):
         """
         Returns a list of all load balancers created using mimic with response code 200
         """
-        response_data = get_load_balancers(lb_id)
+        response_data = get_load_balancers(
+            lb_id, self._session_store.clock.seconds()
+        )
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
@@ -90,7 +95,9 @@ class LoadBalancerApiRoutes(object):
         """
         Returns a list of all load balancers created using mimic with response code 200
         """
-        response_data = list_load_balancers(tenant_id)
+        response_data = list_load_balancers(
+            tenant_id, self._session_store.clock.seconds()
+        )
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
@@ -100,7 +107,9 @@ class LoadBalancerApiRoutes(object):
         Creates a load balancer and adds it to the lb_cache.
         Returns the newly created load balancer with response code 200
         """
-        response_data = del_load_balancer(lb_id)
+        response_data = del_load_balancer(
+            lb_id, self._session_store.clock.seconds()
+        )
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
@@ -111,7 +120,9 @@ class LoadBalancerApiRoutes(object):
         """
         content = json.loads(request.content.read())
         node_list = content['nodes']
-        response_data = add_node(node_list, lb_id)
+        response_data = add_node(
+            node_list, lb_id, self._session_store.clock.seconds()
+        )
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
@@ -121,7 +132,9 @@ class LoadBalancerApiRoutes(object):
         """
         Returns a 200 response code and list of nodes on the load balancer
         """
-        response_data = get_nodes(lb_id, node_id)
+        response_data = get_nodes(
+            lb_id, node_id, self._session_store.clock.seconds()
+        )
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
@@ -131,7 +144,9 @@ class LoadBalancerApiRoutes(object):
         """
         Returns a 204 response code, for any load balancer created using the mocks
         """
-        response_data = delete_node(lb_id, node_id)
+        response_data = delete_node(
+            lb_id, node_id, self._session_store.clock.seconds()
+        )
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
@@ -141,6 +156,6 @@ class LoadBalancerApiRoutes(object):
         """
         Returns a 200 response code and list of nodes on the load balancer
         """
-        response_data = list_nodes(lb_id)
+        response_data = list_nodes(lb_id, self._session_store.clock.seconds())
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
