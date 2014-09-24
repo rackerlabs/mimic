@@ -2,7 +2,6 @@
 import itertools
 import json
 import treq
-import time
 
 from twisted.trial.unittest import SynchronousTestCase
 
@@ -132,9 +131,9 @@ class NovaAPITests(SynchronousTestCase):
         Create a :obj:`MimicCore` with :obj:`NovaApi` as the only plugin,
         and create a server
         """
-        fixture = APIMockHelper(self, [NovaApi(["ORD", "MIMIC"])])
-        self.root = fixture.root
-        self.uri = fixture.uri
+        helper = APIMockHelper(self, [NovaApi(["ORD", "MIMIC"])])
+        self.root = helper.root
+        self.uri = helper.uri
         self.server_name = 'test_server'
         create_server = request(
             self, self.root, "POST", self.uri + '/servers',
@@ -149,7 +148,7 @@ class NovaAPITests(SynchronousTestCase):
         create_server_response_body = self.successResultOf(
             treq.json_content(self.create_server_response))
         self.server_id = create_server_response_body['server']['id']
-        self.nth_endpoint_public = fixture.nth_endpoint_public
+        self.nth_endpoint_public = helper.nth_endpoint_public
 
     def test_create_server(self):
         """
@@ -373,15 +372,17 @@ class NovaAPINegativeTests(SynchronousTestCase):
         Create a :obj:`MimicCore` with :obj:`NovaApi` as the only plugin,
         and create a server
         """
-        fixture = APIMockHelper(self, [NovaApi(["ORD", "MIMIC"])])
-        self.root = fixture.root
-        self.uri = fixture.uri
+        helper = APIMockHelper(self, [NovaApi(["ORD", "MIMIC"])])
+        self.root = helper.root
+        self.uri = helper.uri
+        self.helper = helper
 
-    def _create_server(self, name=None, imageRef=None,
-                       flavorRef=None, metadata=None):
+    def create_server(self, name=None, imageRef=None, flavorRef=None,
+                      metadata=None):
         """
         Creates a server with the given specifications and returns the response
         object
+
         :param name: Name of the server
         :param imageRef: Image of the server
         :param flavorRef: Flavor size of the server
@@ -405,13 +406,14 @@ class NovaAPINegativeTests(SynchronousTestCase):
         Test to verify :func:`create_server` fails with given error message
         and response code in the metadata.
         """
-        metadata = {"create_server_failure": "{\"message\": \"Create server failure\","
-                                             "\"code\": 500}"}
-        create_server_response = self._create_server(metadata=metadata)
+        serverfail = {"message": "Create server failure", "code": 500}
+        metadata = {"create_server_failure": json.dumps(serverfail)}
+        create_server_response = self.create_server(metadata=metadata)
         self.assertEquals(create_server_response.code, 500)
         create_server_response_body = self.successResultOf(
             treq.json_content(create_server_response))
-        self.assertEquals(create_server_response_body['message'], "Create server failure")
+        self.assertEquals(create_server_response_body['message'],
+                          "Create server failure")
         self.assertEquals(create_server_response_body['code'], 500)
 
     def test_server_in_building_state_for_specified_time(self):
@@ -420,8 +422,9 @@ class NovaAPINegativeTests(SynchronousTestCase):
         status for the time specified in the metadata.
         """
         metadata = {"server_building": 1}
-        # create server with metadata to keep the server in building state for 3 seconds
-        create_server_response = self._create_server(metadata=metadata)
+        # create server with metadata to keep the server in building state for
+        # 3 seconds
+        create_server_response = self.create_server(metadata=metadata)
         # verify the create server was successful
         self.assertEquals(create_server_response.code, 202)
         create_server_response_body = self.successResultOf(
@@ -433,8 +436,9 @@ class NovaAPINegativeTests(SynchronousTestCase):
         get_server_response_body = self.successResultOf(
             treq.json_content(get_server_response))
         self.assertEquals(get_server_response_body['server']['status'], "BUILD")
+        # Time Passes...
+        self.helper.clock.advance(2.0)
         # get server and verify status changed to active
-        time.sleep(1)  # This should change when the Clock(0 is implemented
         get_server = request(self, self.root, "GET", self.uri + '/servers/' +
                              create_server_response_body["server"]["id"])
         get_server_response = self.successResultOf(get_server)
@@ -448,7 +452,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         """
         metadata = {"server_error": 1}
         # create server with metadata to set status in ERROR
-        create_server_response = self._create_server(metadata=metadata)
+        create_server_response = self.create_server(metadata=metadata)
         # verify the create server was successful
         self.assertEquals(create_server_response.code, 202)
         create_server_response_body = self.successResultOf(
@@ -467,10 +471,10 @@ class NovaAPINegativeTests(SynchronousTestCase):
         and returns the given response code, the number of times specified
         in the metadata
         """
-        metadata = {"delete_server_failure": "{\"times\": 1,"
-                                             "\"code\": 500}"}
+        deletefail = {"times": 1,"code": 500}
+        metadata = {"delete_server_failure": json.dumps(deletefail)}
         # create server and verify it was successful
-        create_server_response = self._create_server(metadata=metadata)
+        create_server_response = self.create_server(metadata=metadata)
         self.assertEquals(create_server_response.code, 202)
         create_server_response_body = self.successResultOf(
             treq.json_content(create_server_response))
@@ -502,7 +506,8 @@ class NovaAPINegativeTests(SynchronousTestCase):
         Test to verify :func:`get_image` when invalid image from the
         :obj: `mimic_presets` is provided or if image id ends with Z.
         """
-        get_server_image = request(self, self.root, "GET", self.uri + '/images/test-image-idZ')
+        get_server_image = request(self, self.root, "GET", self.uri +
+                                   '/images/test-image-idZ')
         get_server_image_response = self.successResultOf(get_server_image)
         self.assertEqual(get_server_image_response.code, 400)
 
@@ -511,6 +516,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         Test to verify :func:`get_flavor` when invalid flavor from the
         :obj: `mimic_presets` is provided.
         """
-        get_server_flavor = request(self, self.root, "GET", self.uri + '/flavors/1')
+        get_server_flavor = request(self, self.root, "GET", self.uri +
+                                    '/flavors/1')
         get_server_flavor_response = self.successResultOf(get_server_flavor)
         self.assertEqual(get_server_flavor_response.code, 400)
