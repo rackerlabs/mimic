@@ -1,17 +1,20 @@
+# -*- test-case-name: mimic.test.test_loadbalancer -*-
 """
-Canned response for add/list/delete load balancers and add/delete/list nodes
+Canned response for add/get/list/delete load balancers and
+add/get/delete/list nodes
 """
 from random import randrange
+from datetime import datetime
 from copy import deepcopy
-from mimic.util.helper import (not_found_response, current_time_in_utc,
-                               invalid_resource, set_resource_status)
+from mimic.util.helper import (not_found_response, invalid_resource,
+                               set_resource_status, fmt as time_format)
 from twisted.python import log
 lb_cache = {}
 meta_cache = {}
 
 
 def load_balancer_example(lb_info, lb_id, status,
-                          current_time=current_time_in_utc):
+                          current_time):
     """
     Create load balancer response example
     """
@@ -23,7 +26,7 @@ def load_balancer_example(lb_info, lb_id, status,
                   "status": status,
                   "cluster": {"name": "test-cluster"},
                   "timeout": lb_info.get("timeout", 30),
-                  "created": {"time": current_time()},
+                  "created": {"time": current_time},
                   "virtualIps": [{"address": "127.0.0.1",
                                  "id": 1111, "type": "PUBLIC", "ipVersion": "IPV4"},
                                  {"address": "0000:0000:0000:0000:1111:111b:0000:0000",
@@ -34,7 +37,7 @@ def load_balancer_example(lb_info, lb_id, status,
                                       "ipv4Servicenet": "127.0.0.1",
                                       "ipv4Public": "127.0.0.1"},
                   "httpsRedirect": lb_info.get("httpsRedirect", False),
-                  "updated": {"time": current_time()},
+                  "updated": {"time": current_time},
                   "halfClosed": lb_info.get("halfClosed", False),
                   "connectionLogging": lb_info.get("connectionLogging", {"enabled": False}),
                   "contentCaching": {"enabled": False}}
@@ -45,7 +48,7 @@ def load_balancer_example(lb_info, lb_id, status,
     return lb_example
 
 
-def add_load_balancer(tenant_id, lb_info, lb_id):
+def add_load_balancer(tenant_id, lb_info, lb_id, current_timestamp):
     """
     Returns response of a newly created load balancer with
     response code 202, and adds the new lb to the lb_cache.
@@ -54,7 +57,8 @@ def add_load_balancer(tenant_id, lb_info, lb_id):
     """
     status = "ACTIVE"
 
-    # create a metadata cache so we dont have to deal with the list
+    # Loadbalancers metadata is a list object, creating a metadata cache
+    # so we dont have to deal with the list
     meta = {}
     if "metadata" in lb_info:
         for each in lb_info["metadata"]:
@@ -66,7 +70,9 @@ def add_load_balancer(tenant_id, lb_info, lb_id):
         status = "BUILD"
 
     # Add tenant_id and nodeCount to lb_cache
-    lb_cache[lb_id] = load_balancer_example(lb_info, lb_id, status)
+    current_timestring = datetime.utcfromtimestamp(current_timestamp).strftime(time_format)
+    lb_cache[lb_id] = load_balancer_example(lb_info, lb_id, status,
+                                            current_timestring)
     lb_cache[lb_id].update({"tenant_id": tenant_id})
     lb_cache[lb_id].update({"nodeCount": len(lb_cache[lb_id].get("nodes", []))})
 
@@ -76,43 +82,56 @@ def add_load_balancer(tenant_id, lb_info, lb_id):
     return {'loadBalancer': new_lb}, 202
 
 
-def get_load_balancers(lb_id):
+def get_load_balancers(lb_id, current_timestamp):
     """
     Returns the load balancers with the given lb id, with response
     code 200. If no load balancers are found returns 404.
     """
     if lb_id in lb_cache:
-        _verify_and_update_lb_state(lb_id, False)
+        _verify_and_update_lb_state(lb_id, False, current_timestamp)
         log.msg(lb_cache[lb_id]["status"])
         new_lb = _lb_cache_without_tenant(lb_id)
         return {'loadBalancer': new_lb}, 200
     return not_found_response("loadbalancer"), 404
 
 
-def del_load_balancer(lb_id):
+def del_load_balancer(lb_id, current_timestamp):
     """
     Returns response for a load balancer that is in building status for 20 seconds
-    and response code 202, and adds the new lb to the lb_cache
+    and response code 202, and adds the new lb to the lb_cache.
+    A loadbalancer, on delete, goes into PENDING-DELETE and remains in DELETED
+    status until a nightly job(maybe?)
     """
     if lb_id in lb_cache:
 
-        _verify_and_update_lb_state(lb_id, False)
+        if lb_cache[lb_id]["status"] == "PENDING-DELETE":
+            msg = ("Must provide valid load balancers: {0} are immutable and "
+                   "could not be processed.".format(lb_id))
+            # Dont doubt this to be 422, it is 400!
+            return invalid_resource(msg, 400), 400
 
-        if any([lb_cache[lb_id]["status"] == "ACTIVE", lb_cache[lb_id]["status"] == "ERROR"]):
+        _verify_and_update_lb_state(lb_id, True, current_timestamp)
+
+        if any([lb_cache[lb_id]["status"] == "ACTIVE",
+                lb_cache[lb_id]["status"] == "ERROR",
+                lb_cache[lb_id]["status"] == "PENDING-UPDATE"]):
             del lb_cache[lb_id]
-            return None, 202
+            return b'', 202
+
+        if lb_cache[lb_id]["status"] == "PENDING-DELETE":
+            return b'', 202
 
         if lb_cache[lb_id]["status"] == "DELETED":
-            _verify_and_update_lb_state(lb_id)
+            _verify_and_update_lb_state(lb_id,
+                                        current_timestamp=current_timestamp)
             msg = "Must provide valid load balancers: {0} could not be found.".format(lb_id)
-        msg = ("Must provide valid load balancers: {0} are immutable and "
-               "could not be processed.".format(lb_id))
-        return invalid_resource(msg, 400), 400
+            # Dont doubt this to be 422, it is 400!
+            return invalid_resource(msg, 400), 400
 
     return not_found_response("loadbalancer"), 404
 
 
-def list_load_balancers(tenant_id):
+def list_load_balancers(tenant_id, current_timestamp):
     """
     Returns the list of load balancers with the given tenant id with response
     code 200. If no load balancers are found returns empty list.
@@ -122,7 +141,7 @@ def list_load_balancers(tenant_id):
         if tenant_id == v['tenant_id']
     )
     for each in response:
-        _verify_and_update_lb_state(each, False)
+        _verify_and_update_lb_state(each, False, current_timestamp)
         log.msg(lb_cache[each]["status"])
     updated_resp = dict(
         (k, v) for (k, v) in lb_cache.items()
@@ -131,13 +150,13 @@ def list_load_balancers(tenant_id):
     return {'loadBalancers': _prep_for_list(updated_resp.values()) or []}, 200
 
 
-def add_node(node_list, lb_id):
+def add_node(node_list, lb_id, current_timestamp):
     """
     Returns the canned response for add nodes
     """
     if lb_id in lb_cache:
 
-        _verify_and_update_lb_state(lb_id, False)
+        _verify_and_update_lb_state(lb_id, False, current_timestamp)
 
         if lb_cache[lb_id]["status"] != "ACTIVE":
             return invalid_resource("Load Balancer '{0}' has a status of {1} and is considered "
@@ -155,20 +174,21 @@ def add_node(node_list, lb_id):
         else:
             lb_cache[lb_id]["nodes"] = nodes
             lb_cache[lb_id]["nodeCount"] = len(lb_cache[lb_id]["nodes"])
-            _verify_and_update_lb_state(lb_id)
+            _verify_and_update_lb_state(lb_id,
+                                        current_timestamp=current_timestamp)
         return {"nodes": nodes}, 200
 
     return not_found_response("loadbalancer"), 404
 
 
-def get_nodes(lb_id, node_id):
+def get_nodes(lb_id, node_id, current_timestamp):
     """
     Returns the node on the load balancer
     """
     if lb_id in lb_cache:
-        _verify_and_update_lb_state(lb_id, False)
+        _verify_and_update_lb_state(lb_id, False, current_timestamp)
 
-        if lb_cache[lb_id] == "DELETED":
+        if lb_cache[lb_id]["status"] == "DELETED":
             return invalid_resource("The loadbalancer is marked as deleted.", 410), 410
 
         if lb_cache[lb_id].get("nodes"):
@@ -180,20 +200,20 @@ def get_nodes(lb_id, node_id):
     return not_found_response("loadbalancer"), 404
 
 
-def delete_node(lb_id, node_id):
+def delete_node(lb_id, node_id, current_timestamp):
     """
     Determines whether the node to be deleted exists in mimic cache and
     returns the response code.
     """
     if lb_id in lb_cache:
 
-        _verify_and_update_lb_state(lb_id, False)
+        _verify_and_update_lb_state(lb_id, False, current_timestamp)
 
         if lb_cache[lb_id]["status"] != "ACTIVE":
             return invalid_resource("Load Balancer '{0}' has a status of {1} and is considered "
                                     "immutable.".format(lb_id, lb_cache[lb_id]["status"]), 422), 422
 
-        _verify_and_update_lb_state(lb_id)
+        _verify_and_update_lb_state(lb_id, current_timestamp=current_timestamp)
 
         if lb_cache[lb_id].get("nodes"):
             for each in lb_cache[lb_id]["nodes"]:
@@ -210,14 +230,14 @@ def delete_node(lb_id, node_id):
     return not_found_response("loadbalancer"), 404
 
 
-def list_nodes(lb_id):
+def list_nodes(lb_id, current_timestamp):
     """
     Returns the list of nodes remaining on the load balancer
     """
     if lb_id in lb_cache:
-        _verify_and_update_lb_state(lb_id, False)
+        _verify_and_update_lb_state(lb_id, False, current_timestamp)
 
-        if lb_cache[lb_id] == "DELETED":
+        if lb_cache[lb_id]["status"] == "DELETED":
             return invalid_resource("The loadbalancer is marked as deleted.", 410), 410
         node_list = []
         if lb_cache[lb_id].get("nodes"):
@@ -247,12 +267,12 @@ def _format_nodes_on_lb(node_list):
     return nodes
 
 
-def _format_meta(node_list):
+def _format_meta(metadata_list):
     """
     creates metadata with 'id' as a key
     """
     meta = []
-    for each in node_list:
+    for each in metadata_list:
         each.update({"id": randrange(999)})
         meta.append(each)
     return meta
@@ -282,17 +302,21 @@ def _prep_for_list(lb_list):
     return filtered_lb_list
 
 
-def _verify_and_update_lb_state(lb_id, set_state=True):
+def _verify_and_update_lb_state(lb_id, set_state=True,
+                                current_timestamp=None):
     """
     Based on the current state, the metadata on the lb and the time since the LB has
     been in that state, set the appropriate state in lb_cache
     Note: Reconsider if update metadata is implemented
     """
+    current_timestring = datetime.utcfromtimestamp(current_timestamp).strftime(time_format)
     if lb_cache[lb_id]["status"] == "BUILD":
         meta_cache[lb_id]["lb_building"] = meta_cache[lb_id]["lb_building"] or 10
         lb_cache[lb_id]["status"] = set_resource_status(
             lb_cache[lb_id]["updated"]["time"],
-            meta_cache[lb_id]["lb_building"]) or "BUILD"
+            meta_cache[lb_id]["lb_building"],
+            current_timestamp=current_timestamp
+        ) or "BUILD"
 
     elif lb_cache[lb_id]["status"] == "ACTIVE" and set_state:
         if "lb_pending_update" in meta_cache[lb_id]:
@@ -303,23 +327,30 @@ def _verify_and_update_lb_state(lb_id, set_state=True):
             lb_cache[lb_id]["status"] = "PENDING-DELETE"
         if "lb_error_state" in meta_cache[lb_id]:
             lb_cache[lb_id]["status"] = "ERROR"
-        lb_cache[lb_id]["updated"]["time"] = current_time_in_utc()
+        lb_cache[lb_id]["updated"]["time"] = current_timestring
 
     elif lb_cache[lb_id]["status"] == "PENDING-UPDATE":
         if "lb_pending_update" in meta_cache[lb_id]:
             lb_cache[lb_id]["status"] = set_resource_status(
                 lb_cache[lb_id]["updated"]["time"],
-                meta_cache[lb_id]["lb_pending_update"]) or "PENDING-UPDATE"
+                meta_cache[lb_id]["lb_pending_update"],
+                current_timestamp=current_timestamp
+            ) or "PENDING-UPDATE"
 
     elif lb_cache[lb_id]["status"] == "PENDING-DELETE":
         meta_cache[lb_id]["lb_pending_delete"] = meta_cache[lb_id]["lb_pending_delete"] or 10
         lb_cache[lb_id]["status"] = set_resource_status(
             lb_cache[lb_id]["updated"]["time"],
-            meta_cache[lb_id]["lb_pending_delete"], "DELETED") or "PENDING-DELETE"
-        lb_cache[lb_id]["updated"]["time"] = current_time_in_utc()
+            meta_cache[lb_id]["lb_pending_delete"], "DELETED",
+            current_timestamp=current_timestamp
+        ) or "PENDING-DELETE"
+        lb_cache[lb_id]["updated"]["time"] = current_timestring
 
     elif lb_cache[lb_id]["status"] == "DELETED":
+        # see del_load_balancer above for an explanation of this state change.
         lb_cache[lb_id]["status"] = set_resource_status(
-            lb_cache[lb_id]["updated"]["time"], 3600, "DELETING-NOW") or "DELETED"
+            lb_cache[lb_id]["updated"]["time"], 3600, "DELETING-NOW",
+            current_timestamp=current_timestamp
+        ) or "DELETED"
         if lb_cache[lb_id]["status"] == "DELETING-NOW":
             del lb_cache[lb_id]

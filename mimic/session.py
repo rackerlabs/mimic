@@ -49,13 +49,15 @@ class SessionStore(object):
     Unlike many traditional types of session storage, new authenticated users
     are created on demand, since all authentication succeeds by default within
     Mimic.
+
+    :ivar IReactorTime clock: The clock used to track session expiration.
     """
 
     def __init__(self, clock):
         """
         Create a session store with the given IReactorTime provider.
         """
-        self._clock = clock
+        self.clock = clock
         self._token_to_session = {
             # mapping of token (unicode) to session (Session)
         }
@@ -86,7 +88,7 @@ class SessionStore(object):
                 attributes[key] = key + "_" + text_type(uuid4())
         if 'expires' not in attributes:
             attributes['expires'] = (
-                datetime.utcfromtimestamp(self._clock.seconds())
+                datetime.utcfromtimestamp(self.clock.seconds())
                 + timedelta(days=1)
             )
         session = Session(**attributes)
@@ -149,7 +151,7 @@ class SessionStore(object):
             return self._token_to_session[self._username_to_token[key]]
         subsession = self._new_session(
             username=username,
-            expires=datetime.utcfromtimestamp(self._clock.seconds() +
+            expires=datetime.utcfromtimestamp(self.clock.seconds() +
                                               expires_in),
             tenant_id=session.tenant_id,
             username_key=key,

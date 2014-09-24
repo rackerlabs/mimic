@@ -70,7 +70,7 @@ class MimicCore(object):
             return api.resource_for_region(
                 region_name,
                 self.uri_for_service(region_name, service_id, base_uri),
-                self.sessions
+                self.sessions,
             )
 
     def uri_for_service(self, region, service_id, base_uri):

@@ -101,7 +101,7 @@ def server_template(tenant_id, server_info, server_id, status,
 
 
 def create_server(tenant_id, server_info, server_id, compute_uri_prefix,
-                  s_cache):
+                  s_cache, current_time):
     """
     Canned response for create server and adds the server to the server cache.
     """
@@ -126,6 +126,7 @@ def create_server(tenant_id, server_info, server_id, compute_uri_prefix,
     s_cache[server_id] = server_template(
         tenant_id, server_info, server_id, status,
         compute_uri_prefix=compute_uri_prefix,
+        current_time=current_time
     )
     return (
         {
@@ -140,19 +141,20 @@ def create_server(tenant_id, server_info, server_id, compute_uri_prefix,
     )
 
 
-def get_server(server_id, s_cache):
+def get_server(server_id, s_cache, current_timestamp):
     """
     Verify if the given server_id exists in the server cache.  If true, return
     server data else return None
     """
     if server_id in s_cache:
-        set_server_state(server_id, s_cache)
+        set_server_state(server_id, s_cache, current_timestamp)
         return {'server': s_cache[server_id]}, 200
     else:
         return not_found_response(), 404
 
 
-def list_server(tenant_id, s_cache, name=None, details=True):
+def list_server(tenant_id, s_cache, name=None, details=True,
+                current_timestamp=None):
     """
     Return a list of all servers in the server cache with the given tenant_id
     """
@@ -161,7 +163,7 @@ def list_server(tenant_id, s_cache, name=None, details=True):
         if tenant_id == v['tenant_id']
     )
     for each in response:
-        set_server_state(each, s_cache)
+        set_server_state(each, s_cache, current_timestamp)
     if name:
         response = dict(
             (k, v) for (k, v) in response.items() if name in v['name']
@@ -260,7 +262,7 @@ def get_limit(s_cache):
                           "maxTotalRAMSize": 256000}}}
 
 
-def set_server_state(server_id, s_cache):
+def set_server_state(server_id, s_cache, current_timestamp):
     """
     If the server status is not active, sets the state of the server based on
     the server metadata.
@@ -270,8 +272,11 @@ def set_server_state(server_id, s_cache):
     """
     if s_cache[server_id]['status'] != "ACTIVE":
         if 'server_building' in s_cache[server_id]['metadata']:
+            updated_timestring = s_cache[server_id]['updated']
             status = set_resource_status(
-                s_cache[server_id]['updated'],
-                int(s_cache[server_id]['metadata']['server_building']))
+                updated_timestring,
+                int(s_cache[server_id]['metadata']['server_building']),
+                current_timestamp=current_timestamp
+            )
             s_cache[server_id]['status'] = (status or
                                             s_cache[server_id]['status'])

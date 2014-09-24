@@ -19,7 +19,8 @@ class APIMockHelper(object):
         Initialize a mimic core and the specified :obj:`mimic.imimic.IAPIMock`s
         :param apis: A list of :obj:`mimic.imimic.IAPIMock` objects to be initialized
         """
-        self.core = MimicCore(Clock(), apis)
+        self.clock = Clock()
+        self.core = MimicCore(self.clock, apis)
         self.root = MimicRoot(self.core).app.resource()
         # Pass in arbitrary username and password
         response = request(
