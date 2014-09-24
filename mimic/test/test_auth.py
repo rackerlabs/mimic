@@ -365,3 +365,33 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         self.assertEqual(len(service_catalog), 1)
         endpoints_list = service_catalog[0]["endpoints"]
         self.assertEqual(len(endpoints_list), 4)
+
+    def test_response_for_get_username(self):
+        """
+        Test to verify :func: `get_username`.
+        """
+        core = MimicCore(Clock(), [ExampleAPI()])
+        root = MimicRoot(core).app.resource()
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "GET",
+            "http://mybase/identity/v1.1/mosso/123456"
+        ))
+        self.assertEqual(301, response.code)
+        self.assertTrue(json_body['user']['id'])
+
+    def test_response_for_impersonation(self):
+        """
+        Test to verify :func: `get_impersonation_token`.
+        """
+        core = MimicCore(Clock(), [ExampleAPI()])
+        root = MimicRoot(core).app.resource()
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "POST",
+            "http://mybase/identity/v2.0/RAX-AUTH/impersonation-tokens",
+            {"RAX-AUTH:impersonation": {"expire-in-seconds": 1,
+                                        "user": {"username": "test"}}}
+        ))
+        self.assertEqual(200, response.code)
+        self.assertTrue(json_body['access']['token']['id'])

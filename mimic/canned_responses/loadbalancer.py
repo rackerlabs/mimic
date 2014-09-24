@@ -1,5 +1,6 @@
 """
-Canned response for add/list/delete load balancers and add/delete/list nodes
+Canned response for add/get/list/delete load balancers and
+add/get/delete/list nodes
 """
 from random import randrange
 from copy import deepcopy
@@ -54,7 +55,8 @@ def add_load_balancer(tenant_id, lb_info, lb_id):
     """
     status = "ACTIVE"
 
-    # create a metadata cache so we dont have to deal with the list
+    # Loadbalancers metadata is a list object, creating a metadata cache
+    # so we dont have to deal with the list
     meta = {}
     if "metadata" in lb_info:
         for each in lb_info["metadata"]:
@@ -92,22 +94,34 @@ def get_load_balancers(lb_id):
 def del_load_balancer(lb_id):
     """
     Returns response for a load balancer that is in building status for 20 seconds
-    and response code 202, and adds the new lb to the lb_cache
+    and response code 202, and adds the new lb to the lb_cache.
+    A loadbalancer, on delete, goes into PENDING-DELETE and remains in DELETED
+    status until a nightly job(maybe?)
     """
     if lb_id in lb_cache:
 
-        _verify_and_update_lb_state(lb_id, False)
+        if lb_cache[lb_id]["status"] == "PENDING-DELETE":
+            msg = ("Must provide valid load balancers: {0} are immutable and "
+                   "could not be processed.".format(lb_id))
+            # Dont doubt this to be 422, it is 400!
+            return invalid_resource(msg, 400), 400
 
-        if any([lb_cache[lb_id]["status"] == "ACTIVE", lb_cache[lb_id]["status"] == "ERROR"]):
+        _verify_and_update_lb_state(lb_id, True)
+
+        if any([lb_cache[lb_id]["status"] == "ACTIVE",
+                lb_cache[lb_id]["status"] == "ERROR",
+                lb_cache[lb_id]["status"] == "PENDING-UPDATE"]):
             del lb_cache[lb_id]
-            return None, 202
+            return b'', 202
+
+        if lb_cache[lb_id]["status"] == "PENDING-DELETE":
+            return b'', 202
 
         if lb_cache[lb_id]["status"] == "DELETED":
             _verify_and_update_lb_state(lb_id)
             msg = "Must provide valid load balancers: {0} could not be found.".format(lb_id)
-        msg = ("Must provide valid load balancers: {0} are immutable and "
-               "could not be processed.".format(lb_id))
-        return invalid_resource(msg, 400), 400
+            # Dont doubt this to be 422, it is 400!
+            return invalid_resource(msg, 400), 400
 
     return not_found_response("loadbalancer"), 404
 
@@ -168,7 +182,7 @@ def get_nodes(lb_id, node_id):
     if lb_id in lb_cache:
         _verify_and_update_lb_state(lb_id, False)
 
-        if lb_cache[lb_id] == "DELETED":
+        if lb_cache[lb_id]["status"] == "DELETED":
             return invalid_resource("The loadbalancer is marked as deleted.", 410), 410
 
         if lb_cache[lb_id].get("nodes"):
@@ -217,7 +231,7 @@ def list_nodes(lb_id):
     if lb_id in lb_cache:
         _verify_and_update_lb_state(lb_id, False)
 
-        if lb_cache[lb_id] == "DELETED":
+        if lb_cache[lb_id]["status"] == "DELETED":
             return invalid_resource("The loadbalancer is marked as deleted.", 410), 410
         node_list = []
         if lb_cache[lb_id].get("nodes"):
@@ -247,12 +261,12 @@ def _format_nodes_on_lb(node_list):
     return nodes
 
 
-def _format_meta(node_list):
+def _format_meta(metadata_list):
     """
     creates metadata with 'id' as a key
     """
     meta = []
-    for each in node_list:
+    for each in metadata_list:
         each.update({"id": randrange(999)})
         meta.append(each)
     return meta
