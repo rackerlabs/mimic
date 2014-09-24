@@ -4,7 +4,6 @@ Unit tests for the
 
 import json
 import treq
-import time
 
 from twisted.trial.unittest import SynchronousTestCase
 from mimic.canned_responses.loadbalancer import load_balancer_example

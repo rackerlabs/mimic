@@ -471,7 +471,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         and returns the given response code, the number of times specified
         in the metadata
         """
-        deletefail = {"times": 1,"code": 500}
+        deletefail = {"times": 1, "code": 500}
         metadata = {"delete_server_failure": json.dumps(deletefail)}
         # create server and verify it was successful
         create_server_response = self.create_server(metadata=metadata)

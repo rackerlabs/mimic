@@ -354,5 +354,3 @@ def _verify_and_update_lb_state(lb_id, set_state=True,
         ) or "DELETED"
         if lb_cache[lb_id]["status"] == "DELETING-NOW":
             del lb_cache[lb_id]
-
-
