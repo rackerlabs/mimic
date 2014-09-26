@@ -74,24 +74,35 @@ class MaasMock(object):
 
     @app.route('/v1.0/<string:tenant_id>/entities', methods=['GET'])
     def list_entities(self, request, tenant_id):
-        """
-        Returns a list of entities with Response code 200.
-        """
         request.setResponseCode(200)
         return json.dumps(self.entities_dictionary)
+        
+    @app.route('/v1.0/<string:tenant_id>/entities', methods=['POST'])
+    def create_entity(self, request, tenant_id):
+      import random,string
+      request.setResponseCode(201)
+      postdata = json.loads(request.content.read())
+      myhostname_and_port = 'http://'+request.getRequestHostname()+":8900"
+      entityid = postdata[u'label'].encode("ascii")+''.join(random.sample(string.letters+string.digits,8))
+      request.setHeader('location',myhostname_and_port+request.path+'/'+entityid)
+      request.setHeader('x-object-id',entityid)
+      return ' '  
 
-    @app.route('/v1.0/<string:tenant_id>/overview', methods=['GET'])
+    @app.route('/v1.0/<string:tenant_id>/views/overview', methods=['GET'])
     def overview(self, request, tenant_id):
-        """
-        Returns a list of entities with Response code 200.
-        """
         request.setResponseCode(200)
         return json.dumps(self.overview_dictionary)
 
     @app.route('/v1.0/<string:tenant_id>/__experiments/json_home', methods=['GET'])
     def service_json_home(self, request, tenant_id):
+      import re
       request.setResponseCode(200)
-      return json.dumps(self.json_home) 
+      myhostname_and_port = request.getRequestHostname()+":8900"
+      service_id = re.findall('/service/(.+?)/',request.path)[0]
+      return json.dumps(self.json_home)\
+        .replace('.com/v1.0','.com/service/'+service_id+'/ORD/v1.0')\
+        .replace('monitoring.api.rackspacecloud.com',myhostname_and_port)\
+        .replace("https://","http://")
 
     @app.route('/v1.0/<string:tenant_id>/views/agent_host_info', methods=['GET'])
     def view_agent_host_info(self, request, tenant_id):
