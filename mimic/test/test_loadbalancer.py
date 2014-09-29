@@ -7,9 +7,9 @@ import treq
 
 from twisted.trial.unittest import SynchronousTestCase
 from mimic.canned_responses.loadbalancer import load_balancer_example
-from mimic.test.fixtures import APIMockHelper
+from mimic.test.fixtures import APIMockHelper, TenantAuthentication
 from mimic.rest.loadbalancer_api import LoadBalancerApi
-from mimic.test.helpers import request
+from mimic.test.helpers import request_with_content, request
 
 
 class ResponseGenerationTests(SynchronousTestCase):
@@ -229,6 +229,25 @@ class LoadbalancerAPITests(SynchronousTestCase):
         list_lb_response = self.successResultOf(list_lb)
         self.assertEqual(list_lb_response.code, 200)
         list_lb_response_body = self.successResultOf(treq.json_content(list_lb_response))
+        self.assertEqual(list_lb_response_body, {"loadBalancers": []})
+
+    def test_different_tenants_same_region_different_lbs(self):
+        """
+        Creating a LB for one tenant in a particular region should not
+        create it for other tenants in the same region.
+        """
+        self._create_loadbalancer()
+
+        other_tenant = TenantAuthentication(self, self.root, "other", "other")
+
+        list_lb_response, list_lb_response_body = self.successResultOf(
+            request_with_content(
+                self, self.root, "GET",
+                other_tenant.nth_endpoint_public(0) + "/loadbalancers"))
+
+        self.assertEqual(list_lb_response.code, 200)
+
+        list_lb_response_body = json.loads(list_lb_response_body)
         self.assertEqual(list_lb_response_body, {"loadBalancers": []})
 
 
