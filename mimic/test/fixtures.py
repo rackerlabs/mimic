@@ -13,6 +13,15 @@ class TenantAuthentication(object):
     particular username and password
     """
     def __init__(self, test_case, root, username, password):
+        """
+        Authenticate a particular user against the mimic root.
+
+        :param root: The :class:`twisted.web.resource.IResource` at the root
+            of the mimic API resource tree.
+
+        :param username: the username to authenticate as
+        :param password: the password with which to use to authenticate
+        """
         _, self.service_catalog_json = test_case.successResultOf(json_request(
             test_case, root, "POST", "/identity/v2.0/tokens",
             {

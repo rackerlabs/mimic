@@ -376,7 +376,6 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(response_body, {'servers': []})
 
 
-
 class NovaAPINegativeTests(SynchronousTestCase):
 
     """
