@@ -25,7 +25,6 @@ class TenantAuthentication(object):
             }
         ))
 
-
     def nth_endpoint_public(self, n):
         """
         Return the publicURL for the ``n``th endpoint.
