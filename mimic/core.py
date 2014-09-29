@@ -6,14 +6,15 @@ Service catalog hub and integration for Mimic application objects.
 
 from __future__ import unicode_literals
 
+import binascii
+import os
+
 from twisted.python.urlpath import URLPath
 from twisted.plugin import getPlugins
 from mimic import plugins
 
 from mimic.imimic import IAPIMock
 from mimic.session import SessionStore
-
-from uuid import uuid4
 
 
 class MimicCore(object):
@@ -38,7 +39,8 @@ class MimicCore(object):
         self.sessions = SessionStore(clock)
 
         for api in apis:
-            this_api_id = str(uuid4())
+            this_api_id = ((api.__class__.__name__) + '-' +
+                           str(binascii.hexlify(os.urandom(3))))
             self._uuid_to_api[this_api_id] = api
 
     @classmethod
@@ -66,7 +68,9 @@ class MimicCore(object):
         if service_id in self._uuid_to_api:
             api = self._uuid_to_api[service_id]
             return api.resource_for_region(
-                self.uri_for_service(region_name, service_id, base_uri)
+                region_name,
+                self.uri_for_service(region_name, service_id, base_uri),
+                self.sessions,
             )
 
     def uri_for_service(self, region, service_id, base_uri):
@@ -92,7 +96,7 @@ class MimicCore(object):
         :rtype: ``str``
         """
         return str(URLPath.fromString(base_uri)
-                   .child("service").child(service_id).child(region).child(""))
+                   .child("mimicking").child(service_id).child(region).child(""))
 
     def entries_for_tenant(self, tenant_id, prefix_map, base_uri):
         """

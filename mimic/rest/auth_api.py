@@ -31,8 +31,8 @@ class AuthApi(object):
     @app.route('/v2.0/tokens', methods=['POST'])
     def get_token_and_service_catalog(self, request):
         """
-        Return a service catalog consisting of nova and load balancer mocked
-        endpoints and an api token.
+        Return a service catalog consisting of all plugin endpoints and an api
+        token.
         """
         content = json.loads(request.content.read())
         # tenant_id = content['auth'].get('tenantName', None)
@@ -71,7 +71,6 @@ class AuthApi(object):
         """
         Returns response with random usernames.
         """
-        # FIXME: TEST
         request.setResponseCode(301)
         session = self.core.sessions.session_for_tenant_id(tenant_id)
         return json.dumps(dict(user=dict(id=session.username)))
@@ -81,13 +80,13 @@ class AuthApi(object):
         """
         Return a token id with expiration.
         """
-        # FIXME: TEST
         request.setResponseCode(200)
         content = json.loads(request.content.read())
         expires_in = content['RAX-AUTH:impersonation']['expire-in-seconds']
         username = content['RAX-AUTH:impersonation']['user']['username']
 
-        session = self.core.sessions.session_for_impersonation(username, expires_in)
+        session = self.core.sessions.session_for_impersonation(username,
+                                                               expires_in)
         return json.dumps({"access": {
             "token": {"id": session.token,
                       "expires": format_timestamp(session.expires)}

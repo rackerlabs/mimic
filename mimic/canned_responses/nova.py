@@ -12,9 +12,6 @@ from mimic.util.helper import (not_found_response, invalid_resource,
 import json
 
 
-s_cache = {}
-
-
 def server_template(tenant_id, server_info, server_id, status,
                     current_time=None,
                     ipsegment=lambda: randrange(255),
@@ -103,15 +100,22 @@ def server_template(tenant_id, server_info, server_id, status,
     return server_template
 
 
-def create_server(tenant_id, server_info, server_id, compute_uri_prefix):
+def create_server(tenant_id, server_info, server_id, compute_uri_prefix,
+                  s_cache, current_time):
     """
     Canned response for create server and adds the server to the server cache.
     """
     status = "ACTIVE"
+    alternate_response = s_cache.server_creation_check(server_id, server_info)
+    if alternate_response is not None:
+        return alternate_response
     if 'metadata' in server_info:
         if 'create_server_failure' in server_info['metadata']:
-            dict_meta = json.loads(server_info['metadata']['create_server_failure'])
-            return invalid_resource(dict_meta['message'], dict_meta['code']), dict_meta['code']
+            dict_meta = (
+                json.loads(server_info['metadata']['create_server_failure'])
+            )
+            return (invalid_resource(dict_meta['message'], dict_meta['code']),
+                    dict_meta['code'])
 
         if 'server_building' in server_info['metadata']:
             status = "BUILD"
@@ -122,60 +126,81 @@ def create_server(tenant_id, server_info, server_id, compute_uri_prefix):
     s_cache[server_id] = server_template(
         tenant_id, server_info, server_id, status,
         compute_uri_prefix=compute_uri_prefix,
+        current_time=current_time
     )
-    return {
-        'server': {"OS-DCF:diskConfig": s_cache[server_id]['OS-DCF:diskConfig'],
-                   "id": s_cache[server_id]['id'],
-                   "links": s_cache[server_id]['links'],
-                   "adminPass": "testpassword"}}, 202
+    return (
+        {
+            'server': {
+                "OS-DCF:diskConfig": s_cache[server_id]['OS-DCF:diskConfig'],
+                "id": s_cache[server_id]['id'],
+                "links": s_cache[server_id]['links'],
+                "adminPass": "testpassword"
+            }
+        },
+        202
+    )
 
 
-def get_server(server_id):
+def get_server(server_id, s_cache, current_timestamp):
     """
-    Verify if the given server_id exists in the server cache. If true, return server
-    data else return None
+    Verify if the given server_id exists in the server cache.  If true, return
+    server data else return None
     """
     if server_id in s_cache:
-        set_server_state(server_id)
+        set_server_state(server_id, s_cache, current_timestamp)
         return {'server': s_cache[server_id]}, 200
     else:
         return not_found_response(), 404
 
 
-def list_server(tenant_id, name=None, details=True):
+def list_server(tenant_id, s_cache, name=None, details=True,
+                current_timestamp=None):
     """
     Return a list of all servers in the server cache with the given tenant_id
     """
-    response = {k: v for (k, v) in s_cache.items() if tenant_id == v['tenant_id']}
+    response = dict(
+        (k, v) for (k, v) in s_cache.items()
+        if tenant_id == v['tenant_id']
+    )
     for each in response:
-        set_server_state(each)
+        set_server_state(each, s_cache, current_timestamp)
     if name:
-        response = {k: v for (k, v) in response.items() if name in v['name']}
+        response = dict(
+            (k, v) for (k, v) in response.items() if name in v['name']
+        )
     if details:
         return {'servers': [values for values in response.values()]}, 200
     else:
-        return {'servers': [{'name': values['name'], 'links':values['links'], 'id':values['id']}
-                for values in response.values()]}, 200
+        return ({'servers': [{'name': values['name'],
+                              'links':values['links'],
+                              'id':values['id']}
+                             for values in response.values()]},
+                200)
 
 
-def delete_server(server_id):
+def delete_server(server_id, s_cache):
     """
     Returns True if the server was deleted from the cache, else returns false.
     """
     if server_id in s_cache:
         if 'delete_server_failure' in s_cache[server_id]['metadata']:
-            del_meta = json.loads(s_cache[server_id]['metadata']['delete_server_failure'])
+            del_meta = json.loads(
+                s_cache[server_id]['metadata']['delete_server_failure']
+            )
             if del_meta['times'] != 0:
                 del_meta['times'] = del_meta['times'] - 1
-                s_cache[server_id]['metadata']['delete_server_failure'] = json.dumps(del_meta)
-                return invalid_resource('server error', del_meta['code']), del_meta['code']
+                s_cache[server_id]['metadata']['delete_server_failure'] = (
+                    json.dumps(del_meta)
+                )
+                return (invalid_resource('server error', del_meta['code']),
+                        del_meta['code'])
         del s_cache[server_id]
         return True, 204
     else:
         return not_found_response(), 404
 
 
-def list_addresses(server_id):
+def list_addresses(server_id, s_cache):
     """
     Returns the public and private ip address for the given server
     """
@@ -185,28 +210,34 @@ def list_addresses(server_id):
         return not_found_response(), 404
 
 
-def get_image(image_id):
+def get_image(image_id, s_cache):
     """
-    Canned response for get image. The image id provided is substituted in the response,
-    if not one of the invalid image ids specified in mimic_presets.
+    Canned response for get image.  The image id provided is substituted in the
+    response, if not one of the invalid image ids specified in mimic_presets.
     """
-    if any([image_id in get_presets['servers']['invalid_image_ref'], image_id.endswith('Z')]):
-        return invalid_resource('Invalid imageRef provided.', 400), 400
+    if (
+            image_id in get_presets['servers']['invalid_image_ref'] or
+            image_id.endswith('Z')
+    ):
+        return (invalid_resource('Invalid imageRef provided.', 400),
+                400)
     return {'image': {'status': 'ACTIVE', 'id': image_id}}, 200
 
 
-def get_flavor(flavor_id):
+def get_flavor(flavor_id, s_cache):
     """
     Canned response for get flavor.
     The flavor id provided is substituted in the response
     """
     if flavor_id in get_presets['servers']['invalid_flavor_ref']:
-        return invalid_resource('Invalid flavorRef provided.', 400), 400
-    return {'flavor': {'name': '512MB Standard Instance',
-                       'id': flavor_id}}, 200
+        return (invalid_resource('Invalid flavorRef provided.', 400),
+                400)
+    return ({'flavor': {'name': '512MB Standard Instance',
+                        'id': flavor_id}},
+            200)
 
 
-def get_limit():
+def get_limit(s_cache):
     """
     Canned response for limits for servers. Returns only the absolute limits
     """
@@ -231,7 +262,7 @@ def get_limit():
                           "maxTotalRAMSize": 256000}}}
 
 
-def set_server_state(server_id):
+def set_server_state(server_id, s_cache, current_timestamp):
     """
     If the server status is not active, sets the state of the server based on
     the server metadata.
@@ -241,8 +272,11 @@ def set_server_state(server_id):
     """
     if s_cache[server_id]['status'] != "ACTIVE":
         if 'server_building' in s_cache[server_id]['metadata']:
+            updated_timestring = s_cache[server_id]['updated']
             status = set_resource_status(
-                s_cache[server_id]['updated'],
-                int(s_cache[server_id]['metadata']['server_building']))
+                updated_timestring,
+                int(s_cache[server_id]['metadata']['server_building']),
+                current_timestamp=current_timestamp
+            )
             s_cache[server_id]['status'] = (status or
                                             s_cache[server_id]['status'])

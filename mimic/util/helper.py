@@ -20,15 +20,18 @@ def not_found_response(resource='servers'):
         'servers': "Instance could not be found",
         'images': "Image not found.",
         'flavors': "The resource could not be found.",
-        'loadbalancer': "Load balancer not found"
+        'loadbalancer': "Load balancer not found",
+        'node': "Node not found"
     }
-
-    return {
+    resp = {
         "itemNotFound": {
             "message": message.get(resource, "The resource could not be found."),
             "code": 404
         }
     }
+    if resource == 'loadbalancer' or resource == 'node':
+        return resp["itemNotFound"]
+    return resp
 
 
 def invalid_resource(message, response_code=400):
@@ -46,7 +49,8 @@ def current_time_in_utc():
     return datetime.utcnow().strftime(fmt)
 
 
-def set_resource_status(updated_time, time_delta, status='ACTIVE'):
+def set_resource_status(updated_time, time_delta, status='ACTIVE',
+                        current_timestamp=None):
     """
     Given the updated_time and time delta, if the updated_time + time_delta is
     greater than the current time in UTC, returns the given status; otherwise
@@ -58,9 +62,15 @@ def set_resource_status(updated_time, time_delta, status='ACTIVE'):
     :param str status: The status to return if the time_delta has expired (i.e.
         the wall clock has advanced more than ``time_delta`` past
         ``updated_time``).
+    :param float current_timestamp: The current time, in seconds from the POSIX
+        epoch.
 
     :return: ``status`` or ``None``.
     """
-    if (datetime.strptime(updated_time, fmt) + timedelta(seconds=time_delta)) < \
-            datetime.utcnow():
+    current_datetime = datetime.utcfromtimestamp(current_timestamp)
+    last_updated_datetime = datetime.strptime(updated_time, fmt)
+    expiration_interval = timedelta(seconds=int(time_delta))
+    expiration_datetime = last_updated_datetime + expiration_interval
+
+    if current_datetime >= expiration_datetime:
         return status

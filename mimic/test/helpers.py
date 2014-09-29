@@ -16,6 +16,7 @@ from twisted.internet.defer import succeed
 
 from twisted.web.client import Agent
 from twisted.web.server import Site
+from twisted.web.http_headers import Headers
 from twisted.web.iweb import IBodyProducer
 from twisted.python.urlpath import URLPath
 
@@ -127,16 +128,24 @@ class SynchronousProducer(object):
 
 
 def request(testCase, rootResource, method, uri, body=b"",
-            baseURI='http://localhost:8900/'):
+            baseURI='http://localhost:8900/',
+            headers=None):
     """
     Issue a request and return a synchronous response.
     """
     # allow for relative or absolute URIs, since we're going to the same
     # resource no matter what
+    if headers is not None:
+        headers_object = Headers()
+        for key, value in headers.items():
+            headers_object.setRawHeaders(key, value)
+    else:
+        headers_object = None
     return (
         RequestTraversalAgent(testCase, rootResource)
         .request(method, str(URLPath.fromString(baseURI).click(uri)),
-                 bodyProducer=SynchronousProducer(body))
+                 bodyProducer=SynchronousProducer(body),
+                 headers=headers_object)
     )
 
 
