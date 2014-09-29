@@ -2,7 +2,7 @@
 MAAS Mock API
 """
 
-import json
+import json,collections
 from uuid import uuid4
 
 from six import text_type
@@ -26,6 +26,8 @@ class MaasApi(object):
     """
     Rest endpoints for mocked MAAS Api.
     """
+    def __init__(self,regions=["ORD"]):
+      self._regions = regions
 
     def catalog_entries(self, tenant_id):
         """
@@ -35,47 +37,55 @@ class MaasApi(object):
             Entry(
                 tenant_id, "rax:monitor", "cloudMonitoring",
                 [
-                    Endpoint(tenant_id, "ORD", text_type(uuid4()), "v1.0")
+                    Endpoint(tenant_id, region, text_type(uuid4()), "v1.0") for region in self._regions
                 ]
             )
         ]
 
-    def resource_for_region(self, uri_prefix):
+    def resource_for_region(self, region, uri_prefix, session_store):
         """
         Get an :obj:`twisted.web.iweb.IResource` for the given URI prefix;
         implement :obj:`IAPIMock`.
         """
-        return MaasMock(uri_prefix).app.resource()
+        return MaasMock(self,uri_prefix,session_store,region).app.resource()
+
+
+class E_Cache(dict):
+  def __init__(self):
+    self.json_home = json.loads(file('mimic/rest/cloudMonitoring_json_home.json').read()) 
+    self.overview_dictionary = json.loads(file('mimic/rest/overview_response.json').read())
+    self.entities_dictionary = json.loads(file('mimic/rest/entities_response.json').read())
+    self.metrics_dictionary = json.loads(file('mimic/rest/metric_list.json').read())
+    self.multiplot_dictionary = json.loads(file('mimic/rest/multiplot.json').read())
 
 
 class MaasMock(object):
     """
     Klein routes for the Monitoring API.
     """
-    json_home = None
-    overview_dictionary = None
-    entities_dictionary = None
-    metrics_dictionary = None
-    multiplot_dictionary = None
-
-    def __init__(self, uri_prefix):
+    def __init__(self, api_mock, uri_prefix, session_store, name):
         """
         Create a maas region with a given URI prefix (used for generating URIs
         to servers).
         """
         self.uri_prefix = uri_prefix
-        self.json_home = json.loads(file('mimic/rest/cloudMonitoring_json_home.json').read()) 
-        self.overview_dictionary = json.loads(file('mimic/rest/overview_response.json').read())
-        self.entities_dictionary = json.loads(file('mimic/rest/entities_response.json').read())
-        self.metrics_dictionary = json.loads(file('mimic/rest/metric_list.json').read())
-        self.multiplot_dictionary = json.loads(file('mimic/rest/multiplot.json').read())
+        self._api_mock = api_mock
+        self._session_store = session_store
+        self._name = name
+
+    def _entity_cache_for_tenant(self, tenant_id):
+      return ( self._session_store.session_for_tenant_id(tenant_id)
+                .data_for_api(self._api_mock,lambda: collections.defaultdict(E_Cache))[self._name]
+             )
+      
 
     app = MimicApp()
 
     @app.route('/v1.0/<string:tenant_id>/entities', methods=['GET'])
     def list_entities(self, request, tenant_id):
-        request.setResponseCode(200)
-        return json.dumps(self.entities_dictionary)
+      cache = self._session_store.session_for_tenant_id(tenant_id).data_for_api(self._api_mock,lambda: collections.defaultdict(E_Cache))[self._name]
+      request.setResponseCode(200)
+      return json.dumps(cache.entities_dictionary)
         
     @app.route('/v1.0/<string:tenant_id>/entities', methods=['POST'])
     def create_entity(self, request, tenant_id):
@@ -90,17 +100,19 @@ class MaasMock(object):
 
     @app.route('/v1.0/<string:tenant_id>/views/overview', methods=['GET'])
     def overview(self, request, tenant_id):
+        cache = self._session_store.session_for_tenant_id(tenant_id).data_for_api(self._api_mock,lambda: collections.defaultdict(E_Cache))[self._name]
         request.setResponseCode(200)
-        return json.dumps(self.overview_dictionary)
+        return json.dumps(cache.overview_dictionary)
 
     @app.route('/v1.0/<string:tenant_id>/__experiments/json_home', methods=['GET'])
     def service_json_home(self, request, tenant_id):
       import re
+      cache = self._session_store.session_for_tenant_id(tenant_id).data_for_api(self._api_mock,lambda: collections.defaultdict(E_Cache))[self._name]
       request.setResponseCode(200)
       myhostname_and_port = request.getRequestHostname()+":8900"
-      service_id = re.findall('/service/(.+?)/',request.path)[0]
-      return json.dumps(self.json_home)\
-        .replace('.com/v1.0','.com/service/'+service_id+'/ORD/v1.0')\
+      mockapi_id = re.findall('/mimicking/(.+?)/',request.path)[0]
+      return json.dumps(cache.json_home)\
+        .replace('.com/v1.0','.com/mimicking/'+mockapi_id+'/ORD/v1.0')\
         .replace('monitoring.api.rackspacecloud.com',myhostname_and_port)\
         .replace("https://","http://")
 
@@ -117,13 +129,15 @@ class MaasMock(object):
 
     @app.route('/v1.0/<string:tenant_id>/views/metric_list', methods=['GET'])
     def views_metric_list(self, request, tenant_id):
+      cache = self._session_store.session_for_tenant_id(tenant_id).data_for_api(self._api_mock,lambda: collections.defaultdict(E_Cache))[self._name]
       request.setResponseCode(200)
-      return json.dumps(self.metrics_dictionary) 
+      return json.dumps(cache.metrics_dictionary) 
        
     @app.route('/v1.0/<string:tenant_id>/__experiments/multiplot', methods=['POST'])
     def multiplot(self, request, tenant_id):
+      cache = self._session_store.session_for_tenant_id(tenant_id).data_for_api(self._api_mock,lambda: collections.defaultdict(E_Cache))[self._name]
       request.setResponseCode(200)
-      return json.dumps(self.multiplot_dictionary) 
+      return json.dumps(cache.multiplot_dictionary) 
 
     
 
