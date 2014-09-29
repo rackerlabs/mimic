@@ -1,43 +1,30 @@
 """
 Define fixtures to provide common functionality for Mimic testing
 """
-from mimic.test.helpers import request
+from mimic.test.helpers import json_request
 from mimic.core import MimicCore
 from mimic.resource import MimicRoot
 from twisted.internet.task import Clock
-import json
-import treq
 
 
-class APIMockHelper(object):
+class TenantAuthentication(object):
     """
-    Provides common functionality for mimic tests
+    Provides some functionality to help log into mimic identity with a
+    particular username and password
     """
-
-    def __init__(self, test_case, apis):
-        """
-        Initialize a mimic core and the specified :obj:`mimic.imimic.IAPIMock`s
-        :param apis: A list of :obj:`mimic.imimic.IAPIMock` objects to be initialized
-        """
-        self.clock = Clock()
-        self.core = MimicCore(self.clock, apis)
-        self.root = MimicRoot(self.core).app.resource()
-        # Pass in arbitrary username and password
-        response = request(
-            self, self.root, "POST", "/identity/v2.0/tokens",
-            json.dumps({
+    def __init__(self, test_case, root, username, password):
+        _, self.service_catalog_json = test_case.successResultOf(json_request(
+            test_case, root, "POST", "/identity/v2.0/tokens",
+            {
                 "auth": {
                     "passwordCredentials": {
-                        "username": "test1",
-                        "password": "test1password",
+                        "username": username,
+                        "password": password,
                     },
                 }
-            })
-        )
-        auth_response = test_case.successResultOf(response)
-        self.service_catalog_json = test_case.successResultOf(
-            treq.json_content(auth_response))
-        self.uri = self.nth_endpoint_public(0)
+            }
+        ))
+
 
     def nth_endpoint_public(self, n):
         """
@@ -63,3 +50,29 @@ class APIMockHelper(object):
                 for item in service['endpoints']:
                     if (item['region'] == region) or (region == ''):
                         return item['publicURL']
+
+
+class APIMockHelper(object):
+    """
+    Provides common functionality for mimic tests
+    """
+
+    def __init__(self, test_case, apis):
+        """
+        Initialize a mimic core and the specified :obj:`mimic.imimic.IAPIMock`s
+        :param apis: A list of :obj:`mimic.imimic.IAPIMock` objects to be initialized
+        """
+        self.clock = Clock()
+        self.core = MimicCore(self.clock, apis)
+        self.root = MimicRoot(self.core).app.resource()
+
+        # Pass in arbitrary username and password
+        self.auth = TenantAuthentication(test_case, self.root,
+                                         "test1", "test1password")
+
+        # map some attributes and methods
+        self.service_catalog_json = self.auth.service_catalog_json
+        self.nth_endpoint_public = self.auth.nth_endpoint_public
+        self.get_service_endpoint = self.auth.get_service_endpoint
+
+        self.uri = self.nth_endpoint_public(0)
