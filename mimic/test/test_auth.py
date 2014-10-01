@@ -10,6 +10,7 @@ from mimic.canned_responses.auth import (
 )
 from mimic.test.dummy import ExampleAPI
 from mimic.test.helpers import request, json_request
+from mimic.catalog import Entry, Endpoint
 
 
 class ExampleCatalogEndpoint(object):
@@ -197,6 +198,39 @@ class CatalogGenerationTests(SynchronousTestCase):
                     }
                 ]
             },
+        )
+
+
+    def test_unversioned_entry(self):
+        """
+        An L{Endpoint} created without a 'prefix' returns a URI without a
+        version.
+        """
+        self.assertEqual(
+            get_endpoints(
+                tenant_id="1234",
+                entry_generator=lambda t_id: [Entry(
+                    tenant_id=t_id, type="compute",
+                    name="compute_name", endpoints=[
+                        Endpoint(tenant_id=t_id,
+                                 region="None",
+                                 endpoint_id="eid")
+                    ]
+                )],
+                prefix_for_endpoint=lambda ep: "http://prefix/"
+            ),
+            {
+                "endpoints": [
+                    {
+                        "id": "eid",
+                        "name": "compute_name",
+                        "type": "compute",
+                        "region": "None",
+                        "tenantId": "1234",
+                        "publicURL": "http://prefix/1234"
+                    }
+                ]
+            }
         )
 
 
