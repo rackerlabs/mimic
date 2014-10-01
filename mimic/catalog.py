@@ -1,7 +1,6 @@
 """
 Classes which represent the objects within the service catalog.
 """
-from uuid import uuid4
 
 __all__ = ("Endpoint", "Entry")
 

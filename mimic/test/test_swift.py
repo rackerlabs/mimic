@@ -59,7 +59,6 @@ class SwiftTests(SynchronousTestCase):
         self.assertEqual(sample_endpoint['region'], 'ORD')
         self.assertEqual(len(self.json_body['access']['serviceCatalog']), 1)
 
-
     def create_one_container(self, expected_code):
         """
         Create one container and assert its code is the given expected status.
@@ -177,7 +176,6 @@ class SwiftTests(SynchronousTestCase):
         object_body = self.successResultOf(treq.content(object_response))
         self.assertEquals(object_body, BODY)
 
-
     def test_openstack_ids(self):
         """
         Non-Rackspace implementations of Swift just use the same tenant ID as
@@ -188,6 +186,6 @@ class SwiftTests(SynchronousTestCase):
         """
         self.createSwiftService(False)
         url = (self.json_body['access']['serviceCatalog'][0]
-               ['endpoints'][0] ['publicURL'])
+               ['endpoints'][0]['publicURL'])
         self.assertIn("/fun_tenant", url)
         self.assertNotIn("/MossoCloudFS_", url)
