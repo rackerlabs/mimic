@@ -131,6 +131,14 @@ class MaasMock(object):
         request.setResponseCode(200)
         return json.dumps(entity)
 
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>', methods=['DELETE'])
+    def delete_entity(self, request, tenant_id,entity_id):
+      for q in range(len(self._entity_cache_for_tenant(tenant_id).entities_list)):
+        if self._entity_cache_for_tenant(tenant_id).entities_list[q]['id'] == entity_id:
+          del self._entity_cache_for_tenant(tenant_id).entities_list[q]
+          break
+      request.setResponseCode(204)
+
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks', methods=['GET'])
     def get_checks_for_entity(self, request, tenant_id,entity_id):
       checks = []
