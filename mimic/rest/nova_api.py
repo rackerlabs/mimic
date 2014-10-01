@@ -78,19 +78,6 @@ def _list_servers(request, tenant_id, s_cache, details=False):
     return json.dumps(response_data[0])
 
 
-class Matcher(object):
-    """
-    Sketch: a class that matches stuff.
-    """
-
-    def does_match_server(self, server_id, server_info):
-        """
-        Sketch: Does this matcher match the given server?
-        """
-        return (self.condition.matches_id(server_id) or
-                self.condition.matches_metadata(server_info['metadata']))
-
-
 class S_Cache(dict):
     """
     Sketch: A replacement for s_cache-as-dictionary,
