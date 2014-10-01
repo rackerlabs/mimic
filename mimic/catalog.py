@@ -29,10 +29,7 @@ class Endpoint(object):
         """
         Generate a URL to this endpoint, given the URI prefix for the service.
         """
-        if self.tenant_id is None:
-            postfix = ''
-        else:
-            postfix = self.tenant_id
+        postfix = self.tenant_id
         segments = [uri_prefix.rstrip("/")]
         if self.prefix is not None:
             segments.append(self.prefix)
