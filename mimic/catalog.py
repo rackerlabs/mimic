@@ -55,15 +55,3 @@ class Entry(object):
         self.tenant_id = tenant_id
         self.name = name
         self.endpoints = endpoints
-
-    @classmethod
-    def with_regions(self, tenant_id, type, name, regions):
-        """
-        Constructor for a catalog entry with multiple regions.
-
-        Endpoint IDs will be random UUIDs.
-        """
-        return Entry(tenant_id, type, name, [
-            Endpoint(tenant_id, region, str(uuid4()))
-            for region in regions
-        ])
