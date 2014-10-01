@@ -200,7 +200,6 @@ class CatalogGenerationTests(SynchronousTestCase):
             },
         )
 
-
     def test_unversioned_entry(self):
         """
         An L{Endpoint} created without a 'prefix' returns a URI without a
