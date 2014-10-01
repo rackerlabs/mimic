@@ -10,7 +10,7 @@ class IAPIMock(Interface):
     An :obj:`IAPIMock` provides an API.
     """
 
-    def catalog_entries(tenant_id):
+    def catalog_entries(tenant_id): #pragma:nocover
         """
         Generate some :obj:`mimic.catalog.Entry` objects given the tenant ID.
 
@@ -18,7 +18,7 @@ class IAPIMock(Interface):
             Mimic.
         """
 
-    def resource_for_region(region, uri_prefix, session_store):
+    def resource_for_region(region, uri_prefix, session_store): #pragma:nocover
         """
         Get a resource for the given region.
         """
