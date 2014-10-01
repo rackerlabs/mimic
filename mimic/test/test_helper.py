@@ -4,11 +4,11 @@ from unittest import TestCase
 from datetime import datetime
 from mimic.util.helper import current_time_in_utc, fmt
 
+
 class TimeFormatTests(TestCase):
     """
     Tests for formatting time.
     """
-
 
     def test_utc_time(self):
         """
