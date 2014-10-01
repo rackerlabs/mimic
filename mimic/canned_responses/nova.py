@@ -12,16 +12,12 @@ from mimic.util.helper import (not_found_response, invalid_resource,
 import json
 
 
-def server_template(tenant_id, server_info, server_id, status,
-                    current_time=None,
+def server_template(tenant_id, server_info, server_id, status, current_time,
                     ipsegment=lambda: randrange(255),
                     compute_uri_prefix="http://localhost:8902/"):
     """
     Template used to create server cache.
     """
-    if current_time is None:
-        current_time = current_time_in_utc()
-
     def url(suffix):
         return str(URLPath.fromString(compute_uri_prefix).child(suffix))
 
