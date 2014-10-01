@@ -175,7 +175,7 @@ class SwiftTenantInRegion(object):
         """
         Get an object from a container.
         """
-        return self.containers[container_name].objects[object_name]
+        return self.containers[container_name].objects[object_name].data
 
     @app.route("/<string:container_name>/<string:object_name>",
                methods=["PUT"])

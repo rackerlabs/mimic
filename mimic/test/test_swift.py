@@ -152,8 +152,9 @@ class SwiftTests(SynchronousTestCase):
         create_container = request(self, self.root, "PUT", uri)
         self.successResultOf(create_container)
         BODY = b'some bytes'
+        object_uri = uri + "/" + "testobject"
         object_response = request(self, self.root,
-                                  "PUT", uri + "/" + "testobject",
+                                  "PUT", object_uri,
                                   headers={"content-type": ["text/plain"]},
                                   body=BODY)
         self.assertEqual(self.successResultOf(object_response).code,
@@ -169,6 +170,12 @@ class SwiftTests(SynchronousTestCase):
         self.assertEqual(container_contents[0]['name'], "testobject")
         self.assertEqual(container_contents[0]['content_type'], "text/plain")
         self.assertEqual(container_contents[0]['bytes'], len(BODY))
+        object_response = self.successResultOf(
+            request(self, self.root, "GET", object_uri)
+        )
+        self.assertEqual(object_response.code, 200)
+        object_body = self.successResultOf(treq.content(object_response))
+        self.assertEquals(object_body, BODY)
 
 
     def test_openstack_ids(self):
