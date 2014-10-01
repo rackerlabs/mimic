@@ -59,20 +59,36 @@ class SwiftTests(SynchronousTestCase):
         self.assertEqual(sample_endpoint['region'], 'ORD')
         self.assertEqual(len(self.json_body['access']['serviceCatalog']), 1)
 
+
+    def create_one_container(self, expected_code):
+        """
+        Create one container and assert its code is the given expected status.
+        """
+        uri = (self.json_body['access']['serviceCatalog'][0]['endpoints'][0]
+               ['publicURL'] + '/testcontainer')
+        create_container = request(self, self.root, "PUT", uri)
+        create_container_response = self.successResultOf(create_container)
+        self.assertEqual(create_container_response.code, expected_code)
+        self.assertEqual(
+            self.successResultOf(treq.content(create_container_response)),
+            b"",
+        )
+
     def test_create_container(self):
         """
         Test to verify create container using :obj:`SwiftMock`
         """
         self.createSwiftService()
-        uri = (self.json_body['access']['serviceCatalog'][0]['endpoints'][0]
-               ['publicURL'] + '/testcontainer')
-        create_container = request(self, self.root, "PUT", uri)
-        create_container_response = self.successResultOf(create_container)
-        self.assertEqual(create_container_response.code, 201)
-        self.assertEqual(
-            self.successResultOf(treq.content(create_container_response)),
-            b"",
-        )
+        self.create_one_container(201)
+
+    def test_create_twice(self):
+        """
+        Creating a container twice results in an ACCEPTED status code.
+        """
+        self.createSwiftService()
+        self.create_one_container(201)
+        self.create_one_container(202)
+        self.create_one_container(202)
 
     def test_get_container(self):
         """
