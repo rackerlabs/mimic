@@ -13,7 +13,7 @@ Mimic helps with:
 ### Come join us develop Mimic! Talk to us at ##mimic on irc.freenode.net ###
 
 #### Build status: ####
-[![Build Status](https://travis-ci.org/rackerlabs/mimic.png)](https://travis-ci.org/rackerlabs/mimic)
+[![Build Status](https://travis-ci.org/rackerlabs/mimic.svg?branch=master)](https://travis-ci.org/rackerlabs/mimic)
 
 [![Coverage Status](https://coveralls.io/repos/rackerlabs/mimic/badge.png)](https://coveralls.io/r/rackerlabs/mimic)
 
