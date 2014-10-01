@@ -2,7 +2,7 @@
 MAAS Mock API
 """
 
-import json,collections
+import json,collections,time
 from uuid import uuid4
 
 from six import text_type
@@ -53,10 +53,35 @@ class MaasApi(object):
 class E_Cache(dict):
   def __init__(self):
     self.json_home = json.loads(file('mimic/rest/cloudMonitoring_json_home.json').read()) 
-    self.overview_dictionary = json.loads(file('mimic/rest/overview_response.json').read())
-    self.entities_dictionary = json.loads(file('mimic/rest/entities_response.json').read())
-    self.metrics_dictionary = json.loads(file('mimic/rest/metric_list.json').read())
-    self.multiplot_dictionary = json.loads(file('mimic/rest/multiplot.json').read())
+    self.metrics_list = [] 
+    self.entities_list = [] 
+    self.checks_list = [] 
+    self.alarms_list = [] 
+
+def createEntity(params):
+  import random,string
+  params = collections.defaultdict(lambda:'',params)
+  newentity = {}
+  newentity['label'] =params[u'label'].encode("ascii")
+  newentity['id'] = newentity['label']+''.join(random.sample(string.letters+string.digits,8))
+  newentity['agent_id'] = params['agent_id'] or ''.join(random.sample(string.letters+string.digits,24))
+  newentity['created_at'] = time.time()
+  newentity['updated_at'] = time.time()
+  newentity['managed'] = params['managed']
+  newentity['metadata'] = params['metadata']
+  newentity['ip_addresses'] = params['ip_addresses'] or {'access_ip0_v6':'2001:4800:7812:0514:6eaf:ff05:93d7',
+                                                         'access_ip1_v4':'133.713.371.337',
+                                                         'private0_v4':'10.177.177.12',
+                                                         'public0_v6':'2001:4800:7812:0514:6eaf:ff05:93d7',
+                                                         'public1_v4':'166.78.78.19' }
+  return newentity
+
+    
+def createCheck(params):
+  self.params = collections.defaultdict(lambda:'',params)
+
+def createAlarm(params):
+  self.params = collections.defaultdict(lambda:'',params)
 
 
 class MaasMock(object):
@@ -78,36 +103,84 @@ class MaasMock(object):
                 .data_for_api(self._api_mock,lambda: collections.defaultdict(E_Cache))[self._name]
              )
       
-
     app = MimicApp()
 
     @app.route('/v1.0/<string:tenant_id>/entities', methods=['GET'])
     def list_entities(self, request, tenant_id):
-      cache = self._session_store.session_for_tenant_id(tenant_id).data_for_api(self._api_mock,lambda: collections.defaultdict(E_Cache))[self._name]
+      entities = self._entity_cache_for_tenant(tenant_id).entities_list
+      metadata = {}
+      metadata['count'] = len(entities)
+      metadata['limit'] = 1000
+      metadata['marker'] = None
+      metadata['next_marker'] = None 
+      metadata['next_href'] = None 
       request.setResponseCode(200)
-      return json.dumps(cache.entities_dictionary)
+      return json.dumps({'metadata':metadata,'values':entities})
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>', methods=['GET'])
+    def get_entity(self, request, tenant_id,entity_id):
+      entity = None
+      for e in self._entity_cache_for_tenant(tenant_id).entities_list:
+        if e['id'] == entity_id:
+          entity = e
+          break
+      if not entity:
+        request.setResponseCode(404)
+        return '{}'
+      else:
+        request.setResponseCode(200)
+        return json.dumps(entity)
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks', methods=['GET'])
+    def get_checks_for_entity(self, request, tenant_id,entity_id):
+      checks = []
+      for c in self._entity_cache_for_tenant(tenant_id).checks_list:
+        if c['entity_id'] == entity_id:
+          checks.append(c)
+      metadata = {}
+      metadata['count'] = len(checks)
+      metadata['limit'] = 1000
+      metadata['marker'] = None
+      metadata['next_marker'] = None 
+      metadata['next_href'] = None 
+      request.setResponseCode(200)
+      return json.dumps({'metadata':metadata,'values':checks})
         
     @app.route('/v1.0/<string:tenant_id>/entities', methods=['POST'])
     def create_entity(self, request, tenant_id):
-      import random,string
-      request.setResponseCode(201)
       postdata = json.loads(request.content.read())
       myhostname_and_port = 'http://'+request.getRequestHostname()+":8900"
-      entityid = postdata[u'label'].encode("ascii")+''.join(random.sample(string.letters+string.digits,8))
-      request.setHeader('location',myhostname_and_port+request.path+'/'+entityid)
-      request.setHeader('x-object-id',entityid)
-      return ' '  
+      newentity = createEntity({'label':postdata[u'label'].encode('ascii')})
+      self._entity_cache_for_tenant(tenant_id).entities_list.append(newentity)
+      request.setResponseCode(201)
+      request.setHeader('location',myhostname_and_port+request.path+'/'+newentity['id'])
+      request.setHeader('x-object-id',newentity['id'])
+      return ''  
 
     @app.route('/v1.0/<string:tenant_id>/views/overview', methods=['GET'])
     def overview(self, request, tenant_id):
-        cache = self._session_store.session_for_tenant_id(tenant_id).data_for_api(self._api_mock,lambda: collections.defaultdict(E_Cache))[self._name]
-        request.setResponseCode(200)
-        return json.dumps(cache.overview_dictionary)
+      entities = self._entity_cache_for_tenant(tenant_id).entities_list
+      metadata = {}
+      metadata['count'] = len(entities)
+      metadata['marker'] = None
+      metadata['next_marker'] = None
+      metadata['limit'] = 1000
+      metadata['next_href'] = None
+      values = []
+      for e in entities: 
+        v = {}
+        v['alarms'] = [] 
+        v['checks'] = []
+        v['entity'] = e 
+        v['latest_alarm_states'] = []
+        values.append(v)
+      request.setResponseCode(200)
+      return json.dumps({'metadata':metadata,'values':values})
 
     @app.route('/v1.0/<string:tenant_id>/__experiments/json_home', methods=['GET'])
     def service_json_home(self, request, tenant_id):
       import re
-      cache = self._session_store.session_for_tenant_id(tenant_id).data_for_api(self._api_mock,lambda: collections.defaultdict(E_Cache))[self._name]
+      cache = self._entity_cache_for_tenant(tenant_id)
       request.setResponseCode(200)
       myhostname_and_port = request.getRequestHostname()+":8900"
       mockapi_id = re.findall('/mimicking/(.+?)/',request.path)[0]
@@ -129,15 +202,20 @@ class MaasMock(object):
 
     @app.route('/v1.0/<string:tenant_id>/views/metric_list', methods=['GET'])
     def views_metric_list(self, request, tenant_id):
-      cache = self._session_store.session_for_tenant_id(tenant_id).data_for_api(self._api_mock,lambda: collections.defaultdict(E_Cache))[self._name]
+      metrics = self._entity_cache_for_tenant(tenant_id).metrics_list
+      metadata = {}
+      metadata['count'] = len(metrics)
+      metadata['marker'] = None 
+      metadata['next_marker'] = None 
+      metadata['limit'] = 1000
+      metadata['next_href'] = None 
       request.setResponseCode(200)
-      return json.dumps(cache.metrics_dictionary) 
+      return json.dumps({'metadata':metadata,'values':metrics})
        
     @app.route('/v1.0/<string:tenant_id>/__experiments/multiplot', methods=['POST'])
     def multiplot(self, request, tenant_id):
-      cache = self._session_store.session_for_tenant_id(tenant_id).data_for_api(self._api_mock,lambda: collections.defaultdict(E_Cache))[self._name]
+      metrics = self._entity_cache_for_tenant(tenant_id).metrics_list
       request.setResponseCode(200)
-      return json.dumps(cache.multiplot_dictionary) 
-
+      return json.dumps({'metrics':metrics}) 
     
 
