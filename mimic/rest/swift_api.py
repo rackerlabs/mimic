@@ -58,10 +58,7 @@ class SwiftMock(object):
         """
         Catalog entry for Swift endpoints.
         """
-        if tenant_id is not None:
-            modified = self.translate_tenant(tenant_id)
-        else:
-            modified = None
+        modified = self.translate_tenant(tenant_id)
         return [
             Entry(modified, "object-store", "cloudFiles", [
                 Endpoint(modified, "ORD", text_type(uuid4()), prefix="v1"),

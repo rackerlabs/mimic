@@ -18,11 +18,11 @@ class SwiftTests(SynchronousTestCase):
     tests for swift API
     """
 
-    def setUp(self):
+    def createSwiftService(self, rackspace_flavor=True):
         """
         Set up to create the requests
         """
-        self.core = MimicCore(Clock(), [SwiftMock()])
+        self.core = MimicCore(Clock(), [SwiftMock(rackspace_flavor)])
         self.root = MimicRoot(self.core).app.resource()
         self.response = request(
             self, self.root, "POST", "/identity/v2.0/tokens",
@@ -46,6 +46,7 @@ class SwiftTests(SynchronousTestCase):
         When provided with a :obj:`SwiftMock`, :obj:`MimicCore` yields a
         service catalog containing a swift endpoint.
         """
+        self.createSwiftService()
         self.assertEqual(self.auth_response.code, 200)
         self.assertTrue(self.json_body)
         sample_entry = self.json_body['access']['serviceCatalog'][0]
@@ -62,6 +63,7 @@ class SwiftTests(SynchronousTestCase):
         """
         Test to verify create container using :obj:`SwiftMock`
         """
+        self.createSwiftService()
         uri = (self.json_body['access']['serviceCatalog'][0]['endpoints'][0]
                ['publicURL'] + '/testcontainer')
         create_container = request(self, self.root, "PUT", uri)
@@ -78,6 +80,7 @@ class SwiftTests(SynchronousTestCase):
         (since there are no objects) and several headers indicating that no
         objects are in the container and they consume no space.
         """
+        self.createSwiftService()
         # create a container
         uri = (self.json_body['access']['serviceCatalog'][0]['endpoints'][0]
                ['publicURL'] + '/testcontainer')
@@ -104,6 +107,7 @@ class SwiftTests(SynchronousTestCase):
         """
         GETing a container that has not been created results in a 404.
         """
+        self.createSwiftService()
         # create a container
         uri = (self.json_body['access']['serviceCatalog'][0]['endpoints'][0]
                ['publicURL'] + '/testcontainer')
@@ -125,6 +129,7 @@ class SwiftTests(SynchronousTestCase):
         PUTting an object into a container causes the container to list that
         object.
         """
+        self.createSwiftService()
         # create a container
         uri = (self.json_body['access']['serviceCatalog'][0]['endpoints'][0]
                ['publicURL'] + '/testcontainer')
@@ -148,3 +153,18 @@ class SwiftTests(SynchronousTestCase):
         self.assertEqual(container_contents[0]['name'], "testobject")
         self.assertEqual(container_contents[0]['content_type'], "text/plain")
         self.assertEqual(container_contents[0]['bytes'], len(BODY))
+
+
+    def test_openstack_ids(self):
+        """
+        Non-Rackspace implementations of Swift just use the same tenant ID as
+        other services in the catalog.
+
+        (Note that this is not exposed by configuration yet, see
+        U{https://github.com/rackerlabs/mimic/issues/85})
+        """
+        self.createSwiftService(False)
+        url = (self.json_body['access']['serviceCatalog'][0]
+               ['endpoints'][0] ['publicURL'])
+        self.assertIn("/fun_tenant", url)
+        self.assertNotIn("/MossoCloudFS_", url)
