@@ -236,6 +236,8 @@ def list_nodes(lb_id, current_timestamp):
     """
     if lb_id in lb_cache:
         _verify_and_update_lb_state(lb_id, False, current_timestamp)
+        if lb_id not in lb_cache:
+            return not_found_response("loadbalancer"), 404
 
         if lb_cache[lb_id]["status"] == "DELETED":
             return invalid_resource("The loadbalancer is marked as deleted.", 410), 410

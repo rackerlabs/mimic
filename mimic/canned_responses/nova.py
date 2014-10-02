@@ -8,20 +8,16 @@ from twisted.python.urlpath import URLPath
 
 from mimic.canned_responses.mimic_presets import get_presets
 from mimic.util.helper import (not_found_response, invalid_resource,
-                               current_time_in_utc, set_resource_status)
+                               set_resource_status)
 import json
 
 
-def server_template(tenant_id, server_info, server_id, status,
-                    current_time=None,
+def server_template(tenant_id, server_info, server_id, status, current_time,
                     ipsegment=lambda: randrange(255),
                     compute_uri_prefix="http://localhost:8902/"):
     """
     Template used to create server cache.
     """
-    if current_time is None:
-        current_time = current_time_in_utc()
-
     def url(suffix):
         return str(URLPath.fromString(compute_uri_prefix).child(suffix))
 
@@ -106,9 +102,6 @@ def create_server(tenant_id, server_info, server_id, compute_uri_prefix,
     Canned response for create server and adds the server to the server cache.
     """
     status = "ACTIVE"
-    alternate_response = s_cache.server_creation_check(server_id, server_info)
-    if alternate_response is not None:
-        return alternate_response
     if 'metadata' in server_info:
         if 'create_server_failure' in server_info['metadata']:
             dict_meta = (
