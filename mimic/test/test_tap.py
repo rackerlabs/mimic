@@ -7,7 +7,7 @@ import types
 
 from zope.interface import implementer
 
-import twisted
+from twisted import plugins
 
 from twisted.internet.interfaces import (
     IStreamServerEndpointStringParser, IStreamServerEndpoint
@@ -103,7 +103,7 @@ class TapTests(SynchronousTestCase):
         o = Options()
         o.parseOptions(["--listen", "fake:"])
         thisFakeParser = FakeEndpointParser()
-        addFakePluginObject(self, twisted.plugins, thisFakeParser)
+        addFakePluginObject(self, plugins, thisFakeParser)
         service = makeService(o)
         service.startService()
         self.assertEqual(len(thisFakeParser.endpoints), 1)
