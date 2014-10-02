@@ -36,12 +36,14 @@ class MimicCore(object):
             will expose.
         """
         self._uuid_to_api = {}
+        self._uuids_and_apis = []
         self.sessions = SessionStore(clock)
 
         for api in apis:
             this_api_id = ((api.__class__.__name__) + '-' +
                            str(binascii.hexlify(os.urandom(3))))
             self._uuid_to_api[this_api_id] = api
+            self._uuids_and_apis.append((this_api_id, api))
 
     @classmethod
     def fromPlugins(cls, clock):
@@ -111,7 +113,7 @@ class MimicCore(object):
 
         :return: The full URI locating the service for that region
         """
-        for service_id, api in self._uuid_to_api.items():
+        for service_id, api in self._uuids_and_apis:
             for entry in api.catalog_entries(tenant_id):
                 for endpoint in entry.endpoints:
                     prefix_map[endpoint] = self.uri_for_service(
