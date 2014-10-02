@@ -4,11 +4,13 @@ from unittest import TestCase
 from datetime import datetime
 from mimic.util.helper import current_time_in_utc, fmt
 
+
 def no_total_seconds_in_26(td):
     """
     There's no timedelta.total_seconds in Python 2.6.
     """
     return td.seconds + (td.days * 24 * 3600)
+
 
 class TimeFormatTests(TestCase):
     """
