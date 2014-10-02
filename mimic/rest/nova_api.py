@@ -65,6 +65,73 @@ class NovaApi(object):
                 .app.resource())
 
 
+@implementer(IAPIMock)
+class NovaInjectionApi(object):
+    """
+    An API for injecting alternate responses for specific tenants.
+
+    :ivar _nova_api: A :obj:`NovaApi` instance.
+    """
+
+    def __init__(self, nova_api):
+        """
+        Create a NovaInjectionApi.
+        """
+        self._nova_api = nova_api
+
+    def catalog_entries(self, tenant_id):
+        return [Entry(
+            tenant_id, "injection/compute", "mimicCompute",
+            [Endpoint(tenant_id, each_region, text_type(uuid4()),
+                      prefix="v1.0")
+             for each_region in self._nova_api._regions]
+        )]
+
+    def resource_for_region(self, region, uri_prefix, session_store):
+        return NovaInjector(self, region, uri_prefix,
+                            session_store).app.resource()
+
+
+class NovaInjector(object):
+    """
+    A region for :obj:`NovaInjectionApi`.
+
+    :ivar str _region: The region we are controlling.
+    :ivar str _uri_prefix: The URI prefix for this injector (note, not the
+        prefix for the nova service...)
+    :ivar _session_store: The :obj:`SessionStore` to get Nova sessions from.
+    """
+
+    app = MimicApp()
+
+    def __init__(self, injection_api, region, uri_prefix, session_store):
+        """
+        
+
+        :param _region: 
+
+        :param _uri_prefix: 
+
+        :param _session_store: 
+        """
+        self._injection_api = injection_api
+        self._region = region
+        self._uri_prefix = uri_prefix
+        self._session_store = session_store
+
+    @app.route("/v1.0/<tenant_id>", methods=["POST"])
+    def inject(self, request, tenant_id):
+        """
+        
+        """
+        nova_session = (self._session_store
+                        .session_for_tenant_id(tenant_id)
+                        .data_for_api(self._injection_api._nova_api,
+                                      S_Cache))
+        payload = json.loads(request.content.read())
+        return json.dumps({}).encode("ascii")
+
+
 def _list_servers(request, tenant_id, s_cache, details=False):
     """
     Return a list of servers, possibly filtered by name, possibly with details

@@ -39,14 +39,15 @@ class APIMockHelper(object):
             treq.json_content(auth_response))
         self.uri = self.nth_endpoint_public(0)
 
-    def nth_endpoint_public(self, n):
+    def nth_endpoint_public(self, endpoint_index, entry_index=0):
         """
         Return the publicURL for the ``n``th endpoint.
         :param int n: The index of the endpoint in the first catalog entry to return
         """
         return (
             self.service_catalog_json
-            ['access']['serviceCatalog'][0]['endpoints'][n]['publicURL']
+            ['access']['serviceCatalog'][entry_index]
+            ['endpoints'][endpoint_index]['publicURL']
         )
 
     def get_service_endpoint(self, service_name, region=''):

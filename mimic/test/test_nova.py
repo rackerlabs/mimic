@@ -7,7 +7,7 @@ from twisted.trial.unittest import SynchronousTestCase
 
 from mimic.canned_responses.nova import server_template
 from mimic.test.helpers import json_request, request
-from mimic.rest.nova_api import NovaApi
+from mimic.rest.nova_api import NovaApi, NovaInjectionApi
 from mimic.test.fixtures import APIMockHelper
 
 
@@ -131,7 +131,9 @@ class NovaAPITests(SynchronousTestCase):
         Create a :obj:`MimicCore` with :obj:`NovaApi` as the only plugin,
         and create a server
         """
-        helper = APIMockHelper(self, [NovaApi(["ORD", "MIMIC"])])
+        nova_api = NovaApi(["ORD", "MIMIC"])
+        helper = APIMockHelper(self, [nova_api, NovaInjectionApi(nova_api)])
+        self.helper = helper
         self.root = helper.root
         self.uri = helper.uri
         self.server_name = 'test_server'
@@ -145,8 +147,13 @@ class NovaAPITests(SynchronousTestCase):
                 }
             }))
         self.create_server_response = self.successResultOf(create_server)
-        create_server_response_body = self.successResultOf(
-            treq.json_content(self.create_server_response))
+        def json_content(json_d):
+            data = self.successResultOf(treq.content(json_d))
+            try:
+                return json.loads(data)
+            except ValueError:
+                print("payload", data)
+        create_server_response_body = json_content(self.create_server_response)
         self.server_id = create_server_response_body['server']['id']
         self.nth_endpoint_public = helper.nth_endpoint_public
 
@@ -156,6 +163,42 @@ class NovaAPITests(SynchronousTestCase):
         """
         self.assertEqual(self.create_server_response.code, 202)
         self.assertTrue(type(self.server_id), unicode)
+
+    def test_create_server_with_specified_error(self):
+        """
+        ``POST /nova-injection/v1.0/<tenant_id>``
+        """
+        instruction = {
+            "command": "create_should_fail",
+            "matcher": {
+                "name": "foo.*",
+            },
+            "create_response": {
+                "code": 503,
+                "headers": {
+                    "content-type": {
+                        "action": "replace",
+                        # TODO: extend? "delete" would be "replace" with []
+                        "value": ["application/x-what-happened-here"],
+                    }
+                }
+            },
+            "body": {
+                "replace": {
+                    "hello": "world"
+                }
+            }
+        }
+        injector = self.helper.get_service_endpoint('mimicCompute')
+        print("inject", injector)
+        inject = request(self, self.root, "POST", injector,
+                         json.dumps(instruction))
+        inject_response = self.successResultOf(inject)
+        self.assertEqual(inject_response.code, 200)
+        inject_response_body = self.successResultOf(
+            treq.json_content(inject_response))
+        self.assertEqual(inject_response_body,
+                         json.dumps(instruction["body"]["replace"]))
 
     def test_list_servers(self):
         """
