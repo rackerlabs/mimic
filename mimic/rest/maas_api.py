@@ -113,6 +113,56 @@ def createAlarm(params):
   params['metadata'] = None
   return params
 
+def createMetriclistFromEntity(entity,allchecks):
+  v = {}
+  v['entity_id'] = entity['id']
+  v['entity_label'] = entity['label']
+  v['checks'] = []
+  for c in allchecks:
+    if c['type'] == 'remote.ping' and c['entity_id'] == entity['id']:
+      metricscheck = {}
+      metricscheck['id'] = c['id']
+      metricscheck['label'] = c['label']
+      metricscheck['type'] = 'remote.ping'
+      metricscheck['metrics'] = []
+      for mz in c['monitoring_zones_poll']:
+        metricscheck['metrics'].append({'name':mz.encode('ascii')+'.available','unit':'percent','type':'D'})
+        metricscheck['metrics'].append({'name':mz.encode('ascii')+'.average','unit':'seconds','type':'D'})
+      v['checks'].append(metricscheck)
+  return v
+
+def createMultiplotFromMetric(metric,reqargs,allchecks):
+  fromdate = int(reqargs['from'][0])
+  todate = int(reqargs['to'][0])
+  points = int(reqargs['points'][0])
+  multiplot = {}
+  for c in allchecks:
+    if c['entity_id'] == metric['entity_id']:
+      if c['type'] == 'remote.ping':
+        multiplot['entity_id'] = metric['entity_id']
+        multiplot['check_id'] = metric['check_id']
+        multiplot['type'] = 'number'
+        multiplot['metric'] = metric['metric']
+        if metric['metric'].endswith('available'):
+          multiplot['unit'] = 'percent'
+        else:
+          multiplot['unit'] = 'seconds'
+        multiplot['data'] = []
+        interval = (todate - fromdate) / points
+        timestamp = fromdate - 86400000
+        for q in range(points + 1):
+          d = {}
+          d['numPoints'] = 4
+          d['timestamp'] = timestamp
+          d['average'] = random.randint(1,99)
+          multiplot['data'].append(d)
+          timestamp += interval
+
+  return multiplot
+
+
+  
+
 class MaasMock(object):
     """
     Klein routes for the Monitoring API.
@@ -375,20 +425,30 @@ class MaasMock(object):
 
     @app.route('/v1.0/<string:tenant_id>/views/metric_list', methods=['GET'])
     def views_metric_list(self, request, tenant_id):
-      metrics = self._entity_cache_for_tenant(tenant_id).metrics_list
+      allchecks = self._entity_cache_for_tenant(tenant_id).checks_list
+      values = []
+      entities = self._entity_cache_for_tenant(tenant_id).entities_list
+      for e in entities:
+        values.append(createMetriclistFromEntity(e,allchecks))
       metadata = {}
-      metadata['count'] = len(metrics)
+      metadata['count'] = len(values)
       metadata['marker'] = None 
       metadata['next_marker'] = None 
       metadata['limit'] = 1000
       metadata['next_href'] = None 
       request.setResponseCode(200)
-      return json.dumps({'metadata':metadata,'values':metrics})
+      return json.dumps({'metadata':metadata,'values':values})
        
     @app.route('/v1.0/<string:tenant_id>/__experiments/multiplot', methods=['POST'])
     def multiplot(self, request, tenant_id):
-      metrics = self._entity_cache_for_tenant(tenant_id).metrics_list
+      allchecks = self._entity_cache_for_tenant(tenant_id).checks_list
+      metrics_requested = json.loads(request.content.read())
+      metrics_replydata = [] 
+      for m in metrics_requested['metrics']:
+        mp = createMultiplotFromMetric(m,request.args,allchecks)
+        if mp:
+          metrics_replydata.append(mp)
       request.setResponseCode(200)
-      return json.dumps({'metrics':metrics}) 
+      return json.dumps({'metrics':metrics_replydata}) 
     
 
