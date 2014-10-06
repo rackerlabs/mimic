@@ -201,7 +201,7 @@ class MaasMock(object):
 
     app = MimicApp()
 
-    @app.route('/v1.0/<string: tenant_id>/entities', methods=['GET'])
+    @app.route('/v1.0/<string:tenant_id>/entities', methods=['GET'])
     def list_entities(self, request, tenant_id):
         entities = self._entity_cache_for_tenant(tenant_id).entities_list
         metadata = {}
@@ -213,7 +213,7 @@ class MaasMock(object):
         request.setResponseCode(200)
         return json.dumps({'metadata': metadata, 'values': entities})
 
-    @app.route('/v1.0/<string: tenant_id>/entities', methods=['POST'])
+    @app.route('/v1.0/<string:tenant_id>/entities', methods=['POST'])
     def create_entity(self, request, tenant_id):
         postdata = json.loads(request.content.read())
         myhostname_and_port = 'http: //' + request.getRequestHostname() + ": 8900"
@@ -224,7 +224,7 @@ class MaasMock(object):
         request.setHeader('x-object-id', newentity['id'])
         return ''
 
-    @app.route('/v1.0/<string: tenant_id>/entities/<string: entity_id>', methods=['GET'])
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>', methods=['GET'])
     def get_entity(self, request, tenant_id, entity_id):
         entity = None
         for e in self._entity_cache_for_tenant(tenant_id).entities_list:
@@ -238,7 +238,7 @@ class MaasMock(object):
             request.setResponseCode(200)
             return json.dumps(entity)
 
-    @app.route('/v1.0/<string: tenant_id>/entities/<string: entity_id>/checks', methods=['GET'])
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks', methods=['GET'])
     def get_checks_for_entity(self, request, tenant_id, entity_id):
         checks = []
         for c in self._entity_cache_for_tenant(tenant_id).checks_list:
@@ -255,7 +255,7 @@ class MaasMock(object):
         request.setResponseCode(200)
         return json.dumps({'metadata': metadata, 'values': checks})
 
-    @app.route('/v1.0/<string: tenant_id>/entities/<string: entity_id>', methods=['PUT'])
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>', methods=['PUT'])
     def update_entity(self, request, tenant_id, entity_id):
         newentity = createEntity(json.loads(request.content.read()))
         newentity['id'] = entity_id
@@ -273,7 +273,7 @@ class MaasMock(object):
         request.setHeader('x-object-id', newentity['id'])
         return ''
 
-    @app.route('/v1.0/<string: tenant_id>/entities/<string: entity_id>', methods=['DELETE'])
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>', methods=['DELETE'])
     def delete_entity(self, request, tenant_id, entity_id):
         entities = self._entity_cache_for_tenant(tenant_id).entities_list
         checks = self._entity_cache_for_tenant(tenant_id).checks_list
@@ -290,7 +290,7 @@ class MaasMock(object):
                 del alarms[a]
         request.setResponseCode(204)
 
-    @app.route('/v1.0/<string: tenant_id>/entities/<string: entity_id>/checks', methods=['POST'])
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks', methods=['POST'])
     def create_check(self, request, tenant_id, entity_id):
         postdata = json.loads(request.content.read())
         myhostname_and_port = 'http: //' + request.getRequestHostname() + ": 8900"
@@ -302,7 +302,7 @@ class MaasMock(object):
         request.setHeader('x-object-id', newcheck['id'])
         return ''
 
-    @app.route('/v1.0/<string: tenant_id>/entities/<string: entity_id>/checks/<string: check_id>',
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks/<string:check_id>',
                methods=['GET'])
     def get_check(self, request, tenant_id, entity_id, check_id):
         mycheck = {}
@@ -313,7 +313,7 @@ class MaasMock(object):
         request.setResponseCode(200)
         return json.dumps(mycheck)
 
-    @app.route('/v1.0/<string: tenant_id>/entities/<string: entity_id>/checks/<string: check_id>',
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks/<string:check_id>',
                methods=['PUT'])
     def update_check(self, request, tenant_id, entity_id, check_id):
         checks = self._entity_cache_for_tenant(tenant_id).checks_list
@@ -333,7 +333,7 @@ class MaasMock(object):
         request.setHeader('x-object-id', newcheck['id'])
         return ''
 
-    @app.route('/v1.0/<string: tenant_id>/entities/<string: entity_id>/checks/<string: check_id>',
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks/<string:check_id>',
                methods=['DELETE'])
     def delete_check(self, request, tenant_id, entity_id, check_id):
         checks = self._entity_cache_for_tenant(tenant_id).checks_list
@@ -347,7 +347,7 @@ class MaasMock(object):
                 del alarms[a]
         request.setResponseCode(204)
 
-    @app.route('/v1.0/<string: tenant_id>/entities/<string: entity_id>/alarms', methods=['POST'])
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms', methods=['POST'])
     def create_alarm(self, request, tenant_id, entity_id):
         postdata = json.loads(request.content.read())
         myhostname_and_port = 'http: //' + request.getRequestHostname() + ": 8900"
@@ -359,7 +359,7 @@ class MaasMock(object):
         request.setHeader('x-object-id', newalarm['id'])
         return ''
 
-    @app.route('/v1.0/<string: tenant_id>/entities/<string: entity_id>/alarms/<string: alarm_id>',
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/<string:alarm_id>',
                methods=['PUT'])
     def update_alarm(self, request, tenant_id, entity_id, alarm_id):
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
@@ -381,7 +381,7 @@ class MaasMock(object):
         request.setHeader('x-object-id', newalarm['id'])
         return ''
 
-    @app.route('/v1.0/<string: tenant_id>/entities/<string: entity_id>/alarms/<string: alarm_id>',
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/<string:alarm_id>',
                methods=['DELETE'])
     def delete_alarm(self, request, tenant_id, entity_id, alarm_id):
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
@@ -391,7 +391,7 @@ class MaasMock(object):
                 break
         request.setResponseCode(204)
 
-    @app.route('/v1.0/<string: tenant_id>/views/overview', methods=['GET'])
+    @app.route('/v1.0/<string:tenant_id>/views/overview', methods=['GET'])
     def overview(self, request, tenant_id):
         entities = self._entity_cache_for_tenant(tenant_id).entities_list
         checks = self._entity_cache_for_tenant(tenant_id).checks_list
@@ -423,7 +423,7 @@ class MaasMock(object):
         request.setResponseCode(200)
         return json.dumps({'metadata': metadata, 'values': values})
 
-    @app.route('/v1.0/<string: tenant_id>/__experiments/json_home', methods=['GET'])
+    @app.route('/v1.0/<string:tenant_id>/__experiments/json_home', methods=['GET'])
     def service_json_home(self, request, tenant_id):
         cache = self._entity_cache_for_tenant(tenant_id)
         request.setResponseCode(200)
@@ -434,7 +434,7 @@ class MaasMock(object):
             .replace('monitoring.api.rackspacecloud.com', myhostname_and_port)\
             .replace("https: //", "http: //")
 
-    @app.route('/v1.0/<string: tenant_id>/views/agent_host_info', methods=['GET'])
+    @app.route('/v1.0/<string:tenant_id>/views/agent_host_info', methods=['GET'])
     def view_agent_host_info(self, request, tenant_id):
         request.setResponseCode(400)
         return """{
@@ -445,7 +445,7 @@ class MaasMock(object):
           "txnId":  ".rh-quqy.h-ord1-maas-prod-api1.r-1wej75Ht.c-21273930.ts-1410911874749.v-858fee7"
         }"""
 
-    @app.route('/v1.0/<string: tenant_id>/notification_plans', methods=['GET'])
+    @app.route('/v1.0/<string:tenant_id>/notification_plans', methods=['GET'])
     def get_notification_plans(self, request, tenant_id):
         values = [{'id': 'npTechnicalContactsEmail', 'label': 'Technical Contacts - Email',
                   'critical_state': [], 'warning_state': [], 'ok_state': [], 'metadata': None}]
@@ -453,7 +453,7 @@ class MaasMock(object):
         request.setResponseCode(200)
         return json.dumps({'values': values, 'metadata': metadata})
 
-    @app.route('/v1.0/<string: tenant_id>/views/metric_list', methods=['GET'])
+    @app.route('/v1.0/<string:tenant_id>/views/metric_list', methods=['GET'])
     def views_metric_list(self, request, tenant_id):
         allchecks = self._entity_cache_for_tenant(tenant_id).checks_list
         values = []
@@ -469,7 +469,7 @@ class MaasMock(object):
         request.setResponseCode(200)
         return json.dumps({'metadata': metadata, 'values': values})
 
-    @app.route('/v1.0/<string: tenant_id>/__experiments/multiplot', methods=['POST'])
+    @app.route('/v1.0/<string:tenant_id>/__experiments/multiplot', methods=['POST'])
     def multiplot(self, request, tenant_id):
         allchecks = self._entity_cache_for_tenant(tenant_id).checks_list
         metrics_requested = json.loads(request.content.read())
