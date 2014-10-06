@@ -276,6 +276,8 @@ class MaasMock(object):
     @app.route('/v1.0/<string: tenant_id>/entities/<string: entity_id>', methods=['DELETE'])
     def delete_entity(self, request, tenant_id, entity_id):
         entities = self._entity_cache_for_tenant(tenant_id).entities_list
+        checks = self._entity_cache_for_tenant(tenant_id).checks_list
+        alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
         for e in range(len(entities)):
             if entities[e]['id'] == entity_id:
                 del entities[e]
@@ -310,8 +312,6 @@ class MaasMock(object):
                 del mycheck['entity_id']
         request.setResponseCode(200)
         return json.dumps(mycheck)
-
-        return json.dumps({'metadata': metadata, 'values': checks})
 
     @app.route('/v1.0/<string: tenant_id>/entities/<string: entity_id>/checks/<string: check_id>',
                methods=['PUT'])
