@@ -34,6 +34,9 @@ class MaasApi(object):
     """
 
     def __init__(self, regions=["ORD"]):
+        """
+        Set regions
+        """
         self._regions = regions
 
     def catalog_entries(self, tenant_id):
@@ -60,16 +63,23 @@ class MaasApi(object):
 
 
 class M_Cache(dict):
-
+    """
+    M(onitoring) Cache Object to hold dictionaries of all entities, checks and alarms. 
+    """
     def __init__(self):
+        """
+        Create the initial structs for cache
+        """
         self.json_home = json.loads(file('mimic/rest/cloudMonitoring_json_home.json').read())
-        self.metrics_list = []
         self.entities_list = []
         self.checks_list = []
         self.alarms_list = []
 
 
 def createEntity(params):
+    """
+    Returns a dictionary representing an entity
+    """
     params = collections.defaultdict(lambda: '', params)
     newentity = {}
     newentity['label'] = params[u'label'].encode("ascii")
@@ -90,6 +100,9 @@ def createEntity(params):
 
 
 def createCheck(params):
+    """
+    Returns a dictionary representing a check
+    """
     params = collections.defaultdict(lambda: '', params)
     for k in params.keys():
         if 'encode' in dir(params[k]):
@@ -113,6 +126,9 @@ def createCheck(params):
 
 
 def createAlarm(params):
+    """
+    Returns a dictionary representing an alarm 
+    """
     params = collections.defaultdict(lambda: '', params)
     for k in params.keys():
         if 'encode' in dir(params[k]):
@@ -128,6 +144,10 @@ def createAlarm(params):
 
 
 def createMetriclistFromEntity(entity, allchecks):
+    """
+    To respond to the metrics_list api call, we must have the entity and allchecks
+    and assemble the structure to reply with.
+    """
     v = {}
     v['entity_id'] = entity['id']
     v['entity_label'] = entity['label']
@@ -149,6 +169,10 @@ def createMetriclistFromEntity(entity, allchecks):
 
 
 def createMultiplotFromMetric(metric, reqargs, allchecks):
+    """
+    Given a metric, this will produce fake datapoints to graph
+    This is for the multiplot API call
+    """
     fromdate = int(reqargs['from'][0])
     todate = int(reqargs['to'][0])
     points = int(reqargs['points'][0])
@@ -179,11 +203,9 @@ def createMultiplotFromMetric(metric, reqargs, allchecks):
 
 
 class MaasMock(object):
-
     """
     Klein routes for the Monitoring API.
     """
-
     def __init__(self, api_mock, uri_prefix, session_store, name):
         """
         Create a maas region with a given URI prefix (used for generating URIs
@@ -195,6 +217,9 @@ class MaasMock(object):
         self._name = name
 
     def _entity_cache_for_tenant(self, tenant_id):
+        """
+        Retrieve the M_cache object containing all objects created so far
+        """
         return (self._session_store.session_for_tenant_id(tenant_id)
                 .data_for_api(self._api_mock, lambda: collections.defaultdict(M_Cache))[self._name]
                 )
@@ -203,6 +228,9 @@ class MaasMock(object):
 
     @app.route('/v1.0/<string:tenant_id>/entities', methods=['GET'])
     def list_entities(self, request, tenant_id):
+        """
+        Replies the entities list call
+        """
         entities = self._entity_cache_for_tenant(tenant_id).entities_list
         metadata = {}
         metadata['count'] = len(entities)
@@ -215,6 +243,9 @@ class MaasMock(object):
 
     @app.route('/v1.0/<string:tenant_id>/entities', methods=['POST'])
     def create_entity(self, request, tenant_id):
+        """
+        Creates a new entity
+        """
         postdata = json.loads(request.content.read())
         myhostname_and_port = 'http: //' + request.getRequestHostname() + ": 8900"
         newentity = createEntity({'label': postdata[u'label'].encode('ascii')})
@@ -226,6 +257,9 @@ class MaasMock(object):
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>', methods=['GET'])
     def get_entity(self, request, tenant_id, entity_id):
+        """
+        Fetches a specific entity
+        """
         entity = None
         for e in self._entity_cache_for_tenant(tenant_id).entities_list:
             if e['id'] == entity_id:
@@ -240,6 +274,9 @@ class MaasMock(object):
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks', methods=['GET'])
     def get_checks_for_entity(self, request, tenant_id, entity_id):
+        """
+        Returns all the checks for a paricular entity
+        """
         checks = []
         for c in self._entity_cache_for_tenant(tenant_id).checks_list:
             if c['entity_id'] == entity_id:
@@ -257,6 +294,10 @@ class MaasMock(object):
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>', methods=['PUT'])
     def update_entity(self, request, tenant_id, entity_id):
+        """
+        Update entity. I really just delete it and then put a new one, but with the same id
+        so I don't mess up relationships to checks & alarms
+        """
         newentity = createEntity(json.loads(request.content.read()))
         newentity['id'] = entity_id
         for k in newentity.keys():
@@ -275,6 +316,9 @@ class MaasMock(object):
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>', methods=['DELETE'])
     def delete_entity(self, request, tenant_id, entity_id):
+        """
+        Delete an entity, all checks that belong to entity, all alarms that belong to those checks
+        """
         entities = self._entity_cache_for_tenant(tenant_id).entities_list
         checks = self._entity_cache_for_tenant(tenant_id).checks_list
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
@@ -292,6 +336,9 @@ class MaasMock(object):
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks', methods=['POST'])
     def create_check(self, request, tenant_id, entity_id):
+        """
+        Create a check
+        """
         postdata = json.loads(request.content.read())
         myhostname_and_port = 'http: //' + request.getRequestHostname() + ": 8900"
         newcheck = createCheck(postdata)
@@ -305,6 +352,9 @@ class MaasMock(object):
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks/<string:check_id>',
                methods=['GET'])
     def get_check(self, request, tenant_id, entity_id, check_id):
+        """
+        Get a specific check that was created before
+        """
         mycheck = {}
         for c in self._entity_cache_for_tenant(tenant_id).checks_list:
             if c['id'] == check_id:
@@ -316,6 +366,9 @@ class MaasMock(object):
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks/<string:check_id>',
                methods=['PUT'])
     def update_check(self, request, tenant_id, entity_id, check_id):
+        """
+        Update an existing check
+        """
         checks = self._entity_cache_for_tenant(tenant_id).checks_list
         newcheck = json.loads(request.content.read())
         newcheck['entity_id'] = entity_id
@@ -336,6 +389,9 @@ class MaasMock(object):
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks/<string:check_id>',
                methods=['DELETE'])
     def delete_check(self, request, tenant_id, entity_id, check_id):
+        """
+        Deletes check and all alarms associated to it
+        """
         checks = self._entity_cache_for_tenant(tenant_id).checks_list
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
         for c in range(len(checks)):
@@ -349,6 +405,9 @@ class MaasMock(object):
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms', methods=['POST'])
     def create_alarm(self, request, tenant_id, entity_id):
+        """
+        Creates alarm
+        """
         postdata = json.loads(request.content.read())
         myhostname_and_port = 'http: //' + request.getRequestHostname() + ": 8900"
         newalarm = createAlarm(postdata)
@@ -362,6 +421,9 @@ class MaasMock(object):
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/<string:alarm_id>',
                methods=['PUT'])
     def update_alarm(self, request, tenant_id, entity_id, alarm_id):
+        """
+        update alarm
+        """
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
         newalarm = json.loads(request.content.read())
         newalarm['entity_id'] = entity_id
@@ -384,6 +446,9 @@ class MaasMock(object):
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/<string:alarm_id>',
                methods=['DELETE'])
     def delete_alarm(self, request, tenant_id, entity_id, alarm_id):
+        """
+        Delete an alarm
+        """
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
         for q in range(len(alarms)):
             if alarms[q]['entity_id'] == entity_id and alarms[q]['id'] == alarm_id:
@@ -393,6 +458,9 @@ class MaasMock(object):
 
     @app.route('/v1.0/<string:tenant_id>/views/overview', methods=['GET'])
     def overview(self, request, tenant_id):
+        """
+        serves the overview api call,returns all entities,checks and alarms
+        """
         entities = self._entity_cache_for_tenant(tenant_id).entities_list
         checks = self._entity_cache_for_tenant(tenant_id).checks_list
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
@@ -425,6 +493,11 @@ class MaasMock(object):
 
     @app.route('/v1.0/<string:tenant_id>/__experiments/json_home', methods=['GET'])
     def service_json_home(self, request, tenant_id):
+        """
+        jsonhome call. CloudIntellgiences doesn't actually use these URLs directly.
+        Rather, do some regex on them to figure how to know what permissions the user as
+        have
+        """
         cache = self._entity_cache_for_tenant(tenant_id)
         request.setResponseCode(200)
         myhostname_and_port = request.getRequestHostname() + ": 8900"
@@ -436,6 +509,9 @@ class MaasMock(object):
 
     @app.route('/v1.0/<string:tenant_id>/views/agent_host_info', methods=['GET'])
     def view_agent_host_info(self, request, tenant_id):
+        """
+        No agent minitoring. For now, alwyas return 400.
+        """
         request.setResponseCode(400)
         return """{
           "type":  "agentDoesNotExist",
@@ -447,6 +523,10 @@ class MaasMock(object):
 
     @app.route('/v1.0/<string:tenant_id>/notification_plans', methods=['GET'])
     def get_notification_plans(self, request, tenant_id):
+        """
+        In the future, user can create own on and use it however the please.
+        For now, hardcored response. But will have to change this to an array of some kind.
+        """
         values = [{'id': 'npTechnicalContactsEmail', 'label': 'Technical Contacts - Email',
                   'critical_state': [], 'warning_state': [], 'ok_state': [], 'metadata': None}]
         metadata = {'count': 1, 'limit': 100, 'marker': None, 'next_marker': None, 'next_href': None}
@@ -455,6 +535,9 @@ class MaasMock(object):
 
     @app.route('/v1.0/<string:tenant_id>/views/metric_list', methods=['GET'])
     def views_metric_list(self, request, tenant_id):
+        """
+        All available metrics.
+        """
         allchecks = self._entity_cache_for_tenant(tenant_id).checks_list
         values = []
         entities = self._entity_cache_for_tenant(tenant_id).entities_list
@@ -471,6 +554,10 @@ class MaasMock(object):
 
     @app.route('/v1.0/<string:tenant_id>/__experiments/multiplot', methods=['POST'])
     def multiplot(self, request, tenant_id):
+        """
+        datapoints for all metrics requested
+        Right now, only checks of type remote.ping work
+        """
         allchecks = self._entity_cache_for_tenant(tenant_id).checks_list
         metrics_requested = json.loads(request.content.read())
         metrics_replydata = []
