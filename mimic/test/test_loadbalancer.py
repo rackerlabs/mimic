@@ -627,3 +627,9 @@ class LoadbalancerAPINegativeTests(SynchronousTestCase):
             self, self.root, "GET", self.uri + '/loadbalancers/' + str(lb["id"])
             + '/nodes')
         self.assertEqual(self.successResultOf(list_nodes).code, 410)
+        # Progress past "deleting now"
+        self.helper.clock.advance(4000)
+        list_nodes = request(
+            self, self.root, "GET", self.uri + '/loadbalancers/' + str(lb["id"])
+            + '/nodes')
+        self.assertEqual(self.successResultOf(list_nodes).code, 404)
