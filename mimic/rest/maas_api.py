@@ -500,12 +500,12 @@ class MaasMock(object):
         """
         cache = self._entity_cache_for_tenant(tenant_id)
         request.setResponseCode(200)
-        myhostname_and_port = request.getRequestHostname() + ": 8900"
+        myhostname_and_port = request.getRequestHostname() + ":8900"
         mockapi_id = re.findall('/mimicking/(.+?)/', request.path)[0]
         return json.dumps(cache.json_home)\
             .replace('.com/v1.0', '.com/mimicking/' + mockapi_id + '/ORD/v1.0')\
             .replace('monitoring.api.rackspacecloud.com', myhostname_and_port)\
-            .replace("https: //", "http: //")
+            .replace("https://", "http://")
 
     @app.route('/v1.0/<string:tenant_id>/views/agent_host_info', methods=['GET'])
     def view_agent_host_info(self, request, tenant_id):
