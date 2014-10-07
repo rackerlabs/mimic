@@ -64,7 +64,7 @@ class MaasApi(object):
 
 class M_Cache(dict):
     """
-    M(onitoring) Cache Object to hold dictionaries of all entities, checks and alarms. 
+    M(onitoring) Cache Object to hold dictionaries of all entities, checks and alarms.
     """
     def __init__(self):
         """
@@ -127,7 +127,7 @@ def createCheck(params):
 
 def createAlarm(params):
     """
-    Returns a dictionary representing an alarm 
+    Returns a dictionary representing an alarm
     """
     params = collections.defaultdict(lambda: '', params)
     for k in params.keys():
