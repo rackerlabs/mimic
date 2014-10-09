@@ -28,17 +28,14 @@ Request.defaultContentType = 'application/json'
 
 @implementer(IAPIMock, IPlugin)
 class MaasApi(object):
-
     """
     Rest endpoints for mocked MAAS Api.
     """
-
     def __init__(self, regions=["ORD"]):
         """
         Set regions
         """
         self._regions = regions
-
     def catalog_entries(self, tenant_id):
         """
         List catalog entries for the Nova API.
@@ -326,12 +323,12 @@ class MaasMock(object):
             if entities[e]['id'] == entity_id:
                 del entities[e]
                 break
-        for c in range(len(checks)):
-            if checks[c]['entity_id'] == entity_id:
-                del checks[c]
-        for a in range(len(alarms)):
-            if alarms[a]['entity_id'] == entity_id:
-                del alarms[a]
+        for c in checks:
+            if c['entity_id'] == entity_id:
+                del checks[checks.index(c)]
+        for a in alarms:
+            if a['entity_id'] == entity_id:
+                del alarms[alarms.index(a)]
         request.setResponseCode(204)
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks', methods=['POST'])
@@ -398,9 +395,9 @@ class MaasMock(object):
             if checks[c]['entity_id'] == entity_id and checks[c]['id'] == check_id:
                 del checks[c]
                 break
-        for a in range(len(alarms)):
-            if alarms[a]['check_id'] == check_id and alarms[a]['entity_id'] == entity_id:
-                del alarms[a]
+        for a in alarms:
+            if a['check_id'] == check_id and a['entity_id'] == entity_id:
+                del alarms[alarms.index(a)]
         request.setResponseCode(204)
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms', methods=['POST'])
