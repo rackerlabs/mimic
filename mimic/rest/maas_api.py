@@ -188,7 +188,7 @@ def createMultiplotFromMetric(metric, reqargs, allchecks):
                 multiplot['data'] = []
                 interval = (todate - fromdate) / points
                 timestamp = fromdate
-                for q in range(points + 1):
+                for q in range(points):
                     d = {}
                     d['numPoints'] = 4
                     d['timestamp'] = timestamp
@@ -425,12 +425,12 @@ class MaasMock(object):
         newalarm = json.loads(request.content.read())
         newalarm['entity_id'] = entity_id
         newalarm['updated_at'] = time.time()
-        newalarm['check_id'] = re.findall('.*checks/(.*)', request.getHeader('Referer'))[0]
         for k in newalarm.keys():
             if 'encode' in dir(newalarm[k]):  # because there are integers sometimes.
                 newalarm[k] = newalarm[k].encode('ascii')
         for q in range(len(alarms)):
             if alarms[q]['entity_id'] == entity_id and alarms[q]['id'] == alarm_id:
+                newalarm['check_id'] = alarms[q]['check_id']
                 del alarms[q]
                 alarms.append(newalarm)
                 break
