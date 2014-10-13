@@ -132,6 +132,16 @@ class MaasAPITests(SynchronousTestCase):
         data = self.get_reposebody(resp)
         self.assertEquals(eca['entity_id'], data['id'])
 
+    def test_fail_get_entity(self):
+        """
+        test get entity
+        """
+        req = request(self, self.root, "GET", self.uri+'/entities/whatever', '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 404)
+        data = self.get_reposebody(resp)
+        self.assertEquals({}, data)
+
     def test_get_check(self):
         """
         test get check
@@ -143,6 +153,19 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 200)
         data = self.get_reposebody(resp)
         self.assertEquals(eca['check_id'], data['id'])
+
+    def test_get_checks_for_entity(self):
+        """
+        test get check
+        """
+        eca = self.get_eca_objectIds()
+        req = request(self, self.root, "GET",
+                      self.uri+'/entities/'+eca['entity_id']+'/checks', '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_reposebody(resp)
+        self.assertEquals(1, data['metadata']['count'])
+        self.assertEquals(eca['check_id'], data['values'][0]['id'])
 
     def test_update_entity(self):
         """
