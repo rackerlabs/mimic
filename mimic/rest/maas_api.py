@@ -36,6 +36,7 @@ class MaasApi(object):
         Set regions
         """
         self._regions = regions
+
     def catalog_entries(self, tenant_id):
         """
         List catalog entries for the Nova API.
