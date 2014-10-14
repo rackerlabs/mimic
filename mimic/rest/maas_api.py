@@ -72,6 +72,34 @@ class M_Cache(dict):
         self.entities_list = []
         self.checks_list = []
         self.alarms_list = []
+        self.notifications_list = [{'id': 'ntTechnicalContactsEmail',
+                                    'label': 'Email All Technical Contacts',
+                                    'created_at': time.time(),
+                                    'updated_at': time.time(),
+                                    'metadata': None,
+                                    'type': 'technicalContactsEmail',
+                                    'details': None}]
+        self.notificationplans_list = [{'id': 'npTechnicalContactsEmail',
+                                        'label': 'Technical Contacts - Email',
+                                        'critical_state': [], 'warning_state': [],
+                                        'ok_state': [], 'metadata': None}]
+        self.notificationtypes_list = [{'id': 'webhock', 'fields': [{'name': 'url',
+                                                                     'optional': False,
+                                                                     'description': 'An HTTP or \
+                                                                      HTTPS URL to POST to'}]},
+                                       {'id': 'email', 'fields': [{'name': 'address',
+                                                                   'optional': False,
+                                                                   'description': 'Email \
+                                                                    address to send notifications to'}]},
+                                       {'id': 'pagerduty', 'fields': [{'name': 'service_key',
+                                                                       'optional': False,
+                                                                       'description': 'The PagerDuty \
+                                                                        service key to use.'}]},
+                                       {'id': 'sms', 'fields': [{'name': 'phone_number',
+                                                                 'optional': False,
+                                                                 'description': 'Phone number to send the notification to, \
+                                                                  with leading + and country \
+                                                                  code (E.164 format)'}]}]
 
 
 def createEntity(params):
@@ -137,6 +165,31 @@ def createAlarm(params):
     params['created_at'] = time.time()
     params['updated_at'] = time.time()
     params['disabled'] = False
+    params['metadata'] = None
+    return params
+
+
+def createNotificationPlan(params):
+    for k in params.keys():
+        if 'encode' in dir(params[k]):  # because there are integers sometimes.
+            params[k] = params[k].encode('ascii')
+    params['id'] = params['label'] + ''.join(random.sample(string.letters + string.digits, 8))
+    params['critical_state'] = None
+    params['warning_state'] = None
+    params['ok_state'] = None
+    params['created_at'] = time.time()
+    params['updated_at'] = time.time()
+    params['metadata'] = None
+    return params
+
+
+def createNotification(params):
+    for k in params.keys():
+        if 'encode' in dir(params[k]):  # because there are integers sometimes.
+            params[k] = params[k].encode('ascii')
+    params['id'] = params['label'] + ''.join(random.sample(string.letters + string.digits, 8))
+    params['created_at'] = time.time()
+    params['updated_at'] = time.time()
     params['metadata'] = None
     return params
 
@@ -245,12 +298,13 @@ class MaasMock(object):
         Creates a new entity
         """
         postdata = json.loads(request.content.read())
-        myhostname_and_port = 'http: //' + request.getRequestHostname() + ": 8900"
+        myhostname_and_port = 'http://' + request.getRequestHostname() + ":8900"
         newentity = createEntity({'label': postdata[u'label'].encode('ascii')})
         self._entity_cache_for_tenant(tenant_id).entities_list.append(newentity)
         request.setResponseCode(201)
         request.setHeader('location', myhostname_and_port + request.path + '/' + newentity['id'])
         request.setHeader('x-object-id', newentity['id'])
+        request.setHeader('content-type', 'text/plain')
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>', methods=['GET'])
@@ -306,10 +360,11 @@ class MaasMock(object):
                 del self._entity_cache_for_tenant(tenant_id).entities_list[q]
                 self._entity_cache_for_tenant(tenant_id).entities_list.append(newentity)
                 break
-        myhostname_and_port = 'http: //' + request.getRequestHostname() + ": 8900"
+        myhostname_and_port = 'http://' + request.getRequestHostname() + ":8900"
         request.setResponseCode(204)
         request.setHeader('location', myhostname_and_port + request.path + '/' + newentity['id'])
         request.setHeader('x-object-id', newentity['id'])
+        request.setHeader('content-type', 'text/plain')
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>', methods=['DELETE'])
@@ -331,6 +386,7 @@ class MaasMock(object):
             if a['entity_id'] == entity_id:
                 del alarms[alarms.index(a)]
         request.setResponseCode(204)
+        request.setHeader('content-type', 'text/plain')
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks', methods=['POST'])
     def create_check(self, request, tenant_id, entity_id):
@@ -338,13 +394,14 @@ class MaasMock(object):
         Create a check
         """
         postdata = json.loads(request.content.read())
-        myhostname_and_port = 'http: //' + request.getRequestHostname() + ": 8900"
+        myhostname_and_port = 'http://' + request.getRequestHostname() + ":8900"
         newcheck = createCheck(postdata)
         newcheck['entity_id'] = entity_id
         self._entity_cache_for_tenant(tenant_id).checks_list.append(newcheck)
         request.setResponseCode(201)
         request.setHeader('location', myhostname_and_port + request.path + '/' + newcheck['id'])
         request.setHeader('x-object-id', newcheck['id'])
+        request.setHeader('content-type', 'text/plain')
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks/<string:check_id>',
@@ -378,10 +435,11 @@ class MaasMock(object):
                 del checks[q]
                 checks.append(newcheck)
                 break
-        myhostname_and_port = 'http: //' + request.getRequestHostname() + ": 8900"
+        myhostname_and_port = 'http://' + request.getRequestHostname() + ":8900"
         request.setResponseCode(204)
         request.setHeader('location', myhostname_and_port + request.path + '/' + newcheck['id'])
         request.setHeader('x-object-id', newcheck['id'])
+        request.setHeader('content-type', 'text/plain')
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks/<string:check_id>',
@@ -400,6 +458,8 @@ class MaasMock(object):
             if a['check_id'] == check_id and a['entity_id'] == entity_id:
                 del alarms[alarms.index(a)]
         request.setResponseCode(204)
+        request.setHeader('content-type', 'text/plain')
+        return ''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms', methods=['POST'])
     def create_alarm(self, request, tenant_id, entity_id):
@@ -407,13 +467,14 @@ class MaasMock(object):
         Creates alarm
         """
         postdata = json.loads(request.content.read())
-        myhostname_and_port = 'http: //' + request.getRequestHostname() + ": 8900"
+        myhostname_and_port = 'http://' + request.getRequestHostname() + ":8900"
         newalarm = createAlarm(postdata)
         newalarm['entity_id'] = entity_id
         self._entity_cache_for_tenant(tenant_id).alarms_list.append(newalarm)
         request.setResponseCode(201)
         request.setHeader('location', myhostname_and_port + request.path + '/' + newalarm['id'])
         request.setHeader('x-object-id', newalarm['id'])
+        request.setHeader('content-type', 'text/plain')
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/<string:alarm_id>',
@@ -435,10 +496,11 @@ class MaasMock(object):
                 del alarms[q]
                 alarms.append(newalarm)
                 break
-        myhostname_and_port = 'http: //' + request.getRequestHostname() + ": 8900"
+        myhostname_and_port = 'http://' + request.getRequestHostname() + ":8900"
         request.setResponseCode(204)
         request.setHeader('location', myhostname_and_port + request.path + '/' + newalarm['id'])
         request.setHeader('x-object-id', newalarm['id'])
+        request.setHeader('content-type', 'text/plain')
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/<string:alarm_id>',
@@ -453,6 +515,8 @@ class MaasMock(object):
                 del alarms[q]
                 break
         request.setResponseCode(204)
+        request.setHeader('content-type', 'text/plain')
+        return ''
 
     @app.route('/v1.0/<string:tenant_id>/views/overview', methods=['GET'])
     def overview(self, request, tenant_id):
@@ -519,17 +583,142 @@ class MaasMock(object):
           "txnId":  ".rh-quqy.h-ord1-maas-prod-api1.r-1wej75Ht.c-21273930.ts-1410911874749.v-858fee7"
         }"""
 
+    @app.route('/v1.0/<string:tenant_id>/notifications', methods=['POST'])
+    def create_notification(self, request, tenant_id):
+        """
+        Create notification target
+        """
+        myhostname_and_port = 'http://' + request.getRequestHostname() + ":8900"
+        new_n = createNotification(json.loads(request.content.read()))
+        self._entity_cache_for_tenant(tenant_id).notifications_list.append(new_n)
+        request.setResponseCode(201)
+        request.setHeader('content-type', 'text/plain')
+        request.setHeader('location', myhostname_and_port + request.path + '/' + new_n['id'])
+        request.setHeader('x-object-id', new_n['id'])
+        request.setHeader('x-ratelimit-limit', 50000)
+        request.setHeader('x-ratelimit-remaining', 49918)
+        request.setHeader('x-ratelimit-window', '24 hours')
+        request.setHeader('x-ratelimit-type', 'global')
+        request.setHeader('x-lb', 'ord1-maas-prod-api0')
+        return ''
+
+    @app.route('/v1.0/<string:tenant_id>/notifications', methods=['GET'])
+    def get_notifications(self, request, tenant_id):
+        """
+        Get notification targets
+        """
+        nlist = self._entity_cache_for_tenant(tenant_id).notifications_list
+        metadata = {'count': len(nlist), 'limit': 100, 'marker': None, 'next_marker': None,
+                    'next_href': None}
+        request.setResponseCode(200)
+        return json.dumps({'values': nlist, 'metadata': metadata})
+
+    @app.route('/v1.0/<string:tenant_id>/notifications/<string:n_id>', methods=['PUT'])
+    def update_notifications(self, request, tenant_id, n_id):
+        """
+        Updates notification targets
+        """
+        postdata = json.loads(request.content.read())
+        nlist = self._entity_cache_for_tenant(tenant_id).notifications_list
+        for n in nlist:
+            if n['id'] == postdata['id']:
+                for k in postdata.keys():
+                    n[k] = postdata[k]
+                n['updated_at'] = time.time()
+                break
+        request.setResponseCode(204)
+        request.setHeader('content-type', 'text/plain')
+        return ''
+
+    @app.route('/v1.0/<string:tenant_id>/notifications/<string:n_id>', methods=['DELETE'])
+    def delete_notification(self, request, tenant_id, n_id):
+        nlist = self._entity_cache_for_tenant(tenant_id).notifications_list
+        for n in nlist:
+            if n['id'] == n_id:
+                del nlist[nlist.index(n)]
+                break
+        request.setResponseCode(204)
+        request.setHeader('content-type', 'text/plain')
+        return ''
+
+    @app.route('/v1.0/<string:tenant_id>/notification_plans', methods=['POST'])
+    def create_notificationplan(self, request, tenant_id):
+        """
+        Creates a new notificationPlans
+        """
+        postdata = json.loads(request.content.read())
+        myhostname_and_port = 'http://' + request.getRequestHostname() + ":8900"
+        newnp = createNotificationPlan({'label': postdata[u'label'].encode('ascii')})
+        self._entity_cache_for_tenant(tenant_id).notificationplans_list.append(newnp)
+        request.setResponseCode(201)
+        request.setHeader('content-type', 'text/plain')
+        request.setHeader('location', myhostname_and_port + request.path + '/' + newnp['id'])
+        request.setHeader('x-object-id', newnp['id'])
+        request.setHeader('x-ratelimit-limit', 50000)
+        request.setHeader('x-ratelimit-remaining', 49918)
+        request.setHeader('x-ratelimit-window', '24 hours')
+        request.setHeader('x-ratelimit-type', 'global')
+        request.setHeader('x-lb', 'ord1-maas-prod-api0')
+        request.setHeader('content-type', 'text/plain')
+        return ''
+
     @app.route('/v1.0/<string:tenant_id>/notification_plans', methods=['GET'])
     def get_notification_plans(self, request, tenant_id):
         """
-        In the future, user can create own on and use it however the please.
-        For now, hardcored response. But will have to change this to an array of some kind.
+        Get all notification plans
         """
-        values = [{'id': 'npTechnicalContactsEmail', 'label': 'Technical Contacts - Email',
-                  'critical_state': [], 'warning_state': [], 'ok_state': [], 'metadata': None}]
-        metadata = {'count': 1, 'limit': 100, 'marker': None, 'next_marker': None, 'next_href': None}
+        npist = self._entity_cache_for_tenant(tenant_id).notificationplans_list
+        metadata = {'count': len(npist), 'limit': 100, 'marker': None, 'next_marker': None,
+                    'next_href': None}
         request.setResponseCode(200)
-        return json.dumps({'values': values, 'metadata': metadata})
+        return json.dumps({'values': npist, 'metadata': metadata})
+
+    @app.route('/v1.0/<string:tenant_id>/notification_plans/<string:np_id>', methods=['GET'])
+    def get_notification_plan(self, request, tenant_id, np_id):
+        """
+        Get specific notif plan
+        """
+        mynp = None
+        nplist = self._entity_cache_for_tenant(tenant_id).notificationplans_list
+        for np in nplist:
+            if np['id'] == np_id:
+                mynp = np
+                break
+        request.setResponseCode(200)
+        return json.dumps(mynp)
+
+    @app.route('/v1.0/<string:tenant_id>/notification_plans/<string:np_id>', methods=['PUT'])
+    def update_notification_plan(self, request, tenant_id, np_id):
+        postdata = json.loads(request.content.read())
+        nplist = self._entity_cache_for_tenant(tenant_id).notificationplans_list
+        for np in nplist:
+            if np['id'] == postdata['id']:
+                for k in postdata.keys():
+                    np[k] = postdata[k]
+                np['updated_at'] = time.time()
+                break
+        request.setResponseCode(204)
+        request.setHeader('content-type', 'text/plain')
+        return ''
+
+    @app.route('/v1.0/<string:tenant_id>/notification_plans/<string:np_id>', methods=['DELETE'])
+    def delete_notification_plan(self, request, tenant_id, np_id):
+        nplist = self._entity_cache_for_tenant(tenant_id).notificationplans_list
+        for np in nplist:
+            if np['id'] == np_id:
+                del nplist[nplist.index(np)]
+                break
+        request.setResponseCode(204)
+        request.setHeader('content-type', 'text/plain')
+        return ''
+
+    @app.route('/v1.0/<string:tenant_id>/notification_types', methods=['GET'])
+    def get_notification_types(self, request, tenant_id):
+        ntlist = self._entity_cache_for_tenant(tenant_id).notificationtypes_list
+        metadata = {'count': len(ntlist), 'limit': 100, 'marker': None, 'next_marker': None,
+                    'next_href': None}
+        request.setResponseCode(200)
+        return json.dumps({'values': ntlist, 'metadata': metadata})
 
     @app.route('/v1.0/<string:tenant_id>/views/metric_list', methods=['GET'])
     def views_metric_list(self, request, tenant_id):
