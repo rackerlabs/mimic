@@ -476,16 +476,23 @@ class MaasAPITests(SynchronousTestCase):
         Delete a notification plan
         """
         ecan = self.get_ecan_objectIds()
-        req = request(self, self.root, "DELETE", self.uri+'/notifications/'+ecan['nt_id'], '')
+        req = request(self, self.root, "DELETE", self.uri+'/notification_plans/'+ecan['np_id'], '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
-        req = request(self, self.root, "GET", self.uri+'/notifications', '')
+        req = request(self, self.root, "GET", self.uri+'/notification_plans', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_reposebody(resp)
-        mynt = None
-        for nt in data['values']:
-            if nt['id'] == ecan['nt_id']:
-                mynt = nt
+        mynp = None
+        for np in data['values']:
+            if np['id'] == ecan['np_id']:
+                mynp = np
                 break
-        self.assertEquals(None, mynt)
+        self.assertEquals(None, mynp)
+
+    def test_get_notificationtypes(self):
+        req = request(self, self.root, "GET", self.uri+'/notification_types', '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_reposebody(resp)
+        self.assertEquals(4, data['metadata']['count'])
