@@ -66,9 +66,39 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 201)
         return resp
 
-    def get_eca_objectIds(self):
+    def createNotification(self, label):
         """
-        Get the Entity, check and alarm objects created by setUp()
+        Util create notification
+        """
+        postdata = {'label': label}
+        postdata['type'] = 'email'
+        postdata['details'] = {'address': 'zoehardman4ever@hedkandi.co.uk'}
+        req = request(self, self.root, "POST", self.uri+'/notifications', json.dumps(postdata))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 201)
+        return resp
+
+    def createNotificationPlan(self, label):
+        """
+        Util create notification plan
+        """
+        postdata = {'label': label}
+        req = request(self, self.root, "POST", self.uri+'/notification_plans', json.dumps(postdata))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 201)
+        return resp
+
+    def getXobjectIDfromResponse(self, resp):
+        xobjectid = None
+        for h in resp.headers.getAllRawHeaders():
+            if h[0].lower() == 'x-object-id':
+                xobjectid = h[1][0]
+                break
+        return xobjectid
+
+    def get_ecan_objectIds(self):
+        """
+        Get the Entity, check, alarm an notification(plan) objects created by setUp()
         """
         req = request(self, self.root, "GET", self.uri+'/views/overview', '')
         resp = self.successResultOf(req)
@@ -77,7 +107,27 @@ class MaasAPITests(SynchronousTestCase):
         entity_id = data['entity']['id']
         check_id = data['checks'][0]['id']
         alarm_id = data['alarms'][0]['id']
-        return {'entity_id': entity_id, 'check_id': check_id, 'alarm_id': alarm_id}
+        nt_id = None
+        np_id = None
+
+        req = request(self, self.root, "GET", self.uri+'/notifications', '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_reposebody(resp)
+        for nt in data['values']:
+            if nt['id'] != 'ntTechnicalContactsEmail':
+                nt_id = nt['id']
+
+        req = request(self, self.root, "GET", self.uri+'/notification_plans', '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_reposebody(resp)
+        for np in data['values']:
+            if np['id'] != 'npTechnicalContactsEmail':
+                np_id = np['id']
+
+        return {'entity_id': entity_id, 'check_id': check_id, 'alarm_id': alarm_id,
+                'nt_id': nt_id, 'np_id': np_id}
 
     def setUp(self):
         """
@@ -86,30 +136,21 @@ class MaasAPITests(SynchronousTestCase):
         helper = APIMockHelper(self, [MaasApi(["ORD"])])
         self.root = helper.root
         self.uri = helper.uri
-
         entity_id = None
         check_id = None
         alarm_id = None
-
-        resp = self.createEntity('ItsAnEntity')
-        for h in resp.headers.getAllRawHeaders():
-            if h[0].lower() == 'x-object-id':
-                entity_id = h[1][0]
-                break
-        resp = self.createCheck('ItsAcheck', entity_id)
-        for h in resp.headers.getAllRawHeaders():
-            if h[0].lower() == 'x-object-id':
-                check_id = h[1][0]
-                break
-        resp = self.createAlarm('ItsAnAlarm', entity_id, check_id)
-        for h in resp.headers.getAllRawHeaders():
-            if h[0].lower() == 'x-object-id':
-                alarm_id = h[1][0]
-                break
-
+        nt_id = None
+        np_id = None
+        entity_id = self.getXobjectIDfromResponse(self.createEntity('ItsAnEntity'))
+        check_id = self.getXobjectIDfromResponse(self.createCheck('ItsAcheck', entity_id))
+        alarm_id = self.getXobjectIDfromResponse(self.createAlarm('ItsAnAlarm', entity_id, check_id))
+        nt_id = self.getXobjectIDfromResponse(self.createNotification('ItsANotificationTarget'))
+        np_id = self.getXobjectIDfromResponse(self.createNotificationPlan('ItsANotificationPlan'))
         self.assertNotEquals(None, entity_id)
         self.assertNotEquals(None, check_id)
         self.assertNotEquals(None, alarm_id)
+        self.assertNotEquals(None, nt_id)
+        self.assertNotEquals(None, np_id)
 
     def test_list_entity(self):
         """
@@ -125,12 +166,12 @@ class MaasAPITests(SynchronousTestCase):
         """
         test get entity
         """
-        eca = self.get_eca_objectIds()
-        req = request(self, self.root, "GET", self.uri+'/entities/'+eca['entity_id'], '')
+        ecan = self.get_ecan_objectIds()
+        req = request(self, self.root, "GET", self.uri+'/entities/'+ecan['entity_id'], '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_reposebody(resp)
-        self.assertEquals(eca['entity_id'], data['id'])
+        self.assertEquals(ecan['entity_id'], data['id'])
 
     def test_fail_get_entity(self):
         """
@@ -146,41 +187,41 @@ class MaasAPITests(SynchronousTestCase):
         """
         test get check
         """
-        eca = self.get_eca_objectIds()
+        ecan = self.get_ecan_objectIds()
         req = request(self, self.root, "GET",
-                      self.uri+'/entities/'+eca['entity_id']+'/checks/'+eca['check_id'], '')
+                      self.uri+'/entities/'+ecan['entity_id']+'/checks/'+ecan['check_id'], '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_reposebody(resp)
-        self.assertEquals(eca['check_id'], data['id'])
+        self.assertEquals(ecan['check_id'], data['id'])
 
     def test_get_checks_for_entity(self):
         """
         test get check
         """
-        eca = self.get_eca_objectIds()
+        ecan = self.get_ecan_objectIds()
         req = request(self, self.root, "GET",
-                      self.uri+'/entities/'+eca['entity_id']+'/checks', '')
+                      self.uri+'/entities/'+ecan['entity_id']+'/checks', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_reposebody(resp)
         self.assertEquals(1, data['metadata']['count'])
-        self.assertEquals(eca['check_id'], data['values'][0]['id'])
+        self.assertEquals(ecan['check_id'], data['values'][0]['id'])
 
     def test_update_entity(self):
         """
         update entity
         """
-        eca = self.get_eca_objectIds()
-        req = request(self, self.root, "GET", self.uri+'/entities/'+eca['entity_id'], '')
+        ecan = self.get_ecan_objectIds()
+        req = request(self, self.root, "GET", self.uri+'/entities/'+ecan['entity_id'], '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_reposebody(resp)
         data['label'] = 'Iamamwhoami'
-        req = request(self, self.root, "PUT", self.uri+'/entities/'+eca['entity_id'], json.dumps(data))
+        req = request(self, self.root, "PUT", self.uri+'/entities/'+ecan['entity_id'], json.dumps(data))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
-        req = request(self, self.root, "GET", self.uri+'/entities/'+eca['entity_id'], '')
+        req = request(self, self.root, "GET", self.uri+'/entities/'+ecan['entity_id'], '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_reposebody(resp)
@@ -190,20 +231,20 @@ class MaasAPITests(SynchronousTestCase):
         """
         update check
         """
-        eca = self.get_eca_objectIds()
+        ecan = self.get_ecan_objectIds()
         req = request(self, self.root, "GET",
-                      self.uri+'/entities/'+eca['entity_id']+'/checks/'+eca['check_id'], '')
+                      self.uri+'/entities/'+ecan['entity_id']+'/checks/'+ecan['check_id'], '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_reposebody(resp)
         data['label'] = 'Iamamwhoami'
         req = request(self, self.root, "PUT",
-                      self.uri+'/entities/'+eca['entity_id']+'/checks/'+eca['check_id'],
+                      self.uri+'/entities/'+ecan['entity_id']+'/checks/'+ecan['check_id'],
                       json.dumps(data))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
         req = request(self, self.root, "GET",
-                      self.uri+'/entities/'+eca['entity_id']+'/checks/'+eca['check_id'], '')
+                      self.uri+'/entities/'+ecan['entity_id']+'/checks/'+ecan['check_id'], '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_reposebody(resp)
@@ -213,14 +254,14 @@ class MaasAPITests(SynchronousTestCase):
         """
         update alarm
         """
-        eca = self.get_eca_objectIds()
+        ecan = self.get_ecan_objectIds()
         req = request(self, self.root, "GET", self.uri+'/views/overview', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         alarm = self.get_reposebody(resp)['values'][0]['alarms'][0]
         alarm['label'] = 'Iamamwhoami'
         req = request(self, self.root, "PUT",
-                      self.uri+'/entities/'+eca['entity_id']+'/alarms/'+eca['alarm_id'],
+                      self.uri+'/entities/'+ecan['entity_id']+'/alarms/'+ecan['alarm_id'],
                       json.dumps(alarm))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
@@ -234,9 +275,9 @@ class MaasAPITests(SynchronousTestCase):
         """
         delete alarm
         """
-        eca = self.get_eca_objectIds()
+        ecan = self.get_ecan_objectIds()
         req = request(self, self.root, "DELETE",
-                      self.uri+'/entities/'+eca['entity_id']+'/alarms/'+eca['alarm_id'], '')
+                      self.uri+'/entities/'+ecan['entity_id']+'/alarms/'+ecan['alarm_id'], '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
         req = request(self, self.root, "GET", self.uri+'/views/overview', '')
@@ -248,9 +289,9 @@ class MaasAPITests(SynchronousTestCase):
         """
         delete check
         """
-        eca = self.get_eca_objectIds()
+        ecan = self.get_ecan_objectIds()
         req = request(self, self.root, "DELETE",
-                      self.uri+'/entities/'+eca['entity_id']+'/checks/'+eca['check_id'], '')
+                      self.uri+'/entities/'+ecan['entity_id']+'/checks/'+ecan['check_id'], '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
         req = request(self, self.root, "GET", self.uri+'/views/overview', '')
@@ -264,9 +305,9 @@ class MaasAPITests(SynchronousTestCase):
         """
         delete entity
         """
-        eca = self.get_eca_objectIds()
+        ecan = self.get_ecan_objectIds()
         req = request(self, self.root, "DELETE",
-                      self.uri+'/entities/'+eca['entity_id'], '')
+                      self.uri+'/entities/'+ecan['entity_id'], '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
         req = request(self, self.root, "GET", self.uri+'/views/overview', '')
@@ -307,26 +348,26 @@ class MaasAPITests(SynchronousTestCase):
         """
         get available metrics
         """
-        eca = self.get_eca_objectIds()
+        ecan = self.get_ecan_objectIds()
         req = request(self, self.root, "GET", self.uri+'/views/metric_list', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_reposebody(resp)
-        self.assertEquals(eca['entity_id'], data['values'][0]['entity_id'])
-        self.assertEquals(eca['check_id'], data['values'][0]['checks'][0]['id'])
+        self.assertEquals(ecan['entity_id'], data['values'][0]['entity_id'])
+        self.assertEquals(ecan['check_id'], data['values'][0]['checks'][0]['id'])
 
     def test_multiplot(self):
         """
         get datapoints for graph
         """
-        eca = self.get_eca_objectIds()
+        ecan = self.get_ecan_objectIds()
         metrics = []
         req = request(self, self.root, "GET", self.uri+'/views/metric_list', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_reposebody(resp)
         for m in data['values'][0]['checks'][0]['metrics']:
-            mq = {'entity_id': eca['entity_id'], 'check_id': eca['check_id'], 'metric': m['name']}
+            mq = {'entity_id': ecan['entity_id'], 'check_id': ecan['check_id'], 'metric': m['name']}
             metrics.append(mq)
         qstring = '?from=1412902262560&points=500&to=1412988662560'
         req = request(self, self.root, "POST",
@@ -335,3 +376,116 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 200)
         data = self.get_reposebody(resp)
         self.assertEquals(500, len(data['metrics'][0]['data']))
+
+    def test_get_all_notification_plans(self):
+        """
+        get all notification plans
+        """
+        req = request(self, self.root, "GET", self.uri+'/notification_plans', '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_reposebody(resp)
+        self.assertEquals(2, data['metadata']['count'])
+
+    def test_get_notification_plan(self):
+        """
+        Get a specific notification plan
+        """
+        ecan = self.get_ecan_objectIds()
+        req = request(self, self.root, "GET", self.uri+'/notification_plans/'+ecan['np_id'], '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_reposebody(resp)
+        self.assertEquals(data['id'], ecan['np_id'])
+        req = request(self, self.root, "GET",
+                      self.uri+'/notification_plans/npTechnicalContactsEmail', '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_reposebody(resp)
+        self.assertEquals(data['id'], 'npTechnicalContactsEmail')
+
+    def test_get_all_notifications(self):
+        """
+        Get all notification targets
+        """
+        req = request(self, self.root, "GET", self.uri+'/notifications', '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_reposebody(resp)
+        self.assertEquals(2, data['metadata']['count'])
+
+    def test_update_notification(self):
+        """
+        Update a notification target
+        """
+        ecan = self.get_ecan_objectIds()
+        postdata = {'id': ecan['nt_id'], 'label': 'changed'}
+        req = request(self, self.root, "PUT", self.uri+'/notifications/'+ecan['nt_id'],
+                      json.dumps(postdata))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 204)
+        req = request(self, self.root, "GET", self.uri+'/notifications', '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_reposebody(resp)
+        mynt = None
+        for nt in data['values']:
+            if nt['id'] == ecan['nt_id']:
+                mynt = nt
+                break
+        self.assertNotEquals(None, mynt)
+        self.assertEquals('changed', mynt['label'])
+
+    def test_delete_notification(self):
+        """
+        Delete a notification target
+        """
+        ecan = self.get_ecan_objectIds()
+        req = request(self, self.root, "DELETE", self.uri+'/notifications/'+ecan['nt_id'], '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 204)
+        req = request(self, self.root, "GET", self.uri+'/notifications', '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_reposebody(resp)
+        mynt = None
+        for nt in data['values']:
+            if nt['id'] == ecan['nt_id']:
+                mynt = nt
+                break
+        self.assertEquals(None, mynt)
+
+    def test_update_notificationplan(self):
+        """
+        Update a notification plan
+        """
+        ecan = self.get_ecan_objectIds()
+        postdata = {'id': ecan['np_id'], 'label': 'changed'}
+        req = request(self, self.root, "PUT", self.uri+'/notification_plans/'+ecan['np_id'],
+                      json.dumps(postdata))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 204)
+        req = request(self, self.root, "GET", self.uri+'/notification_plans/'+ecan['np_id'], '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_reposebody(resp)
+        self.assertEquals('changed', data['label'])
+
+    def test_delete_notificationplan(self):
+        """
+        Delete a notification plan
+        """
+        ecan = self.get_ecan_objectIds()
+        req = request(self, self.root, "DELETE", self.uri+'/notifications/'+ecan['nt_id'], '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 204)
+        req = request(self, self.root, "GET", self.uri+'/notifications', '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_reposebody(resp)
+        mynt = None
+        for nt in data['values']:
+            if nt['id'] == ecan['nt_id']:
+                mynt = nt
+                break
+        self.assertEquals(None, mynt)

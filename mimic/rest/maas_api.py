@@ -170,10 +170,13 @@ def createAlarm(params):
 
 
 def createNotificationPlan(params):
+    """
+    Creates a notification plan
+    """
     for k in params.keys():
         if 'encode' in dir(params[k]):  # because there are integers sometimes.
             params[k] = params[k].encode('ascii')
-    params['id'] = params['label'] + ''.join(random.sample(string.letters + string.digits, 8))
+    params['id'] = 'np' + params['label'] + ''.join(random.sample(string.letters + string.digits, 8))
     params['critical_state'] = None
     params['warning_state'] = None
     params['ok_state'] = None
@@ -184,10 +187,13 @@ def createNotificationPlan(params):
 
 
 def createNotification(params):
+    """
+    Creates a notificatoin target
+    """
     for k in params.keys():
         if 'encode' in dir(params[k]):  # because there are integers sometimes.
             params[k] = params[k].encode('ascii')
-    params['id'] = params['label'] + ''.join(random.sample(string.letters + string.digits, 8))
+    params['id'] = 'nt' + params['label'] + ''.join(random.sample(string.letters + string.digits, 8))
     params['created_at'] = time.time()
     params['updated_at'] = time.time()
     params['metadata'] = None
@@ -595,11 +601,6 @@ class MaasMock(object):
         request.setHeader('content-type', 'text/plain')
         request.setHeader('location', myhostname_and_port + request.path + '/' + new_n['id'])
         request.setHeader('x-object-id', new_n['id'])
-        request.setHeader('x-ratelimit-limit', 50000)
-        request.setHeader('x-ratelimit-remaining', 49918)
-        request.setHeader('x-ratelimit-window', '24 hours')
-        request.setHeader('x-ratelimit-type', 'global')
-        request.setHeader('x-lb', 'ord1-maas-prod-api0')
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/notifications', methods=['GET'])
@@ -632,6 +633,9 @@ class MaasMock(object):
 
     @app.route('/v1.0/<string:tenant_id>/notifications/<string:n_id>', methods=['DELETE'])
     def delete_notification(self, request, tenant_id, n_id):
+        """
+        Delete a notification
+        """
         nlist = self._entity_cache_for_tenant(tenant_id).notifications_list
         for n in nlist:
             if n['id'] == n_id:
@@ -654,12 +658,6 @@ class MaasMock(object):
         request.setHeader('content-type', 'text/plain')
         request.setHeader('location', myhostname_and_port + request.path + '/' + newnp['id'])
         request.setHeader('x-object-id', newnp['id'])
-        request.setHeader('x-ratelimit-limit', 50000)
-        request.setHeader('x-ratelimit-remaining', 49918)
-        request.setHeader('x-ratelimit-window', '24 hours')
-        request.setHeader('x-ratelimit-type', 'global')
-        request.setHeader('x-lb', 'ord1-maas-prod-api0')
-        request.setHeader('content-type', 'text/plain')
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/notification_plans', methods=['GET'])
@@ -689,6 +687,9 @@ class MaasMock(object):
 
     @app.route('/v1.0/<string:tenant_id>/notification_plans/<string:np_id>', methods=['PUT'])
     def update_notification_plan(self, request, tenant_id, np_id):
+        """
+        Alter a notification plan
+        """
         postdata = json.loads(request.content.read())
         nplist = self._entity_cache_for_tenant(tenant_id).notificationplans_list
         for np in nplist:
@@ -703,6 +704,9 @@ class MaasMock(object):
 
     @app.route('/v1.0/<string:tenant_id>/notification_plans/<string:np_id>', methods=['DELETE'])
     def delete_notification_plan(self, request, tenant_id, np_id):
+        """
+        Remove a notifcation plan
+        """
         nplist = self._entity_cache_for_tenant(tenant_id).notificationplans_list
         for np in nplist:
             if np['id'] == np_id:
@@ -714,6 +718,9 @@ class MaasMock(object):
 
     @app.route('/v1.0/<string:tenant_id>/notification_types', methods=['GET'])
     def get_notification_types(self, request, tenant_id):
+        """
+        Get the types of notifications supported: pageduty,email,sms, etc
+        """
         ntlist = self._entity_cache_for_tenant(tenant_id).notificationtypes_list
         metadata = {'count': len(ntlist), 'limit': 100, 'marker': None, 'next_marker': None,
                     'next_href': None}
