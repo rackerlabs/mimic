@@ -401,7 +401,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         create_server_response = self.successResultOf(create_server)
         return create_server_response
 
-    def test_create_server_faiure(self):
+    def test_create_server_failure(self):
         """
         Test to verify :func:`create_server` fails with given error message
         and response code in the metadata.
@@ -415,6 +415,28 @@ class NovaAPINegativeTests(SynchronousTestCase):
         self.assertEquals(create_server_response_body['message'],
                           "Create server failure")
         self.assertEquals(create_server_response_body['code'], 500)
+
+    def test_create_server_failure_and_list_servers(self):
+        """
+        Test to verify :func:`create_server` fails with given error message
+        and response code in the metadata and does not actually create a server.
+        """
+        serverfail = {"message": "Create server failure", "code": 500}
+        metadata = {"create_server_failure": json.dumps(serverfail)}
+        create_server_response = self.create_server(metadata=metadata)
+        self.assertEquals(create_server_response.code, 500)
+        create_server_response_body = self.successResultOf(
+            treq.json_content(create_server_response))
+        self.assertEquals(create_server_response_body['message'],
+                          "Create server failure")
+        self.assertEquals(create_server_response_body['code'], 500)
+        # List servers
+        list_servers = request(self, self.root, "GET", self.uri + '/servers')
+        list_servers_response = self.successResultOf(list_servers)
+        self.assertEquals(list_servers_response.code, 200)
+        list_servers_response_body = self.successResultOf(
+            treq.json_content(list_servers_response))
+        self.assertEquals(list_servers_response_body['servers'], [])
 
     def test_server_in_building_state_for_specified_time(self):
         """
@@ -436,6 +458,15 @@ class NovaAPINegativeTests(SynchronousTestCase):
         get_server_response_body = self.successResultOf(
             treq.json_content(get_server_response))
         self.assertEquals(get_server_response_body['server']['status'], "BUILD")
+        # List server and verify the server is in BUILD status
+        list_servers = request(self, self.root, "GET", self.uri + '/servers/detail')
+        list_servers_response = self.successResultOf(list_servers)
+        self.assertEquals(list_servers_response.code, 200)
+        list_servers_response_body = self.successResultOf(
+            treq.json_content(list_servers_response))
+        self.assertEquals(len(list_servers_response_body['servers']), 1)
+        building_server = list_servers_response_body['servers'][0]
+        self.assertEquals(building_server['status'], "BUILD")
         # Time Passes...
         self.helper.clock.advance(2.0)
         # get server and verify status changed to active
