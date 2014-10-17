@@ -99,7 +99,7 @@ class SessionStore(object):
         self._tenant_to_token[session.tenant_id] = session.token
         return session
 
-    def session_for_token(self, token):
+    def session_for_token(self, token, tenant_id=None):
         """
         :param unicode token: An authentication token previously created by
             session_for_api_key or session_for_username_password.
@@ -112,9 +112,9 @@ class SessionStore(object):
         """
         if token in self._token_to_session:
             return self._token_to_session[token]
-        return self._new_session(token=token)
+        return self._new_session(token=token, tenant_id=tenant_id)
 
-    def session_for_api_key(self, username, api_key):
+    def session_for_api_key(self, username, api_key, tenant_id=None):
         """
         Create or return a :obj:`Session`.
 
@@ -125,7 +125,7 @@ class SessionStore(object):
         :rtype: Session
         """
         # One day, API keys will be different from passwords, but not today.
-        return self.session_for_username_password(username, api_key)
+        return self.session_for_username_password(username, api_key, tenant_id)
 
     def session_for_username_password(self, username, password,
                                       tenant_id=None):
