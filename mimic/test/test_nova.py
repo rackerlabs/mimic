@@ -20,7 +20,9 @@ class ResponseGenerationTests(SynchronousTestCase):
     def test_server_template(self):
         """
         :obj:`server_template` generates a JSON object representing an
-        individual Nova server.
+        individual Nova server.  This includes a dictionary for the ``image``
+        parameter that contains the ID and some links, if ``imageRef`` is
+        provided in the server info
         """
 
         input_server_info = {
@@ -118,6 +120,72 @@ class ResponseGenerationTests(SynchronousTestCase):
         }
         self.assertEquals(json.dumps(expectation, indent=2),
                           json.dumps(actual, indent=2))
+
+    def _test_server_template_without_image(self, input_server_info):
+        """
+        Helper function to test generation of a server template with an empty
+        image.
+        """
+        counter = itertools.count(1)
+
+        compute_service_uri_prefix = (
+            "http://mimic.example.com/services/region/compute/"
+        )
+
+        actual = server_template("some_tenant", input_server_info,
+                                 "some_server_id", "some_status",
+                                 "the_current_time",
+                                 lambda: next(counter),
+                                 compute_service_uri_prefix)
+
+        self.assertEquals("", actual['image'])
+
+    def test_server_template_with_blank_imageRef(self):
+        """
+        :obj:`server_template` generates a JSON object representing an
+        individual Nova server, but the ``image`` parameter is empty if
+        ``imageRef`` in the server info is blank.
+        """
+        self._test_server_template_without_image({
+            "flavorRef": "some_flavor",
+            "imageRef": "",
+            "name": "some_server_name",
+            "metadata": {
+                "some_key": "some_value",
+                "some_other_key": "some_other_value",
+            }
+        })
+
+    def test_server_template_with_null_imageRef(self):
+        """
+        :obj:`server_template` generates a JSON object representing an
+        individual Nova server, but the ``image`` parameter is empty if
+        ``imageRef`` in the server info is null.
+        """
+        self._test_server_template_without_image({
+            "flavorRef": "some_flavor",
+            "imageRef": None,
+            "name": "some_server_name",
+            "metadata": {
+                "some_key": "some_value",
+                "some_other_key": "some_other_value",
+            }
+        })
+
+    def test_server_template_with_no_imageRef(self):
+        """
+        :obj:`server_template` generates a JSON object representing an
+        individual Nova server, but the ``image`` parameter is empty if
+        no ``imageRef`` is provided in the server info.
+        """
+        self._test_server_template_without_image({
+            "flavorRef": "some_flavor",
+            "name": "some_server_name",
+            "metadata": {
+                "some_key": "some_value",
+                "some_other_key": "some_other_value",
+            }
+        })
 
 
 class NovaAPITests(SynchronousTestCase):
