@@ -458,7 +458,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         get_server_response_body = self.successResultOf(
             treq.json_content(get_server_response))
         self.assertEquals(get_server_response_body['server']['status'], "BUILD")
-        # List server and verify the server is in BUILD status
+        # List servers with details and verify the server is in BUILD status
         list_servers = request(self, self.root, "GET", self.uri + '/servers/detail')
         list_servers_response = self.successResultOf(list_servers)
         self.assertEquals(list_servers_response.code, 200)
