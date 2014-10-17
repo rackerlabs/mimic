@@ -268,6 +268,29 @@ class GetAuthTokenAPITests(SynchronousTestCase):
         self.assertEqual(token, session.token)
         self.assertEqual(tenant_id, session.tenant_id)
 
+    def test_response_has_user_admin_identity_role(self):
+        """
+        The JSON response for authenticate has the role `identity:user-admin`.
+        """
+        core = MimicCore(Clock(), [])
+        root = MimicRoot(core).app.resource()
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens",
+            {
+                "auth": {
+                    "passwordCredentials": {
+                        "username": "demoauthor",
+                        "password": "theUsersPassword"
+                    }
+
+                }
+            }
+        ))
+
+        self.assertEqual(200, response.code)
+        self.assertEqual(json_body['access']['user']['roles'], HARD_CODED_ROLES)
+
     def test_auth_accepts_tenant_name(self):
         """
         If "tenantName" is passed, the tenant specified is used instead of a

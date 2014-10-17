@@ -10,8 +10,9 @@ GLOBAL_MUTABLE_TOKEN_STORE = {}
 
 HARD_CODED_TOKEN = "fff73937db5047b8b12fc9691ea5b9e8"
 HARD_CODED_USER_ID = "10002"
-HARD_CODED_USER_NAME = "autoscaleaus"
-HARD_CODED_ROLES = [{"id": "1", "description": "Admin", "name": "Identity"}]
+HARD_CODED_USER_NAME = "mimictestuser"
+HARD_CODED_ROLES = [{"id": "3", "description": "User Admin Role.",
+                     "name": "identity:user-admin"}]
 
 
 def format_timestamp(dt):
