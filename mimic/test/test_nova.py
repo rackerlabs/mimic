@@ -118,8 +118,7 @@ class ResponseGenerationTests(SynchronousTestCase):
             "updated": "the_current_time",
             "user_id": "170454"
         }
-        self.assertEquals(json.dumps(expectation, indent=2),
-                          json.dumps(actual, indent=2))
+        self.assertEquals(expectation, actual)
 
     def _test_server_template_without_image(self, input_server_info):
         """
