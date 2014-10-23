@@ -6,6 +6,8 @@ Defines create, delete, get, list servers and get images and flavors.
 from uuid import uuid4
 import json
 import collections
+import re
+from itertools import cycle
 from datetime import datetime
 from random import randrange
 
@@ -126,10 +128,15 @@ class NovaInjector(object):
         """
         nova_session = (self._session_store
                         .session_for_tenant_id(tenant_id)
-                        .data_for_api(self._injection_api._nova_api,
-                                      S_Cache))
+                        .data_for_api(
+                            self._injection_api._nova_api,
+                            lambda: collections.defaultdict(S_Cache))
+        )[self._region]
         payload = json.loads(request.content.read())
-        return json.dumps({}).encode("ascii")
+        matcher = NovaMatcher.from_inject_json(payload)
+        nova_session.add_matcher(matcher)
+        request.setResponseCode(201)
+        return b""
 
 
 def _list_servers(request, tenant_id, s_cache, details=False):
@@ -145,6 +152,94 @@ def _list_servers(request, tenant_id, s_cache, details=False):
     return json.dumps(response_data[0])
 
 
+
+class DefaultNovaReaction(object):
+    """
+    
+    """
+
+    def response_for_creation(self, new_server_info):
+        """
+        
+        """
+        response_json = {
+            'server': {
+                "OS-DCF:diskConfig": new_server_info['OS-DCF:diskConfig'],
+                "id": new_server_info['id'],
+                "links": new_server_info['links'],
+                "adminPass": "testpassword"
+            }
+        }
+        return CreationResponse(response_json, 202)
+
+
+
+class CustomNovaReaction(object):
+    """
+    A reaction to a server-creation request.
+    """
+
+    def __init__(self, create_response):
+        """
+        
+        """
+        self._create_response = create_response
+
+    @classmethod
+    def from_json(cls, reaction_json):
+        """
+        
+        """
+        return cls(reaction_json.get("create_response"))
+
+    def response_for_creation(self, new_server_info):
+        """
+        
+        """
+        if self._create_response is None:
+            return DefaultNovaReaction().response_for_creation(new_server_info)
+        else:
+            return CreationResponse(self._create_response["body"]["replace"],
+                                    self._create_response["code"])
+
+
+
+class NovaMatcher(object):
+    """
+    
+    """
+
+    def __init__(self, name_re, reactions):
+        """
+        
+        """
+        self._name_re = re.compile(name_re)
+        self._reactions = cycle(reactions)
+
+    @classmethod
+    def from_inject_json(cls, inject_json):
+        """
+        
+        """
+        name_re = inject_json["match"]["name"]
+        return cls(name_re, [
+            CustomNovaReaction.from_json(reaction) for reaction in
+            inject_json["reactions"]]
+        )
+
+    def does_match(self, server_request):
+        """
+        
+        """
+        return self._name_re.match(server_request['name'])
+
+    def next_reaction(self):
+        """
+        
+        """
+        return next(self._reactions)
+
+
 class S_Cache(dict):
     """
     Sketch: A replacement for s_cache-as-dictionary,
@@ -153,6 +248,58 @@ class S_Cache(dict):
     canned_responses module that expects dumb data structures rather than a
     structured object.
     """
+
+    def __init__(self):
+        """
+        
+        """
+        self._matchers = []
+
+    def add_matcher(self, matcher):
+        """
+        
+        """
+        self._matchers.append(matcher)
+
+    def create_server(self, server_id, new_server_info):
+        """
+        Create a server, returning a :obj:`CreationResponse` that indicates the
+        JSON body and HTTP response code.
+        """
+        self[server_id] = new_server_info
+        for matcher in self._matchers:
+            if matcher.does_match(new_server_info):
+                reaction = matcher.next_reaction()
+                break
+        else:
+            reaction = DefaultNovaReaction()
+
+        return reaction.response_for_creation(new_server_info)
+
+
+class CreationResponse(object):
+    """
+    A response to a server creation request.
+
+    :ivar json: 
+    :type json: 
+
+    :ivar code: 
+    :type code: 
+    """
+
+    def __init__(self, json, code):
+        """
+        
+
+        :param json: 
+        :type json: 
+
+        :param code: 
+        :type code: 
+        """
+        self.json = json
+        self.code = code
 
 
 class NovaRegion(object):
@@ -290,3 +437,4 @@ class NovaRegion(object):
         )
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
+

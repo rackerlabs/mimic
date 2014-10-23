@@ -116,22 +116,15 @@ def create_server(tenant_id, server_info, server_id, compute_uri_prefix,
         if 'server_error' in server_info['metadata']:
             status = "ERROR"
 
-    s_cache[server_id] = server_template(
-        tenant_id, server_info, server_id, status,
-        compute_uri_prefix=compute_uri_prefix,
-        current_time=current_time
+    creation_response = s_cache.create_server(
+        server_id,
+        server_template(
+            tenant_id, server_info, server_id, status,
+            compute_uri_prefix=compute_uri_prefix,
+            current_time=current_time
+        )
     )
-    return (
-        {
-            'server': {
-                "OS-DCF:diskConfig": s_cache[server_id]['OS-DCF:diskConfig'],
-                "id": s_cache[server_id]['id'],
-                "links": s_cache[server_id]['links'],
-                "adminPass": "testpassword"
-            }
-        },
-        202
-    )
+    return creation_response.json, creation_response.code
 
 
 def get_server(server_id, s_cache, current_timestamp):
