@@ -6,9 +6,9 @@ from setuptools import setup, find_packages
 
 setup(
     name='mimic',
-    version='1.1.0',
+    version='1.1.1',
     description='An API-compatible mock service',
-    packages=find_packages(exclude=[]),
+    packages=find_packages(exclude=[]) + ["twisted.plugins"],
     package_dir={'mimic': 'mimic'},
     install_requires=[
         "characteristic==14.1.0",
