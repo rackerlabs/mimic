@@ -91,8 +91,6 @@ node, for 20 seconds:
 
 `{"loadBalancer": {"name": "a-new-loadbalancer2", "protocol": "HTTP", "virtualIps": [{"type": "PUBLIC"}], "metadata": [{"key": "lb_pending_update", "value": 20}], "nodes": []}}`
 
-
-
 ## Mimic does not: ##
 * support XML
 * validate the auth token
@@ -103,3 +101,8 @@ node, for 20 seconds:
 3. `pip install -r requirements.txt` from within the mimic folder (if there is a gcc error, `apt-get install python-dev`)
 4. cd into mimic or add the mimic to the PYTHONPATH and run `twistd -n mimic`
 
+## Running Mimic on Docker ##
+
+The repository root has a `Dockerfile` that does what you want. It exposes the default Mimic port
+
+To play around with Mimic locally, try: `docker build -t mimic . && docker run mimic`.
