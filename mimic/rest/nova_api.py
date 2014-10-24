@@ -65,15 +65,16 @@ class NovaApi(object):
                 .app.resource())
 
 
-def _list_servers(request, tenant_id, s_cache, details=False):
+def _list_servers(request, tenant_id, s_cache, details=False, current_timestamp=None):
     """
     Return a list of servers, possibly filtered by name, possibly with details
     """
     server_name = None
     if 'name' in request.args:
         server_name = request.args['name'][0]
-    response_data = list_server(tenant_id, s_cache, server_name,
-                                details=details)
+    response_data = list_server(tenant_id, s_cache, name=server_name,
+                                details=details,
+                                current_timestamp=current_timestamp)
     request.setResponseCode(response_data[1])
     return json.dumps(response_data[0])
 
@@ -156,7 +157,8 @@ class NovaRegion(object):
         name.
         """
         return _list_servers(request, tenant_id,
-                             s_cache=self._server_cache_for_tenant(tenant_id))
+                             s_cache=self._server_cache_for_tenant(tenant_id),
+                             current_timestamp=self._session_store.clock.seconds())
 
     @app.route('/v2/<string:tenant_id>/servers/detail', methods=['GET'])
     def list_servers_with_details(self, request, tenant_id):
@@ -165,7 +167,8 @@ class NovaRegion(object):
         such as the metadata.
         """
         return _list_servers(request, tenant_id, details=True,
-                             s_cache=self._server_cache_for_tenant(tenant_id))
+                             s_cache=self._server_cache_for_tenant(tenant_id),
+                             current_timestamp=self._session_store.clock.seconds())
 
     @app.route('/v2/<string:tenant_id>/servers/<string:server_id>', methods=['DELETE'])
     def delete_server(self, request, tenant_id, server_id):

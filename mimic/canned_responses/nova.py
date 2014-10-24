@@ -146,8 +146,8 @@ def get_server(server_id, s_cache, current_timestamp):
         return not_found_response(), 404
 
 
-def list_server(tenant_id, s_cache, name=None, details=True,
-                current_timestamp=None):
+def list_server(tenant_id, s_cache, name=None,
+                details=True, current_timestamp=None):
     """
     Return a list of all servers in the server cache with the given tenant_id
     """
