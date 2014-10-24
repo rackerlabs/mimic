@@ -7,7 +7,7 @@ from twisted.trial.unittest import SynchronousTestCase
 
 from mimic.canned_responses.nova import server_template
 from mimic.test.helpers import json_request, request
-from mimic.rest.nova_api import NovaApi
+from mimic.rest.nova_api import NovaApi, NovaInjectionApi
 from mimic.test.fixtures import APIMockHelper
 
 
@@ -131,31 +131,107 @@ class NovaAPITests(SynchronousTestCase):
         Create a :obj:`MimicCore` with :obj:`NovaApi` as the only plugin,
         and create a server
         """
-        helper = APIMockHelper(self, [NovaApi(["ORD", "MIMIC"])])
+        nova_api = NovaApi(["ORD", "MIMIC"])
+        helper = APIMockHelper(self, [nova_api, NovaInjectionApi(nova_api)])
+        self.helper = helper
         self.root = helper.root
         self.uri = helper.uri
         self.server_name = 'test_server'
+        self.nth_endpoint_public = helper.nth_endpoint_public
+        self.server_id = self.create_one_server().parsed_body['server']['id']
+
+    def create_one_server(self, server_name=None):
+        """
+        Create a server with the given name.
+        """
+        if server_name is None:
+            server_name = self.server_name
         create_server = request(
             self, self.root, "POST", self.uri + '/servers',
-            json.dumps({
-                "server": {
-                    "name": self.server_name,
-                    "imageRef": "test-image",
-                    "flavorRef": "test-flavor"
-                }
-            }))
-        self.create_server_response = self.successResultOf(create_server)
-        create_server_response_body = self.successResultOf(
-            treq.json_content(self.create_server_response))
-        self.server_id = create_server_response_body['server']['id']
-        self.nth_endpoint_public = helper.nth_endpoint_public
+            json.dumps({"server": {
+                "name": server_name,
+                "imageRef": "test-image",
+                "flavorRef": "test-flavor"
+            }})
+        )
+        create_server_response = self.successResultOf(create_server)
+        def json_content(json_d):
+            data = self.successResultOf(treq.content(json_d))
+            try:
+                return json.loads(data)
+            except ValueError:
+                print("payload", data)
+        create_server_response.parsed_body = json_content(create_server_response)
+        return create_server_response
 
     def test_create_server(self):
         """
         Test to verify :func:`create_server` on ``POST /v2.0/<tenant_id>/servers``
         """
-        self.assertEqual(self.create_server_response.code, 202)
-        self.assertTrue(type(self.server_id), unicode)
+        response = self.create_one_server()
+        self.assertEqual(response.code, 202)
+        self.assertTrue(response.parsed_body['server']['id'], unicode)
+
+    def test_create_server_with_specified_error(self):
+        """
+        ``POST /nova-injection/v1.0/<tenant_id>``
+        """
+        instruction = {
+            # "matcher" specifies what this injected response should match; in
+            # this case, servers with names starting with "foo"
+            "match": {
+                "name": "foo.*",
+            },
+            # "create_response" specifies what the HTTP response to the
+            # creation should be.  (This does not affect the _behavior_ of
+            # creation, i.e. that Mimic's internal state reflects a server got
+            # created.)
+            "reactions": [
+                {
+                    "create_response": {
+                        "code": 503,
+                        "body": {
+                            # "replace" here means "replace the JSON returned
+                            # in the body" as oppposed to "add these JSON keys
+                            # to the object returned in the body" or "delete
+                            # these JSON keys from the response returned in the
+                            # body".
+                            "replace": {
+                                "hello": "world"
+                            }
+                        }
+                    },
+                    # "behavior": "no_dont_create_it",
+                    # "get_responses": [
+                    #     {"code": 503, ...}
+                    # ]
+                },
+                {}
+            ],
+        }
+        injector = self.helper.get_service_endpoint('mimicCompute')
+        inject = request(self, self.root, "POST", injector,
+                         json.dumps(instruction))
+        inject_response = self.successResultOf(inject)
+        self.assertEqual(inject_response.code, 201)
+        inject_response_body = self.successResultOf(
+            treq.content(inject_response))
+        self.assertEqual(inject_response_body, "")
+        response = self.create_one_server("bar-server")
+        self.assertEqual(response.code, 202)
+        # make sure it's using 'match' and not 'search' or 'find'
+        response = self.create_one_server("bar-foo-server")
+        self.assertEqual(response.code, 202)
+        response = self.create_one_server("foo-server")
+        self.assertEqual(response.code, 503)
+        self.assertEqual(response.parsed_body, {"hello": "world"})
+        response = self.create_one_server("foo-server")
+        self.assertEqual(response.code, 202)
+        self.assertIsNot(response.parsed_body.get("server"), None)
+        response = self.create_one_server("foo-2")
+        self.assertEqual(response.code, 503)
+        self.assertEqual(response.parsed_body, {"hello": "world"})
+
 
     def test_list_servers(self):
         """
