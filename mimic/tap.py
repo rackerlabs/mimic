@@ -22,8 +22,9 @@ def makeService(config):
     Set up the otter-api service.
     """
     s = MultiService()
-    core = MimicCore.fromPlugins(Clock())
-    root = MimicRoot(core)
+    clock = Clock()
+    core = MimicCore.fromPlugins(clock)
+    root = MimicRoot(core, clock)
     site = Site(root.app.resource())
     site.displayTracebacks = False
     service(config['listen'], site).setServiceParent(s)
