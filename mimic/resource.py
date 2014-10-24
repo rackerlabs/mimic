@@ -35,7 +35,7 @@ class MimicRoot(object):
         """
         request.responseHeaders.setRawHeaders("content-type", ["text/plain"])
         return ("To get started with Mimic, POST an authentication request to:"
-                "\n\n/identity/v2.0/tokens")
+                "\n\n/identity/v2.0/tokens\n")
 
     @app.route("/identity", branch=True)
     def get_auth_api(self, request):
