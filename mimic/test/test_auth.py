@@ -431,8 +431,8 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
 
     def test_get_token_and_catalog_for_password_credentials(self):
         """
-        The service catalog should be returned when password credentials are supplied
-        for authentication
+        The response returned should include the password credentials that were supplied
+        during authentication
         """
         core = MimicCore(Clock(), [ExampleAPI()])
         root = MimicRoot(core).app.resource()
@@ -459,8 +459,8 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
 
     def test_get_token_and_catalog_for_api_credentials(self):
         """
-        The service catalog should be returned when api_key credentials are supplied
-        for authentication
+        The response returned should include the credentials that were supplied
+        during authentication
         """
         core = MimicCore(Clock(), [ExampleAPI()])
         root = MimicRoot(core).app.resource()
@@ -487,8 +487,8 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
 
     def test_get_token_and_catalog_for_token_credentials(self):
         """
-        The service catalog should be returned when token and tenant_id are supplied
-        as credentials for authentication
+        The response returned should include the credentials that were supplied
+        during authentication
         """
         core = MimicCore(Clock(), [ExampleAPI()])
         root = MimicRoot(core).app.resource()
