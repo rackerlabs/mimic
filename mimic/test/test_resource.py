@@ -147,3 +147,26 @@ class RootAndPresetTests(SynchronousTestCase):
         self.assertEqual(['application/json'],
                          response.headers.getRawHeaders('content-type'))
         self.assertEqual(get_presets, json_content)
+
+
+    def test_tick(self):
+        """
+        ``/mimic/v1.1/tick`` (handled by :func:`MimicRoot.advance_time`)
+        advances the clock associated with the service.
+        """
+        clock = Clock()
+        def do():
+            do.done = True
+        do.done = False
+        clock.callLater(3.5, do)
+        core = MimicCore(clock, [])
+        root = MimicRoot(core, clock).app.resource()
+        self.assertEqual(do.done, False)
+        jreq = json_request(
+            self, root, "POST", "/mimic/v1.1/tick", body={"amount": 3.6}
+        )
+        [response, json_content] = self.successResultOf(jreq)
+        self.assertEqual(response.code, 200)
+        self.assertEqual(json_content, {"tock": 3.6})
+        self.assertEqual(do.done, True)
+
