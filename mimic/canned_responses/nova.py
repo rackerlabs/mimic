@@ -25,7 +25,7 @@ def server_template(tenant_id, server_info, server_id, status, current_time,
         "OS-DCF:diskConfig": "AUTO",
         "OS-EXT-STS:power_state": 1,
         "OS-EXT-STS:task_state": None,
-        "OS-EXT-STS:vm_state": "active",
+        "OS-EXT-STS:vm_state": status,
         "accessIPv4": "198.101.241.238",
         "accessIPv6": "2001:4800:780e:0510:d87b:9cbc:ff04:513a",
         "key_name": None,
@@ -212,9 +212,8 @@ def get_image(image_id, s_cache):
             image_id in get_presets['servers']['invalid_image_ref'] or
             image_id.endswith('Z')
     ):
-        return (invalid_resource('Invalid imageRef provided.', 400),
-                400)
-    return {'image': {'status': 'ACTIVE', 'id': image_id}}, 200
+        return not_found_response('images'), 404
+    return {'image': {'status': 'ACTIVE', 'id': image_id, 'name': 'mimic-test-image'}}, 200
 
 
 def get_flavor(flavor_id, s_cache):
@@ -223,10 +222,10 @@ def get_flavor(flavor_id, s_cache):
     The flavor id provided is substituted in the response
     """
     if flavor_id in get_presets['servers']['invalid_flavor_ref']:
-        return (invalid_resource('Invalid flavorRef provided.', 400),
-                400)
+        return not_found_response('flavors'), 404
     return ({'flavor': {'name': '512MB Standard Instance',
-                        'id': flavor_id}},
+                        'id': flavor_id,
+                        'name': 'mimic-test-flavor'}},
             200)
 
 

@@ -49,7 +49,7 @@ class ResponseGenerationTests(SynchronousTestCase):
             "OS-DCF:diskConfig": "AUTO",
             "OS-EXT-STS:power_state": 1,
             "OS-EXT-STS:task_state": None,
-            "OS-EXT-STS:vm_state": "active",
+            "OS-EXT-STS:vm_state": "some_status",
             "accessIPv4": "198.101.241.238",
             "accessIPv6": "2001:4800:780e:0510:d87b:9cbc:ff04:513a",
             "key_name": None,
@@ -509,7 +509,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         get_server_image = request(self, self.root, "GET", self.uri +
                                    '/images/test-image-idZ')
         get_server_image_response = self.successResultOf(get_server_image)
-        self.assertEqual(get_server_image_response.code, 400)
+        self.assertEqual(get_server_image_response.code, 404)
 
     def test_get_server_flavor(self):
         """
@@ -519,4 +519,4 @@ class NovaAPINegativeTests(SynchronousTestCase):
         get_server_flavor = request(self, self.root, "GET", self.uri +
                                     '/flavors/1')
         get_server_flavor_response = self.successResultOf(get_server_flavor)
-        self.assertEqual(get_server_flavor_response.code, 400)
+        self.assertEqual(get_server_flavor_response.code, 404)
