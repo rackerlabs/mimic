@@ -52,6 +52,17 @@ class MimicRoot(object):
         request.setResponseCode(200)
         return json.dumps(get_presets)
 
+    @app.route("/mimic/v1.1/tick", methods=['POST'])
+    def advance_time(self, request):
+        """
+        Advance time by the given number of seconds.
+        """
+        body = json.loads(request.content.read())
+        amount = body['amount']
+        self.clock.advance(amount)
+        request.setResponseCode(200)
+        return json.dumps({"tock": amount})
+
     @app.route("/mimicking/<string:service_id>/<string:region_name>",
                branch=True)
     def get_service_resource(self, request, service_id, region_name):
