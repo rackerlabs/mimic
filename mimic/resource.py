@@ -18,12 +18,15 @@ class MimicRoot(object):
 
     app = MimicApp()
 
-    def __init__(self, core):
+    def __init__(self, core, clock=None):
         """
         :param mimic.core.MimicCore core: The core object to dispatch routes
             from.
+        :param twisted.internet.task.Clock clock: The clock to advance from the
+            ``/mimic/v1.1/tick`` API.
         """
         self.core = core
+        self.clock = clock
 
     @app.route("/", methods=["GET"])
     def help(self, request):
