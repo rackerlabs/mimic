@@ -10,6 +10,7 @@ from twisted.python.urlpath import URLPath
 from mimic.canned_responses.auth import get_token, get_endpoints
 from mimic.rest.mimicapp import MimicApp
 from mimic.canned_responses.auth import format_timestamp
+from mimic.util.helper import invalid_resource
 
 Request.defaultContentType = 'application/json'
 
@@ -35,12 +36,24 @@ class AuthApi(object):
         token.
         """
         content = json.loads(request.content.read())
-        # tenant_id = content['auth'].get('tenantName', None)
-        credentials = content['auth']['passwordCredentials']
-        session = self.core.sessions.session_for_username_password(
-            credentials['username'], credentials['password'],
-            content['auth'].get('tenantName', None),
-        )
+        tenant_id = (content['auth'].get('tenantName', None) or
+                     content['auth'].get('tenantId', None))
+        if content['auth'].get('passwordCredentials'):
+            username = content['auth']['passwordCredentials']['username']
+            password = content['auth']['passwordCredentials']['password']
+            session = self.core.sessions.session_for_username_password(
+                username, password, tenant_id)
+        elif content['auth'].get('RAX-KSKEY:apiKeyCredentials'):
+            username = content['auth']['RAX-KSKEY:apiKeyCredentials']['username']
+            api_key = content['auth']['RAX-KSKEY:apiKeyCredentials']['apiKey']
+            session = self.core.sessions.session_for_api_key(
+                username, api_key, tenant_id)
+        elif content['auth'].get('token') and tenant_id:
+            session = self.core.sessions.session_for_token(
+                content['auth']['token']['id'], tenant_id)
+        else:
+            request.setResponseCode(400)
+            return json.dumps(invalid_resource("Invalid JSON request body"))
         request.setResponseCode(200)
         prefix_map = {
             # map of entry to URI prefix for that entry
