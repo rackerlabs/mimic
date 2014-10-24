@@ -167,6 +167,10 @@ class RootAndPresetTests(SynchronousTestCase):
         )
         [response, json_content] = self.successResultOf(jreq)
         self.assertEqual(response.code, 200)
-        self.assertEqual(json_content, {"tock": 3.6})
+        expected = {
+            'advanced': 3.6,
+            'now': '1970-01-01T00:00:03.600000Z',
+        }
+        self.assertEqual(json_content, expected)
         self.assertEqual(do.done, True)
 

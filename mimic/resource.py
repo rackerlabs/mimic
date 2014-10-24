@@ -3,12 +3,14 @@ Resources for Mimic's core.
 """
 
 import json
+from datetime import datetime
 
 from twisted.web.resource import NoResource
 
 from mimic.canned_responses.mimic_presets import get_presets
 from mimic.rest.mimicapp import MimicApp
 from mimic.rest.auth_api import AuthApi, base_uri_from_request
+from mimic.util.helper import fmt
 
 
 class MimicRoot(object):
@@ -61,7 +63,11 @@ class MimicRoot(object):
         amount = body['amount']
         self.clock.advance(amount)
         request.setResponseCode(200)
-        return json.dumps({"tock": amount})
+        return json.dumps({
+            "advanced": amount,
+            "now": (datetime.utcfromtimestamp(self.clock.seconds())
+                    .strftime(fmt))
+        })
 
     @app.route("/mimicking/<string:service_id>/<string:region_name>",
                branch=True)
