@@ -65,7 +65,7 @@ class NovaApi(object):
                 .app.resource())
 
 
-def _list_servers(request, tenant_id, s_cache, current_timestamp, details=False):
+def _list_servers(request, tenant_id, s_cache, details=False, current_timestamp=None):
     """
     Return a list of servers, possibly filtered by name, possibly with details
     """
