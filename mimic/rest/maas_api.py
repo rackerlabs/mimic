@@ -109,19 +109,14 @@ def createEntity(params):
     params = collections.defaultdict(lambda: '', params)
     newentity = {}
     newentity['label'] = params[u'label'].encode("ascii")
-    newentity['id'] = newentity['label'] + ''.join(random.sample(string.letters + string.digits, 8))
+    newentity['id'] = 'e' + ''.join(random.sample(string.letters + string.digits, 8))
     newentity['agent_id'] = params['agent_id'] or ''.join(
         random.sample(string.letters + string.digits, 24))
     newentity['created_at'] = time.time()
     newentity['updated_at'] = time.time()
     newentity['managed'] = params['managed']
     newentity['metadata'] = params['metadata']
-    newentity['ip_addresses'] = (params['ip_addresses'] or
-                                 {'access_ip0_v6': '2001: 4800: 7812: 0514: 6eaf: ff05: 93d7',
-                                  'access_ip1_v4': '133.713.371.337',
-                                  'private0_v4': '10.177.177.12',
-                                  'public0_v6': '2001: 4800: 7812: 0514: 6eaf: ff05: 93d7',
-                                  'public1_v4': '166.78.78.19'})
+    newentity['ip_addresses'] = params['ip_addresses'] or {}
     return newentity
 
 
@@ -133,7 +128,7 @@ def createCheck(params):
     for k in params.keys():
         if 'encode' in dir(params[k]):
             params[k] = params[k].encode('ascii')
-    params['id'] = params['label'] + ''.join(random.sample(string.letters + string.digits, 8))
+    params['id'] = 'c' + ''.join(random.sample(string.letters + string.digits, 8))
     params['collectors'] = []
     for q in range(3):
         params['collectors'].append('co'.join(random.sample(string.letters + string.digits, 6)))
@@ -159,7 +154,7 @@ def createAlarm(params):
     for k in params.keys():
         if 'encode' in dir(params[k]):
             params[k] = params[k].encode('ascii')
-    params['id'] = params['label'] + ''.join(random.sample(string.letters + string.digits, 6))
+    params['id'] = 'al' + ''.join(random.sample(string.letters + string.digits, 6))
     params['confd_hash'] = None
     params['confd_name'] = None
     params['created_at'] = time.time()
@@ -176,7 +171,7 @@ def createNotificationPlan(params):
     for k in params.keys():
         if 'encode' in dir(params[k]):  # because there are integers sometimes.
             params[k] = params[k].encode('ascii')
-    params['id'] = 'np' + params['label'] + ''.join(random.sample(string.letters + string.digits, 8))
+    params['id'] = 'np' + ''.join(random.sample(string.letters + string.digits, 8))
     params['critical_state'] = None
     params['warning_state'] = None
     params['ok_state'] = None
@@ -193,7 +188,7 @@ def createNotification(params):
     for k in params.keys():
         if 'encode' in dir(params[k]):  # because there are integers sometimes.
             params[k] = params[k].encode('ascii')
-    params['id'] = 'nt' + params['label'] + ''.join(random.sample(string.letters + string.digits, 8))
+    params['id'] = 'nt' + ''.join(random.sample(string.letters + string.digits, 8))
     params['created_at'] = time.time()
     params['updated_at'] = time.time()
     params['metadata'] = None
@@ -263,6 +258,7 @@ class MaasMock(object):
     """
     Klein routes for the Monitoring API.
     """
+
     def __init__(self, api_mock, uri_prefix, session_store, name):
         """
         Create a maas region with a given URI prefix (used for generating URIs
@@ -282,6 +278,14 @@ class MaasMock(object):
                 )
 
     app = MimicApp()
+
+    @app.route('/v1.0/<string:tenant_id>/mimic/reset', methods=['GET'])
+    def doreset(self, request, tenant_id):
+        """
+        Reset the session
+        """
+        self._session_store.session_for_tenant_id(tenant_id)._api_objects = {}
+        return "Session has been reset for tenant_id "+tenant_id
 
     @app.route('/v1.0/<string:tenant_id>/entities', methods=['GET'])
     def list_entities(self, request, tenant_id):

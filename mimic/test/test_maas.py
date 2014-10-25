@@ -491,8 +491,31 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(None, mynp)
 
     def test_get_notificationtypes(self):
+        """
+        Get notification types
+        """
         req = request(self, self.root, "GET", self.uri+'/notification_types', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_reposebody(resp)
         self.assertEquals(4, data['metadata']['count'])
+
+    def test_reset_session(self):
+        """
+        Reset session, remove all objects
+        """
+        req = request(self, self.root, "GET", self.uri+'/entities', '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_reposebody(resp)
+        self.assertEquals(data['metadata']['count'], 1)
+
+        req = request(self, self.root, "GET", self.uri+'/mimic/reset', '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+
+        req = request(self, self.root, "GET", self.uri+'/entities', '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_reposebody(resp)
+        self.assertEquals(data['metadata']['count'], 0)
