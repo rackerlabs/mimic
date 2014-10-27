@@ -258,12 +258,12 @@ class MaasMock(object):
     """
     Klein routes for the Monitoring API.
     """
-
     def __init__(self, api_mock, uri_prefix, session_store, name):
         """
         Create a maas region with a given URI prefix (used for generating URIs
         to servers).
         """
+        self.endpoint_port = '80'
         self.uri_prefix = uri_prefix
         self._api_mock = api_mock
         self._session_store = session_store
@@ -308,7 +308,7 @@ class MaasMock(object):
         Creates a new entity
         """
         postdata = json.loads(request.content.read())
-        myhostname_and_port = 'http://' + request.getRequestHostname() + ":8900"
+        myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         newentity = createEntity({'label': postdata[u'label'].encode('ascii')})
         self._entity_cache_for_tenant(tenant_id).entities_list.append(newentity)
         request.setResponseCode(201)
@@ -370,7 +370,7 @@ class MaasMock(object):
                 del self._entity_cache_for_tenant(tenant_id).entities_list[q]
                 self._entity_cache_for_tenant(tenant_id).entities_list.append(newentity)
                 break
-        myhostname_and_port = 'http://' + request.getRequestHostname() + ":8900"
+        myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         request.setResponseCode(204)
         request.setHeader('location', myhostname_and_port + request.path + '/' + newentity['id'])
         request.setHeader('x-object-id', newentity['id'])
@@ -404,7 +404,7 @@ class MaasMock(object):
         Create a check
         """
         postdata = json.loads(request.content.read())
-        myhostname_and_port = 'http://' + request.getRequestHostname() + ":8900"
+        myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         newcheck = createCheck(postdata)
         newcheck['entity_id'] = entity_id
         self._entity_cache_for_tenant(tenant_id).checks_list.append(newcheck)
@@ -445,7 +445,7 @@ class MaasMock(object):
                 del checks[q]
                 checks.append(newcheck)
                 break
-        myhostname_and_port = 'http://' + request.getRequestHostname() + ":8900"
+        myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         request.setResponseCode(204)
         request.setHeader('location', myhostname_and_port + request.path + '/' + newcheck['id'])
         request.setHeader('x-object-id', newcheck['id'])
@@ -477,7 +477,7 @@ class MaasMock(object):
         Creates alarm
         """
         postdata = json.loads(request.content.read())
-        myhostname_and_port = 'http://' + request.getRequestHostname() + ":8900"
+        myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         newalarm = createAlarm(postdata)
         newalarm['entity_id'] = entity_id
         self._entity_cache_for_tenant(tenant_id).alarms_list.append(newalarm)
@@ -506,7 +506,7 @@ class MaasMock(object):
                 del alarms[q]
                 alarms.append(newalarm)
                 break
-        myhostname_and_port = 'http://' + request.getRequestHostname() + ":8900"
+        myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         request.setResponseCode(204)
         request.setHeader('location', myhostname_and_port + request.path + '/' + newalarm['id'])
         request.setHeader('x-object-id', newalarm['id'])
@@ -572,7 +572,7 @@ class MaasMock(object):
         """
         cache = self._entity_cache_for_tenant(tenant_id)
         request.setResponseCode(200)
-        myhostname_and_port = request.getRequestHostname() + ":8900"
+        myhostname_and_port = request.getRequestHostname() + ':' + self.endpoint_port
         mockapi_id = re.findall('/mimicking/(.+?)/', request.path)[0]
         return json.dumps(cache.json_home)\
             .replace('.com/v1.0', '.com/mimicking/' + mockapi_id + '/ORD/v1.0')\
@@ -598,7 +598,7 @@ class MaasMock(object):
         """
         Create notification target
         """
-        myhostname_and_port = 'http://' + request.getRequestHostname() + ":8900"
+        myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         new_n = createNotification(json.loads(request.content.read()))
         self._entity_cache_for_tenant(tenant_id).notifications_list.append(new_n)
         request.setResponseCode(201)
@@ -655,7 +655,7 @@ class MaasMock(object):
         Creates a new notificationPlans
         """
         postdata = json.loads(request.content.read())
-        myhostname_and_port = 'http://' + request.getRequestHostname() + ":8900"
+        myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         newnp = createNotificationPlan({'label': postdata[u'label'].encode('ascii')})
         self._entity_cache_for_tenant(tenant_id).notificationplans_list.append(newnp)
         request.setResponseCode(201)
