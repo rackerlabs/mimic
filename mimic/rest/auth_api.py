@@ -41,7 +41,7 @@ class AuthApi(object):
             credentials = content['auth']['passwordCredentials']
         else:
             credentials = {}
-            credentials['username'] = content['auth']['tenantId']
+            credentials['username'] = 'mimic'+content['auth']['tenantId']
             credentials['password'] = content['auth']['token']['id']
         session = self.core.sessions.session_for_username_password(
             credentials['username'], credentials['password'],
