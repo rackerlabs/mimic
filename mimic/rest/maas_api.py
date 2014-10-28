@@ -263,7 +263,7 @@ class MaasMock(object):
         Create a maas region with a given URI prefix (used for generating URIs
         to servers).
         """
-        self.endpoint_port = '80'
+        self.endpoint_port = '8900'
         self.uri_prefix = uri_prefix
         self._api_mock = api_mock
         self._session_store = session_store
