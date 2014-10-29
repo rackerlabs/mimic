@@ -120,6 +120,7 @@ class TapTests(SynchronousTestCase):
         """
         o = Options()
         o.parseOptions(["--realtime"])
+
         class CheckClock(MimicCore):
             @classmethod
             def fromPlugins(cls, clock):
