@@ -25,7 +25,10 @@ def makeService(config):
     Set up the otter-api service.
     """
     s = MultiService()
-    clock = Clock()
+    if config['realtime']:
+        from twisted.internet import reactor as clock
+    else:
+        clock = Clock()
     core = MimicCore.fromPlugins(clock)
     root = MimicRoot(core, clock)
     site = Site(root.app.resource())
