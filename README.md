@@ -10,6 +10,12 @@ Mimic helps with:
 * enables ability to test unusual behaviors/errors of an api
 * acts as a central repository for mocked responses from services
 
+### Come join us develop Mimic! Talk to us at ##mimic on irc.freenode.net ###
+
+#### Build status: ####
+[![Build Status](https://travis-ci.org/rackerlabs/mimic.svg?branch=master)](https://travis-ci.org/rackerlabs/mimic)
+
+[![Coverage Status](https://coveralls.io/repos/rackerlabs/mimic/badge.png)](https://coveralls.io/r/rackerlabs/mimic)
 
 ## Compute ##
 
@@ -19,7 +25,7 @@ https://github.com/rackerlabs/mimic/blob/master/mimic/rest/nova_api.py
 1. LIST servers - Lists servers on the tenant, in mimic
 2. POST server - Creates a server in mimic *(look at the 'Errors or unusual behaviors supported for compute' below)*
 3. GET server - Returns the server, if it exists in mimic else returns a 404
-4. DELETE server - Deletes the server, if it exists in mimcic else returns 404
+4. DELETE server - Deletes the server, if it exists in mimic else returns 404
 5. LIST addresses - Lists the private and public Ips for the given server. 404 if not found.
 6. GET image - If the image ID is anything but what is listed in the mimic presets, `invalid_image_ref`
 			   returns 200. Else returns a 400.
@@ -86,6 +92,27 @@ node, for 20 seconds:
 `{"loadBalancer": {"name": "a-new-loadbalancer2", "protocol": "HTTP", "virtualIps": [{"type": "PUBLIC"}], "metadata": [{"key": "lb_pending_update", "value": 20}], "nodes": []}}`
 
 
+## Mimic Control APIs ##
+
+When any of Mimic's included plugins schedule a timeout, you will need to cause
+Mimic's internal clock to advance for any of those timeouts to fire.
+
+You can do this with the `tick` endpoint, like so:
+
+    curl -s -XPOST -d '{"amount": 1.0}' http://localhost:8900/mimic/v1.1/tick | python -m json.tool
+
+which should result in output like this:
+
+    {
+        "advanced": 1.0,
+        "now": "1970-01-01T00:00:04.000000Z"
+    }
+
+Note that Mimic begins its timekeeping when all time began, in 1970.
+If you would prefer to advance Mimic to something resembling the present day instead, a command like this right after Mimic starts up will do that:
+
+    curl -s -XPOST -d '{"amount": '"$(date +%s)"'}' http://localhost:8900/mimic/v1.1/tick | python -m json.tool
+
 
 ## Mimic does not: ##
 * support XML
@@ -94,6 +121,6 @@ node, for 20 seconds:
 ## Running Mimic on a cloud server ##
 1. create a cloud server with an image that by default comes with python 2.7 (eg: ubuntu 12.04) and ssh into it
 2. `git clone https://github.com/rackerlabs/mimic.git`
-3. `pip install -r requirements.txt` from within the mimic folder (if there is a gcc error, `get-apt install python-dev`)
+3. `pip install -r requirements.txt` from within the mimic folder (if there is a gcc error, `apt-get install python-dev`)
 4. cd into mimic or add the mimic to the PYTHONPATH and run `twistd -n mimic`
 

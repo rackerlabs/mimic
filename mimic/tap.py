@@ -1,12 +1,20 @@
+"""
+Twisted Application plugin for Mimic
+"""
 from twisted.application.strports import service
 from twisted.application.service import MultiService
 from twisted.web.server import Site
-from mimic.rest import auth_api, nova_api, loadbalancer_api, mimic_api
 from twisted.python import usage
+from mimic.core import MimicCore
+from mimic.resource import MimicRoot
+from twisted.internet.task import Clock
 
 
 class Options(usage.Options):
-    pass
+    """
+    Options for Mimic
+    """
+    optParameters = [['listen', 'l', '8900', 'The endpoint to listen on.']]
 
 
 def makeService(config):
@@ -14,12 +22,10 @@ def makeService(config):
     Set up the otter-api service.
     """
     s = MultiService()
-    port_offset = 8900
-    for klein_obj in (mimic_api.MimicPresetApi(), auth_api.AuthApi(),
-                      nova_api.NovaApi(), loadbalancer_api.LoadBalancerApi()):
-        site = Site(klein_obj.app.resource())
-        api_service = service(str(port_offset), site)
-        api_service.setServiceParent(s)
-        site.displayTracebacks = False
-        port_offset += 1
+    clock = Clock()
+    core = MimicCore.fromPlugins(clock)
+    root = MimicRoot(core, clock)
+    site = Site(root.app.resource())
+    site.displayTracebacks = False
+    service(config['listen'], site).setServiceParent(s)
     return s
