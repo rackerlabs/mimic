@@ -1,6 +1,8 @@
 
 """
 Helper methods
+
+:var fmt: strftime format for datetimes used in JSON.
 """
 from datetime import datetime, timedelta
 
@@ -40,13 +42,6 @@ def invalid_resource(message, response_code=400):
     code to given response code. Defaults response code to 404, if not provided.
     """
     return {"message": message, "code": response_code}
-
-
-def current_time_in_utc():
-    """
-    Returns current time in UTC in the format "%Y-%m-%dT%H:%M:%S.%fZ"
-    """
-    return datetime.utcnow().strftime(fmt)
 
 
 def set_resource_status(updated_time, time_delta, status='ACTIVE',

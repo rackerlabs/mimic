@@ -65,30 +65,18 @@ class NovaApi(object):
                 .app.resource())
 
 
-def _list_servers(request, tenant_id, s_cache, details=False):
+def _list_servers(request, tenant_id, s_cache, details=False, current_timestamp=None):
     """
     Return a list of servers, possibly filtered by name, possibly with details
     """
     server_name = None
     if 'name' in request.args:
         server_name = request.args['name'][0]
-    response_data = list_server(tenant_id, s_cache, server_name,
-                                details=details)
+    response_data = list_server(tenant_id, s_cache, name=server_name,
+                                details=details,
+                                current_timestamp=current_timestamp)
     request.setResponseCode(response_data[1])
     return json.dumps(response_data[0])
-
-
-class Matcher(object):
-    """
-    Sketch: a class that matches stuff.
-    """
-
-    def does_match_server(self, server_id, server_info):
-        """
-        Sketch: Does this matcher match the given server?
-        """
-        return (self.condition.matches_id(server_id) or
-                self.condition.matches_metadata(server_info['metadata']))
 
 
 class S_Cache(dict):
@@ -99,31 +87,6 @@ class S_Cache(dict):
     canned_responses module that expects dumb data structures rather than a
     structured object.
     """
-    def __init__(self):
-        """
-        Create an S_Cache with a list of matchers.
-        """
-        self.matchers = []
-
-    def add_failure_matcher(self, condition, response):
-        """
-        Add a matcher that creates a canned failure, with a 'response' object.
-        """
-        self.matchers.append(Matcher(condition, response))
-
-    def server_creation_check(self, server_id, server_info):
-        """
-        Called for each server creation.
-
-        Either returns None if server creation should proceed as normal,
-        otherwise it returns a "response" object if a matcher added with
-        add_failure_matcher matches the server ID and server information
-        passed.
-        """
-        for matcher in self.matchers:
-            if matcher.does_match_server(server_id, server_info):
-                return matcher.response_for_server(server_id, server_info)
-        return None
 
 
 class NovaRegion(object):
@@ -194,7 +157,8 @@ class NovaRegion(object):
         name.
         """
         return _list_servers(request, tenant_id,
-                             s_cache=self._server_cache_for_tenant(tenant_id))
+                             s_cache=self._server_cache_for_tenant(tenant_id),
+                             current_timestamp=self._session_store.clock.seconds())
 
     @app.route('/v2/<string:tenant_id>/servers/detail', methods=['GET'])
     def list_servers_with_details(self, request, tenant_id):
@@ -203,7 +167,8 @@ class NovaRegion(object):
         such as the metadata.
         """
         return _list_servers(request, tenant_id, details=True,
-                             s_cache=self._server_cache_for_tenant(tenant_id))
+                             s_cache=self._server_cache_for_tenant(tenant_id),
+                             current_timestamp=self._session_store.clock.seconds())
 
     @app.route('/v2/<string:tenant_id>/servers/<string:server_id>', methods=['DELETE'])
     def delete_server(self, request, tenant_id, server_id):

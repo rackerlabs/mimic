@@ -13,7 +13,7 @@ Mimic helps with:
 ### Come join us develop Mimic! Talk to us at ##mimic on irc.freenode.net ###
 
 #### Build status: ####
-[![Build Status](https://travis-ci.org/rackerlabs/mimic.png)](https://travis-ci.org/rackerlabs/mimic)
+[![Build Status](https://travis-ci.org/rackerlabs/mimic.svg?branch=master)](https://travis-ci.org/rackerlabs/mimic)
 
 [![Coverage Status](https://coveralls.io/repos/rackerlabs/mimic/badge.png)](https://coveralls.io/r/rackerlabs/mimic)
 
@@ -91,6 +91,27 @@ node, for 20 seconds:
 
 `{"loadBalancer": {"name": "a-new-loadbalancer2", "protocol": "HTTP", "virtualIps": [{"type": "PUBLIC"}], "metadata": [{"key": "lb_pending_update", "value": 20}], "nodes": []}}`
 
+
+## Mimic Control APIs ##
+
+When any of Mimic's included plugins schedule a timeout, you will need to cause
+Mimic's internal clock to advance for any of those timeouts to fire.
+
+You can do this with the `tick` endpoint, like so:
+
+    curl -s -XPOST -d '{"amount": 1.0}' http://localhost:8900/mimic/v1.1/tick | python -m json.tool
+
+which should result in output like this:
+
+    {
+        "advanced": 1.0,
+        "now": "1970-01-01T00:00:04.000000Z"
+    }
+
+Note that Mimic begins its timekeeping when all time began, in 1970.
+If you would prefer to advance Mimic to something resembling the present day instead, a command like this right after Mimic starts up will do that:
+
+    curl -s -XPOST -d '{"amount": '"$(date +%s)"'}' http://localhost:8900/mimic/v1.1/tick | python -m json.tool
 
 
 ## Mimic does not: ##

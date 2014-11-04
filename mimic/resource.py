@@ -3,12 +3,14 @@ Resources for Mimic's core.
 """
 
 import json
+from datetime import datetime
 
 from twisted.web.resource import NoResource
 
 from mimic.canned_responses.mimic_presets import get_presets
 from mimic.rest.mimicapp import MimicApp
 from mimic.rest.auth_api import AuthApi, base_uri_from_request
+from mimic.util.helper import fmt
 
 
 class MimicRoot(object):
@@ -18,12 +20,15 @@ class MimicRoot(object):
 
     app = MimicApp()
 
-    def __init__(self, core):
+    def __init__(self, core, clock=None):
         """
         :param mimic.core.MimicCore core: The core object to dispatch routes
             from.
+        :param twisted.internet.task.Clock clock: The clock to advance from the
+            ``/mimic/v1.1/tick`` API.
         """
         self.core = core
+        self.clock = clock
 
     @app.route("/", methods=["GET"])
     def help(self, request):
@@ -32,7 +37,7 @@ class MimicRoot(object):
         """
         request.responseHeaders.setRawHeaders("content-type", ["text/plain"])
         return ("To get started with Mimic, POST an authentication request to:"
-                "\n\n/identity/v2.0/tokens")
+                "\n\n/identity/v2.0/tokens\n")
 
     @app.route("/identity", branch=True)
     def get_auth_api(self, request):
@@ -48,6 +53,21 @@ class MimicRoot(object):
         """
         request.setResponseCode(200)
         return json.dumps(get_presets)
+
+    @app.route("/mimic/v1.1/tick", methods=['POST'])
+    def advance_time(self, request):
+        """
+        Advance time by the given number of seconds.
+        """
+        body = json.loads(request.content.read())
+        amount = body['amount']
+        self.clock.advance(amount)
+        request.setResponseCode(200)
+        return json.dumps({
+            "advanced": amount,
+            "now": (datetime.utcfromtimestamp(self.clock.seconds())
+                    .strftime(fmt))
+        })
 
     @app.route("/mimicking/<string:service_id>/<string:region_name>",
                branch=True)
