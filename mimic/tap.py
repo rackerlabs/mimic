@@ -15,6 +15,9 @@ class Options(usage.Options):
     Options for Mimic
     """
     optParameters = [['listen', 'l', '8900', 'The endpoint to listen on.']]
+    optFlags = [['realtime', 'r',
+                 'Make mimic advance time as real time advances; '
+                 'disable the "tick" endpoint.']]
 
 
 def makeService(config):
@@ -22,7 +25,10 @@ def makeService(config):
     Set up the otter-api service.
     """
     s = MultiService()
-    clock = Clock()
+    if config['realtime']:
+        from twisted.internet import reactor as clock
+    else:
+        clock = Clock()
     core = MimicCore.fromPlugins(clock)
     root = MimicRoot(core, clock)
     site = Site(root.app.resource())
