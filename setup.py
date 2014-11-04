@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='mimic',
-    version='1.2.0',
+    version='1.3.0',
     description='An API-compatible mock service',
     packages=find_packages(exclude=[]) + ["twisted.plugins"],
     package_dir={'mimic': 'mimic'},
