@@ -106,6 +106,17 @@ class LoadbalancerAPITests(SynchronousTestCase):
         create_lb_response_body = self.successResultOf(treq.json_content(create_lb_response))
         return create_lb_response_body['loadBalancer']['id']
 
+    def test_multiple_regions_multiple_endpoints(self):
+        """
+        API object created with multiple regions has multiple entries
+        in the service catalog.
+        """
+        helper = APIMockHelper(self,
+                               [LoadBalancerApi(regions=['ORD', 'DFW'])])
+        self.assertEqual(
+            2,
+            len(helper.service_catalog_json['access']['serviceCatalog']))
+
     def test_add_load_balancer(self):
         """
         Test to verify :func:`add_load_balancer` on ``POST /v1.0/<tenant_id>/loadbalancers``
@@ -249,6 +260,14 @@ class LoadbalancerAPITests(SynchronousTestCase):
 
         list_lb_response_body = json.loads(list_lb_response_body)
         self.assertEqual(list_lb_response_body, {"loadBalancers": []})
+
+    # def test_same_tenant_different_regions_different_lbs(self):
+    #     """
+    #     Creating LBs for one tenant in two different regions should create two
+    #     different LBs.
+    #     """
+    #     self._create_loadbalancer()
+
 
 
 class LoadbalancerNodeAPITests(SynchronousTestCase):
