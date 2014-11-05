@@ -14,7 +14,7 @@ class HelperTests(SynchronousTestCase):
     def _validate_ipv4_address(self, address, *prefixes):
         nums = [int(x) for x in address.split('.')]
         self.assertEqual(4, len(nums))
-        self.assertTrue(all(x > 0 and x < 255 for x in nums))
+        self.assertTrue(all(x >= 0 and x < 255 for x in nums))
         self.assertEqual(prefixes[:len(nums)], tuple(nums[:len(prefixes)]))
 
     def test_random_ipv4_completely_random(self):

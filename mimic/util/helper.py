@@ -22,7 +22,7 @@ def random_ipv4(*numbers):
     address.
     """
     all_numbers = [text_type(num) for num in
-                   list(numbers) + [randint(1, 255) for _ in range(4)]]
+                   list(numbers) + [randint(0, 255) for _ in range(4)]]
     return ".".join(all_numbers[:4])
 
 
