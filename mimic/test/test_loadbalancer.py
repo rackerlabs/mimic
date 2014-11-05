@@ -84,16 +84,18 @@ class LoadbalancerAPITests(SynchronousTestCase):
         """
         Create a :obj:`MimicCore` with :obj:`LoadBalancerApi` as the only plugin
         """
-        helper = APIMockHelper(self, [LoadBalancerApi()])
-        self.root = helper.root
-        self.uri = helper.uri
+        self.helper = APIMockHelper(self, [LoadBalancerApi()])
+        self.root = self.helper.root
+        self.uri = self.helper.uri
 
-    def _create_loadbalancer(self, name=None):
+    def _create_loadbalancer(self, name=None, api_helper=None):
         """
         Helper method to create a load balancer and return the lb_id
         """
+        api_helper = api_helper or self.helper
+
         create_lb = request(
-            self, self.root, "POST", self.uri + '/loadbalancers',
+            self, api_helper.root, "POST", api_helper.uri + '/loadbalancers',
             json.dumps({
                 "loadBalancer": {
                     "name": name or "test_lb",
@@ -113,9 +115,8 @@ class LoadbalancerAPITests(SynchronousTestCase):
         """
         helper = APIMockHelper(self,
                                [LoadBalancerApi(regions=['ORD', 'DFW'])])
-        self.assertEqual(
-            2,
-            len(helper.service_catalog_json['access']['serviceCatalog']))
+        entry = helper.service_catalog_json['access']['serviceCatalog'][0]
+        self.assertEqual(2, len(entry['endpoints']))
 
     def test_add_load_balancer(self):
         """
@@ -261,12 +262,24 @@ class LoadbalancerAPITests(SynchronousTestCase):
         list_lb_response_body = json.loads(list_lb_response_body)
         self.assertEqual(list_lb_response_body, {"loadBalancers": []})
 
-    # def test_same_tenant_different_regions_different_lbs(self):
-    #     """
-    #     Creating LBs for one tenant in two different regions should create two
-    #     different LBs.
-    #     """
-    #     self._create_loadbalancer()
+    def test_same_tenant_different_regions(self):
+        """
+        Creating an LB for a tenant in one different regions should create it
+        in another region for that tenant.
+        """
+        helper = APIMockHelper(self,
+                               [LoadBalancerApi(regions=["ORD", "DFW"])])
+        self._create_loadbalancer(api_helper=helper)
+
+        list_lb_response, list_lb_response_body = self.successResultOf(
+            request_with_content(
+                self, helper.root, "GET",
+                helper.nth_endpoint_public(1) + "/loadbalancers"))
+
+        self.assertEqual(list_lb_response.code, 200)
+
+        list_lb_response_body = json.loads(list_lb_response_body)
+        self.assertEqual(list_lb_response_body, {"loadBalancers": []})
 
 
 

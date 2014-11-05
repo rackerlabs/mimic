@@ -44,8 +44,8 @@ class LoadBalancerApi(object):
                   [
                       Endpoint(tenant_id, region, text_type(uuid4()),
                                prefix="v2")
+                      for region in self._regions
                   ])
-            for region in self._regions
         ]
 
     def resource_for_region(self, region, uri_prefix, session_store):
