@@ -4,8 +4,8 @@
 API mock for the Rackspace RackConnect v3 API, which is documented at:
 http://http://docs.rcv3.apiary.io/
 """
-
-from json import dumps
+from collections import defaultdict
+import json
 from uuid import uuid4, uuid5, NAMESPACE_URL
 
 from characteristic import attributes, Attribute
@@ -14,6 +14,7 @@ from six import text_type
 from twisted.plugin import IPlugin
 from twisted.web.http import CREATED, ACCEPTED, OK
 from twisted.web.resource import NoResource
+from twisted.web.server import Request
 from zope.interface import implementer
 
 from mimic.catalog import Entry
@@ -23,14 +24,97 @@ from mimic.rest.mimicapp import MimicApp
 from mimic.util.helper import attribute_names, random_ipv4
 
 
+Request.defaultContentType = 'application/json'
+
+
+@implementer(IAPIMock, IPlugin)
+class RackConnectV3(object):
+    """
+    API mock object for RackConnect V3.
+    """
+
+    def __init__(self, regions=None):
+        """
+        Construct a :class:`RackConnectV3` object.
+        """
+        self._regions = regions or ["ORD"]
+
+    def catalog_entries(self, tenant_id):
+        """
+        Catalog entry for Swift endpoints.
+        """
+        #TODO: figure out the correct type and name for RackConnect
+        return [
+            Entry(tenant_id, "rax:rackconnect", "rackConnect", [
+                Endpoint(tenant_id, region, text_type(uuid4()), prefix="v3")
+                for region in self._regions
+            ])
+        ]
+
+    def resource_for_region(self, region, uri_prefix, session_store):
+        """
+        Return an IResource implementing a public Swift region endpoint.
+        """
+        return RackConnectV3Region(
+            iapi=self,
+            uri_prefix=uri_prefix,
+            session_store=session_store,
+            region_name=region).app.resource()
+
+
+@attributes(["iapi", "uri_prefix", "session_store", "region_name"])
+class RackConnectV3Region(object):
+    """
+    A set of ``klein`` routes representing a RackConnect V3 endpoint.
+    """
+    app = MimicApp()
+
+    @app.route("/v3/<string:tenant_id>/load_balancer_pools", branch=True)
+    def get_tenant_lb_pools(self, request, tenant_id):
+        """
+        Get a resource for a tenant's load balancer pools in this region.
+        """
+        tenant_store = self.session_store.session_for_tenant_id(tenant_id)
+        per_tenant_lbs = tenant_store.data_for_api(
+            self.iapi, lambda: defaultdict(list))
+        per_tenant_per_region_lbs = per_tenant_lbs[self.region_name]
+
+        # TODO: right now, by default, all tenants have one load balancer
+        # pool set up.  This should be configurable via a control plane,
+        # since the tenant cannot add load balancer pools via the API
+        if not per_tenant_per_region_lbs:
+            per_tenant_per_region_lbs.append(LoadBalancerPool())
+
+        handler = LoadBalancerPoolsInRegion(lbpools=per_tenant_per_region_lbs)
+        return handler.app.resource()
+
+
+class LoadBalancerPoolsInRegion(object):
+    """
+    A set of ``klein`` routes handling RackConnect V3 Load Balancer Pools
+    collections.
+    """
+    app = MimicApp()
+
+    def __init__(self, lbpools):
+        self.lbpools = lbpools
+
+    @app.route("/", methods=["GET"])
+    def list_all_load_balancer_pools(self, request):
+        """
+        API call to list all load balancer pools for the tenant and region
+        correspoding to this handler.  Returns 200 always.
+        """
+        return json.dumps([pool.as_json() for pool in self.lbpools])
+
+
 lb_pool_attrs = [
-    Attribute("id", default_factory=lambda: text_type(uuid4()),
-              instance_of=str),
+    Attribute("id", default_factory=lambda: text_type(uuid4())),
     Attribute("name", default_value="default", instance_of=str),
     Attribute("port", default_value=80, instance_of=int),
     Attribute("status", default_value="ACTIVE", instance_of=str),
     Attribute("status_detail", default_value=None),
-    Attribute("virtual_ip", default_factory=random_ipv4, instance_of=str),
+    Attribute("virtual_ip", default_factory=random_ipv4),
     Attribute('nodes', default_factory=list, instance_of=list)]
 
 
