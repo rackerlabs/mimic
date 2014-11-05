@@ -282,7 +282,6 @@ class LoadbalancerAPITests(SynchronousTestCase):
         self.assertEqual(list_lb_response_body, {"loadBalancers": []})
 
 
-
 class LoadbalancerNodeAPITests(SynchronousTestCase):
     """
     Tests for the Loadbalancer plugin API for CRUD for nodes.

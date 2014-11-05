@@ -16,6 +16,9 @@ class CLB_Cache(object):
     Object that stores a cache of CLB and CLB Metadata info
     """
     def __init__(self):
+        """
+        There are two caches - the lb info, and the metadata info
+        """
         self.lbs = {}
         self.meta = {}
 
@@ -79,7 +82,7 @@ def add_load_balancer(tenant_id, cache, lb_info, lb_id, current_timestamp):
     # Add tenant_id and nodeCount to cache.lbs
     current_timestring = datetime.utcfromtimestamp(current_timestamp).strftime(time_format)
     cache.lbs[lb_id] = load_balancer_example(lb_info, lb_id, status,
-                                            current_timestring)
+                                             current_timestring)
     cache.lbs[lb_id].update({"tenant_id": tenant_id})
     cache.lbs[lb_id].update(
         {"nodeCount": len(cache.lbs[lb_id].get("nodes", []))})
@@ -178,7 +181,7 @@ def add_node(cache, node_list, lb_id, current_timestamp):
             for existing_node in cache.lbs[lb_id]["nodes"]:
                 for new_node in node_list:
                     if (existing_node["address"] == new_node["address"] and
-                        existing_node["port"] == new_node["port"]):
+                            existing_node["port"] == new_node["port"]):
                         resource = invalid_resource(
                             "Duplicate nodes detected. One or more nodes "
                             "already configured on load balancer.", 413)
