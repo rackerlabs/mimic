@@ -27,6 +27,11 @@ class LoadBalancerApi(object):
     """
     Rest endpoints for mocked Load balancer api.
     """
+    def __init__(self, regions=["ORD"]):
+        """
+        Create an API with the specified region cache.
+        """
+        self._regions = regions
 
     def catalog_entries(self, tenant_id):
         """
@@ -37,9 +42,10 @@ class LoadBalancerApi(object):
         return [
             Entry(tenant_id, "rax:load-balancer", "cloudLoadBalancers",
                   [
-                      Endpoint(tenant_id, "ORD", text_type(uuid4()),
+                      Endpoint(tenant_id, region, text_type(uuid4()),
                                prefix="v2")
                   ])
+            for region in self._regions
         ]
 
     def resource_for_region(self, region, uri_prefix, session_store):
@@ -47,7 +53,6 @@ class LoadBalancerApi(object):
         Get an :obj:`twisted.web.iweb.IResource` for the given URI prefix;
         implement :obj:`IAPIMock`.
         """
-        # TODO: unit test
         return LoadBalancerApiRoutes(uri_prefix, session_store).app.resource()
 
 
