@@ -8,6 +8,7 @@ Helper methods
 from datetime import datetime, timedelta
 from random import randint
 
+from characteristic import Attribute
 from six import text_type
 
 
@@ -23,6 +24,15 @@ def random_ipv4(*numbers):
     all_numbers = [text_type(num) for num in
                    list(numbers) + [randint(1, 255) for _ in range(4)]]
     return ".".join(all_numbers[:4])
+
+
+def attribute_names(attribute_list):
+    """
+    Get a list of attribute names given an attribute list of either `str` or
+    :class:`characteristic.Attribute`
+    """
+    return [attr.name if isinstance(attr, Attribute) else attr
+            for attr in attribute_list]
 
 
 def not_found_response(resource='servers'):
