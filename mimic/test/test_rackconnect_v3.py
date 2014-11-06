@@ -140,3 +140,36 @@ class LoadbalancerPoolAPITests(SynchronousTestCase):
         nodes = [response[-1][0] for response in responses]
 
         self.assertNotEqual(nodes[0]['id'], nodes[1]['id'])
+
+    def test_get_pool_on_success(self):
+        """
+        Validate the JSON response of getting a single pool on an existing
+        pool.
+        """
+        _, pool_list_json = self.successResultOf(
+            json_request(self, self.helper.root, "GET",
+                         self.helper.uri + "/load_balancer_pools"))
+        pool = pool_list_json[0]
+
+        pool_details_response, pool_details_json = self.successResultOf(
+            json_request(self, self.helper.root, "GET",
+                         self.helper.uri + "/load_balancer_pools/" +
+                         pool['id']))
+
+        self.assertEqual(200, pool_details_response.code)
+        self.assertEqual(
+            ['application/json'],
+            pool_details_response.headers.getRawHeaders('content-type'))
+        self.assertEqual(pool, pool_details_json)
+
+    def test_get_pool_404_invalid_pool(self):
+        """
+        Getting pool on a non-existant pool returns a 404.
+
+        TODO: test the response body if one is returned
+        """
+        response, _ = self.successResultOf(
+            request_with_content(self, self.helper.root, "GET",
+                                 self.helper.uri + "/load_balancer_pools/x"))
+
+        self.assertEqual(404, response.code)

@@ -85,7 +85,8 @@ class RackConnectV3Region(object):
         if not per_tenant_per_region_lbs:
             per_tenant_per_region_lbs.append(LoadBalancerPool())
 
-        handler = LoadBalancerPoolsInRegion(lbpools=per_tenant_per_region_lbs)
+        handler = LoadBalancerPoolsInRegion(lbpools=per_tenant_per_region_lbs,
+                                            clock=self.session_store.clock)
         return handler.app.resource()
 
 
@@ -96,8 +97,15 @@ class LoadBalancerPoolsInRegion(object):
     """
     app = MimicApp()
 
-    def __init__(self, lbpools):
+    def __init__(self, lbpools, clock):
         self.lbpools = lbpools
+        self.clock = clock
+
+    def _pool_by_id(self, id):
+        """
+        Get a pool by the ID of the pool.
+        """
+        return next((pool for pool in self.lbpools if pool.id == id), None)
 
     @app.route("/", methods=["GET"])
     def list_all_load_balancer_pools(self, request):
@@ -106,6 +114,21 @@ class LoadBalancerPoolsInRegion(object):
         correspoding to this handler.  Returns 200 always.
         """
         return json.dumps([pool.as_json() for pool in self.lbpools])
+
+    @app.route("/<string:id>", methods=["GET"])
+    def retrieve_load_balancer_pool(self, request, id):
+        """
+        API call to get the details of a single load balancer pool belonging
+        to the tenant in the region corresponding to this handler.
+
+        Returns a 200 or a 404 if no pool with the ID exists.
+        """
+        pool = self._pool_by_id(id)
+        if pool is not None:
+            return json.dumps(pool.as_json())
+
+        # TODO: what is the error message if any?  It is undocumented.
+        request.setResponseCode(404)
 
 
 lb_pool_attrs = [
