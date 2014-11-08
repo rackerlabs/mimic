@@ -27,5 +27,5 @@ setup(
     install_requires=INSTALL_REQUIRES,
     # for py2app
     app=['start-app.py'],
-    setup_requires=['py2app']
+    setup_requires=['py2app'] + INSTALL_REQUIRES
 )
