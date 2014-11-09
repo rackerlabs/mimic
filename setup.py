@@ -2,12 +2,6 @@
 Setup file for mimic
 """
 
-# if you are wanting to build using py2app, you basically have to use
-# the brew installed version of python. To use it, (especially if you
-# using pyenv), the brewed python should have the highest precendence
-# in your PATH.
-# e.g. export PATH=/usr/local/bin:/usr/bin
-
 from setuptools import setup, find_packages
 
 setup(
@@ -25,9 +19,5 @@ setup(
         "six",
     ],
     include_package_data=True,
-    license="Apache License, Version 2.0",
-    install_requires=INSTALL_REQUIRES,
-    # for py2app
-    app=['start-app.py'],
-    setup_requires=['py2app'] + INSTALL_REQUIRES
+    license="Apache License, Version 2.0"
 )
