@@ -152,8 +152,8 @@ def request(testCase, rootResource, method, uri, body=b"",
 def request_with_content(testCase, rootResource, method, uri, body=b"",
                          baseURI='http://localhost:8900/'):
     """
-    Issue a request with a JSON body (if there's a body at all) and return
-    synchronously with a tuple of the the response along with the JSON body
+    Issue a request with a body (if there's a body at all) and return
+    synchronously with a tuple of ``(response, response body)``
     """
     d = request(testCase, rootResource, method, uri, body, baseURI)
 
@@ -169,7 +169,7 @@ def json_request(testCase, rootResource, method, uri, body=b"",
                  baseURI='http://localhost:8900/'):
     """
     Issue a request with a JSON body (if there's a body at all) and return
-    synchronously with a tuple of the the response along with the JSON body
+    synchronously with a tuple of ``(response, JSON response body)``
     """
     if body != "":
         body = json.dumps(body)

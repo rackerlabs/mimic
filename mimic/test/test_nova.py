@@ -8,7 +8,7 @@ from twisted.trial.unittest import SynchronousTestCase
 from mimic.canned_responses.nova import server_template
 from mimic.test.helpers import json_request, request
 from mimic.rest.nova_api import NovaApi
-from mimic.test.fixtures import APIMockHelper
+from mimic.test.fixtures import APIMockHelper, TenantAuthentication
 
 
 class ResponseGenerationTests(SynchronousTestCase):
@@ -359,6 +359,21 @@ class NovaAPITests(SynchronousTestCase):
                                              + "/servers/")))
         )["servers"]
         self.assertEqual(other_region_servers, [])
+
+    def test_different_tenants_same_region(self):
+        """
+        Creating a server for one tenant in a particular region should not
+        create it for other tenants in the same region.
+        """
+        other_tenant = TenantAuthentication(self, self.root, "other", "other")
+
+        response, response_body = self.successResultOf(
+            json_request(
+                self, self.root, "GET",
+                other_tenant.nth_endpoint_public(0) + '/servers'))
+
+        self.assertEqual(response.code, 200)
+        self.assertEqual(response_body, {'servers': []})
 
 
 class NovaAPINegativeTests(SynchronousTestCase):

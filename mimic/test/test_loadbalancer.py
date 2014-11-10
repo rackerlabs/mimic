@@ -7,9 +7,9 @@ import treq
 
 from twisted.trial.unittest import SynchronousTestCase
 from mimic.canned_responses.loadbalancer import load_balancer_example
-from mimic.test.fixtures import APIMockHelper
+from mimic.test.fixtures import APIMockHelper, TenantAuthentication
 from mimic.rest.loadbalancer_api import LoadBalancerApi
-from mimic.test.helpers import request
+from mimic.test.helpers import request_with_content, request
 
 
 class ResponseGenerationTests(SynchronousTestCase):
@@ -84,16 +84,18 @@ class LoadbalancerAPITests(SynchronousTestCase):
         """
         Create a :obj:`MimicCore` with :obj:`LoadBalancerApi` as the only plugin
         """
-        helper = APIMockHelper(self, [LoadBalancerApi()])
-        self.root = helper.root
-        self.uri = helper.uri
+        self.helper = APIMockHelper(self, [LoadBalancerApi()])
+        self.root = self.helper.root
+        self.uri = self.helper.uri
 
-    def _create_loadbalancer(self, name=None):
+    def _create_loadbalancer(self, name=None, api_helper=None):
         """
         Helper method to create a load balancer and return the lb_id
         """
+        api_helper = api_helper or self.helper
+
         create_lb = request(
-            self, self.root, "POST", self.uri + '/loadbalancers',
+            self, api_helper.root, "POST", api_helper.uri + '/loadbalancers',
             json.dumps({
                 "loadBalancer": {
                     "name": name or "test_lb",
@@ -105,6 +107,16 @@ class LoadbalancerAPITests(SynchronousTestCase):
         create_lb_response = self.successResultOf(create_lb)
         create_lb_response_body = self.successResultOf(treq.json_content(create_lb_response))
         return create_lb_response_body['loadBalancer']['id']
+
+    def test_multiple_regions_multiple_endpoints(self):
+        """
+        API object created with multiple regions has multiple entries
+        in the service catalog.
+        """
+        helper = APIMockHelper(self,
+                               [LoadBalancerApi(regions=['ORD', 'DFW'])])
+        entry = helper.service_catalog_json['access']['serviceCatalog'][0]
+        self.assertEqual(2, len(entry['endpoints']))
 
     def test_add_load_balancer(self):
         """
@@ -229,6 +241,44 @@ class LoadbalancerAPITests(SynchronousTestCase):
         list_lb_response = self.successResultOf(list_lb)
         self.assertEqual(list_lb_response.code, 200)
         list_lb_response_body = self.successResultOf(treq.json_content(list_lb_response))
+        self.assertEqual(list_lb_response_body, {"loadBalancers": []})
+
+    def test_different_tenants_same_region_different_lbs(self):
+        """
+        Creating a LB for one tenant in a particular region should not
+        create it for other tenants in the same region.
+        """
+        self._create_loadbalancer()
+
+        other_tenant = TenantAuthentication(self, self.root, "other", "other")
+
+        list_lb_response, list_lb_response_body = self.successResultOf(
+            request_with_content(
+                self, self.root, "GET",
+                other_tenant.nth_endpoint_public(0) + "/loadbalancers"))
+
+        self.assertEqual(list_lb_response.code, 200)
+
+        list_lb_response_body = json.loads(list_lb_response_body)
+        self.assertEqual(list_lb_response_body, {"loadBalancers": []})
+
+    def test_same_tenant_different_regions(self):
+        """
+        Creating an LB for a tenant in one different regions should create it
+        in another region for that tenant.
+        """
+        helper = APIMockHelper(self,
+                               [LoadBalancerApi(regions=["ORD", "DFW"])])
+        self._create_loadbalancer(api_helper=helper)
+
+        list_lb_response, list_lb_response_body = self.successResultOf(
+            request_with_content(
+                self, helper.root, "GET",
+                helper.nth_endpoint_public(1) + "/loadbalancers"))
+
+        self.assertEqual(list_lb_response.code, 200)
+
+        list_lb_response_body = json.loads(list_lb_response_body)
         self.assertEqual(list_lb_response_body, {"loadBalancers": []})
 
 
