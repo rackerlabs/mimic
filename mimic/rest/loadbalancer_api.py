@@ -10,7 +10,7 @@ from zope.interface import implementer
 from twisted.web.server import Request
 from twisted.plugin import IPlugin
 from mimic.canned_responses.loadbalancer import (
-    CLB_Cache,
+    Region_Tenant_CLBs,
     add_load_balancer, del_load_balancer, list_load_balancers,
     add_node, delete_node, list_nodes, get_load_balancers, get_nodes)
 from mimic.rest.mimicapp import MimicApp
@@ -30,7 +30,7 @@ class LoadBalancerApi(object):
     """
     def __init__(self, regions=["ORD"]):
         """
-        Create an API with the specified region cache.
+        Create an API with the specified regions.
         """
         self._regions = regions
 
@@ -83,13 +83,13 @@ class LoadBalancerRegion(object):
         """
         return (self._session_store.session_for_tenant_id(tenant_id)
                 .data_for_api(self._api_mock,
-                              lambda: defaultdict(CLB_Cache))
+                              lambda: defaultdict(Region_Tenant_CLBs))
                 [self.region_name])
 
     @app.route('/v2/<string:tenant_id>/loadbalancers', methods=['POST'])
     def add_load_balancer(self, request, tenant_id):
         """
-        Creates a load balancer and adds it to the lb_cache.
+        Creates a load balancer and adds it to the load balancer store.
         Returns the newly created load balancer with response code 202
         """
         lb_id = randrange(99999)
@@ -127,7 +127,7 @@ class LoadBalancerRegion(object):
     @app.route('/v2/<string:tenant_id>/loadbalancers/<int:lb_id>', methods=['DELETE'])
     def delete_load_balancer(self, request, tenant_id, lb_id):
         """
-        Creates a load balancer and adds it to the lb_cache.
+        Creates a load balancer and adds it to the load balancer store.
         Returns the newly created load balancer with response code 200
         """
         response_data = del_load_balancer(
