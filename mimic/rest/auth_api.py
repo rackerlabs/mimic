@@ -35,7 +35,12 @@ class AuthApi(object):
         Return a service catalog consisting of all plugin endpoints and an api
         token.
         """
-        content = json.loads(request.content.read())
+        try:
+            content = json.loads(request.content.read())
+        except ValueError:
+            request.setResponseCode(400)
+            return json.dumps(invalid_resource("Invalid JSON request body"))
+
         tenant_id = (content['auth'].get('tenantName', None) or
                      content['auth'].get('tenantId', None))
         if content['auth'].get('passwordCredentials'):
