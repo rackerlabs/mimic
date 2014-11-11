@@ -5,13 +5,18 @@ Defines get current customer
 
 import json
 
+from twisted.plugin import IPlugin
 from twisted.web.server import Request
+from zope.interface import implementer
+
 from mimic.rest.mimicapp import MimicApp
 from mimic.canned_responses import fastly
+from mimic.imimic import IAPIMock
 
 Request.defaultContentType = 'application/json'
 
 
+@implementer(IAPIMock, IPlugin)
 class FastlyApi(object):
     """
     Rest endpoints for mocked Fastly api.
