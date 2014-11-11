@@ -131,8 +131,8 @@ class NovaRegion(object):
         except ValueError:
             request.setResponseCode(400)
             return json.dumps(invalid_resource("Invalid JSON request body"))
-        
-        server_id = 'test-server{0}-id-{0}'.format(str(randrange(9999999999)))        
+
+        server_id = 'test-server{0}-id-{0}'.format(str(randrange(9999999999)))
         response_data = create_server(
             tenant_id, content['server'], server_id,
             self.uri_prefix,

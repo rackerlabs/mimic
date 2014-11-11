@@ -630,6 +630,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         root = MimicRoot(core).app.resource()
 
         response = self.successResultOf(request(
-            self, root, "POST", "http://mybase/identity/v2.0/RAX-AUTH/impersonation-tokens", "{ bad request: }"))
+            self, root, "POST", "http://mybase/identity/v2.0/RAX-AUTH/impersonation-tokens",
+                                "{ bad request: }"))
 
         self.assertEqual(400, response.code)

@@ -142,16 +142,14 @@ class LoadbalancerAPITests(SynchronousTestCase):
         """
         Test to verify :func:`add_load_balancer` on ``POST /v1.0/<tenant_id>/loadbalancers``
         """
-        lb_name = 'mimic_lb'
         create_lb = request(self, self.root, "POST", self.uri + '/loadbalancers', "")
         create_lb_response = self.successResultOf(create_lb)
         self.assertEqual(create_lb_response.code, 400)
 
-    def test_add_load_balancer_request_with_no_body_causes_bad_request(self):
+    def test_add_load_balancer_request_with_invalid_body_causes_bad_request(self):
         """
         Test to verify :func:`add_load_balancer` on ``POST /v1.0/<tenant_id>/loadbalancers``
         """
-        lb_name = 'mimic_lb'
         create_lb = request(self, self.root, "POST", self.uri + '/loadbalancers', "{ bad request: }")
         create_lb_response = self.successResultOf(create_lb)
         self.assertEqual(create_lb_response.code, 400)
@@ -400,7 +398,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         create_duplicate_nodes = request(
             self, self.root, "POST", self.uri + '/loadbalancers/' +
             str(self.create_lb_response_body["loadBalancer"]["id"]) + '/nodes', "")
-        
+
         create_node_response = self.successResultOf(create_duplicate_nodes)
         self.assertEqual(create_node_response.code, 400)
 
@@ -411,7 +409,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         create_duplicate_nodes = request(
             self, self.root, "POST", self.uri + '/loadbalancers/' +
             str(self.create_lb_response_body["loadBalancer"]["id"]) + '/nodes', "{ bad request: }")
-        
+
         create_node_response = self.successResultOf(create_duplicate_nodes)
         self.assertEqual(create_node_response.code, 400)
 

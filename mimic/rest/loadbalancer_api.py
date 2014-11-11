@@ -92,7 +92,7 @@ class LoadBalancerRegion(object):
         """
         Creates a load balancer and adds it to the load balancer store.
         Returns the newly created load balancer with response code 202
-        """        
+        """
         try:
             content = json.loads(request.content.read())
         except ValueError:
@@ -153,7 +153,7 @@ class LoadBalancerRegion(object):
         except ValueError:
             request.setResponseCode(400)
             return json.dumps(invalid_resource("Invalid JSON request body"))
-        
+
         node_list = content['nodes']
         response_data = add_node(
             self.session(tenant_id), node_list, lb_id,

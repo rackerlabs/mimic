@@ -427,7 +427,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         """
         Test to verify :func:`create_server` does not fail when it receives a
         request with no body.
-        """        
+        """
         create_server_response = self.create_server(body=None)
         self.assertEquals(create_server_response.code, 400)
 
@@ -435,7 +435,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         """
         Test to verify :func:`create_server` does not fail when it receives a
         request with no body.
-        """        
+        """
         create_server_response = self.create_server(body='{ bad request: }')
         self.assertEquals(create_server_response.code, 400)
 
