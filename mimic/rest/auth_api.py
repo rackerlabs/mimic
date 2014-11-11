@@ -94,7 +94,12 @@ class AuthApi(object):
         Return a token id with expiration.
         """
         request.setResponseCode(200)
-        content = json.loads(request.content.read())
+        try:
+            content = json.loads(request.content.read())
+        except ValueError:
+            request.setResponseCode(400)
+            return json.dumps(invalid_resource("Invalid JSON request body"))        
+
         expires_in = content['RAX-AUTH:impersonation']['expire-in-seconds']
         username = content['RAX-AUTH:impersonation']['user']['username']
 
