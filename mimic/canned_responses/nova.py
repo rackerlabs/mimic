@@ -21,7 +21,7 @@ def server_template(tenant_id, server_info, server_id, status, current_time,
     def url(suffix):
         return str(URLPath.fromString(compute_uri_prefix).child(suffix))
 
-    server_template = {
+    template = {
         "OS-DCF:diskConfig": "AUTO",
         "OS-EXT-STS:power_state": 1,
         "OS-EXT-STS:task_state": None,
@@ -62,17 +62,6 @@ def server_template(tenant_id, server_info, server_id, status, current_time,
         },
         "hostId": "33ccb6c82f3625748b6f2338f54d8e9df07cc583251e001355569056",
         "id": server_id,
-        "image": {
-            "id": server_info['imageRef'],
-            "links": [
-                {
-                    "href": url("{0}/images/{1}".format(
-                        tenant_id, server_info['imageRef']
-                    )),
-                    "rel": "bookmark"
-                }
-            ]
-        },
         "links": [
             {
                 "href": url("v2/{0}/servers/{1}".format(
@@ -93,7 +82,23 @@ def server_template(tenant_id, server_info, server_id, status, current_time,
         "updated": current_time,
         "user_id": "170454"
     }
-    return server_template
+
+    if server_info.get("imageRef"):
+        template['image'] = {
+            "id": server_info['imageRef'],
+            "links": [
+                {
+                    "href": url("{0}/images/{1}".format(
+                        tenant_id, server_info['imageRef']
+                    )),
+                    "rel": "bookmark"
+                }
+            ]
+        }
+    else:
+        template['image'] = ''
+
+    return template
 
 
 def create_server(tenant_id, server_info, server_id, compute_uri_prefix,
