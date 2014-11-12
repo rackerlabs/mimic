@@ -393,7 +393,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         self.helper = helper
 
     def create_server(self, name=None, imageRef=None, flavorRef=None,
-                      metadata=None):
+                      metadata=None, body='default'):
         """
         Creates a server with the given specifications and returns the response
         object
@@ -403,18 +403,41 @@ class NovaAPINegativeTests(SynchronousTestCase):
         :param flavorRef: Flavor size of the server
         :param metadat: Metadata of the server
         """
-        create_server = request(
-            self, self.root, "POST", self.uri + '/servers',
-            json.dumps({
+        if body == 'default':
+            json_request = json.dumps({
                 "server": {
                     "name": name or 'test_server',
                     "imageRef": imageRef or "test-image",
                     "flavorRef": flavorRef or "test-flavor",
                     "metadata": metadata or {}
                 }
-            }))
+            })
+        elif body is None:
+            json_request = ""
+        else:
+            json_request = body
+
+        create_server = request(
+            self, self.root, "POST", self.uri + '/servers', json_request
+        )
         create_server_response = self.successResultOf(create_server)
         return create_server_response
+
+    def test_create_server_request_with_no_body_causes_bad_request(self):
+        """
+        Test to verify :func:`create_server` does not fail when it receives a
+        request with no body.
+        """
+        create_server_response = self.create_server(body=None)
+        self.assertEquals(create_server_response.code, 400)
+
+    def test_create_server_request_with_invalid_body_causes_bad_request(self):
+        """
+        Test to verify :func:`create_server` does not fail when it receives a
+        request with no body.
+        """
+        create_server_response = self.create_server(body='{ bad request: }')
+        self.assertEquals(create_server_response.code, 400)
 
     def test_create_server_failure(self):
         """

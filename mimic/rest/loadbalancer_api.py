@@ -18,6 +18,7 @@ from mimic.imimic import IAPIMock
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from random import randrange
+from mimic.util.helper import invalid_resource
 
 
 Request.defaultContentType = 'application/json'
@@ -92,8 +93,13 @@ class LoadBalancerRegion(object):
         Creates a load balancer and adds it to the load balancer store.
         Returns the newly created load balancer with response code 202
         """
+        try:
+            content = json.loads(request.content.read())
+        except ValueError:
+            request.setResponseCode(400)
+            return json.dumps(invalid_resource("Invalid JSON request body"))
+
         lb_id = randrange(99999)
-        content = json.loads(request.content.read())
         response_data = add_load_balancer(tenant_id, self.session(tenant_id),
                                           content['loadBalancer'], lb_id,
                                           self._session_store.clock.seconds())
@@ -142,7 +148,12 @@ class LoadBalancerRegion(object):
         """
         Return a successful add node response with code 200
         """
-        content = json.loads(request.content.read())
+        try:
+            content = json.loads(request.content.read())
+        except ValueError:
+            request.setResponseCode(400)
+            return json.dumps(invalid_resource("Invalid JSON request body"))
+
         node_list = content['nodes']
         response_data = add_node(
             self.session(tenant_id), node_list, lb_id,
