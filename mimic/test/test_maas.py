@@ -501,20 +501,26 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(4, data['metadata']['count'])
 
     def test_alarm_count_per_np(self):
+        """
+        test_alarm_count_per_np
+        """
         req = request(self, self.root, "GET", self.uri+'/views/alarmCountsPerNp', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_reposebody(resp)
-        self.assertEquals(data['values'][0]['alarm_count'],1)
-        self.assertEquals(data['values'][0]['notification_plan_id'],'npTechnicalContactsEmail')
+        self.assertEquals(data['values'][0]['alarm_count'], 1)
+        self.assertEquals(data['values'][0]['notification_plan_id'], 'npTechnicalContactsEmail')
 
     def test_alarms_by_np(self):
+        """
+        test_alarms_by_np
+        """
         ecan = self.get_ecan_objectIds()
         req = request(self, self.root, "GET", self.uri+'/views/overview', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         alarm = self.get_reposebody(resp)['values'][0]['alarms'][0]
-        alarm['notification_plan_id'] = ecan['np_id'] 
+        alarm['notification_plan_id'] = ecan['np_id']
         req = request(self, self.root, "PUT",
                       self.uri+'/entities/'+ecan['entity_id']+'/alarms/'+ecan['alarm_id'],
                       json.dumps(alarm))
@@ -524,15 +530,18 @@ class MaasAPITests(SynchronousTestCase):
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_reposebody(resp)
-        self.assertEquals(data['values'][0]['id'],ecan['alarm_id'])
-       
-    def test_delete_np_in_use(self): 
+        self.assertEquals(data['values'][0]['id'], ecan['alarm_id'])
+
+    def test_delete_np_in_use(self):
+        """
+        Cant delete a notificationPlan that's being pointed to by alarms
+        """
         ecan = self.get_ecan_objectIds()
         req = request(self, self.root, "GET", self.uri+'/views/overview', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         alarm = self.get_reposebody(resp)['values'][0]['alarms'][0]
-        alarm['notification_plan_id'] = ecan['np_id'] 
+        alarm['notification_plan_id'] = ecan['np_id']
         req = request(self, self.root, "PUT",
                       self.uri+'/entities/'+ecan['entity_id']+'/alarms/'+ecan['alarm_id'],
                       json.dumps(alarm))
