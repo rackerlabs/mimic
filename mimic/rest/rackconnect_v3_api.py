@@ -275,3 +275,10 @@ class OneLoadBalancerPool(object):
         handler is invoked.
         """
         return json.dumps(self.pool.as_json())
+
+    @app.route("/nodes", methods=["GET"])
+    def get_node_collection_information(self, request):
+        """
+        List all the nodes for the load balancer pool
+        """
+        return json.dumps([node.short_json() for node in self.pool.nodes])
