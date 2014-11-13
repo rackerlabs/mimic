@@ -231,7 +231,7 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
         """
         return [
             {"cloud_server": {"id": "{0}".format(randint(0, 9))},
-             "load_balancer_pool": pool_id}
+             "load_balancer_pool": {"id": pool_id}}
             for pool_id in self.get_lb_ids()[0]
         ]
 
@@ -269,19 +269,19 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
         Adding multiple pool nodes successfully results in a 200 with the
         correct node detail responses
         """
-        self.helper.clock.advance(60)
+        self.helper.clock.advance(50)
         add_data = self._get_add_nodes_json()
         response, resp_json = self.successResultOf(self.json_request(
             "POST", "/load_balancer_pools/nodes", body=add_data))
         self.assertEqual(200, response.code)
-        self._check_added_nodes_result(60, add_data, resp_json)
+        self._check_added_nodes_result(50, add_data, resp_json)
 
     def test_add_bulk_pool_nodes_then_list(self):
         """
         Adding multiple pool nodes successfully means that the next time nodes
         are listed those nodes are listed.
         """
-        self.helper.clock.advance(60)
+        self.helper.clock.advance(50)
         add_data = self._get_add_nodes_json()
         add_response, _ = self.successResultOf(self.json_request(
             "POST", "/load_balancer_pools/nodes", body=add_data))
@@ -289,14 +289,14 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
 
         _, list_json = self.successResultOf(self.json_request(
             "GET", "/load_balancer_pools/{0}/nodes".format(self.pool_id)))
-        self._check_added_nodes_result(60, add_data, list_json)
+        self._check_added_nodes_result(50, add_data, list_json)
 
     def test_remove_bulk_pool_nodes_success(self):
         """
         Removing multiple pool nodes successfully results in a 204 with the
         correct node detail responses
         """
-        self.helper.clock.advance(60)
+        self.helper.clock.advance(50)
         server_data = self._get_add_nodes_json()
 
         # add first

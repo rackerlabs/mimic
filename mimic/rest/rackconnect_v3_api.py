@@ -20,10 +20,12 @@ from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.imimic import IAPIMock
 from mimic.rest.mimicapp import MimicApp
-from mimic.util.helper import attribute_names, random_ipv4
+from mimic.util.helper import (attribute_names, random_ipv4,
+                               seconds_to_timestamp)
 
 
 Request.defaultContentType = 'application/json'
+timestamp_format = '%Y-%m-%dT%H:%M:%SZ'
 
 
 @implementer(IAPIMock, IPlugin)
@@ -49,9 +51,8 @@ class RackConnectV3(object):
         """
         Catalog entry for RackConnect V3 endpoints.
         """
-        # TODO: figure out the correct type and name for RackConnect
         return [
-            Entry(tenant_id, "rax:rackconnect", "rackConnect", [
+            Entry(tenant_id, "rax:rackconnect", "rackconnect", [
                 Endpoint(tenant_id, region, text_type(uuid4()), prefix="v3")
                 for region in self.regions
             ])
@@ -72,9 +73,9 @@ class RackConnectV3(object):
 
 lb_pool_attrs = [
     Attribute("id", default_factory=lambda: text_type(uuid4())),
-    Attribute("name", default_value="default", instance_of=str),
+    Attribute("name", default_value="default", instance_of=basestring),
     Attribute("port", default_value=80, instance_of=int),
-    Attribute("status", default_value="ACTIVE", instance_of=str),
+    Attribute("status", default_value="ACTIVE", instance_of=basestring),
     Attribute("status_detail", default_value=None),
     Attribute("virtual_ip", default_factory=random_ipv4),
     Attribute('nodes', default_factory=list, instance_of=list,
@@ -133,9 +134,9 @@ class LoadBalancerPool(object):
 lb_node_attrs = [
     "created", "load_balancer_pool", "cloud_server",
     Attribute("id", default_factory=lambda: text_type(uuid4()),
-              instance_of=str),
+              instance_of=basestring),
     Attribute("updated", default_value=None),
-    Attribute("status", default_value="ACTIVE", instance_of=str),
+    Attribute("status", default_value="ACTIVE", instance_of=basestring),
     Attribute("status_detail", default_value=None)]
 
 
@@ -251,7 +252,36 @@ class LoadBalancerPoolsInRegion(object):
         Add multiple nodes to multiple load balancer pools.
 
         http://docs.rcv3.apiary.io/#post-%2Fv3%2F%7Btenant_id%7D%2Fload_balancer_pools%2Fnodes
+
+        TODO: handle errors!!!  It should return a 409 Conflict that is
+        documented, but the exact mechanism is not documented.  Do some get
+        added?  Do all that can get added get added?  Is it done by order?
+        Does the error message enumerate all the failed ones?)
+
+        For now, blow up with a 500.
         """
+        body = json.loads(request.content.read())
+        added_nodes = []
+
+        for add in body:
+            pool_id = add['load_balancer_pool']['id']
+            pool = self._pool_by_id(pool_id)
+            if pool is None:
+                request.setResponseCode(500)
+                return "This does not handle errors yet."
+
+            node = LoadBalancerPoolNode(
+                created=seconds_to_timestamp(self.clock.seconds(),
+                                             timestamp_format),
+                load_balancer_pool=pool,
+                cloud_server=add['cloud_server']['id'],
+                status="ADDING")
+
+            pool.nodes.append(node)
+            added_nodes.append(node)
+
+        return json.dumps([node.short_json() for node in added_nodes])
+
 
     @app.route("/<string:id>", branch=True)
     def delegate_to_one_pool_handler(self, request, id):

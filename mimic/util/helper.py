@@ -35,6 +35,13 @@ def attribute_names(attribute_list):
             for attr in attribute_list]
 
 
+def seconds_to_timestamp(seconds, format=fmt):
+    """
+    Return an ISO8601 Zulu timestamp given seconds since the epoch.
+    """
+    return datetime.utcfromtimestamp(seconds).strftime(format)
+
+
 def not_found_response(resource='servers'):
     """
     Return a 404 response body for Nova, depending on the resource.  Expects
