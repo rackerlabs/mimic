@@ -240,8 +240,18 @@ class LoadBalancerPoolsInRegion(object):
         """
         API call to list all load balancer pools for the tenant and region
         correspoding to this handler.  Returns 200 always.
+
+        http://docs.rcv3.apiary.io/#get-%2Fv3%2F%7Btenant_id%7D%2Fload_balancer_pools
         """
         return json.dumps([pool.as_json() for pool in self.lbpools])
+
+    @app.route("/nodes", methods=["POST"])
+    def bulk_add_nodes_to_load_balancer_pools(self, request):
+        """
+        Add multiple nodes to multiple load balancer pools.
+
+        http://docs.rcv3.apiary.io/#post-%2Fv3%2F%7Btenant_id%7D%2Fload_balancer_pools%2Fnodes
+        """
 
     @app.route("/<string:id>", branch=True)
     def delegate_to_one_pool_handler(self, request, id):
@@ -280,13 +290,19 @@ class OneLoadBalancerPool(object):
 
         Returns a 200 because the pool definitely exists by the time this
         handler is invoked.
+
+        http://docs.rcv3.apiary.io/#get-%2Fv3%2F%7Btenant_id%7D%2Fload_balancer_pools%2F%7Bid%7D
         """
         return json.dumps(self.pool.as_json())
 
     @app.route("/nodes", methods=["GET"])
     def get_node_collection_information(self, request):
         """
-        List all the nodes for the load balancer pool
+        List all the nodes for the load balancer pool.
+
+        Returns a 200 always.
+
+        http://docs.rcv3.apiary.io/#get-%2Fv3%2F%7Btenant_id%7D%2Fload_balancer_pools%2F%7Bload_balancer_pool_id%7D%2Fnodes
         """
         return json.dumps([node.short_json() for node in self.pool.nodes])
 
@@ -296,6 +312,8 @@ class OneLoadBalancerPool(object):
         Get detailed information about all the nodes, including the cloud
         server network information.  This is unimplemented as it might
         need to be hooked up to the nova api.
+
+        http://docs.rcv3.apiary.io/#get-%2Fv3%2F%7Btenant_id%7D%2Fload_balancer_pools%2F%7Bload_balancer_pool_id%7D%2Fnodes%2Fdetails
         """
         request.setResponseCode(NOT_IMPLEMENTED)
 
@@ -304,6 +322,8 @@ class OneLoadBalancerPool(object):
         """
         Add a single pool node to the load balancer pool is not implemented
         yet.
+
+        http://docs.rcv3.apiary.io/#post-%2Fv3%2F%7Btenant_id%7D%2Fload_balancer_pools%2F%7Bload_balancer_pool_id%7D%2Fnodes
         """
         request.setResponseCode(NOT_IMPLEMENTED)
 
