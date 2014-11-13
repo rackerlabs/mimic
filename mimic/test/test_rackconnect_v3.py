@@ -241,6 +241,7 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
         results reflect the added nodes
         """
         self.assertEqual(len(add_json), len(results_json))
+
         # sort function by server ID then load balancer pool ID
         def cmp_key_function(dictionary):
             "{0}_{1}".format(dictionary['cloud_server']['id'],
@@ -273,7 +274,7 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
         add_data = self._get_add_nodes_json()
         response, resp_json = self.successResultOf(self.json_request(
             "POST", "/load_balancer_pools/nodes", body=add_data))
-        self.assertEqual(200, response.code)
+        self.assertEqual(201, response.code)
         self._check_added_nodes_result(50, add_data, resp_json)
 
     def test_add_bulk_pool_nodes_then_list(self):
@@ -285,7 +286,7 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
         add_data = self._get_add_nodes_json()
         add_response, _ = self.successResultOf(self.json_request(
             "POST", "/load_balancer_pools/nodes", body=add_data))
-        self.assertEqual(200, add_response.code)
+        self.assertEqual(201, add_response.code)
 
         _, list_json = self.successResultOf(self.json_request(
             "GET", "/load_balancer_pools/{0}/nodes".format(self.pool_id)))
@@ -296,28 +297,27 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
         Removing multiple pool nodes successfully results in a 204 with the
         correct node detail responses
         """
-        self.helper.clock.advance(50)
         server_data = self._get_add_nodes_json()
 
         # add first
-        self.successResultOf(self.json_request(
+        resp, body = self.successResultOf(self.json_request(
             "POST", "/load_balancer_pools/nodes", body=server_data))
 
-        # ensure there are 2
+        # ensure the node has been added
         _, list_json = self.successResultOf(self.json_request(
-            "GET", "/load_balancer_pools/nodes"))
-        self.assertEqual(2, len(list_json))
+            "GET", "/load_balancer_pools/{0}/nodes".format(self.pool_id)))
+        self.assertEqual(1, len(list_json))
 
         # delete
-        response, _ = self.successResultOf(self.json_request(
-            "DELETE", "/load_balancer_pools/nodes", body=server_data))
+        response, _ = self.successResultOf(self.request_with_content(
+            "DELETE", "/load_balancer_pools/nodes",
+            body=json.dumps(server_data)))
         self.assertEqual(204, response.code)
 
         # ensure there are 0
         _, list_json = self.successResultOf(self.json_request(
-            "GET", "/load_balancer_pools/nodes"))
+            "GET", "/load_balancer_pools/{0}/nodes".format(self.pool_id)))
         self.assertEqual(0, len(list_json))
-
 
 
 class LoadbalancerPoolNodesAPITests(RackConnectTestMixin,

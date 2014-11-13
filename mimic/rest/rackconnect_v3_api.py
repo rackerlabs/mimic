@@ -12,7 +12,7 @@ from characteristic import attributes, Attribute
 from six import text_type
 
 from twisted.plugin import IPlugin
-from twisted.web.http import NOT_FOUND, NOT_IMPLEMENTED
+from twisted.web.http import NOT_FOUND, NOT_IMPLEMENTED, NO_CONTENT
 from twisted.web.server import Request
 from zope.interface import implementer
 
@@ -280,8 +280,36 @@ class LoadBalancerPoolsInRegion(object):
             pool.nodes.append(node)
             added_nodes.append(node)
 
-        return json.dumps([node.short_json() for node in added_nodes])
+        request.setResponseCode(201)
+        return json.dumps([n.short_json() for n in added_nodes])
 
+    @app.route("/nodes", methods=["DELETE"])
+    def bulk_delete_nodes_to_load_balancer_pools(self, request):
+        """
+        Delete multiple nodes from multiple load balancer pools.
+
+        http://docs.rcv3.apiary.io/#delete-%2Fv3%2F%7Btenant_id%7D%2Fload_balancer_pools%2Fnodes
+
+        TODO: handle errors!!!  It should return a 409 Conflict that is
+        documented, but the exact mechanism is not documented.  Do some get
+        deleted?  Do all that can get deleted get deleted?  Is it done by
+        order? Does the error message enumerate all the failed ones?)
+
+        For now, blow up with a 500.
+        """
+        body = json.loads(request.content.read())
+
+        for add in body:
+            pool_id = add['load_balancer_pool']['id']
+            pool = self._pool_by_id(pool_id)
+            if pool is None:
+                request.setResponseCode(500)
+                return "This does not handle errors yet."
+
+            node = pool.node_by_cloud_server(add['cloud_server']['id'])
+            pool.nodes.remove(node)
+
+        request.setResponseCode(NO_CONTENT)
 
     @app.route("/<string:id>", branch=True)
     def delegate_to_one_pool_handler(self, request, id):
