@@ -31,13 +31,16 @@ Request.defaultContentType = 'application/json'
 class RackConnectV3(object):
     """
     API mock object for RackConnect V3.
+
+    :ivar regions: The regions for which endpoints should be produced
+    :type regions: `iterable`
     """
 
-    def __init__(self, regions=None):
+    def __init__(self, regions=("ORD",)):
         """
         Construct a :class:`RackConnectV3` object.
         """
-        self._regions = regions or ["ORD"]
+        self.regions = regions
 
     def catalog_entries(self, tenant_id):
         """
@@ -47,7 +50,7 @@ class RackConnectV3(object):
         return [
             Entry(tenant_id, "rax:rackconnect", "rackConnect", [
                 Endpoint(tenant_id, region, text_type(uuid4()), prefix="v3")
-                for region in self._regions
+                for region in self.regions
             ])
         ]
 
