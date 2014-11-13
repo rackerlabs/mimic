@@ -2,7 +2,7 @@
 
 """
 API mock for the Rackspace RackConnect v3 API, which is documented at:
-http://http://docs.rcv3.apiary.io/
+http://docs.rcv3.apiary.io/
 """
 from collections import defaultdict
 import json
@@ -44,7 +44,7 @@ class RackConnectV3(object):
 
     def catalog_entries(self, tenant_id):
         """
-        Catalog entry for Swift endpoints.
+        Catalog entry for RackConnect V3 endpoints.
         """
         #TODO: figure out the correct type and name for RackConnect
         return [
@@ -56,7 +56,8 @@ class RackConnectV3(object):
 
     def resource_for_region(self, region, uri_prefix, session_store):
         """
-        Return an IResource implementing a public Swift region endpoint.
+        Return an IResource implementing a public RackConnect V3 region
+        endpoint.
         """
         return RackConnectV3Region(
             iapi=self,
