@@ -12,7 +12,7 @@ from characteristic import attributes, Attribute
 from six import text_type
 
 from twisted.plugin import IPlugin
-from twisted.web.http import NOT_FOUND
+from twisted.web.http import NOT_FOUND, NOT_IMPLEMENTED
 from twisted.web.server import Request
 from zope.interface import implementer
 
@@ -282,3 +282,28 @@ class OneLoadBalancerPool(object):
         List all the nodes for the load balancer pool
         """
         return json.dumps([node.short_json() for node in self.pool.nodes])
+
+    @app.route("/nodes/details", methods=["GET"])
+    def get_node_collection_details_information(self, request):
+        """
+        Get detailed information about all the nodes, including the cloud
+        server network information.  This is unimplemented as it might
+        need to be hooked up to the nova api.
+        """
+        request.setResponseCode(NOT_IMPLEMENTED)
+
+    @app.route("/nodes", methods=["POST"])
+    def add_single_pool_node(self, request):
+        """
+        Add a single pool node to the load balancer pool is not implemented
+        yet.
+        """
+        request.setResponseCode(NOT_IMPLEMENTED)
+
+    @app.route("/nodes/<string:node_id>", branch=True)
+    def handle_single_node_requests(self, request, node_id):
+        """
+        Catchall to specify that single node operations (GET, DELETE,
+        GET details) are not implemented yet
+        """
+        request.setResponseCode(NOT_IMPLEMENTED)

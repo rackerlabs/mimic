@@ -1,7 +1,6 @@
 """
 Unit tests for the Rackspace RackConnect V3 API.
 """
-
 from twisted.trial.unittest import SynchronousTestCase
 from mimic.test.fixtures import APIMockHelper
 from mimic.rest.rackconnect_v3_api import (
@@ -336,19 +335,17 @@ class LoadbalancerPoolNodesAPITests(SynchronousTestCase):
             "GET",
             "/load_balancer_pools/{0}/nodes/details".format(self.pool_id)))
         self.assertEqual(501, response.code)
-        self.assertEqual("Not implemented yet.", content)
 
     def test_add_pool_node_unimplemented(self):
         """
         Adding a single pool node is currently unimplemented
         """
-        response, content = self.successResultOf(self.request_with_content(
+        response, content = self.successResultOf(self.json_content(
             "POST", "/load_balancer_pools/{0}/nodes".format(self.pool_id),
             body={
                 "cloud_server": {"id": "d95ae0c4-6ab8-4873-b82f-f8433840cff2"}
             }))
         self.assertEqual(501, response.code)
-        self.assertEqual("Not implemented yet.", content)
 
     def test_get_pool_node_unimplemented(self):
         """
@@ -358,7 +355,6 @@ class LoadbalancerPoolNodesAPITests(SynchronousTestCase):
             "GET", "/load_balancer_pools/{0}/nodes/1".format(self.pool_id)
             ))
         self.assertEqual(501, response.code)
-        self.assertEqual("Not implemented yet.", content)
 
     def test_remove_pool_node_unimplemented(self):
         """
@@ -368,7 +364,6 @@ class LoadbalancerPoolNodesAPITests(SynchronousTestCase):
             "DELETE", "/load_balancer_pools/{0}/nodes/1".format(self.pool_id)
             ))
         self.assertEqual(501, response.code)
-        self.assertEqual("Not implemented yet.", content)
 
     def test_get_pool_node_details_unimplemented(self):
         """
@@ -380,4 +375,3 @@ class LoadbalancerPoolNodesAPITests(SynchronousTestCase):
             "/load_balancer_pools/{0}/nodes/1/details".format(self.pool_id)
             ))
         self.assertEqual(501, response.code)
-        self.assertEqual("Not implemented yet.", content)
