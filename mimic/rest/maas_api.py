@@ -711,7 +711,26 @@ class MaasMock(object):
         """
         Remove a notifcation plan
         """
+        allalarms = self._entity_cache_for_tenant(tenant_id).alarms_list
         nplist = self._entity_cache_for_tenant(tenant_id).notificationplans_list
+        alarmids_using_np = []
+        for alarm in allalarms:
+            if alarm['notification_plan_id'] == np_id:
+                alarmids_using_np.append(alarm['id'])
+
+        if len(alarmids_using_np):
+            request.setResponseCode(403)
+            errobj = {}
+            errobj['type'] = 'forbiddenError'
+            errobj['code'] = 403
+            errobj['txnId'] = '.rh-D0j7.h-dfw1-maas-prod-api0.r-doc8iigF.c-5540173.ts-' + \
+                str(time.time())+'.v-bfe87f0'
+            errobj['message'] = 'Notification plans cannot be removed while alarms are using it:'
+            for a_id in alarmids_using_np:
+                errobj['message'] += ' '+a_id
+            errobj['details'] = errobj['message']
+            return json.dumps(errobj)
+
         for np in nplist:
             if np['id'] == np_id:
                 del nplist[nplist.index(np)]
@@ -719,6 +738,51 @@ class MaasMock(object):
         request.setResponseCode(204)
         request.setHeader('content-type', 'text/plain')
         return ''
+
+    @app.route('/v1.0/<string:tenant_id>/views/alarmCountsPerNp', methods=['GET'])
+    def alarm_counts_per_np(self, request, tenant_id):
+        """
+        All NotificationPlans a number of alarms pointing to them. 
+        """
+        allalarms = self._entity_cache_for_tenant(tenant_id).alarms_list
+        allnps = self._entity_cache_for_tenant(tenant_id).notificationplans_list
+        values = []
+        metadata = {}
+        metadata['limit'] = 100
+        metadata['marker'] = None
+        metadata['next_marker'] = None
+        metadata['next_href'] = None
+        for np in allnps:
+            alarm_count = 0
+            v = {}
+            v['notification_plan_id'] = np['id']
+            for alarm in allalarms:
+                if alarm['notification_plan_id'] == np['id']:
+                    alarm_count = alarm_count + 1
+            v['alarm_count'] = alarm_count
+            values.append(v)
+        metadata['count'] = len(values)
+        request.setResponseCode(200)
+        return json.dumps({'values': values, 'metadata': metadata})
+
+    @app.route('/v1.0/<string:tenant_id>/views/alarmsByNp/<string:np_id>', methods=['GET'])
+    def alarms_by_np(self, request, tenant_id, np_id):
+        """
+        List of alarms pointing to a particular NotificationPlan
+        """
+        allalarms = self._entity_cache_for_tenant(tenant_id).alarms_list
+        values = []
+        metadata = {}
+        metadata['limit'] = 100
+        metadata['marker'] = None
+        metadata['next_marker'] = None
+        metadata['next_href'] = None
+        for alarm in allalarms:
+            if alarm['notification_plan_id'] == np_id:
+                values.append(alarm)
+        metadata['count'] = len(values)
+        request.setResponseCode(200)
+        return json.dumps({'values': values, 'metadata': metadata})
 
     @app.route('/v1.0/<string:tenant_id>/notification_types', methods=['GET'])
     def get_notification_types(self, request, tenant_id):

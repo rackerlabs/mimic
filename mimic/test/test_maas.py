@@ -500,6 +500,51 @@ class MaasAPITests(SynchronousTestCase):
         data = self.get_reposebody(resp)
         self.assertEquals(4, data['metadata']['count'])
 
+    def test_alarm_count_per_np(self):
+        req = request(self, self.root, "GET", self.uri+'/views/alarmCountsPerNp', '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_reposebody(resp)
+        self.assertEquals(data['values'][0]['alarm_count'],1)
+        self.assertEquals(data['values'][0]['notification_plan_id'],'npTechnicalContactsEmail')
+
+    def test_alarms_by_np(self):
+        ecan = self.get_ecan_objectIds()
+        req = request(self, self.root, "GET", self.uri+'/views/overview', '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        alarm = self.get_reposebody(resp)['values'][0]['alarms'][0]
+        alarm['notification_plan_id'] = ecan['np_id'] 
+        req = request(self, self.root, "PUT",
+                      self.uri+'/entities/'+ecan['entity_id']+'/alarms/'+ecan['alarm_id'],
+                      json.dumps(alarm))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 204)
+        req = request(self, self.root, "GET", self.uri+'/views/alarmsByNp/'+ecan['np_id'], '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_reposebody(resp)
+        self.assertEquals(data['values'][0]['id'],ecan['alarm_id'])
+       
+    def test_delete_np_in_use(self): 
+        ecan = self.get_ecan_objectIds()
+        req = request(self, self.root, "GET", self.uri+'/views/overview', '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        alarm = self.get_reposebody(resp)['values'][0]['alarms'][0]
+        alarm['notification_plan_id'] = ecan['np_id'] 
+        req = request(self, self.root, "PUT",
+                      self.uri+'/entities/'+ecan['entity_id']+'/alarms/'+ecan['alarm_id'],
+                      json.dumps(alarm))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 204)
+        req = request(self, self.root, "DELETE", self.uri+'/notification_plans/'+ecan['np_id'], '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 403)
+        data = self.get_reposebody(resp)
+        self.assertTrue(ecan['alarm_id'] in data['message'])
+        self.assertTrue(ecan['alarm_id'] in data['details'])
+
     def test_reset_session(self):
         """
         Reset session, remove all objects
