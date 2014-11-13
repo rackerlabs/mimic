@@ -6,14 +6,13 @@ http://docs.rcv3.apiary.io/
 """
 from collections import defaultdict
 import json
-from uuid import uuid4, uuid5, NAMESPACE_URL
+from uuid import uuid4
 
 from characteristic import attributes, Attribute
 from six import text_type
 
 from twisted.plugin import IPlugin
-from twisted.web.http import CREATED, ACCEPTED, OK
-from twisted.web.resource import NoResource
+from twisted.web.http import NOT_FOUND
 from twisted.web.server import Request
 from zope.interface import implementer
 
@@ -46,7 +45,7 @@ class RackConnectV3(object):
         """
         Catalog entry for RackConnect V3 endpoints.
         """
-        #TODO: figure out the correct type and name for RackConnect
+        # TODO: figure out the correct type and name for RackConnect
         return [
             Entry(tenant_id, "rax:rackconnect", "rackConnect", [
                 Endpoint(tenant_id, region, text_type(uuid4()), prefix="v3")
@@ -100,8 +99,9 @@ class LoadBalancerPool(object):
         object, which can be used in a REST response for a request for the
         details of this particular object
         """
-        response = {attr: getattr(self, attr) for attr in
-                    attribute_names(lb_pool_attrs) if attr != "nodes"}
+        # no dictionary comprehensions in py2.6
+        response = dict([(attr, getattr(self, attr)) for attr in
+                         attribute_names(lb_pool_attrs) if attr != "nodes"])
         response['node_counts'] = {
             "cloud_servers": len(self.nodes),
             "external": 0,
@@ -122,7 +122,6 @@ class LoadBalancerPool(object):
         Find a node by it's node_id.
         """
         return next((node for node in self.nodes if node.id == node_id), None)
-
 
 
 # XXX: External nodes are not currently supported in RackConnectV3
@@ -166,9 +165,11 @@ class LoadBalancerPoolNode(object):
         GET /v3/{tenant_id}/load_balancer_pools/{load_balancer_pool_id}/nodes
         (list load balancer pool nodes)
         """
-        response = {attr: getattr(self, attr) for attr in
-                    attribute_names(lb_node_attrs)
-                    if attr not in ('load_balancer_pool', 'cloud_server')}
+        # no dictionary comprehensions in py2.6
+        response = dict([(attr, getattr(self, attr)) for attr in
+                         attribute_names(lb_node_attrs)
+                         if attr not in ('load_balancer_pool', 'cloud_server')
+                         ])
         response['load_balancer_pool'] = {'id': self.load_balancer_pool.id}
         response['cloud_server'] = {'id': self.cloud_server}
         return response
@@ -252,7 +253,7 @@ class LoadBalancerPoolsInRegion(object):
 
         # TODO: what is the error message if any?  It is undocumented.
         # guess based on Remove Load Balancer Pool Node documentation
-        request.setResponseCode(404)
+        request.setResponseCode(NOT_FOUND)
         return "Load Balancer Pool {0} does not exist".format(id)
 
 
