@@ -168,8 +168,9 @@ class LoadbalancerPoolAPITests(SynchronousTestCase):
 
         TODO: test the response body if one is returned
         """
-        response, _ = self.successResultOf(
+        response, content = self.successResultOf(
             request_with_content(self, self.helper.root, "GET",
-                                 self.helper.uri + "/load_balancer_pools/x"))
+                                 self.helper.uri + "/load_balancer_pools/X"))
 
         self.assertEqual(404, response.code)
+        self.assertEqual("Load Balancer Pool X does not exist", content)

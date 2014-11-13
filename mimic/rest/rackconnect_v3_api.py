@@ -66,75 +66,6 @@ class RackConnectV3(object):
             region_name=region).app.resource()
 
 
-@attributes(["iapi", "uri_prefix", "session_store", "region_name"])
-class RackConnectV3Region(object):
-    """
-    A set of ``klein`` routes representing a RackConnect V3 endpoint.
-    """
-    app = MimicApp()
-
-    @app.route("/v3/<string:tenant_id>/load_balancer_pools", branch=True)
-    def get_tenant_lb_pools(self, request, tenant_id):
-        """
-        Get a resource for a tenant's load balancer pools in this region.
-        """
-        tenant_store = self.session_store.session_for_tenant_id(tenant_id)
-        per_tenant_lbs = tenant_store.data_for_api(
-            self.iapi, lambda: defaultdict(list))
-        per_tenant_per_region_lbs = per_tenant_lbs[self.region_name]
-
-        # TODO: right now, by default, all tenants have one load balancer
-        # pool set up.  This should be configurable via a control plane,
-        # since the tenant cannot add load balancer pools via the API
-        if not per_tenant_per_region_lbs:
-            per_tenant_per_region_lbs.append(LoadBalancerPool())
-
-        handler = LoadBalancerPoolsInRegion(lbpools=per_tenant_per_region_lbs,
-                                            clock=self.session_store.clock)
-        return handler.app.resource()
-
-
-class LoadBalancerPoolsInRegion(object):
-    """
-    A set of ``klein`` routes handling RackConnect V3 Load Balancer Pools
-    collections.
-    """
-    app = MimicApp()
-
-    def __init__(self, lbpools, clock):
-        self.lbpools = lbpools
-        self.clock = clock
-
-    def _pool_by_id(self, id):
-        """
-        Get a pool by the ID of the pool.
-        """
-        return next((pool for pool in self.lbpools if pool.id == id), None)
-
-    @app.route("/", methods=["GET"])
-    def list_all_load_balancer_pools(self, request):
-        """
-        API call to list all load balancer pools for the tenant and region
-        correspoding to this handler.  Returns 200 always.
-        """
-        return json.dumps([pool.as_json() for pool in self.lbpools])
-
-    @app.route("/<string:id>", methods=["GET"])
-    def retrieve_load_balancer_pool(self, request, id):
-        """
-        API call to get the details of a single load balancer pool belonging
-        to the tenant in the region corresponding to this handler.
-
-        Returns a 200 or a 404 if no pool with the ID exists.
-        """
-        pool = self._pool_by_id(id)
-        if pool is not None:
-            return json.dumps(pool.as_json())
-
-        # TODO: what is the error message if any?  It is undocumented.
-        request.setResponseCode(404)
-
-
 lb_pool_attrs = [
     Attribute("id", default_factory=lambda: text_type(uuid4())),
     Attribute("name", default_value="default", instance_of=str),
@@ -142,7 +73,11 @@ lb_pool_attrs = [
     Attribute("status", default_value="ACTIVE", instance_of=str),
     Attribute("status_detail", default_value=None),
     Attribute("virtual_ip", default_factory=random_ipv4),
-    Attribute('nodes', default_factory=list, instance_of=list)]
+    Attribute('nodes', default_factory=list, instance_of=list,
+              # since this is mutable, it's unhashable, and should be
+              # excluded from cmp because it may cause other hard-to-diagnose
+              # errors
+              exclude_from_cmp=True)]
 
 
 @attributes(lb_pool_attrs)
@@ -245,3 +180,97 @@ class LoadBalancerPoolNode(object):
         self.updated = now
         self.status = status
         self.status_detail = status_detail
+
+
+@attributes(["iapi", "uri_prefix", "session_store", "region_name"])
+class RackConnectV3Region(object):
+    """
+    A set of ``klein`` routes representing a RackConnect V3 endpoint.
+    """
+    app = MimicApp()
+
+    @app.route("/v3/<string:tenant_id>/load_balancer_pools", branch=True)
+    def get_tenant_lb_pools(self, request, tenant_id):
+        """
+        Get a resource for a tenant's load balancer pools in this region.
+        """
+        tenant_store = self.session_store.session_for_tenant_id(tenant_id)
+        per_tenant_lbs = tenant_store.data_for_api(
+            self.iapi, lambda: defaultdict(list))
+        per_tenant_per_region_lbs = per_tenant_lbs[self.region_name]
+
+        # TODO: right now, by default, all tenants have one load balancer
+        # pool set up.  This should be configurable via a control plane,
+        # since the tenant cannot add load balancer pools via the API
+        if not per_tenant_per_region_lbs:
+            per_tenant_per_region_lbs.append(LoadBalancerPool())
+
+        handler = LoadBalancerPoolsInRegion(lbpools=per_tenant_per_region_lbs,
+                                            clock=self.session_store.clock)
+        return handler.app.resource()
+
+
+# exclude all the attributes from comparison so that equality has to be
+# determined by identity, since lbpools is mutable and we don't want to
+# compare clocks
+@attributes(["lbpools", "clock"], apply_with_cmp=False)
+class LoadBalancerPoolsInRegion(object):
+    """
+    A set of ``klein`` routes handling RackConnect V3 Load Balancer Pools
+    collections.
+    """
+    app = MimicApp()
+
+    def _pool_by_id(self, id):
+        """
+        Get a pool by the ID of the pool.
+        """
+        return next((pool for pool in self.lbpools if pool.id == id), None)
+
+    @app.route("/", methods=["GET"])
+    def list_all_load_balancer_pools(self, request):
+        """
+        API call to list all load balancer pools for the tenant and region
+        correspoding to this handler.  Returns 200 always.
+        """
+        return json.dumps([pool.as_json() for pool in self.lbpools])
+
+    @app.route("/<string:id>", branch=True)
+    def delegate_to_one_pool_handler(self, request, id):
+        """
+        If the load balancer pool of the given ID exists, delgate to the
+        :class:`OneLoadBalancerPool` handler for further requests.
+
+        Returns 404 if no pool with the ID exists.
+        """
+        pool = self._pool_by_id(id)
+        if pool is not None:
+            handler = OneLoadBalancerPool(pool=pool)
+            app = handler.app
+            resource = app.resource()
+            return resource
+
+        # TODO: what is the error message if any?  It is undocumented.
+        # guess based on Remove Load Balancer Pool Node documentation
+        request.setResponseCode(404)
+        return "Load Balancer Pool {0} does not exist".format(id)
+
+
+@attributes(["pool"])
+class OneLoadBalancerPool(object):
+    """
+    A set of ``klein`` routes handling the RackConnect V3 API for a single
+    load balancer pool
+    """
+    app = MimicApp()
+
+    @app.route("/", methods=["GET"])
+    def get_pool_information(self, request):
+        """
+        API call to get the details of the single load balancer pool
+        corresponding to this handler.
+
+        Returns a 200 because the pool definitely exists by the time this
+        handler is invoked.
+        """
+        return json.dumps(self.pool.as_json())
