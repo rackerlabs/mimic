@@ -33,13 +33,17 @@ class RackConnectV3(object):
 
     :ivar regions: The regions for which endpoints should be produced
     :type regions: `iterable`
+
+    :ivar int default_lbs: The number of default load balancers to be created
+        per tenant per region
     """
 
-    def __init__(self, regions=("ORD",)):
+    def __init__(self, regions=("ORD",), default_lbs=1):
         """
         Construct a :class:`RackConnectV3` object.
         """
         self.regions = regions
+        self.default_lbs = default_lbs
 
     def catalog_entries(self, tenant_id):
         """
@@ -62,7 +66,8 @@ class RackConnectV3(object):
             iapi=self,
             uri_prefix=uri_prefix,
             session_store=session_store,
-            region_name=region).app.resource()
+            region_name=region,
+            default_lbs=self.default_lbs).app.resource()
 
 
 lb_pool_attrs = [
@@ -183,7 +188,8 @@ class LoadBalancerPoolNode(object):
         self.status_detail = status_detail
 
 
-@attributes(["iapi", "uri_prefix", "session_store", "region_name"])
+@attributes(["iapi", "uri_prefix", "session_store", "region_name",
+             "default_lbs"])
 class RackConnectV3Region(object):
     """
     A set of ``klein`` routes representing a RackConnect V3 endpoint.
@@ -204,7 +210,8 @@ class RackConnectV3Region(object):
         # pool set up.  This should be configurable via a control plane,
         # since the tenant cannot add load balancer pools via the API
         if not per_tenant_per_region_lbs:
-            per_tenant_per_region_lbs.append(LoadBalancerPool())
+            per_tenant_per_region_lbs.extend([
+                LoadBalancerPool() for _ in range(self.default_lbs)])
 
         handler = LoadBalancerPoolsInRegion(lbpools=per_tenant_per_region_lbs,
                                             clock=self.session_store.clock)
