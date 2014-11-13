@@ -742,7 +742,7 @@ class MaasMock(object):
     @app.route('/v1.0/<string:tenant_id>/views/alarmCountsPerNp', methods=['GET'])
     def alarm_counts_per_np(self, request, tenant_id):
         """
-        All NotificationPlans a number of alarms pointing to them. 
+        All NotificationPlans a number of alarms pointing to them.
         """
         allalarms = self._entity_cache_for_tenant(tenant_id).alarms_list
         allnps = self._entity_cache_for_tenant(tenant_id).notificationplans_list
