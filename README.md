@@ -16,12 +16,19 @@ The fastest way to install and start Mimic is:
 
     pip install mimic
     twisted -n mimic
-    
-Then you can make this request to get make sure Mimic is working and see the service catalogue with available endpoints:
+
+You can test the server started successfully by sending this request and checking for the
+welcome message:
+
+    curl http://localhost:8900
+    >> To get started with Mimic, POST an authentication request to:
+    >> /identity/v2.0/tokens
+
+You can use the command below test authentication and see your service catalog. The service catalog containts the endpoints for other available APIs.
 
     curl -s -XPOST -d '{"auth":{"RAX-KSKEY:apiKeyCredentials":{"username":"mimic","apiKey":"12345"}}}' http://localhost:8900/identity/v2.0/tokens | python -m json.tool
-    
-In order to configure a project to use Mimic, you just need to update the Authentication Endpoint. In many projects, including the [OpenStack Client CLI](https://wiki.openstack.org/wiki/OpenStackClient) or the [OpenStack Keystone client](https://github.com/openstack/python-keystoneclient/) you can do that by setting the `OS_AUTH_URL` environment variable or the `--os-auth-url` option. For example:
+
+In order to use Mimic with most other projects you just need to override the Authentication Endpoint. In many projects, including the [OpenStack Client CLI](https://wiki.openstack.org/wiki/OpenStackClient) or the [OpenStack Keystone client](https://github.com/openstack/python-keystoneclient/) you can do that by setting the `OS_AUTH_URL` environment variable or the `--os-auth-url` option. For example:
 
     keystone --os-username mimic --os-password 1235 --os-auth-url http://localhost:8900/identity/v2.0/ catalog
 
