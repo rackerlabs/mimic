@@ -10,6 +10,21 @@ Mimic helps with:
 * enables ability to test unusual behaviors/errors of an api
 * acts as a central repository for mocked responses from services
 
+### Quick start
+
+The fastest way to install and start Mimic is:
+
+    pip install mimic
+    twisted -n mimic
+    
+Then you can make this request to get make sure Mimic is working and see the service catalogue with available endpoints:
+
+    curl -s -XPOST -d '{"auth":{"RAX-KSKEY:apiKeyCredentials":{"username":"mimic","apiKey":"12345"}}}' http://localhost:8900/identity/v2.0/tokens | python -m json.tool
+    
+In order to configure a project to use Mimic, you just need to update the Authentication Endpoint. In many projects, including the [OpenStack Client CLI](https://wiki.openstack.org/wiki/OpenStackClient) or the [OpenStack Keystone client](https://github.com/openstack/python-keystoneclient/) you can do that by setting the `OS_AUTH_URL` environment variable or the `--os-auth-url` option. For example:
+
+    keystone --os-username mimic --os-password 1235 --os-auth-url http://localhost:8900/identity/v2.0/ catalog
+
 ### Come join us develop Mimic! Talk to us at ##mimic on irc.freenode.net ###
 
 #### Build status: ####
