@@ -148,6 +148,7 @@ class SessionStore(object):
                                               expires_in),
             tenant_id=session.tenant_id,
             username_key=key,
+            api_objects=session._api_objects,
         )
         return subsession
 
