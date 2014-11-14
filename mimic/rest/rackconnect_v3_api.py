@@ -140,7 +140,7 @@ lb_node_attrs = [
     Attribute("status_detail", default_value=None)]
 
 
-@attributes(lb_node_attrs)
+@attributes(lb_node_attrs, apply_with_cmp=False)
 class LoadBalancerPoolNode(object):
     """
     Represents a Load Balancer Pool Node.
