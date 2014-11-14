@@ -58,7 +58,7 @@ def get_current_customer(request):
         u'created_at': u'2014-11-03T23:37:43+00:00',
         u'can_stream_syslog': u'1', u'pricing_plan': u'developer',
         u'billing_contact_id': None, u'has_streaming': u'1'}
-    return current_customer, 200
+    return current_customer
 
 
 def create_service(request, url_data):
@@ -69,7 +69,6 @@ def create_service(request, url_data):
              response for fastly_client.create_service()
              ("/service") request.
     """
-
     data = dict((key, value) for key, value in url_data)
     data = {
         'customer_id': data['customer_id'][0],
@@ -87,7 +86,8 @@ def create_service(request, url_data):
             u'created_at': u'2014-11-13T14:29:10+00:00',
             u'testing': None, u'number': 1, u'staging': None, u'active': None,
             u'service_id': service_id, u'deleted_at': None,
-            u'inherit_service_id': None, u'deployed': None}
+            u'inherit_service_id': None, u'deployed': None},
+        'service_name': service_name
     }
     fastly_cache[service_id] = fastly_cache[service_name]
 
@@ -130,10 +130,10 @@ def create_version(request, service_id):
              response for fastly_client.create_version()
              ("/service/version") request.
     """
-    version = 2
+    version_number = 2
     create_version = {
         'service_id': service_id,
-        'version': version}
+        'number': version_number}
 
     return create_version
 
@@ -147,9 +147,9 @@ def create_domain(request, service_id, service_version):
              ("/service/<service_id>/version/<service_version>/domain")
              request.
     """
-    request_body = request.args.items()
-    request_dict = dict((k, v) for k, v in request_body)
-    domain_name = request_dict['name'][0]
+    url_data = request.args.items()
+    request_dict = dict((k, v[0]) for k, v in url_data)
+    domain_name = request_dict['name']
     create_domain = {
         'comment': '',
         'service_id': service_id,
@@ -179,3 +179,98 @@ def check_domains(request, service_id, service_version):
 
     return domain_list
 
+
+def create_backend(request, service_id, service_version):
+    """
+    Returns create_backend response json.
+
+    :return: a JSON-serializable dictionary matching the format of the JSON
+             response for fastly_client.create_backend()
+             ("/service/<service_id>/version/<service_version>/backend")
+             request.
+    """
+    url_data = request.args.items()
+    request_dict = dict((k, v[0]) for k, v in url_data)
+
+    create_backend = {
+        u'comment': '', u'shield': None, u'weight': request_dict['weight'],
+        u'ssl_client_key': None,
+        u'first_byte_timeout': request_dict['first_byte_timeout'],
+        u'auto_loadbalance': request_dict['auto_loadbalance'],
+        u'use_ssl': request_dict['use_ssl'],
+        u'port': request_dict['port'],
+        u'ssl_hostname': None,
+        u'hostname': request_dict['name'],
+        u'error_threshold': request_dict['error_threshold'],
+        u'max_conn': request_dict['max_conn'],
+        u'version': service_version, u'ipv4': None,
+        u'ipv6': None, u'client_cert': None, u'ssl_ca_cert': None,
+        u'request_condition': '', u'healthcheck': None,
+        u'address': request_dict['address'], u'ssl_client_cert': None,
+        u'name': request_dict['name'],
+        u'connect_timeout': request_dict['connect_timeout'],
+        u'between_bytes_timeout': request_dict['between_bytes_timeout'],
+        u'service_id': service_id}
+
+    global fastly_cache
+    if 'origin_list' not in fastly_cache[service_id]:
+        fastly_cache[service_id]['origin_list'] = []
+
+    fastly_cache[service_id]['origin_list'].append(create_backend)
+    return create_backend
+
+
+def list_versions(request, service_id):
+    """
+    Returns GET list_versions with response json.
+
+    :return: a JSON-serializable dictionary matching the format of the JSON
+             response for fastly_client.list_versions()
+             ("/service/%s/version") request.
+    """
+    global fastly_cache
+
+    return [fastly_cache[service_id]['service_details']]
+
+
+def activate_version(request, service_id, version_number):
+    """
+    Returns activate_version response json.
+
+    :return: a JSON-serializable dictionary matching the format of the JSON
+             response for fastly_client.activate_version()
+             ("/service/%s/version/%d/activate") request.
+    """
+    global fastly_cache
+
+    fastly_cache[service_id]['service_details']['active'] = True
+    return fastly_cache[service_id]['service_details']
+
+
+def deactivate_version(request, service_id, version_number):
+    """
+    Returns deactivate_version response json.
+
+    :return: a JSON-serializable dictionary matching the format of the JSON
+             response for fastly_client.deactivate_version()
+             ("/service/%s/version/%d/deactivate") request.
+    """
+    global fastly_cache
+
+    fastly_cache[service_id]['service_details']['active'] = False
+    return fastly_cache[service_id]['service_details']
+
+
+def delete_service(request, service_id):
+    """
+    Returns DELETE service with response json.
+
+    :return: a JSON-serializable dictionary matching the format of the JSON
+             response for fastly_client.delete_service()
+             ("/service/%s") request.
+    """
+    global fastly_cache
+
+    service_name = fastly_cache[service_id]['service_name']
+    del(fastly_cache[service_id])
+    del(fastly_cache[service_name])
