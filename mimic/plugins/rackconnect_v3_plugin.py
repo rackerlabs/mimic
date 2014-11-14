@@ -1,5 +1,5 @@
 """
-Plugin for Rackspace cloud load balancer mock.
+Plugin for Rackspace RackConnect V3
 """
 from mimic.rest.rackconnect_v3_api import RackConnectV3
 
