@@ -78,11 +78,7 @@ lb_pool_attrs = [
     Attribute("status", default_value="ACTIVE", instance_of=basestring),
     Attribute("status_detail", default_value=None),
     Attribute("virtual_ip", default_factory=random_ipv4),
-    Attribute('nodes', default_factory=list, instance_of=list,
-              # since this is mutable, it's unhashable, and should be
-              # excluded from cmp because it may cause other hard-to-diagnose
-              # errors
-              exclude_from_cmp=True)]
+    Attribute('nodes', default_factory=list, instance_of=list)]
 
 
 @attributes(lb_pool_attrs, apply_with_cmp=False)
