@@ -73,9 +73,9 @@ class RackConnectV3(object):
 
 lb_pool_attrs = [
     Attribute("id", default_factory=lambda: text_type(uuid4())),
-    Attribute("name", default_value="default", instance_of=basestring),
+    Attribute("name", default_value=u"default", instance_of=text_type),
     Attribute("port", default_value=80, instance_of=int),
-    Attribute("status", default_value="ACTIVE", instance_of=basestring),
+    Attribute("status", default_value=u"ACTIVE", instance_of=text_type),
     Attribute("status_detail", default_value=None),
     Attribute("virtual_ip", default_factory=random_ipv4),
     Attribute('nodes', default_factory=list, instance_of=list)]
