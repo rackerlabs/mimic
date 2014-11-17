@@ -245,6 +245,10 @@ class LoadBalancerPoolsInRegion(object):
         """
         Add multiple nodes to multiple load balancer pools.
 
+        Returns a 400 if the lb pool_id is not a uuid.
+        Returns a 409 if the lb pool_id does not exist or the cloud server already exists
+        on the lb pool.
+
         http://docs.rcv3.apiary.io/#post-%2Fv3%2F%7Btenant_id%7D%2Fload_balancer_pools%2Fnodes
 
         TODO: blow up with a 500 and verify if the given server exists in nova.
@@ -253,8 +257,8 @@ class LoadBalancerPoolsInRegion(object):
         added_nodes = []
         error_response = {"errors": []}
 
-        for add in body:
-            pool_id = add['load_balancer_pool']['id']
+        for each in body:
+            pool_id = each['load_balancer_pool']['id']
             try:
                 UUID(pool_id, version=4)
             except (ValueError, AttributeError):
@@ -267,13 +271,14 @@ class LoadBalancerPoolsInRegion(object):
                 response_code = 409
                 error_response["errors"].append("Load Balancer Pool {0} does "
                                                 "not exist".format(pool_id))
-            elif pool.node_by_cloud_server(add['cloud_server']['id']):
+            elif pool.node_by_cloud_server(each['cloud_server']['id']):
                 response_code = 409
                 error_response["errors"].append("Cloud Server {0} is already a "
                                                 "member of Load Balancer Pool "
-                                                "{1}".format(add['cloud_server']['id'],
+                                                "{1}".format(each['cloud_server']['id'],
                                                              pool_id))
-            else:
+        if not error_response['errors']:
+            for add in body:
                 node = LoadBalancerPoolNode(
                     created=seconds_to_timestamp(self.clock.seconds(),
                                                  timestamp_format),
@@ -296,6 +301,10 @@ class LoadBalancerPoolsInRegion(object):
         """
         Delete multiple nodes from multiple load balancer pools.
 
+        Returns a 400 if the lb pool_id is not a uuid.
+        Returns a 409 if the lb pool_id does not exist or the cloud server does not exist
+        on the lb pool.
+
         http://docs.rcv3.apiary.io/#delete-%2Fv3%2F%7Btenant_id%7D%2Fload_balancer_pools%2Fnodes
 
         TODO: For now, blow up with a 500 and verify if the given server exists in nova.
@@ -303,8 +312,8 @@ class LoadBalancerPoolsInRegion(object):
         body = json.loads(request.content.read())
         error_response = {"errors": []}
 
-        for add in body:
-            pool_id = add['load_balancer_pool']['id']
+        for each in body:
+            pool_id = each['load_balancer_pool']['id']
             try:
                 UUID(pool_id, version=4)
             except (ValueError, AttributeError):
@@ -318,23 +327,24 @@ class LoadBalancerPoolsInRegion(object):
                 response_code = 409
                 error_response["errors"].append("Load Balancer Pool {0} does "
                                                 "not exist".format(pool_id))
-            elif pool.node_by_cloud_server(add['cloud_server']['id']) is None:
+            elif pool.node_by_cloud_server(each['cloud_server']['id']) is None:
                 response_code = 409
                 error_response["errors"].append(("Cloud Server {0} is not a "
                                                  "member of Load Balancer Pool "
-                                                 "{1}").format(add['cloud_server']['id'],
+                                                 "{1}").format(each['cloud_server']['id'],
                                                                pool_id))
-            else:
-
+        if not error_response['errors']:
+            for add in body:
+                pool = self._pool_by_id(add['load_balancer_pool']['id'])
                 node = pool.node_by_cloud_server(add['cloud_server']['id'])
                 pool.nodes.remove(node)
                 response_code = 204
 
-            request.setResponseCode(response_code)
-            if response_code == 204:
-                return b""
-            else:
-                return json.dumps(error_response)
+        request.setResponseCode(response_code)
+        if response_code == 204:
+            return b""
+        else:
+            return json.dumps(error_response)
 
     @app.route("/<string:id>", branch=True)
     def delegate_to_one_pool_handler(self, request, id):

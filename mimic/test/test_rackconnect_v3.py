@@ -318,7 +318,8 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
         is not a uuid4
         """
         self.helper.clock.advance(50)
-        node_and_pool_ids = [(text_type(uuid4()), 122)]
+        node_and_pool_ids = [(text_type(uuid4()), 122),
+                             (text_type(uuid4()), text_type(uuid4()))]
         add_data = self._get_custom_add_nodes_json(node_and_pool_ids)
         response, resp_json = self.successResultOf(self.json_request(
             "POST", "/load_balancer_pools/nodes", body=add_data))
@@ -326,8 +327,8 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
 
     def test_add_bulk_pool_nodes_to_single_non_existant_pool_id_1(self):
         """
-        Adding a pool node to a non-existant pool_id results in a 409
-        with respective error message
+        Adding a pool node to a non-existant pool_id using add bulk node
+        api call results in a 409 with respective error message
         """
         self.helper.clock.advance(50)
         pool_id = text_type(uuid4())
@@ -378,11 +379,15 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
         """
         self.helper.clock.advance(50)
         server_id = text_type(uuid4())
+
+        # add node to lb_pool
         node_and_pool_ids = [(server_id, self.get_lb_ids()[0][0])]
         add_data = self._get_custom_add_nodes_json(node_and_pool_ids)
         response, resp_json = self.successResultOf(self.json_request(
             "POST", "/load_balancer_pools/nodes", body=add_data))
         self.assertEqual(201, response.code)
+
+        # re-adding the node
         response, resp_json = self.successResultOf(self.json_request(
             "POST", "/load_balancer_pools/nodes", body=add_data))
         self.assertEqual(409, response.code)
@@ -390,18 +395,26 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
                          "Load Balancer Pool {1}".format(server_id, self.get_lb_ids()[0][0]),
                          resp_json["errors"][0])
 
-    def test_add_bulk_pool_nodes_multiple_errors_1(self):
+    def test_add_bulk_pool_nodes_multiple_errors(self):
         """
         Adding an existing node to a pool_id. Then adding the node to an exiting
         and non-existing pool id results in a 409 with respective error messages
         """
         self.helper.clock.advance(50)
+
+        # add node to a valid lb pool
         server_id = text_type(uuid4())
         node_and_pool_ids = [(server_id, self.get_lb_ids()[0][0])]
         add_data = self._get_custom_add_nodes_json(node_and_pool_ids)
         response, resp_json = self.successResultOf(self.json_request(
             "POST", "/load_balancer_pools/nodes", body=add_data))
         self.assertEqual(201, response.code)
+
+        # get the node count for the lb pool
+        _, list_json = self.successResultOf(self.json_request(
+            "GET", "/load_balancer_pools/{0}/nodes".format(self.pool_id)))
+
+        # re-add the node to a valid lb pool id as well to a non-existant pool_id
         node_and_pool_ids.append((server_id, text_type(uuid4())))
         add_data = self._get_custom_add_nodes_json(node_and_pool_ids)
         response, resp_json = self.successResultOf(self.json_request(
@@ -409,12 +422,20 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
         self.assertEqual(409, response.code)
         self.assertEqual(len(resp_json["errors"]), 2)
 
-    def test_add_bulk_pool_nodes_multiple_errors(self):
+        # ensure no new nodes were added to the pool
+        _, list_json_again = self.successResultOf(self.json_request(
+            "GET", "/load_balancer_pools/{0}/nodes".format(self.pool_id)))
+        self.assertEqual(len(list_json_again), len(list_json))
+
+    def test_add_bulk_pool_nodes_errors_with_no_node_added(self):
         """
         Add bulk pool nodes fails with a 409 if even one of the cloud servers
         or pool_ids in the request causes an error.
         """
         self.helper.clock.advance(50)
+        # get the node count for the lb pool
+        _, list_json = self.successResultOf(self.json_request(
+            "GET", "/load_balancer_pools/{0}/nodes".format(self.pool_id)))
         server_id = text_type(uuid4())
         random_pool_id = text_type(uuid4())
         node_and_pool_ids = [(server_id, self.get_lb_ids()[0][0]),
@@ -425,6 +446,10 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
         self.assertEqual(409, response.code)
         self.assertEqual("Load Balancer Pool {0} does not exist".format(random_pool_id),
                          resp_json["errors"][0])
+        # ensure no new nodes were added to the pool
+        _, list_json_again = self.successResultOf(self.json_request(
+            "GET", "/load_balancer_pools/{0}/nodes".format(self.pool_id)))
+        self.assertEqual(len(list_json_again), len(list_json))
 
     def test_add_bulk_pool_nodes_then_list(self):
         """
@@ -529,7 +554,7 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
 
     def test_remove_bulk_pool_nodes_given_a_non_existing_node(self):
         """
-        Removing an non existing node from a pool_id results in a 409
+        Removing an already deleted node from a pool_id results in a 409
         with respective error messages
         """
         server_id = text_type(uuid4())
@@ -542,6 +567,11 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
             "DELETE", "/load_balancer_pools/nodes",
             body=json.dumps(add_data)))
         self.assertEqual(204, response.code)
+
+        # get the node count for the lb pool
+        _, list_json = self.successResultOf(self.json_request(
+            "GET", "/load_balancer_pools/{0}/nodes".format(self.pool_id)))
+
         response, resp_json = self.successResultOf(self.request_with_content(
             "DELETE", "/load_balancer_pools/nodes",
             body=json.dumps(add_data)))
@@ -551,6 +581,11 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
                          "Load Balancer Pool {1}".format(server_id, self.get_lb_ids()[0][0]),
                          resp["errors"][0])
 
+        # ensure no other nodes were deleted from the pool
+        _, list_json_again = self.successResultOf(self.json_request(
+            "GET", "/load_balancer_pools/{0}/nodes".format(self.pool_id)))
+        self.assertEqual(len(list_json_again), len(list_json))
+
     def test_remove_bulk_pool_nodes_multiple_errors(self):
         """
         Removing bulk pool nodes fails with a 409 if even one of the cloud servers
@@ -558,6 +593,11 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
         """
         server_id = text_type(uuid4())
         random_pool_id = text_type(uuid4())
+
+        # get the node count for the lb pool
+        _, list_json = self.successResultOf(self.json_request(
+            "GET", "/load_balancer_pools/{0}/nodes".format(self.pool_id)))
+
         node_and_pool_ids = [(server_id, self.get_lb_ids()[0][0]),
                              (server_id, random_pool_id)]
         add_data = self._get_custom_add_nodes_json(node_and_pool_ids)
@@ -566,6 +606,11 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
         self.assertEqual(409, response.code)
         self.assertEqual("Load Balancer Pool {0} does not exist".format(random_pool_id),
                          resp_json["errors"][0])
+
+        # ensure no nodes were deleted from the pool
+        _, list_json_again = self.successResultOf(self.json_request(
+            "GET", "/load_balancer_pools/{0}/nodes".format(self.pool_id)))
+        self.assertEqual(len(list_json_again), len(list_json))
 
 
 class LoadbalancerPoolNodesAPITests(RackConnectTestMixin,
