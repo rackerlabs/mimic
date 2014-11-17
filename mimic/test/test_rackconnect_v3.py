@@ -3,6 +3,9 @@ Unit tests for the Rackspace RackConnect V3 API.
 """
 import json
 from random import randint
+from uuid import uuid4
+
+from six import text_type
 
 from twisted.trial.unittest import SynchronousTestCase
 from mimic.test.fixtures import APIMockHelper
@@ -14,10 +17,12 @@ from mimic.test.helpers import json_request, request_with_content
 
 
 class _IsString(object):
+
     """
     Helper class to be used when checking equality when you don't what the ID
     is but you want to check that it's an ID
     """
+
     def __eq__(self, other):
         """
         Returns true if the other is a string
@@ -26,9 +31,11 @@ class _IsString(object):
 
 
 class LoadBalancerObjectTests(SynchronousTestCase):
+
     """
     Tests for :class:`LoadBalancerPool` and :class:`LoadBalancerPoolNode`
     """
+
     def setUp(self):
         self.pool = LoadBalancerPool(id="pool_id", virtual_ip="10.0.0.1")
         for i in range(10):
@@ -96,9 +103,11 @@ class LoadBalancerObjectTests(SynchronousTestCase):
 
 
 class RackConnectTestMixin(object):
+
     """
     Mixin object that provides some nice utilities
     """
+
     def setUp(self):
         """
         Create a :obj:`MimicCore` with :obj:`RackConnectV3` as the only plugin
@@ -137,9 +146,11 @@ class RackConnectTestMixin(object):
 
 
 class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
+
     """
     Tests for the LoadBalancerPool API
     """
+
     def test_list_pools_default_one(self):
         """
         Verify the JSON response from listing all load balancer pools.
@@ -214,15 +225,26 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
             pool_details_response.headers.getRawHeaders('content-type'))
         self.assertEqual(pool, pool_details_json)
 
-    def test_get_pool_404_invalid_pool(self):
+    def test_get_pool_400_non_uuid_pool_id(self):
+        """
+        Getting pool on a non-uuid pool id returns a 400.
+        """
+        response, content = self.successResultOf(
+            self.request_with_content("GET", "/load_balancer_pools/123"))
+
+        self.assertEqual(400, response.code)
+
+    def test_get_pool_404_non_existant_pool(self):
         """
         Getting pool on a non-existant pool returns a 404.
         """
+        random_pool_id = text_type(uuid4())
         response, content = self.successResultOf(
-            self.request_with_content("GET", "/load_balancer_pools/X"))
+            self.request_with_content("GET",
+                                      "/load_balancer_pools/{0}".format(random_pool_id)))
 
         self.assertEqual(404, response.code)
-        self.assertEqual("Load Balancer Pool X does not exist", content)
+        self.assertEqual("Load Balancer Pool {0} does not exist".format(random_pool_id), content)
 
     def _get_add_nodes_json(self):
         """
@@ -233,6 +255,19 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
             {"cloud_server": {"id": "{0}".format(randint(0, 9))},
              "load_balancer_pool": {"id": pool_id}}
             for pool_id in self.get_lb_ids()[0]
+        ]
+
+    def _get_custom_add_nodes_json(self, node_and_pool_ids):
+        """
+        Helper function to generate bulk add nodes JSON given values for
+        node and pool ids.
+        node_and_pool_ids: list of tuples of corresponding node and
+        pool ids.
+        """
+        return [
+            {"cloud_server": {"id": "{0}".format(each[0])},
+             "load_balancer_pool": {"id": each[1]}}
+            for each in node_and_pool_ids
         ]
 
     def _check_added_nodes_result(self, seconds, add_json, results_json):
@@ -276,6 +311,120 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
             "POST", "/load_balancer_pools/nodes", body=add_data))
         self.assertEqual(201, response.code)
         self._check_added_nodes_result(50, add_data, resp_json)
+
+    def test_add_bulk_pool_nodes_when_pool_id_is_non_uuid(self):
+        """
+        Adding multiple pool nodes results in a 400 if one of the pool_ids
+        is not a uuid4
+        """
+        self.helper.clock.advance(50)
+        node_and_pool_ids = [(text_type(uuid4()), 122)]
+        add_data = self._get_custom_add_nodes_json(node_and_pool_ids)
+        response, resp_json = self.successResultOf(self.json_request(
+            "POST", "/load_balancer_pools/nodes", body=add_data))
+        self.assertEqual(400, response.code)
+
+    def test_add_bulk_pool_nodes_to_single_non_existant_pool_id_1(self):
+        """
+        Adding a pool node to a non-existant pool_id results in a 409
+        with respective error message
+        """
+        self.helper.clock.advance(50)
+        pool_id = text_type(uuid4())
+        node_and_pool_ids = [(text_type(uuid4()), pool_id)]
+        add_data = self._get_custom_add_nodes_json(node_and_pool_ids)
+        response, resp_json = self.successResultOf(self.json_request(
+            "POST", "/load_balancer_pools/nodes", body=add_data))
+        self.assertEqual(409, response.code)
+        self.assertEqual("Load Balancer Pool {0} does not exist".format(pool_id),
+                         resp_json["errors"][0])
+
+    def test_add_bulk_pool_nodes_to_single_non_existant_pool_id_2(self):
+        """
+        Adding multiple pool nodes to a non-existant pool_id results in a 409
+        with respective error message
+        """
+        self.helper.clock.advance(50)
+        pool_id = text_type(uuid4())
+        node_and_pool_ids = [(text_type(uuid4()), pool_id),
+                             (text_type(uuid4()), pool_id)]
+        add_data = self._get_custom_add_nodes_json(node_and_pool_ids)
+        response, resp_json = self.successResultOf(self.json_request(
+            "POST", "/load_balancer_pools/nodes", body=add_data))
+        self.assertEqual(409, response.code)
+        self.assertEqual("Load Balancer Pool {0} does not exist".format(pool_id),
+                         resp_json["errors"][0])
+        self.assertEqual("Load Balancer Pool {0} does not exist".format(pool_id),
+                         resp_json["errors"][1])
+
+    def test_add_bulk_pool_nodes_to_multiple_non_existant_pool_ids(self):
+        """
+        Adding multiple pool nodes to multiple non-existant pool_id results in a 409
+        with respective error messages
+        """
+        self.helper.clock.advance(50)
+        node_and_pool_ids = [(text_type(uuid4()), text_type(uuid4())),
+                             (text_type(uuid4()), text_type(uuid4()))]
+        add_data = self._get_custom_add_nodes_json(node_and_pool_ids)
+        response, resp_json = self.successResultOf(self.json_request(
+            "POST", "/load_balancer_pools/nodes", body=add_data))
+        self.assertEqual(409, response.code)
+        self.assertEqual(len(resp_json['errors']), 2)
+
+    def test_add_bulk_pool_nodes_for_an_existing_node(self):
+        """
+        Adding an existing node to a pool_id results in a 409
+        with respective error messages
+        """
+        self.helper.clock.advance(50)
+        server_id = text_type(uuid4())
+        node_and_pool_ids = [(server_id, self.get_lb_ids()[0][0])]
+        add_data = self._get_custom_add_nodes_json(node_and_pool_ids)
+        response, resp_json = self.successResultOf(self.json_request(
+            "POST", "/load_balancer_pools/nodes", body=add_data))
+        self.assertEqual(201, response.code)
+        response, resp_json = self.successResultOf(self.json_request(
+            "POST", "/load_balancer_pools/nodes", body=add_data))
+        self.assertEqual(409, response.code)
+        self.assertEqual("Cloud Server {0} is already a member of "
+                         "Load Balancer Pool {1}".format(server_id, self.get_lb_ids()[0][0]),
+                         resp_json["errors"][0])
+
+    def test_add_bulk_pool_nodes_multiple_errors_1(self):
+        """
+        Adding an existing node to a pool_id as well as the same to a non-existant
+        pool id results in a 409 with respective error messages
+        """
+        self.helper.clock.advance(50)
+        server_id = text_type(uuid4())
+        node_and_pool_ids = [(server_id, self.get_lb_ids()[0][0])]
+        add_data = self._get_custom_add_nodes_json(node_and_pool_ids)
+        response, resp_json = self.successResultOf(self.json_request(
+            "POST", "/load_balancer_pools/nodes", body=add_data))
+        self.assertEqual(201, response.code)
+        node_and_pool_ids.append((server_id, text_type(uuid4())))
+        add_data = self._get_custom_add_nodes_json(node_and_pool_ids)
+        response, resp_json = self.successResultOf(self.json_request(
+            "POST", "/load_balancer_pools/nodes", body=add_data))
+        self.assertEqual(409, response.code)
+        self.assertEqual(len(resp_json["errors"]), 2)
+
+    def test_add_bulk_pool_nodes_multiple_errors(self):
+        """
+        Add bulk pool nodes fails with a 409 if even one of the cloud servers
+        or pool_ids in the request caused an error.
+        """
+        self.helper.clock.advance(50)
+        server_id = text_type(uuid4())
+        random_pool_id = text_type(uuid4())
+        node_and_pool_ids = [(server_id, self.get_lb_ids()[0][0]),
+                             (server_id, random_pool_id)]
+        add_data = self._get_custom_add_nodes_json(node_and_pool_ids)
+        response, resp_json = self.successResultOf(self.json_request(
+            "POST", "/load_balancer_pools/nodes", body=add_data))
+        self.assertEqual(409, response.code)
+        self.assertEqual("Load Balancer Pool {0} does not exist".format(random_pool_id),
+                         resp_json["errors"][0])
 
     def test_add_bulk_pool_nodes_then_list(self):
         """
@@ -322,18 +471,22 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
 
 class LoadbalancerPoolNodesAPITests(RackConnectTestMixin,
                                     SynchronousTestCase):
+
     """
     Tests for the LoadBalancerPool API for getting and updating nodes
     """
+
     def test_get_pool_404_invalid_pool_nodes(self):
         """
         Getting nodes on a non-existant pool returns a 404.
         """
+        random_pool_id = text_type(uuid4())
         response, content = self.successResultOf(self.request_with_content(
-            "GET", "/load_balancer_pools/X/nodes".format(self.pool_id)))
+            "GET", "/load_balancer_pools/{0}/nodes".format(random_pool_id)))
 
         self.assertEqual(404, response.code)
-        self.assertEqual("Load Balancer Pool X does not exist", content)
+        self.assertEqual("Load Balancer Pool {0} does not exist".format(random_pool_id),
+                         content)
 
     def test_get_pool_nodes_empty(self):
         """
@@ -371,7 +524,7 @@ class LoadbalancerPoolNodesAPITests(RackConnectTestMixin,
         """
         response, content = self.successResultOf(self.request_with_content(
             "GET", "/load_balancer_pools/{0}/nodes/1".format(self.pool_id)
-            ))
+        ))
         self.assertEqual(501, response.code)
 
     def test_remove_pool_node_unimplemented(self):
@@ -380,7 +533,7 @@ class LoadbalancerPoolNodesAPITests(RackConnectTestMixin,
         """
         response, content = self.successResultOf(self.request_with_content(
             "DELETE", "/load_balancer_pools/{0}/nodes/1".format(self.pool_id)
-            ))
+        ))
         self.assertEqual(501, response.code)
 
     def test_get_pool_node_details_unimplemented(self):
@@ -391,5 +544,5 @@ class LoadbalancerPoolNodesAPITests(RackConnectTestMixin,
         response, content = self.successResultOf(self.request_with_content(
             "GET",
             "/load_balancer_pools/{0}/nodes/1/details".format(self.pool_id)
-            ))
+        ))
         self.assertEqual(501, response.code)

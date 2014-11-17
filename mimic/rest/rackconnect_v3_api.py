@@ -6,7 +6,7 @@ http://docs.rcv3.apiary.io/
 """
 from collections import defaultdict
 import json
-from uuid import uuid4
+from uuid import uuid4, UUID
 
 from characteristic import attributes, Attribute
 from six import text_type
@@ -253,35 +253,49 @@ class LoadBalancerPoolsInRegion(object):
 
         http://docs.rcv3.apiary.io/#post-%2Fv3%2F%7Btenant_id%7D%2Fload_balancer_pools%2Fnodes
 
-        TODO: handle errors!!!  It should return a 409 Conflict that is
-        documented, but the exact mechanism is not documented.  Do some get
-        added?  Do all that can get added get added?  Is it done by order?
-        Does the error message enumerate all the failed ones?)
-
-        For now, blow up with a 500.
+        TODO: blow up with a 500.
         """
         body = json.loads(request.content.read())
         added_nodes = []
+        error_response = {"errors": []}
 
         for add in body:
             pool_id = add['load_balancer_pool']['id']
+            try:
+                UUID(pool_id, version=4)
+            except (ValueError, AttributeError):
+                request.setResponseCode(400)
+                return json.dumps('The input was not in the correct format. Please reference '
+                                  'the documentation at http://docs.rcv3.apiary.io for '
+                                  'further assistance.')
             pool = self._pool_by_id(pool_id)
             if pool is None:
-                request.setResponseCode(500)
-                return "This does not handle errors yet."
+                response_code = 409
+                error_response["errors"].append("Load Balancer Pool {0} does "
+                                                "not exist".format(pool_id))
+            elif pool.node_by_cloud_server(add['cloud_server']['id']):
+                response_code = 409
+                error_response["errors"].append("Cloud Server {0} is already a "
+                                                "member of Load Balancer Pool "
+                                                "{1}".format(add['cloud_server']['id'],
+                                                             pool_id))
+            else:
+                node = LoadBalancerPoolNode(
+                    created=seconds_to_timestamp(self.clock.seconds(),
+                                                 timestamp_format),
+                    load_balancer_pool=pool,
+                    cloud_server=add['cloud_server']['id'],
+                    status="ADDING")
 
-            node = LoadBalancerPoolNode(
-                created=seconds_to_timestamp(self.clock.seconds(),
-                                             timestamp_format),
-                load_balancer_pool=pool,
-                cloud_server=add['cloud_server']['id'],
-                status="ADDING")
+                pool.nodes.append(node)
+                added_nodes.append(node)
+                response_code = 201
 
-            pool.nodes.append(node)
-            added_nodes.append(node)
-
-        request.setResponseCode(201)
-        return json.dumps([n.short_json() for n in added_nodes])
+        request.setResponseCode(response_code)
+        if response_code == 201:
+            return json.dumps([n.short_json() for n in added_nodes])
+        else:
+            return json.dumps(error_response)
 
     @app.route("/nodes", methods=["DELETE"])
     def bulk_delete_nodes_to_load_balancer_pools(self, request):
@@ -317,8 +331,15 @@ class LoadBalancerPoolsInRegion(object):
         If the load balancer pool of the given ID exists, delgate to the
         :class:`OneLoadBalancerPool` handler for further requests.
 
+        Returns 400 is the pool_id is not a uuid
         Returns 404 if no pool with the ID exists.
         """
+        try:
+            UUID(id, version=4)
+        except (ValueError, AttributeError):
+            request.setResponseCode(400)
+            return ('The input was not in the correct format. Please reference '
+                    'the documentation at http://docs.rcv3.apiary.io for further assistance.')
         pool = self._pool_by_id(id)
         if pool is not None:
             handler = OneLoadBalancerPool(pool=pool)
