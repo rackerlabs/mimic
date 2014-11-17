@@ -6,7 +6,7 @@ Mimic helps with:
 * fast set-up
 * instant response
 * cost efficient
-* enables offline developmenet
+* enables offline development
 * enables ability to test unusual behaviors/errors of an api
 * acts as a central repository for mocked responses from services
 
