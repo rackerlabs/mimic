@@ -1,13 +1,45 @@
-
+# -*- test-case-name: mimic.test.test_util -*-
+#
 """
 Helper methods
 
 :var fmt: strftime format for datetimes used in JSON.
 """
 from datetime import datetime, timedelta
+from random import randint
+
+from characteristic import Attribute
+from six import text_type
 
 
 fmt = '%Y-%m-%dT%H:%M:%S.%fZ'
+
+
+def random_ipv4(*numbers):
+    """
+    Return a random IPv4 address - parts of the IP address can be provided.
+    For example, ``random_ipv4(192, 168)`` will return a random 192.168.x.x
+    address.
+    """
+    all_numbers = [text_type(num) for num in
+                   list(numbers) + [randint(0, 255) for _ in range(4)]]
+    return ".".join(all_numbers[:4])
+
+
+def attribute_names(attribute_list):
+    """
+    Get a list of attribute names given an attribute list of either `str` or
+    :class:`characteristic.Attribute`
+    """
+    return [attr.name if isinstance(attr, Attribute) else attr
+            for attr in attribute_list]
+
+
+def seconds_to_timestamp(seconds, format=fmt):
+    """
+    Return an ISO8601 Zulu timestamp given seconds since the epoch.
+    """
+    return datetime.utcfromtimestamp(seconds).strftime(format)
 
 
 def not_found_response(resource='servers'):
