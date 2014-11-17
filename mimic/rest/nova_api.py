@@ -24,8 +24,7 @@ from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.imimic import IAPIMock
-from mimic.util.helper import fmt as time_format
-from mimic.util.helper import invalid_resource
+from mimic.util.helper import seconds_to_timestamp, invalid_resource
 
 Request.defaultContentType = 'application/json'
 
@@ -137,9 +136,8 @@ class NovaRegion(object):
             tenant_id, content['server'], server_id,
             self.uri_prefix,
             s_cache=self._server_cache_for_tenant(tenant_id),
-            current_time=datetime.utcfromtimestamp(
-                self._session_store.clock.seconds()
-            ).strftime(time_format)
+            current_time=seconds_to_timestamp(
+                self._session_store.clock.seconds())
         )
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
