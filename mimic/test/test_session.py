@@ -90,6 +90,18 @@ class SessionCreationTests(SynchronousTestCase):
         self.assertEqual(a.username, c.username)
         self.assertEqual(a.tenant_id, c.tenant_id)
 
+        # Right now all data_for_api cares about is hashability; this may need
+        # to change if it comes to rely upon its argument actually being an API
+        # mock.
+        same_api = 'not_an_api'
+
+        username_data = c.data_for_api(same_api, list)
+        token_data = b.data_for_api(same_api, list)
+        impersonation_data = a.data_for_api(same_api, list)
+
+        self.assertIs(username_data, impersonation_data)
+        self.assertIs(token_data, impersonation_data)
+
     def test_session_for_tenant_id(self):
         """
         SessionStore.session_for_tenant_id will return a session that can be
