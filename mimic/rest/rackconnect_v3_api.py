@@ -34,7 +34,7 @@ class RackConnectV3(object):
     API mock object for RackConnect V3.
 
     :ivar regions: The regions for which endpoints should be produced
-    :type regions: `iterable`
+    :type regions: ``iterable``
 
     :ivar int default_lbs: The number of default load balancers to be created
         per tenant per region
@@ -156,9 +156,10 @@ class LoadBalancerPoolNode(object):
     :param str status: The status of the load balancer - defaults to "ACTIVE"
     :param str status_detail: Any details about the status - defaults to None
     :param str cloud_server: The ID of the cloud server corresponding to
-        this node (not the same as the instance's ``id``).  Note - a node
-        in theory can also be some external resource (not a cloud server),
-        but that is not supported yet.
+        this node.  The cloud server's ID is not equivalent to the ``id``
+        attribute on :class:`LoadBalancerPoolNode`, because a node
+        in theory can also be some external (not a cloud server) resource,
+        but that is not supported yet on the API.
     """
     def short_json(self):
         """
