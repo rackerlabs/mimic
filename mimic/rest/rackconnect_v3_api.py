@@ -85,7 +85,7 @@ lb_pool_attrs = [
               exclude_from_cmp=True)]
 
 
-@attributes(lb_pool_attrs)
+@attributes(lb_pool_attrs, apply_with_cmp=False)
 class LoadBalancerPool(object):
     """
     Represents a Load Balancer Pool, which cannot be created via the API.
@@ -140,7 +140,7 @@ lb_node_attrs = [
     Attribute("status_detail", default_value=None)]
 
 
-@attributes(lb_node_attrs, apply_with_cmp=False)
+@attributes(lb_node_attrs)
 class LoadBalancerPoolNode(object):
     """
     Represents a Load Balancer Pool Node.
