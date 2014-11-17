@@ -204,9 +204,6 @@ class RackConnectV3Region(object):
             self.iapi, lambda: defaultdict(list))
         per_tenant_per_region_lbs = per_tenant_lbs[self.region_name]
 
-        # TODO: right now, by default, all tenants have one load balancer
-        # pool set up.  This should be configurable via a control plane,
-        # since the tenant cannot add load balancer pools via the API
         if not per_tenant_per_region_lbs:
             per_tenant_per_region_lbs.extend([
                 LoadBalancerPool() for _ in range(self.default_lbs)])
