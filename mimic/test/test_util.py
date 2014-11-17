@@ -43,3 +43,28 @@ class HelperTests(SynchronousTestCase):
         self.assertEqual(['ima_string', 'ima_name'],
                          helper.attribute_names(['ima_string',
                                                  Attribute('ima_name')]))
+
+    def test_seconds_to_timestamp_default_timestamp(self):
+        """
+        :func:`helper.seconds_to_timestamp` returns a timestamp matching
+        the seconds since the epoch given.  The timestamp conforms to with the
+        default format string of ``%Y-%m-%dT%H:%M:%S.%fZ`` if no format
+        string is provided.
+        """
+        matches = [(0, "1970-01-01T00:00:00.000000Z"),
+                   (1.5, "1970-01-01T00:00:01.500000Z"),
+                   (121.4005, "1970-01-01T00:02:01.400500Z")]
+        for match in matches:
+            self.assertEqual(match[1], helper.seconds_to_timestamp(match[0]))
+
+    def test_seconds_to_timestamp_provided_timestamp(self):
+        """
+        :func:`helper.seconds_to_timestamp` uses the provided timestamp format
+        to format the seconds.
+        """
+        matches = [("%m-%d-%Y %H:%M:%S", "01-01-1970 00:00:00"),
+                   ("%Y-%m-%d", "1970-01-01"),
+                   ("%H %M %S (%f)", "00 00 00 (000000)")]
+        for match in matches:
+            self.assertEqual(match[1],
+                             helper.seconds_to_timestamp(0, match[0]))
