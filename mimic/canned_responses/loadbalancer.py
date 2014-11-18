@@ -4,7 +4,6 @@ Canned response for add/get/list/delete load balancers and
 add/get/delete/list nodes
 """
 from random import randrange
-from datetime import datetime
 from copy import deepcopy
 from mimic.util.helper import (not_found_response, invalid_resource,
                                set_resource_status, seconds_to_timestamp)
