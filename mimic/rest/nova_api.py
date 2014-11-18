@@ -6,7 +6,6 @@ Defines create, delete, get, list servers and get images and flavors.
 from uuid import uuid4
 import json
 import collections
-from datetime import datetime
 from random import randrange
 
 from six import text_type
