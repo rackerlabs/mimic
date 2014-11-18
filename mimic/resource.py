@@ -3,7 +3,6 @@ Resources for Mimic's core.
 """
 
 import json
-from datetime import datetime
 
 from twisted.web.resource import NoResource
 
