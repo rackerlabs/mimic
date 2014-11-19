@@ -21,6 +21,7 @@ from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.rest.mimicapp import MimicApp
 from mimic.imimic import IAPIMock
+from mimic.canned_responses.maas_json_home import json_home
 
 
 Request.defaultContentType = 'application/json'
@@ -68,7 +69,6 @@ class M_Cache(dict):
         """
         Create the initial structs for cache
         """
-        self.json_home = json.loads(file('mimic/rest/cloudMonitoring_json_home.json').read())
         self.entities_list = []
         self.checks_list = []
         self.alarms_list = []
@@ -97,7 +97,8 @@ class M_Cache(dict):
                                                                         service key to use.'}]},
                                        {'id': 'sms', 'fields': [{'name': 'phone_number',
                                                                  'optional': False,
-                                                                 'description': 'Phone number to send the notification to, \
+                                                                 'description': 'Phone number to send \
+                                                                  the notification to, \
                                                                   with leading + and country \
                                                                   code (E.164 format)'}]}]
 
@@ -285,7 +286,7 @@ class MaasMock(object):
         Reset the session
         """
         self._session_store.session_for_tenant_id(tenant_id)._api_objects = {}
-        return "Session has been reset for tenant_id "+tenant_id
+        return "Session has been reset for tenant_id " + tenant_id
 
     @app.route('/v1.0/<string:tenant_id>/entities', methods=['GET'])
     def list_entities(self, request, tenant_id):
@@ -569,15 +570,13 @@ class MaasMock(object):
         jsonhome call. CloudIntellgiences doesn't actually use these URLs directly.
         Rather, do some regex on them to figure how to know what permissions the user as
         have
+        TO DO: Regionless api
         """
-        cache = self._entity_cache_for_tenant(tenant_id)
         request.setResponseCode(200)
         myhostname_and_port = request.getRequestHostname() + ':' + self.endpoint_port
         mockapi_id = re.findall('/mimicking/(.+?)/', request.path)[0]
-        return json.dumps(cache.json_home)\
-            .replace('.com/v1.0', '.com/mimicking/' + mockapi_id + '/ORD/v1.0')\
-            .replace('monitoring.api.rackspacecloud.com', myhostname_and_port)\
-            .replace("https://", "http://")
+        url = "http://" + myhostname_and_port + '/mimicking/' + mockapi_id + '/ORD/v1.0'
+        return json.dumps(json_home(url))
 
     @app.route('/v1.0/<string:tenant_id>/views/agent_host_info', methods=['GET'])
     def view_agent_host_info(self, request, tenant_id):
@@ -724,10 +723,10 @@ class MaasMock(object):
             errobj['type'] = 'forbiddenError'
             errobj['code'] = 403
             errobj['txnId'] = '.rh-D0j7.h-dfw1-maas-prod-api0.r-doc8iigF.c-5540173.ts-' + \
-                str(time.time())+'.v-bfe87f0'
+                str(time.time()) + '.v-bfe87f0'
             errobj['message'] = 'Notification plans cannot be removed while alarms are using it:'
             for a_id in alarmids_using_np:
-                errobj['message'] += ' '+a_id
+                errobj['message'] += ' ' + a_id
             errobj['details'] = errobj['message']
             return json.dumps(errobj)
 
