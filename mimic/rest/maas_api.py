@@ -29,9 +29,11 @@ Request.defaultContentType = 'application/json'
 
 @implementer(IAPIMock, IPlugin)
 class MaasApi(object):
+
     """
     Rest endpoints for mocked MAAS Api.
     """
+
     def __init__(self, regions=["ORD"]):
         """
         Set regions
@@ -62,9 +64,11 @@ class MaasApi(object):
 
 
 class M_Cache(dict):
+
     """
     M(onitoring) Cache Object to hold dictionaries of all entities, checks and alarms.
     """
+
     def __init__(self):
         """
         Create the initial structs for cache
@@ -256,9 +260,11 @@ def createMultiplotFromMetric(metric, reqargs, allchecks):
 
 
 class MaasMock(object):
+
     """
     Klein routes for the Monitoring API.
     """
+
     def __init__(self, api_mock, uri_prefix, session_store, name):
         """
         Create a maas region with a given URI prefix (used for generating URIs
@@ -581,16 +587,16 @@ class MaasMock(object):
     @app.route('/v1.0/<string:tenant_id>/views/agent_host_info', methods=['GET'])
     def view_agent_host_info(self, request, tenant_id):
         """
-        No agent minitoring. For now, alwyas return 400.
+        No agent monitoring. For now, always return 400.
         """
         request.setResponseCode(400)
-        return """{
-          "type":  "agentDoesNotExist",
-          "code":  400,
-          "message":  "Agent does not exist",
-          "details":  "Agent c302622d-7612-4485-af8b-8363d8ce9184 does not exist.",
-          "txnId":  ".rh-quqy.h-ord1-maas-prod-api1.r-1wej75Ht.c-21273930.ts-1410911874749.v-858fee7"
-        }"""
+        return json.dumps({
+            "type": "agentDoesNotExist",
+            "code": 400,
+            "message": "Agent does not exist",
+            "details": "Agent XYZ does not exist.",
+            "txnId": ".fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf"
+        })
 
     @app.route('/v1.0/<string:tenant_id>/notifications', methods=['POST'])
     def create_notification(self, request, tenant_id):
