@@ -6,7 +6,6 @@ import json
 import collections
 import time
 import random
-import string
 import re
 from uuid import uuid4
 
@@ -22,6 +21,7 @@ from mimic.catalog import Endpoint
 from mimic.rest.mimicapp import MimicApp
 from mimic.imimic import IAPIMock
 from mimic.canned_responses.maas_json_home import json_home
+from mimic.util.helper import random_hex_generator
 
 
 Request.defaultContentType = 'application/json'
@@ -114,9 +114,8 @@ def createEntity(params):
     params = collections.defaultdict(lambda: '', params)
     newentity = {}
     newentity['label'] = params[u'label'].encode("ascii")
-    newentity['id'] = 'e' + ''.join(random.sample(string.letters + string.digits, 8))
-    newentity['agent_id'] = params['agent_id'] or ''.join(
-        random.sample(string.letters + string.digits, 24))
+    newentity['id'] = 'e' + random_hex_generator(4)
+    newentity['agent_id'] = params['agent_id'] or random_hex_generator(12)
     newentity['created_at'] = time.time()
     newentity['updated_at'] = time.time()
     newentity['managed'] = params['managed']
@@ -133,10 +132,10 @@ def createCheck(params):
     for k in params.keys():
         if 'encode' in dir(params[k]):
             params[k] = params[k].encode('ascii')
-    params['id'] = 'c' + ''.join(random.sample(string.letters + string.digits, 8))
+    params['id'] = 'c' + random_hex_generator(4)
     params['collectors'] = []
     for q in range(3):
-        params['collectors'].append('co'.join(random.sample(string.letters + string.digits, 6)))
+        params['collectors'].append('co' + random_hex_generator(3))
     params['confd_hash'] = None
     params['confd_name'] = None
     params['created_at'] = time.time()
@@ -159,7 +158,7 @@ def createAlarm(params):
     for k in params.keys():
         if 'encode' in dir(params[k]):
             params[k] = params[k].encode('ascii')
-    params['id'] = 'al' + ''.join(random.sample(string.letters + string.digits, 6))
+    params['id'] = 'al' + random_hex_generator(4)
     params['confd_hash'] = None
     params['confd_name'] = None
     params['created_at'] = time.time()
@@ -176,7 +175,7 @@ def createNotificationPlan(params):
     for k in params.keys():
         if 'encode' in dir(params[k]):  # because there are integers sometimes.
             params[k] = params[k].encode('ascii')
-    params['id'] = 'np' + ''.join(random.sample(string.letters + string.digits, 8))
+    params['id'] = 'np' + random_hex_generator(4)
     params['critical_state'] = None
     params['warning_state'] = None
     params['ok_state'] = None
@@ -193,7 +192,7 @@ def createNotification(params):
     for k in params.keys():
         if 'encode' in dir(params[k]):  # because there are integers sometimes.
             params[k] = params[k].encode('ascii')
-    params['id'] = 'nt' + ''.join(random.sample(string.letters + string.digits, 8))
+    params['id'] = 'nt' + random_hex_generator(4)
     params['created_at'] = time.time()
     params['updated_at'] = time.time()
     params['metadata'] = None
