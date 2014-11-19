@@ -22,4 +22,10 @@ setup(
     license="Apache License, Version 2.0",
     # py2app
     app=['start-app.py'],
+    options={
+        'py2app': {
+            'includes': ['syslog'],
+            'argv_emulation': True
+        }
+    }
 )
