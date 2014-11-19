@@ -34,6 +34,14 @@ class HelperTests(SynchronousTestCase):
             self._validate_ipv4_address(helper.random_ipv4(*prefixes),
                                         *prefixes)
 
+    def test_random_hex_generator(self):
+        """
+        A completely random and unique 2x bits of hex data is generated.
+        """
+        self.assertNotEqual(helper.random_hex_generator(3),
+                            helper.random_hex_generator(3))
+        self.assertEqual(len(helper.random_hex_generator(4)), 8)
+
     def test_attribute_names(self):
         """
         :func:`helper.attribute_names` returns the string if an attribute is
