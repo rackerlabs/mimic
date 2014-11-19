@@ -20,17 +20,21 @@ from sys import stdout
 
 
 def startMimic():
+    # this will need an explicit logger
     log.startLogging(stdout)
 
     from twisted.internet import reactor
-    clock = reactor
+    # this runs in realtime. I'd think that the mimic user
+    # would likely want to run with the internally defined
+    # clock.
+    clock = Clock()
     core = MimicCore.fromPlugins(clock)
     root = MimicRoot(core, clock)
     site = Site(root.app.resource())
     site.displayTracebacks = False
 
     endpoint = serverFromString(
-        clock,
+        reactor,
         b"tcp:8800:interface=127.0.0.1"
     )
     endpoint.listen(site)
