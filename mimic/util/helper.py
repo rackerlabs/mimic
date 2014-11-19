@@ -5,8 +5,11 @@ Helper methods
 
 :var fmt: strftime format for datetimes used in JSON.
 """
+import binascii
+import os
 from datetime import datetime, timedelta
 from random import randint
+
 
 from characteristic import Attribute
 from six import text_type
@@ -24,6 +27,13 @@ def random_ipv4(*numbers):
     all_numbers = [text_type(num) for num in
                    list(numbers) + [randint(0, 255) for _ in range(4)]]
     return ".".join(all_numbers[:4])
+
+
+def random_hex_generator(num):
+    """
+    Returns randomly generated 2x hex bits of data for the given `num`
+    """
+    return str(binascii.hexlify(os.urandom(num)))
 
 
 def attribute_names(attribute_list):
