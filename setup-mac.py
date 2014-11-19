@@ -22,5 +22,4 @@ setup(
     license="Apache License, Version 2.0",
     # py2app
     app=['start-app.py'],
-    setup_requires=['py2app']
 )
