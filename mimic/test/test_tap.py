@@ -19,6 +19,7 @@ from twisted.python.filepath import FilePath
 
 from twisted.trial.unittest import SynchronousTestCase
 
+from mimic.core import MimicCore
 from mimic.tap import Options, makeService
 
 
@@ -111,3 +112,24 @@ class TapTests(SynchronousTestCase):
         self.assertEqual(len(endpoints.factories), 1)
         factory = endpoints.factories[0]
         self.assertEqual(factory.displayTracebacks, False)
+
+    def test_realtime(self):
+        """
+        The C{--realtime} option specifies that the global reactor ought to be
+        used, so Mimic's time can be advanced by the passage of real time.
+        """
+        o = Options()
+        o.parseOptions(["--realtime"])
+
+        class CheckClock(MimicCore):
+            @classmethod
+            def fromPlugins(cls, clock):
+                result = super(CheckClock, cls).fromPlugins(clock)
+                CheckClock.clock = clock
+                return result
+        from mimic import tap
+        self.patch(tap, "MimicCore", CheckClock)
+        makeService(o)
+        # Grab the global reactor just for comparison.
+        from twisted.internet import reactor as real_reactor
+        self.assertIdentical(CheckClock.clock, real_reactor)

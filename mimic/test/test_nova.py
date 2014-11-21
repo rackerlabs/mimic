@@ -8,7 +8,7 @@ from twisted.trial.unittest import SynchronousTestCase
 from mimic.canned_responses.nova import server_template
 from mimic.test.helpers import json_request, request
 from mimic.rest.nova_api import NovaApi
-from mimic.test.fixtures import APIMockHelper
+from mimic.test.fixtures import APIMockHelper, TenantAuthentication
 
 
 class ResponseGenerationTests(SynchronousTestCase):
@@ -20,7 +20,9 @@ class ResponseGenerationTests(SynchronousTestCase):
     def test_server_template(self):
         """
         :obj:`server_template` generates a JSON object representing an
-        individual Nova server.
+        individual Nova server.  This includes a dictionary for the ``image``
+        parameter that contains the ID and some links, if ``imageRef`` is
+        provided in the server info
         """
 
         input_server_info = {
@@ -49,7 +51,7 @@ class ResponseGenerationTests(SynchronousTestCase):
             "OS-DCF:diskConfig": "AUTO",
             "OS-EXT-STS:power_state": 1,
             "OS-EXT-STS:task_state": None,
-            "OS-EXT-STS:vm_state": "active",
+            "OS-EXT-STS:vm_state": "some_status",
             "accessIPv4": "198.101.241.238",
             "accessIPv6": "2001:4800:780e:0510:d87b:9cbc:ff04:513a",
             "key_name": None,
@@ -116,8 +118,73 @@ class ResponseGenerationTests(SynchronousTestCase):
             "updated": "the_current_time",
             "user_id": "170454"
         }
-        self.assertEquals(json.dumps(expectation, indent=2),
-                          json.dumps(actual, indent=2))
+        self.assertEquals(expectation, actual)
+
+    def _test_server_template_without_image(self, input_server_info):
+        """
+        Helper function to test generation of a server template with an empty
+        image.
+        """
+        counter = itertools.count(1)
+
+        compute_service_uri_prefix = (
+            "http://mimic.example.com/services/region/compute/"
+        )
+
+        actual = server_template("some_tenant", input_server_info,
+                                 "some_server_id", "some_status",
+                                 "the_current_time",
+                                 lambda: next(counter),
+                                 compute_service_uri_prefix)
+
+        self.assertEquals("", actual['image'])
+
+    def test_server_template_with_blank_imageRef(self):
+        """
+        :obj:`server_template` generates a JSON object representing an
+        individual Nova server, but the ``image`` parameter is empty if
+        ``imageRef`` in the server info is blank.
+        """
+        self._test_server_template_without_image({
+            "flavorRef": "some_flavor",
+            "imageRef": "",
+            "name": "some_server_name",
+            "metadata": {
+                "some_key": "some_value",
+                "some_other_key": "some_other_value",
+            }
+        })
+
+    def test_server_template_with_null_imageRef(self):
+        """
+        :obj:`server_template` generates a JSON object representing an
+        individual Nova server, but the ``image`` parameter is empty if
+        ``imageRef`` in the server info is null.
+        """
+        self._test_server_template_without_image({
+            "flavorRef": "some_flavor",
+            "imageRef": None,
+            "name": "some_server_name",
+            "metadata": {
+                "some_key": "some_value",
+                "some_other_key": "some_other_value",
+            }
+        })
+
+    def test_server_template_with_no_imageRef(self):
+        """
+        :obj:`server_template` generates a JSON object representing an
+        individual Nova server, but the ``image`` parameter is empty if
+        no ``imageRef`` is provided in the server info.
+        """
+        self._test_server_template_without_image({
+            "flavorRef": "some_flavor",
+            "name": "some_server_name",
+            "metadata": {
+                "some_key": "some_value",
+                "some_other_key": "some_other_value",
+            }
+        })
 
 
 class NovaAPITests(SynchronousTestCase):
@@ -360,6 +427,21 @@ class NovaAPITests(SynchronousTestCase):
         )["servers"]
         self.assertEqual(other_region_servers, [])
 
+    def test_different_tenants_same_region(self):
+        """
+        Creating a server for one tenant in a particular region should not
+        create it for other tenants in the same region.
+        """
+        other_tenant = TenantAuthentication(self, self.root, "other", "other")
+
+        response, response_body = self.successResultOf(
+            json_request(
+                self, self.root, "GET",
+                other_tenant.nth_endpoint_public(0) + '/servers'))
+
+        self.assertEqual(response.code, 200)
+        self.assertEqual(response_body, {'servers': []})
+
 
 class NovaAPINegativeTests(SynchronousTestCase):
 
@@ -378,7 +460,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         self.helper = helper
 
     def create_server(self, name=None, imageRef=None, flavorRef=None,
-                      metadata=None):
+                      metadata=None, body='default'):
         """
         Creates a server with the given specifications and returns the response
         object
@@ -388,20 +470,43 @@ class NovaAPINegativeTests(SynchronousTestCase):
         :param flavorRef: Flavor size of the server
         :param metadat: Metadata of the server
         """
-        create_server = request(
-            self, self.root, "POST", self.uri + '/servers',
-            json.dumps({
+        if body == 'default':
+            json_request = json.dumps({
                 "server": {
                     "name": name or 'test_server',
                     "imageRef": imageRef or "test-image",
                     "flavorRef": flavorRef or "test-flavor",
                     "metadata": metadata or {}
                 }
-            }))
+            })
+        elif body is None:
+            json_request = ""
+        else:
+            json_request = body
+
+        create_server = request(
+            self, self.root, "POST", self.uri + '/servers', json_request
+        )
         create_server_response = self.successResultOf(create_server)
         return create_server_response
 
-    def test_create_server_faiure(self):
+    def test_create_server_request_with_no_body_causes_bad_request(self):
+        """
+        Test to verify :func:`create_server` does not fail when it receives a
+        request with no body.
+        """
+        create_server_response = self.create_server(body=None)
+        self.assertEquals(create_server_response.code, 400)
+
+    def test_create_server_request_with_invalid_body_causes_bad_request(self):
+        """
+        Test to verify :func:`create_server` does not fail when it receives a
+        request with no body.
+        """
+        create_server_response = self.create_server(body='{ bad request: }')
+        self.assertEquals(create_server_response.code, 400)
+
+    def test_create_server_failure(self):
         """
         Test to verify :func:`create_server` fails with given error message
         and response code in the metadata.
@@ -415,6 +520,28 @@ class NovaAPINegativeTests(SynchronousTestCase):
         self.assertEquals(create_server_response_body['message'],
                           "Create server failure")
         self.assertEquals(create_server_response_body['code'], 500)
+
+    def test_create_server_failure_and_list_servers(self):
+        """
+        Test to verify :func:`create_server` fails with given error message
+        and response code in the metadata and does not actually create a server.
+        """
+        serverfail = {"message": "Create server failure", "code": 500}
+        metadata = {"create_server_failure": json.dumps(serverfail)}
+        create_server_response = self.create_server(metadata=metadata)
+        self.assertEquals(create_server_response.code, 500)
+        create_server_response_body = self.successResultOf(
+            treq.json_content(create_server_response))
+        self.assertEquals(create_server_response_body['message'],
+                          "Create server failure")
+        self.assertEquals(create_server_response_body['code'], 500)
+        # List servers
+        list_servers = request(self, self.root, "GET", self.uri + '/servers')
+        list_servers_response = self.successResultOf(list_servers)
+        self.assertEquals(list_servers_response.code, 200)
+        list_servers_response_body = self.successResultOf(
+            treq.json_content(list_servers_response))
+        self.assertEquals(list_servers_response_body['servers'], [])
 
     def test_server_in_building_state_for_specified_time(self):
         """
@@ -436,6 +563,15 @@ class NovaAPINegativeTests(SynchronousTestCase):
         get_server_response_body = self.successResultOf(
             treq.json_content(get_server_response))
         self.assertEquals(get_server_response_body['server']['status'], "BUILD")
+        # List servers with details and verify the server is in BUILD status
+        list_servers = request(self, self.root, "GET", self.uri + '/servers/detail')
+        list_servers_response = self.successResultOf(list_servers)
+        self.assertEquals(list_servers_response.code, 200)
+        list_servers_response_body = self.successResultOf(
+            treq.json_content(list_servers_response))
+        self.assertEquals(len(list_servers_response_body['servers']), 1)
+        building_server = list_servers_response_body['servers'][0]
+        self.assertEquals(building_server['status'], "BUILD")
         # Time Passes...
         self.helper.clock.advance(2.0)
         # get server and verify status changed to active
@@ -509,7 +645,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         get_server_image = request(self, self.root, "GET", self.uri +
                                    '/images/test-image-idZ')
         get_server_image_response = self.successResultOf(get_server_image)
-        self.assertEqual(get_server_image_response.code, 400)
+        self.assertEqual(get_server_image_response.code, 404)
 
     def test_get_server_flavor(self):
         """
@@ -519,4 +655,4 @@ class NovaAPINegativeTests(SynchronousTestCase):
         get_server_flavor = request(self, self.root, "GET", self.uri +
                                     '/flavors/1')
         get_server_flavor_response = self.successResultOf(get_server_flavor)
-        self.assertEqual(get_server_flavor_response.code, 400)
+        self.assertEqual(get_server_flavor_response.code, 404)
