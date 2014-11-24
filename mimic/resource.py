@@ -3,7 +3,6 @@ Resources for Mimic's core.
 """
 
 import json
-from datetime import datetime
 
 from twisted.web.resource import NoResource
 
@@ -11,7 +10,7 @@ from mimic.canned_responses.mimic_presets import get_presets
 from mimic.rest.mimicapp import MimicApp
 from mimic.rest.auth_api import AuthApi, base_uri_from_request
 from mimic.rest import fastly_api
-from mimic.util.helper import fmt
+from mimic.util.helper import seconds_to_timestamp
 
 
 class MimicRoot(object):
@@ -73,8 +72,7 @@ class MimicRoot(object):
         request.setResponseCode(200)
         return json.dumps({
             "advanced": amount,
-            "now": (datetime.utcfromtimestamp(self.clock.seconds())
-                    .strftime(fmt))
+            "now": seconds_to_timestamp(self.clock.seconds())
         })
 
     @app.route("/mimicking/<string:service_id>/<string:region_name>",

@@ -8,23 +8,16 @@ from six import text_type
 from uuid import uuid4
 from datetime import datetime, timedelta
 
-from characteristic import attributes
+from characteristic import attributes, Attribute
 
 
-@attributes("username token tenant_id expires".split())
+@attributes(['username', 'token', 'tenant_id', 'expires',
+             Attribute('_api_objects', default_factory=dict)])
 class Session(object):
     """
     A mimic Session is a record of an authentication token for a particular
     username and tenant_id.
     """
-
-    def __init__(self):
-        """
-        Each session has an associated mapping of :obj:`IAPIMock` to data for
-        that API.  For example, Nova might store the servers for that tenant,
-        Swift might store objects for that tenant.
-        """
-        self._api_objects = {}
 
     @property
     def user_id(self):
@@ -155,6 +148,7 @@ class SessionStore(object):
                                               expires_in),
             tenant_id=session.tenant_id,
             username_key=key,
+            api_objects=session._api_objects,
         )
         return subsession
 

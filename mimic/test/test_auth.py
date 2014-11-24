@@ -291,6 +291,30 @@ class GetAuthTokenAPITests(SynchronousTestCase):
         self.assertEqual(200, response.code)
         self.assertEqual(json_body['access']['user']['roles'], HARD_CODED_ROLES)
 
+    def test_authentication_request_with_no_body_causes_http_bad_request(self):
+        """
+        The response for empty body request is bad_request.
+        """
+        core = MimicCore(Clock(), [])
+        root = MimicRoot(core).app.resource()
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens", ""))
+
+        self.assertEqual(400, response.code)
+
+    def test_authentication_request_with_invalid_body_causes_http_bad_request(self):
+        """
+        The response for not JSON body request is bad_request.
+        """
+        core = MimicCore(Clock(), [])
+        root = MimicRoot(core).app.resource()
+
+        response = self.successResultOf(request(
+            self, root, "POST", "/identity/v2.0/tokens", "{ bad request: }"))
+
+        self.assertEqual(400, response.code)
+
     def test_auth_accepts_tenant_name(self):
         """
         If "tenantName" is passed, the tenant specified is used instead of a
@@ -585,3 +609,28 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         ))
         self.assertEqual(200, response.code)
         self.assertTrue(json_body['access']['token']['id'])
+
+    def test_impersonation_request_with_no_body_causes_http_bad_request(self):
+        """
+        The response for empty body request is bad_request.
+        """
+        core = MimicCore(Clock(), [])
+        root = MimicRoot(core).app.resource()
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "POST", "http://mybase/identity/v2.0/RAX-AUTH/impersonation-tokens", ""))
+
+        self.assertEqual(400, response.code)
+
+    def test_impersonation_request_with_invalid_body_causes_http_bad_request(self):
+        """
+        The response for not JSON body request is bad_request.
+        """
+        core = MimicCore(Clock(), [])
+        root = MimicRoot(core).app.resource()
+
+        response = self.successResultOf(request(
+            self, root, "POST", "http://mybase/identity/v2.0/RAX-AUTH/impersonation-tokens",
+                                "{ bad request: }"))
+
+        self.assertEqual(400, response.code)

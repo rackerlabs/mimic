@@ -6,7 +6,6 @@ Defines create, delete, get, list servers and get images and flavors.
 from uuid import uuid4
 import json
 import collections
-from datetime import datetime
 from random import randrange
 
 from six import text_type
@@ -24,7 +23,7 @@ from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.imimic import IAPIMock
-from mimic.util.helper import fmt as time_format
+from mimic.util.helper import seconds_to_timestamp, invalid_resource
 
 Request.defaultContentType = 'application/json'
 
@@ -125,15 +124,19 @@ class NovaRegion(object):
         """
         Returns a generic create server response, with status 'ACTIVE'.
         """
+        try:
+            content = json.loads(request.content.read())
+        except ValueError:
+            request.setResponseCode(400)
+            return json.dumps(invalid_resource("Invalid JSON request body"))
+
         server_id = 'test-server{0}-id-{0}'.format(str(randrange(9999999999)))
-        content = json.loads(request.content.read())
         response_data = create_server(
             tenant_id, content['server'], server_id,
             self.uri_prefix,
             s_cache=self._server_cache_for_tenant(tenant_id),
-            current_time=datetime.utcfromtimestamp(
-                self._session_store.clock.seconds()
-            ).strftime(time_format)
+            current_time=seconds_to_timestamp(
+                self._session_store.clock.seconds())
         )
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
