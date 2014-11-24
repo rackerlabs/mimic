@@ -54,8 +54,7 @@ class AuthApi(object):
             session = self.core.sessions.session_for_api_key(
                 username, api_key, tenant_id)
         elif content['auth'].get('token') and tenant_id:
-            session = self.core.sessions.session_for_token(
-                content['auth']['token']['id'], tenant_id)
+            session = self.core.sessions.session_for_tenant_id(tenant_id)
         else:
             request.setResponseCode(400)
             return json.dumps(invalid_resource("Invalid JSON request body"))
