@@ -52,24 +52,11 @@ class QueueApi(object):
                 ]
             )
         ]
-    # def catalog_entries(self, tenant_id):
-    #     """
-    #     Catalog entry for Queues endpoints.
-    #     """
-    #     return [
-    #         Entry(
-    #             tenant_id, "rax:queues", "cloudQueues", 
-    #             [
-    #                 Endpoint(tenant_id, region, text_type(uuid4()),
-    #                          prefix="v1")
-    #                 for region in self._regions
-    #             ]
-    #     ]
 
 class Q_Cache(dict):
     """
-    Sketch: A replacement for s_cache-as-dictionary,
-    s_cache-as-object-with-methods-and-attributes.  It's still a dictionary so
+    Sketch: A replacement for queue_cache-as-dictionary,
+    queue_cache-as-object-with-methods-and-attributes.  It's still a dictionary so
     that we can continue to treat it as one in the slightly crufty
     canned_responses module that expects dumb data structures rather than a
     structured object.
