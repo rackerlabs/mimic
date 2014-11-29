@@ -1,7 +1,6 @@
 """
 Canned response for Queue
 """
-from copy import deepcopy
 
 
 def queues_example(queue_name):
