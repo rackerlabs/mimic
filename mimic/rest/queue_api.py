@@ -8,8 +8,8 @@ from six import text_type
 
 from mimic.imimic import IAPIMock
 from twisted.plugin import IPlugin
-from mimic.canned_responses.queue import (
-    add_queue, list_queues, delete_queue)
+from mimic.canned_responses.queue import(add_queue, list_queues,
+                                         delete_queue)
 
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
@@ -19,6 +19,7 @@ from twisted.web.server import Request
 from random import randrange
 
 Request.defaultContentType = 'application/json'
+
 
 @implementer(IAPIMock, IPlugin)
 class QueueApi(object):
@@ -53,6 +54,7 @@ class QueueApi(object):
             )
         ]
 
+
 class Q_Cache(dict):
     """
     Sketch: A replacement for queue_cache-as-dictionary,
@@ -61,6 +63,7 @@ class Q_Cache(dict):
     canned_responses module that expects dumb data structures rather than a
     structured object.
     """
+
 
 class QueueApiRoutes(object):
     """
@@ -96,7 +99,9 @@ class QueueApiRoutes(object):
         """
         queue_id = randrange(99999)
         q_cache = self._queue_cache(tenant_id)
-        response_data = add_queue(queue_id, queue_name, tenant_id, q_cache)
+        response_data = add_queue(
+            queue_id, queue_name,
+            tenant_id, q_cache)
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 

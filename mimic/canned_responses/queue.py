@@ -27,7 +27,7 @@ def list_queues(tenant_id, q_cache):
     """
     Returns a list of queues with response code 200
     """
-    response = {k: v for (k, v) in q_cache.items()}
+    response = k: v for (k, v) in q_cache.items()
     return {'queues': response.values() or []}, 200
 
 
