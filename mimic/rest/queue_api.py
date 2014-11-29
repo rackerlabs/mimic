@@ -90,7 +90,7 @@ class QueueApiRoutes(object):
         return (self._session_store.session_for_tenant_id(tenant_id)
                 .data_for_api(self._api_mock,
                               lambda: collections.defaultdict(Q_Cache))
-                [self._queue_name]) 
+                [self._queue_name])
 
     @app.route("/v1/<string:tenant_id>/queues/<string:queue_name>", methods=['PUT'])
     def create_queue(self, request, tenant_id, queue_name):
