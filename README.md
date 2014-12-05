@@ -24,7 +24,7 @@ welcome message:
     >> To get started with Mimic, POST an authentication request to:
     >> /identity/v2.0/tokens
 
-You can use the command below test authentication and see your service catalog. The service catalog containts the endpoints for other available APIs.
+You can use the command below to test authentication and see your service catalog. The service catalog containts the endpoints for other available APIs.
 
     curl -s -XPOST -d '{"auth":{"RAX-KSKEY:apiKeyCredentials":{"username":"mimic","apiKey":"12345"}}}' http://localhost:8900/identity/v2.0/tokens | python -m json.tool
 
