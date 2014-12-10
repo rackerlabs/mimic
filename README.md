@@ -15,7 +15,7 @@ Mimic helps with:
 The fastest way to install and start Mimic is:
 
     pip install mimic
-    twisted -n mimic
+    twistd -n mimic
 
 You can test the server started successfully by sending this request and checking for the
 welcome message:
