@@ -21,11 +21,11 @@ setup(
     include_package_data=True,
     license="Apache License, Version 2.0",
     # py2app
-    app=['start-app.py'],
+    app=['mac-bundle/start-app.py'],
     options={
         'py2app': {
             'includes': ['syslog'],
-            'argv_emulation': True
+            'argv_emulation': True,
         }
     }
 )
