@@ -2,20 +2,21 @@
 
 import sys
 
+from mimic import test
+
 from twisted.trial.runner import (
     TestLoader,
     TrialRunner
 )
 from twisted.trial.reporter import VerboseTextReporter
-from mimic import test
+
 
 def runTests():
     """
     run tests.
     """
     loader = TestLoader()
-    suite = loader.loadTestsFromModule(test)
-    # reporter factory
+    suite = loader.findByName("mimic.test")
     runner = TrialRunner(VerboseTextReporter).run(suite)
 
 
