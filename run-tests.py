@@ -1,11 +1,23 @@
 #!/usr/bin/env python
 
-from sys import argv
-from twisted.scripts.trial import run
-# you should import the test module and run it programmatically!
-# don't do any other form of discovery.
+import sys
 
-argv[1:] = [
-    'mimic'
-]
-run()
+from twisted.trial.runner import (
+    TestLoader,
+    TrialRunner
+)
+from twisted.trial.reporter import VerboseTextReporter
+from mimic import test
+
+def runTests():
+    """
+    run tests.
+    """
+    loader = TestLoader()
+    suite = loader.loadTestsFromModule(test)
+    # reporter factory
+    runner = TrialRunner(VerboseTextReporter).run(suite)
+
+
+if __name__ == '__main__':
+    runTests()
