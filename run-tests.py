@@ -13,10 +13,10 @@ from twisted.trial.reporter import VerboseTextReporter
 
 def runTests():
     """
-    run tests.
+    run tests from the mimic module.
     """
     loader = TestLoader()
-    suite = loader.findByName("mimic.test")
+    suite = loader.loadPackage(test)
     runner = TrialRunner(VerboseTextReporter).run(suite)
 
 
