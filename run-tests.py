@@ -10,7 +10,8 @@ from twisted.trial.runner import (
 )
 from twisted.trial.reporter import VerboseTextReporter
 
-
+# XXX this works as a normal script, but in the package
+# it is unable to discover the tests.
 def runTests():
     """
     run tests from the mimic module.
