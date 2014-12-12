@@ -9,7 +9,7 @@ setup(
     version='1.3.0',
     description='An API-compatible mock service',
     app=['mimic-bundle/start-app.py'],
-    data_files=['mimic-bundle/gui/mimic.xib'],
+    data_files=['mimic-bundle/Mimic.xib'],
     options={
         'py2app': {
             'includes': ['syslog', 'mimic.test.*'],

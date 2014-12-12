@@ -23,7 +23,6 @@ from twisted.python import log
 
 from sys import stdout
 
-# XXX still not allowing requests!
 
 class MyAppDelegate(NSObject):
     """
@@ -72,7 +71,8 @@ if __name__ == '__main__':
     log.startLogging(stdout)
     startMimic(reactor)
 
-    NSApp = NSApplication.sharedApplication()
+    # a window will open, and you need to fill
+    # a piece of text with the port
     NSApp.activateIgnoringOtherApps_(True)
 
     AppHelper.runEventLoop()
