@@ -12,6 +12,7 @@ setup(
     options={
         'py2app': {
             'includes': ['syslog', 'mimic.test.*'],
+            'data-files': ['gui/mimic.nib']
             'argv_emulation': True
         }
     }
