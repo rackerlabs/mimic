@@ -1,7 +1,7 @@
 all: clean build test
 
 build:
-	python setup-mac.py py2app --extra-scripts=run-tests.py
+	python setup-mac.py py2app --extra-scripts=mimic-bundle/run-tests.py
 
 test:
 	./dist/mimic.app/Contents/MacOS/run-tests
