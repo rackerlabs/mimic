@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-
+"""
+run the tests for the mimic.aplication bundle.
+"""
 import sys
-
-from mimic import test
 
 from twisted.trial.runner import (
     TestLoader,
@@ -10,14 +10,17 @@ from twisted.trial.runner import (
 )
 from twisted.trial.reporter import VerboseTextReporter
 
-# XXX this works as a normal script, but in the package
-# it is unable to discover the tests.
 def runTests():
     """
     run tests from the mimic module.
     """
+    sys.path.insert(0, b'./lib/python/site-packages.zip')
+    from mimic import test
+
+    print test.__file__
+
     loader = TestLoader()
-    suite = loader.loadPackage(test)
+    suite = loader.loadAnything(test)
     runner = TrialRunner(VerboseTextReporter).run(suite)
 
 
