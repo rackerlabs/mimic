@@ -11,8 +11,8 @@ setup(
     app=['start-app.py'],
     options={
         'py2app': {
-            'includes': ['syslog', 'mimic.test'],
-            'argv_emulation': True,
+            'includes': ['syslog', 'mimic.test.*'],
+            'argv_emulation': True
         }
     }
 )

@@ -10,6 +10,7 @@ from twisted.trial.runner import (
 )
 from twisted.trial.reporter import VerboseTextReporter
 
+
 def runTests():
     """
     run tests from the mimic module.
@@ -17,12 +18,9 @@ def runTests():
     sys.path.insert(0, b'./lib/python/site-packages.zip')
     from mimic import test
 
-    print test.__file__
-
     loader = TestLoader()
     suite = loader.loadAnything(test)
     runner = TrialRunner(VerboseTextReporter).run(suite)
-
 
 if __name__ == '__main__':
     runTests()
