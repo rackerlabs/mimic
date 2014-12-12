@@ -1,5 +1,5 @@
 """
-start_app.py starts the application for py2app.
+start_app.py starts mimic for py2app.
 """
 
 from Foundation import *
