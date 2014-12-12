@@ -23,10 +23,12 @@ from twisted.python import log
 
 from sys import stdout
 
+# XXX still not allowing requests!
 
-class MyAppDelegate(NibClassBuilder.AutoBaseClass):
+class MyAppDelegate(NSObject):
     """
-
+    Things that need to happen at startup and shutdown for the application
+    to work.
     """
     def applicationDidFinishLaunching_(self, aNotification):
         """
@@ -69,4 +71,8 @@ def startMimic(reactor):
 if __name__ == '__main__':
     log.startLogging(stdout)
     startMimic(reactor)
+
+    NSApp = NSApplication.sharedApplication()
+    NSApp.activateIgnoringOtherApps_(True)
+
     AppHelper.runEventLoop()

@@ -4,21 +4,25 @@
         <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="6254"/>
     </dependencies>
     <objects>
-        <customObject id="-2" userLabel="File's Owner" customClass="NSApplication">
+        <customObject id="-2" userLabel="File's Owner">
             <connections>
-                <outlet property="delegate" destination="1Xt-HY-uBw" id="cJI-K3-avn"/>
+                <outlet property="delegate" destination="4sb-4s-VLi" id="569-Qe-fud"/>
             </connections>
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
-        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
-        <customObject id="YLy-65-1bz" customClass="NSFontManager"/>
+        <customObject id="-3" userLabel="Application"/>
+        <customObject id="YLy-65-1bz" customClass="NSApplication">
+            <connections>
+                <outlet property="delegate" destination="1Xt-HY-uBw" id="zSZ-AV-7f2"/>
+            </connections>
+        </customObject>
         <menu title="Main Menu" systemMenu="main" id="AYu-sK-qS6">
             <items>
                 <menuItem title="Mimic" id="1Xt-HY-uBw">
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <menu key="submenu" title="Mimic" systemMenu="apple" id="uQy-DD-JDr">
                         <items>
-                            <menuItem title="Quit mimic" keyEquivalent="q" id="4sb-4s-VLi">
+                            <menuItem title="Quit Mimic" keyEquivalent="q" id="4sb-4s-VLi">
                                 <connections>
                                     <action selector="terminate:" target="-1" id="Te7-pn-YzF"/>
                                 </connections>
