@@ -73,6 +73,9 @@ if __name__ == '__main__':
 
     # a window will open, and you need to fill
     # a piece of text with the port
+
+    # make a window object like in the tutorial and connect it.
+    # that should allow to connect the xib
     NSApp.activateIgnoringOtherApps_(True)
 
     AppHelper.runEventLoop()
