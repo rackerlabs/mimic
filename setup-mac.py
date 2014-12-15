@@ -8,20 +8,21 @@ NAME = 'mimic'
 VERSION = '0.1'
 ID = 'mimic'
 SCRIPT='bundle/start-app.py'
-
+TEST_SCRIPT='bundle/run-tests.py'
 PLIST = dict(
     CFBundleName                = NAME,
     CFBundleShortVersionString  = ' '.join([NAME, VERSION]),
     CFBundleGetInfoString       = NAME,
     CFBundleExecutable          = NAME,
     CFBundleIdentifier          = 'com.yourdn.%s' % ID,
-    #LSUIElement                 = '1',
+    LSUIElement                 = '1',
     LSMultipleInstancesProhibited = '1',
 )
 
 app_data = dict(
     script=SCRIPT,
-    plist=PLIST
+    plist=PLIST,
+    extra_scripts=[TEST_SCRIPT]
 )
 
 setup(
