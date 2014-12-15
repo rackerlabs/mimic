@@ -7,7 +7,7 @@ from setuptools import setup, find_packages
 NAME = 'mimic'
 VERSION = '0.1'
 ID = 'mimic'
-SCRIPT='mimic-bundle/start-app.py'
+SCRIPT='bundle/start-app.py'
 
 PLIST = dict(
     CFBundleName                = NAME,
@@ -27,7 +27,6 @@ setup(
     name='mimic',
     version='1.3.0',
     description='An API-compatible mock service',
-    #app=['mimic-bundle/start-app.py'],
     app=[app_data],
     options={
         'py2app': {
