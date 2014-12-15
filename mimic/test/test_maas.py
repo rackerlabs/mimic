@@ -88,6 +88,13 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 201)
         return resp
 
+    def createSuppression(self, label):
+        postdata = {'label': label}
+        req = request(self, self.root, "POST", self.uri+'/suppressions', json.dumps(postdata))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 201)
+        return resp
+
     def getXobjectIDfromResponse(self, resp):
         xobjectid = None
         for h in resp.headers.getAllRawHeaders():
@@ -109,6 +116,7 @@ class MaasAPITests(SynchronousTestCase):
         alarm_id = data['alarms'][0]['id']
         nt_id = None
         np_id = None
+        sp_id = None
 
         req = request(self, self.root, "GET", self.uri+'/notifications', '')
         resp = self.successResultOf(req)
@@ -126,8 +134,15 @@ class MaasAPITests(SynchronousTestCase):
             if np['id'] != 'npTechnicalContactsEmail':
                 np_id = np['id']
 
+        req = request(self, self.root, "GET", self.uri+'/suppressions', '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        for sp in data['values']:
+            sp_id = sp['id']
+
         return {'entity_id': entity_id, 'check_id': check_id, 'alarm_id': alarm_id,
-                'nt_id': nt_id, 'np_id': np_id}
+                'nt_id': nt_id, 'np_id': np_id, 'sp_id': sp_id}
 
     def setUp(self):
         """
@@ -141,16 +156,19 @@ class MaasAPITests(SynchronousTestCase):
         alarm_id = None
         nt_id = None
         np_id = None
+        sp_id = None
         entity_id = self.getXobjectIDfromResponse(self.createEntity('ItsAnEntity'))
         check_id = self.getXobjectIDfromResponse(self.createCheck('ItsAcheck', entity_id))
         alarm_id = self.getXobjectIDfromResponse(self.createAlarm('ItsAnAlarm', entity_id, check_id))
         nt_id = self.getXobjectIDfromResponse(self.createNotification('ItsANotificationTarget'))
         np_id = self.getXobjectIDfromResponse(self.createNotificationPlan('ItsANotificationPlan'))
+        sp_id = self.getXobjectIDfromResponse(self.createSuppression('ItsASuppression'))
         self.assertNotEquals(None, entity_id)
         self.assertNotEquals(None, check_id)
         self.assertNotEquals(None, alarm_id)
         self.assertNotEquals(None, nt_id)
         self.assertNotEquals(None, np_id)
+        self.assertNotEquals(None, sp_id)
 
     def test_list_entity(self):
         """
@@ -499,6 +517,64 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
         self.assertEquals(4, data['metadata']['count'])
+
+    def test_get_suppression(self):
+        """
+        Get a specific suppression
+        """
+        ecan = self.get_ecan_objectIds()
+        req = request(self, self.root, "GET", self.uri+'/suppressions/'+ecan['sp_id'], '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertEquals(data['id'], ecan['sp_id'])
+
+    def test_get_all_suppressions(self):
+        """
+        Get all the suppressions
+        """
+        ecan = self.get_ecan_objectIds()
+        req = request(self, self.root, "GET", self.uri+'/suppressions', '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertEquals(1, data['metadata']['count'])
+        self.assertEquals(ecan['sp_id'], data['values'][0]['id'])
+
+    def test_update_suppression(self):
+        """
+        Update an suppression
+        """
+        ecan = self.get_ecan_objectIds()
+        postdata = {'id': ecan['sp_id'], 'label': 'changed'}
+        req = request(self, self.root, "PUT", self.uri+'/suppressions/'+ecan['sp_id'],
+                      json.dumps(postdata))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 204)
+        req = request(self, self.root, "GET", self.uri+'/suppressions/'+ecan['sp_id'], '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertEquals('changed', data['label'])
+
+    def test_delete_suppression(self):
+        """
+        Delete an suppression
+        """
+        ecan = self.get_ecan_objectIds()
+        req = request(self, self.root, "DELETE", self.uri+'/suppressions/'+ecan['sp_id'], '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 204)
+        req = request(self, self.root, "GET", self.uri+'/suppressions', '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        mysp = None
+        for sp in data['values']:
+            if sp['id'] == ecan['sp_id']:
+                mysp = sp
+                break
+        self.assertEquals(None, mysp)
 
     def test_alarm_count_per_np(self):
         """

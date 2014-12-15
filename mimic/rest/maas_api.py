@@ -105,6 +105,7 @@ class M_Cache(dict):
                                                                   the notification to, \
                                                                   with leading + and country \
                                                                   code (E.164 format)'}]}]
+        self.suppressions_list = []
 
 
 def createEntity(params):
@@ -196,6 +197,17 @@ def createNotification(params):
     params['created_at'] = time.time()
     params['updated_at'] = time.time()
     params['metadata'] = None
+    return params
+
+
+def createSuppression(params):
+    """
+    Creates a suppression
+    """
+    for k in params.keys():
+        if 'encode' in dir(params[k]):
+            params[k] = params[k].encode('ascii')
+    params['id'] = 'sp' + random_hex_generator(4)
     return params
 
 
@@ -742,6 +754,82 @@ class MaasMock(object):
         request.setResponseCode(204)
         request.setHeader('content-type', 'text/plain')
         return ''
+
+    @app.route('/v1.0/<string:tenant_id>/suppressions', methods=['GET'])
+    def get_suppressions(self, request, tenant_id):
+        """
+        Get the list of suppressions for this tenant.
+        """
+        splist = self._entity_cache_for_tenant(tenant_id).suppressions_list
+        metadata = {
+            'count': len(splist),
+            'limit': 100,
+            'marker': None,
+            'next_marker': None,
+            'next_href': None
+            }
+        request.setResponseCode(200)
+        return json.dumps({'values': splist, 'metadata': metadata})
+
+    @app.route('/v1.0/<string:tenant_id>/suppressions/<string:sp_id>', methods=['GET'])
+    def get_suppression(self, request, tenant_id, sp_id):
+        """
+        Get a suppression by ID.
+        """
+        mysp = None
+        splist = self._entity_cache_for_tenant(tenant_id).suppressions_list
+        for sp in splist:
+            if sp['id'] == sp_id:
+                mysp = sp
+                break
+        request.setResponseCode(200)
+        return json.dumps(mysp)
+
+    @app.route('/v1.0/<string:tenant_id>/suppressions', methods=['POST'])
+    def create_suppression(self, request, tenant_id):
+        """
+        Create a new suppression.
+        """
+        postdata = json.loads(request.content.read())
+        myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
+        newsp = createSuppression(postdata)
+        self._entity_cache_for_tenant(tenant_id).suppressions_list.append(newsp)
+        request.setResponseCode(201)
+        request.setHeader('location', myhostname_and_port + request.path + '/' + newsp['id'])
+        request.setHeader('x-object-id', newsp['id'])
+        request.setHeader('content-type', 'text/plain')
+        return ''
+
+    @app.route('/v1.0/<string:tenant_id>/suppressions/<string:sp_id>', methods=['PUT'])
+    def update_suppression(self, request, tenant_id, sp_id):
+        """
+        Update a suppression.
+        """
+        postdata = json.loads(request.content.read())
+        splist = self._entity_cache_for_tenant(tenant_id).suppressions_list
+        for sp in splist:
+            if sp['id'] == sp_id:
+                for k in postdata.keys():
+                    sp[k] = postdata[k]
+                sp['updated_at'] = time.time()
+                break
+        request.setResponseCode(204)
+        request.setHeader('content-type', 'text/plain')
+        return ''
+
+    @app.route('/v1.0/<string:tenant_id>/suppressions/<string:sp_id>', methods=['DELETE'])
+    def delete_suppression(self, request, tenant_id, sp_id):
+        """
+        Delete a suppression.
+        """
+        splist = self._entity_cache_for_tenant(tenant_id).suppressions_list
+        for sp in splist:
+            if sp['id'] == sp_id:
+                del splist[splist.index(sp)]
+                break
+        request.setResponseCode(204)
+        request.setHeader('content-type', 'text/plain')
+        pass
 
     @app.route('/v1.0/<string:tenant_id>/views/alarmCountsPerNp', methods=['GET'])
     def alarm_counts_per_np(self, request, tenant_id):
