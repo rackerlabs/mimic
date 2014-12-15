@@ -15,7 +15,8 @@ PLIST = dict(
     CFBundleGetInfoString       = NAME,
     CFBundleExecutable          = NAME,
     CFBundleIdentifier          = 'com.yourdn.%s' % ID,
-    LSUIElement                 = '1',
+    #LSUIElement                 = '1',
+    LSMultipleInstancesProhibited = '1',
 )
 
 app_data = dict(

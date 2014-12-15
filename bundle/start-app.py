@@ -18,6 +18,7 @@ from twisted.python import log
 
 from sys import stdout
 
+
 class MyApp(NSApplication):
 
     def finishLaunching(self):
@@ -92,9 +93,10 @@ def startMimic(reactor):
 
 
 if __name__ == '__main__':
-    from PyObjCTools import AppHelper
-    from twisted.internet.cfreactor import install
-    install(runner=MyApp.sharedApplication)
-    #startMimic(reactor)
+    #from twisted.internet.cfreactor import install
+    #from PyObjCTools import AppHelper
+    #install(runner=AppHelper.runEventLoop)
+    from twisted.internet import reactor
 
-    AppHelper.runEventLoop()
+    startMimic(reactor)
+    reactor.run()
