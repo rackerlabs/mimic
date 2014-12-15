@@ -1,6 +1,9 @@
 """
 start_app.py starts mimic for py2app.
 """
+from twisted.internet._threadedselect import install
+reactor = install()
+
 import objc
 
 from Foundation import *
@@ -94,11 +97,8 @@ def startMimic(reactor):
 if __name__ == '__main__':
 
     from PyObjCTools import AppHelper
-    from twisted.internet.cfreactor import install
 
-    install(runner=AppHelper.runEventLoop)
-
-    startMimic()
+    startMimic(reactor)
 
     app = MyApp.sharedApplication()
-    reactor.run()
+    AppHelper.runEventLoop()
