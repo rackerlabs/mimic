@@ -1,6 +1,11 @@
 """
 start_app.py starts mimic for py2app.
 """
+from twisted.internet.cfreactor import install
+from PyObjCTools import AppHelper
+
+reactor = install(runner=AppHelper.runEventLoop)
+
 import objc
 
 from Foundation import *
@@ -22,15 +27,6 @@ from sys import stdout
 class MyApp(NSApplication):
 
     def finishLaunching(self):
-
-        # Make statusbar item
-        statusbar = NSStatusBar.systemStatusBar()
-        self.statusitem = statusbar.statusItemWithLength_(NSVariableStatusItemLength)
-        self.icon = NSImage.alloc().initByReferencingFile_('icon.png')
-        self.icon.setScalesWhenResized_(True)
-        self.icon.setSize_((20, 20))
-        self.statusitem.setImage_(self.icon)
-
         #make the menu
         self.menubarMenu = NSMenu.alloc().init()
 
@@ -93,10 +89,6 @@ def startMimic(reactor):
 
 
 if __name__ == '__main__':
-    #from twisted.internet.cfreactor import install
-    #from PyObjCTools import AppHelper
-    #install(runner=AppHelper.runEventLoop)
-    from twisted.internet import reactor
-
-    startMimic(reactor)
-    reactor.run()
+    # start mimic needs to interleave.
+    AppHelper.callLater(1, startMimic, (reactor,))
+    AppHelper.runEventLoop()
