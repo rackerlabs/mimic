@@ -11,7 +11,7 @@ class MaasAPITests(SynchronousTestCase):
     Tests for maas plugin API
     """
 
-    def get_reposebody(self, r):
+    def get_responsebody(self, r):
         """
         util json response body
         """
@@ -103,7 +103,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/views/overview', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)['values'][0]
+        data = self.get_responsebody(resp)['values'][0]
         entity_id = data['entity']['id']
         check_id = data['checks'][0]['id']
         alarm_id = data['alarms'][0]['id']
@@ -113,7 +113,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/notifications', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         for nt in data['values']:
             if nt['id'] != 'ntTechnicalContactsEmail':
                 nt_id = nt['id']
@@ -121,7 +121,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/notification_plans', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         for np in data['values']:
             if np['id'] != 'npTechnicalContactsEmail':
                 np_id = np['id']
@@ -159,7 +159,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/entities', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         self.assertEquals(data['metadata']['count'], 1)
 
     def test_get_entity(self):
@@ -170,7 +170,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/entities/'+ecan['entity_id'], '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         self.assertEquals(ecan['entity_id'], data['id'])
 
     def test_fail_get_entity(self):
@@ -180,7 +180,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/entities/whatever', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 404)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         self.assertEquals({}, data)
 
     def test_get_check(self):
@@ -192,7 +192,7 @@ class MaasAPITests(SynchronousTestCase):
                       self.uri+'/entities/'+ecan['entity_id']+'/checks/'+ecan['check_id'], '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         self.assertEquals(ecan['check_id'], data['id'])
 
     def test_get_checks_for_entity(self):
@@ -204,7 +204,7 @@ class MaasAPITests(SynchronousTestCase):
                       self.uri+'/entities/'+ecan['entity_id']+'/checks', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         self.assertEquals(1, data['metadata']['count'])
         self.assertEquals(ecan['check_id'], data['values'][0]['id'])
 
@@ -216,7 +216,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/entities/'+ecan['entity_id'], '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         data['label'] = 'Iamamwhoami'
         req = request(self, self.root, "PUT", self.uri+'/entities/'+ecan['entity_id'], json.dumps(data))
         resp = self.successResultOf(req)
@@ -224,7 +224,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/entities/'+ecan['entity_id'], '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         self.assertEquals('Iamamwhoami', data['label'])
 
     def test_update_check(self):
@@ -236,7 +236,7 @@ class MaasAPITests(SynchronousTestCase):
                       self.uri+'/entities/'+ecan['entity_id']+'/checks/'+ecan['check_id'], '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         data['label'] = 'Iamamwhoami'
         req = request(self, self.root, "PUT",
                       self.uri+'/entities/'+ecan['entity_id']+'/checks/'+ecan['check_id'],
@@ -247,7 +247,7 @@ class MaasAPITests(SynchronousTestCase):
                       self.uri+'/entities/'+ecan['entity_id']+'/checks/'+ecan['check_id'], '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         self.assertEquals('Iamamwhoami', data['label'])
 
     def test_update_alarm(self):
@@ -258,7 +258,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/views/overview', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        alarm = self.get_reposebody(resp)['values'][0]['alarms'][0]
+        alarm = self.get_responsebody(resp)['values'][0]['alarms'][0]
         alarm['label'] = 'Iamamwhoami'
         req = request(self, self.root, "PUT",
                       self.uri+'/entities/'+ecan['entity_id']+'/alarms/'+ecan['alarm_id'],
@@ -268,7 +268,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/views/overview', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        alarm2 = self.get_reposebody(resp)['values'][0]['alarms'][0]
+        alarm2 = self.get_responsebody(resp)['values'][0]['alarms'][0]
         self.assertEquals(alarm['label'], alarm2['label'])
 
     def test_delete_alarm(self):
@@ -283,7 +283,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/views/overview', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        self.assertEquals(0, len(self.get_reposebody(resp)['values'][0]['alarms']))
+        self.assertEquals(0, len(self.get_responsebody(resp)['values'][0]['alarms']))
 
     def test_delete_check(self):
         """
@@ -297,7 +297,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/views/overview', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         self.assertEquals(0, len(data['values'][0]['checks']))
         self.assertEquals(0, len(data['values'][0]['alarms']))
 
@@ -313,7 +313,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/views/overview', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         self.assertEquals(0, len(data['values']))
         self.assertEquals(0, data['metadata']['count'])
 
@@ -321,7 +321,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/__experiments/json_home', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         self.assertEquals(True, 'mimicking' in json.dumps(data))
 
     def test_notificationplan(self):
@@ -331,7 +331,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/notification_plans', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         self.assertEquals(True, 'npTechnicalContactsEmail' in json.dumps(data))
 
     def test_agenthostinfo(self):
@@ -341,7 +341,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/views/agent_host_info', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 400)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         self.assertEquals(True, 'Agent does not exist' in json.dumps(data))
 
     def test_metriclist(self):
@@ -352,7 +352,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/views/metric_list', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         self.assertEquals(ecan['entity_id'], data['values'][0]['entity_id'])
         self.assertEquals(ecan['check_id'], data['values'][0]['checks'][0]['id'])
 
@@ -365,7 +365,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/views/metric_list', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         for m in data['values'][0]['checks'][0]['metrics']:
             mq = {'entity_id': ecan['entity_id'], 'check_id': ecan['check_id'], 'metric': m['name']}
             metrics.append(mq)
@@ -374,7 +374,7 @@ class MaasAPITests(SynchronousTestCase):
                       self.uri+'/__experiments/multiplot'+qstring, json.dumps({'metrics': metrics}))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         self.assertEquals(500, len(data['metrics'][0]['data']))
 
     def test_get_all_notification_plans(self):
@@ -384,7 +384,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/notification_plans', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         self.assertEquals(2, data['metadata']['count'])
 
     def test_get_notification_plan(self):
@@ -395,13 +395,13 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/notification_plans/'+ecan['np_id'], '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         self.assertEquals(data['id'], ecan['np_id'])
         req = request(self, self.root, "GET",
                       self.uri+'/notification_plans/npTechnicalContactsEmail', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         self.assertEquals(data['id'], 'npTechnicalContactsEmail')
 
     def test_get_all_notifications(self):
@@ -411,7 +411,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/notifications', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         self.assertEquals(2, data['metadata']['count'])
 
     def test_update_notification(self):
@@ -427,7 +427,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/notifications', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         mynt = None
         for nt in data['values']:
             if nt['id'] == ecan['nt_id']:
@@ -447,7 +447,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/notifications', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         mynt = None
         for nt in data['values']:
             if nt['id'] == ecan['nt_id']:
@@ -468,7 +468,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/notification_plans/'+ecan['np_id'], '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         self.assertEquals('changed', data['label'])
 
     def test_delete_notificationplan(self):
@@ -482,7 +482,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/notification_plans', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         mynp = None
         for np in data['values']:
             if np['id'] == ecan['np_id']:
@@ -497,7 +497,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/notification_types', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         self.assertEquals(4, data['metadata']['count'])
 
     def test_alarm_count_per_np(self):
@@ -507,7 +507,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/views/alarmCountsPerNp', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         self.assertEquals(data['values'][0]['alarm_count'], 1)
         self.assertEquals(data['values'][0]['notification_plan_id'], 'npTechnicalContactsEmail')
 
@@ -519,7 +519,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/views/overview', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        alarm = self.get_reposebody(resp)['values'][0]['alarms'][0]
+        alarm = self.get_responsebody(resp)['values'][0]['alarms'][0]
         alarm['notification_plan_id'] = ecan['np_id']
         req = request(self, self.root, "PUT",
                       self.uri+'/entities/'+ecan['entity_id']+'/alarms/'+ecan['alarm_id'],
@@ -529,7 +529,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/views/alarmsByNp/'+ecan['np_id'], '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         self.assertEquals(data['values'][0]['id'], ecan['alarm_id'])
 
     def test_delete_np_in_use(self):
@@ -540,7 +540,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/views/overview', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        alarm = self.get_reposebody(resp)['values'][0]['alarms'][0]
+        alarm = self.get_responsebody(resp)['values'][0]['alarms'][0]
         alarm['notification_plan_id'] = ecan['np_id']
         req = request(self, self.root, "PUT",
                       self.uri+'/entities/'+ecan['entity_id']+'/alarms/'+ecan['alarm_id'],
@@ -550,7 +550,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "DELETE", self.uri+'/notification_plans/'+ecan['np_id'], '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 403)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         self.assertTrue(ecan['alarm_id'] in data['message'])
         self.assertTrue(ecan['alarm_id'] in data['details'])
 
@@ -561,7 +561,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/entities', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         self.assertEquals(data['metadata']['count'], 1)
 
         req = request(self, self.root, "GET", self.uri+'/mimic/reset', '')
@@ -571,5 +571,5 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "GET", self.uri+'/entities', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
-        data = self.get_reposebody(resp)
+        data = self.get_responsebody(resp)
         self.assertEquals(data['metadata']['count'], 0)
