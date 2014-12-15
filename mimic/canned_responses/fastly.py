@@ -6,6 +6,11 @@ import uuid
 
 class FastlyResponse(object):
 
+    """
+    Canned response for fastly.
+    See docs here https://docs.fastly.com/api/config
+    """
+
     fastly_cache = {}
 
     def get_current_customer(self, request):
