@@ -4,12 +4,31 @@ Setup file for mimic
 
 from setuptools import setup, find_packages
 
+NAME = 'mimic'
+VERSION = '0.1'
+ID = 'mimic'
+SCRIPT='mimic-bundle/start-app.py'
+
+PLIST = dict(
+    CFBundleName                = NAME,
+    CFBundleShortVersionString  = ' '.join([NAME, VERSION]),
+    CFBundleGetInfoString       = NAME,
+    CFBundleExecutable          = NAME,
+    CFBundleIdentifier          = 'com.yourdn.%s' % ID,
+    LSUIElement                 = '1',
+)
+
+app_data = dict(
+    script=SCRIPT,
+    plist=PLIST
+)
+
 setup(
     name='mimic',
     version='1.3.0',
     description='An API-compatible mock service',
-    app=['mimic-bundle/start-app.py'],
-    data_files=['mimic-bundle/Mimic.xib'],
+    #app=['mimic-bundle/start-app.py'],
+    app=[app_data],
     options={
         'py2app': {
             'includes': ['syslog', 'mimic.test.*'],
