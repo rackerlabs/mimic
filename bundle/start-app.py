@@ -35,7 +35,23 @@ class MyAppDelegate(NSObject):
         immediately before the first pass through the main event
         loop.
         """
-        AppHelper.callLater(1, startMimic, (reactor,))
+        self.statusItem = NSStatusBar.systemStatusBar().statusItemWithLength_(NSVariableStatusItemLength)
+        self.statusItem.setTitle_(u"mimic")
+        self.statusItem.setHighlightMode_(TRUE)
+        self.statusItem.setEnabled_(TRUE)
+
+        self.quit = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+                                  'Quit', 'terminate:', '')
+
+        self.menubarMenu = NSMenu.alloc().init()
+        self.menubarMenu.addItem_(self.quit)
+
+        #add menu to statusitem
+        self.statusItem.setMenu_(self.menubarMenu)
+        self.statusItem.setToolTip_(u"mimic")
+
+        # it seems like this is not being done correctly.
+        AppHelper.callLater(1, startMimic)
         reactor.interleave(AppHelper.callAfter)
 
     def applicationShouldTerminate_(self, sender):
@@ -50,7 +66,7 @@ class MyAppDelegate(NSObject):
         return True
 
 
-def startMimic(reactor):
+def startMimic():
     clock = Clock()
     core = MimicCore.fromPlugins(clock)
     root = MimicRoot(core, clock)
@@ -72,7 +88,3 @@ if __name__ == '__main__':
     application.setDelegate_(delegate)
 
     AppHelper.runEventLoop()
-
-# took requests at 7:03 but then started failing
-# at this point it also complained of CFReactor object not being able
-# to 'interleave'

@@ -33,7 +33,7 @@ setup(
     options={
         'py2app': {
             'includes': ['syslog', 'mimic.test.*'],
-            'argv_emulation': True
+            #'argv_emulation': True
         }
     }
 )
