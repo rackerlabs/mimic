@@ -576,6 +576,17 @@ class MaasAPITests(SynchronousTestCase):
                 break
         self.assertEquals(None, mysp)
 
+    def test_list_monitoring_zones(self):
+        """
+        List the monitoring zones
+        """
+        req = request(self, self.root, "GET", self.uri+'/monitoring_zones', '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        mz = data['values'][0]
+        self.assertEquals('mzdfw', mz['id'])
+
     def test_alarm_count_per_np(self):
         """
         test_alarm_count_per_np
