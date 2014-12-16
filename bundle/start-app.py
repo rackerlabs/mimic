@@ -52,8 +52,11 @@ class MyAppDelegate(NSObject):
 
         AppHelper.callLater(1, startMimic)
         # XXX I'm continuing to get an exception here
-        # <type 'exceptions.AttributeError'>: 'CFReactor' object has no attribute 'interleave'
-        reactor.interleave(AppHelper.callAfter)
+        # <type 'exceptions.AttributeError'>: 'CFReactor'
+        # object has no attribute 'interleave'
+        # it seems like using interleave is necessary
+        # but, it could be I'm misunderstanding the API.
+        #reactor.interleave(AppHelper.callAfter)
 
     def applicationShouldTerminate_(self, sender):
         """
@@ -69,6 +72,9 @@ class MyAppDelegate(NSObject):
 
 
 def startMimic():
+    """
+    Start the actual mimic application.
+    """
     clock = Clock()
     core = MimicCore.fromPlugins(clock)
     root = MimicRoot(core, clock)
@@ -85,7 +91,6 @@ def startMimic():
 if __name__ == '__main__':
     log.startLogging(stdout)
     application = NSApplication.sharedApplication()
-
     delegate = MyAppDelegate.alloc().init()
     application.setDelegate_(delegate)
 
