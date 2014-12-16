@@ -1,6 +1,7 @@
 """
 start_app.py starts mimic for py2app.
 """
+
 from twisted.internet.cfreactor import install
 from PyObjCTools import AppHelper
 
@@ -45,6 +46,8 @@ class MyAppDelegate(NSObject):
 
         self.menubarMenu = NSMenu.alloc().init()
         self.menubarMenu.addItem_(self.quit)
+
+        # XXX add a an item displaying the port
 
         #add menu to statusitem
         self.statusItem.setMenu_(self.menubarMenu)
