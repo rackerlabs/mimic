@@ -546,6 +546,26 @@ class MaasMock(object):
         request.setHeader('content-type', 'text/plain')
         return ''
 
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms', methods=['GET'])
+    def get_alarms_for_entity(self, request, tenant_id, entity_id):
+        """
+        Get all alarms for the specified entity.
+        """
+        alarms = [
+            dict(alarm) for alarm in self._entity_cache_for_tenant(tenant_id).alarms_list
+            if alarm['entity_id'] == entity_id
+            ]
+        for alarm in alarms:
+            del alarm['entity_id']
+        metadata = {}
+        metadata['count'] = len(alarms)
+        metadata['limit'] = 1000
+        metadata['marker'] = None
+        metadata['next_marker'] = None
+        metadata['next_href'] = None
+        request.setResponseCode(200)
+        return json.dumps({'metadata': metadata, 'values': alarms})
+
     @app.route('/v1.0/<string:tenant_id>/views/overview', methods=['GET'])
     def overview(self, request, tenant_id):
         """
