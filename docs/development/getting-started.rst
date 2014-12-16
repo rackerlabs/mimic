@@ -91,27 +91,25 @@ Building a mac application bundle
 Due to several quirks in the current version of `py2app`_, specific versions of libraries are needed in order for `py2app`_ to build correctly.
 These requirements are specified in ``py2app-requirements.txt``.
 
-To build the application, install all of the ``mimic's`` requirements into a virtualenv using
+To start off, install all of the ``mimic's`` requirements into a virtualenv using
 
 .. code-block:: console
 
    $ virtualenv venv
    $ . venv/bin/activate
-   $ pip install -r requirements.txt
-   $ pip install -r dev-requirements.txt
-   $ pip install -r py2app-requirements.txt
+   (venv)$ pip install -r requirements.txt
+   (venv)$ pip install -r dev-requirements.txt
+   (venv)$ pip install -r py2app-requirements.txt
 
-To build the the application, run ``make`` from the root directory.
+The to build the the application, run ``make`` from the root directory.
 This will build the application, test it, and, finally, run it.
 
 If the build was successful, the application will have started.
 When the application is running, the word ``mimic`` should be visible in the menubar.
 To quit the application, simply click on ``mimic`` and select ``Quit``.
-The applications logs can be seen by opening ``Applications/Utilities/Console.app``.
+Application logs can be seen by opening ``Applications/Utilities/Console.app``.
 
-Lastly, you can run ``mimic``\'s test suite using the application's bundled interpreter.
-This can be done by typing ``make test`` in the root directory of the application.
-Or, if only the application bundle is present, you would type
+To run ``mimic``\'s test suite using the application's bundled interpreter, type
 
 .. code-block:: console
 
