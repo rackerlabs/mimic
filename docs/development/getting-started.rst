@@ -84,6 +84,21 @@ Alternately, you can use our ``tox`` job:
 
     $ tox -e docs
 
+Building a mac application bundle
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``mimic`` can be built using `py2app`_ and `pyobjc`_.
+Due to several quirks in the current version of `py2app`_, specific versions of libraries are needed in order for `py2app`_ to build correctly.
+These requirements are specified in ``py2app-requirements.txt``.
+
+To build the application, simply install the requirements into a virtualenv
+using ``pip install -r py2app-requirements.txt``.
+
+To build the the application, run ``make from the root directory.
+This will build the application, test it, and, finally, run it.
+
+If the build was successful, there should be a menubar item named ``mimic``.
+To quit the application, simply click on ``mimic`` and select ``Quit``.
 
 .. _`homebrew`: http://brew.sh/
 .. _`pytest`: https://pypi.python.org/pypi/pytest
@@ -98,3 +113,5 @@ Alternately, you can use our ``tox`` job:
 .. _`coverage`: https://pypi.python.org/pypi/coverage
 .. _`pep8`: http://legacy.python.org/dev/peps/pep-0008/
 .. _`pyflakes`: https://pypi.python.org/pypi/coverage
+.. _`pyobjc`: http://pythonhosted.org//pyobjc/
+.. _`py2app`: http://pythonhosted.org//py2app/
