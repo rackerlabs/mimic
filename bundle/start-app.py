@@ -27,46 +27,35 @@ from sys import stdout
 class MyApp(NSApplication):
 
     def finishLaunching(self):
-        #make the menu
         self.menubarMenu = NSMenu.alloc().init()
-
-        self.menuItem = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_('Click Me', 'clicked:', '')
-        self.menubarMenu.addItem_(self.menuItem)
-
         self.quit = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_('Quit', 'terminate:', '')
         self.menubarMenu.addItem_(self.quit)
 
-        #add menu to statusitem
-        self.statusitem.setMenu_(self.menubarMenu)
-        self.statusitem.setToolTip_('My App')
 
-    def clicked_(self, notification):
-        NSLog('clicked!')
+class MyAppDelegate(NSObject):
+    """
+    Things that need to happen at startup and shutdown for the application
+    to work.
+    """
+    def applicationDidFinishLaunching_(self, aNotification):
+        """
+        Invoked by NSApplication once the app is done launching and
+        immediately before the first pass through the main event
+        loop.
+        """
+        AppHelper.callLater(1, startMimic, (reactor,))
+        reactor.interleave(AppHelper.callAfter)
 
-
-# class MyAppDelegate(NSObject):
-#     """
-#     Things that need to happen at startup and shutdown for the application
-#     to work.
-#     """
-#     def applicationDidFinishLaunching_(self, aNotification):
-#         """
-#         Invoked by NSApplication once the app is done launching and
-#         immediately before the first pass through the main event
-#         loop.
-#         """
-#         reactor.interleave(AppHelper.callAfter)
-
-#     def applicationShouldTerminate_(self, sender):
-#         """
-#         Kill the reactor to close cleanly.
-#         """
-#         if reactor.running:
-#             reactor.addSystemEventTrigger(
-#                 'after', 'shutdown', AppHelper.stopEventLoop)
-#             reactor.stop()
-#             return False
-#         return True
+    def applicationShouldTerminate_(self, sender):
+        """
+        Kill the reactor to close cleanly.
+        """
+        if reactor.running:
+            reactor.addSystemEventTrigger(
+                'after', 'shutdown', AppHelper.stopEventLoop)
+            reactor.stop()
+            return False
+        return True
 
 
 def startMimic(reactor):
@@ -89,6 +78,9 @@ def startMimic(reactor):
 
 
 if __name__ == '__main__':
-    # start mimic needs to interleave.
-    AppHelper.callLater(1, startMimic, (reactor,))
+
+    application = MyApp.sharedApplication()
+    delegate = MyAppDelegate.alloc().init()
+    application.setDelegate_(delegate)
+
     AppHelper.runEventLoop()
