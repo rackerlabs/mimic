@@ -50,14 +50,16 @@ class MyAppDelegate(NSObject):
         self.statusItem.setMenu_(self.menubarMenu)
         self.statusItem.setToolTip_(u"mimic")
 
-        # it seems like this is not being done correctly.
         AppHelper.callLater(1, startMimic)
+        # XXX I'm continuing to get an exception here
+        # <type 'exceptions.AttributeError'>: 'CFReactor' object has no attribute 'interleave'
         reactor.interleave(AppHelper.callAfter)
 
     def applicationShouldTerminate_(self, sender):
         """
         Kill the reactor to close cleanly.
         """
+        log.msg("stopping mimic reactor")
         if reactor.running:
             reactor.addSystemEventTrigger(
                 'after', 'shutdown', AppHelper.stopEventLoop)
