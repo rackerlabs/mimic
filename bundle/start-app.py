@@ -24,14 +24,6 @@ from twisted.python import log
 from sys import stdout
 
 
-class MyApp(NSApplication):
-
-    def finishLaunching(self):
-        self.menubarMenu = NSMenu.alloc().init()
-        self.quit = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_('Quit', 'terminate:', '')
-        self.menubarMenu.addItem_(self.quit)
-
-
 class MyAppDelegate(NSObject):
     """
     Things that need to happen at startup and shutdown for the application
@@ -43,7 +35,7 @@ class MyAppDelegate(NSObject):
         immediately before the first pass through the main event
         loop.
         """
-        AppHelper.callLater(1, startMimic, (reactor,))
+        AppHelper.callLater(1, startMimic)
         reactor.interleave(AppHelper.callAfter)
 
     def applicationShouldTerminate_(self, sender):
@@ -58,12 +50,7 @@ class MyAppDelegate(NSObject):
         return True
 
 
-def startMimic(reactor):
-    """
-
-    """
-    log.startLogging(stdout)
-
+def startMimic():
     clock = Clock()
     core = MimicCore.fromPlugins(clock)
     root = MimicRoot(core, clock)
@@ -78,8 +65,8 @@ def startMimic(reactor):
 
 
 if __name__ == '__main__':
-
-    application = MyApp.sharedApplication()
+    log.startLogging(stdout)
+    application = NSApplication.sharedApplication()
     delegate = MyAppDelegate.alloc().init()
     application.setDelegate_(delegate)
 
