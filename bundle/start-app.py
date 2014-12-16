@@ -35,7 +35,7 @@ class MyAppDelegate(NSObject):
         immediately before the first pass through the main event
         loop.
         """
-        AppHelper.callLater(1, startMimic)
+        AppHelper.callLater(1, startMimic, (reactor,))
         reactor.interleave(AppHelper.callAfter)
 
     def applicationShouldTerminate_(self, sender):
@@ -50,7 +50,7 @@ class MyAppDelegate(NSObject):
         return True
 
 
-def startMimic():
+def startMimic(reactor):
     clock = Clock()
     core = MimicCore.fromPlugins(clock)
     root = MimicRoot(core, clock)
@@ -67,7 +67,12 @@ def startMimic():
 if __name__ == '__main__':
     log.startLogging(stdout)
     application = NSApplication.sharedApplication()
+
     delegate = MyAppDelegate.alloc().init()
     application.setDelegate_(delegate)
 
     AppHelper.runEventLoop()
+
+# took requests at 7:03 but then started failing
+# at this point it also complained of CFReactor object not being able
+# to 'interleave'
