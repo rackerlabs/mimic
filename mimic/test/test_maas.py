@@ -103,7 +103,7 @@ class MaasAPITests(SynchronousTestCase):
                 break
         return xobjectid
 
-    def get_ecan_objectIds(self):
+    def get_ecan_object_ids(self):
         """
         Get the Entity, check, alarm an notification(plan) objects created by setUp()
         """
@@ -184,7 +184,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         test get entity
         """
-        ecan = self.get_ecan_objectIds()
+        ecan = self.get_ecan_object_ids()
         req = request(self, self.root, "GET", self.uri+'/entities/'+ecan['entity_id'], '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
@@ -205,7 +205,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         test get check
         """
-        ecan = self.get_ecan_objectIds()
+        ecan = self.get_ecan_object_ids()
         req = request(self, self.root, "GET",
                       self.uri+'/entities/'+ecan['entity_id']+'/checks/'+ecan['check_id'], '')
         resp = self.successResultOf(req)
@@ -217,7 +217,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         test get check
         """
-        ecan = self.get_ecan_objectIds()
+        ecan = self.get_ecan_object_ids()
         req = request(self, self.root, "GET",
                       self.uri+'/entities/'+ecan['entity_id']+'/checks', '')
         resp = self.successResultOf(req)
@@ -230,7 +230,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         update entity
         """
-        ecan = self.get_ecan_objectIds()
+        ecan = self.get_ecan_object_ids()
         req = request(self, self.root, "GET", self.uri+'/entities/'+ecan['entity_id'], '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
@@ -249,7 +249,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         update check
         """
-        ecan = self.get_ecan_objectIds()
+        ecan = self.get_ecan_object_ids()
         req = request(self, self.root, "GET",
                       self.uri+'/entities/'+ecan['entity_id']+'/checks/'+ecan['check_id'], '')
         resp = self.successResultOf(req)
@@ -272,7 +272,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         update alarm
         """
-        ecan = self.get_ecan_objectIds()
+        ecan = self.get_ecan_object_ids()
         req = request(self, self.root, "GET", self.uri+'/views/overview', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
@@ -293,7 +293,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         delete alarm
         """
-        ecan = self.get_ecan_objectIds()
+        ecan = self.get_ecan_object_ids()
         req = request(self, self.root, "DELETE",
                       self.uri+'/entities/'+ecan['entity_id']+'/alarms/'+ecan['alarm_id'], '')
         resp = self.successResultOf(req)
@@ -320,7 +320,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         delete check
         """
-        ecan = self.get_ecan_objectIds()
+        ecan = self.get_ecan_object_ids()
         req = request(self, self.root, "DELETE",
                       self.uri+'/entities/'+ecan['entity_id']+'/checks/'+ecan['check_id'], '')
         resp = self.successResultOf(req)
@@ -336,7 +336,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         delete entity
         """
-        ecan = self.get_ecan_objectIds()
+        ecan = self.get_ecan_object_ids()
         req = request(self, self.root, "DELETE",
                       self.uri+'/entities/'+ecan['entity_id'], '')
         resp = self.successResultOf(req)
@@ -379,7 +379,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         get available metrics
         """
-        ecan = self.get_ecan_objectIds()
+        ecan = self.get_ecan_object_ids()
         req = request(self, self.root, "GET", self.uri+'/views/metric_list', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
@@ -391,7 +391,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         get datapoints for graph
         """
-        ecan = self.get_ecan_objectIds()
+        ecan = self.get_ecan_object_ids()
         metrics = []
         req = request(self, self.root, "GET", self.uri+'/views/metric_list', '')
         resp = self.successResultOf(req)
@@ -422,7 +422,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         Get a specific notification plan
         """
-        ecan = self.get_ecan_objectIds()
+        ecan = self.get_ecan_object_ids()
         req = request(self, self.root, "GET", self.uri+'/notification_plans/'+ecan['np_id'], '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
@@ -449,7 +449,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         Update a notification target
         """
-        ecan = self.get_ecan_objectIds()
+        ecan = self.get_ecan_object_ids()
         postdata = {'id': ecan['nt_id'], 'label': 'changed'}
         req = request(self, self.root, "PUT", self.uri+'/notifications/'+ecan['nt_id'],
                       json.dumps(postdata))
@@ -471,7 +471,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         Delete a notification target
         """
-        ecan = self.get_ecan_objectIds()
+        ecan = self.get_ecan_object_ids()
         req = request(self, self.root, "DELETE", self.uri+'/notifications/'+ecan['nt_id'], '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
@@ -490,7 +490,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         Update a notification plan
         """
-        ecan = self.get_ecan_objectIds()
+        ecan = self.get_ecan_object_ids()
         postdata = {'id': ecan['np_id'], 'label': 'changed'}
         req = request(self, self.root, "PUT", self.uri+'/notification_plans/'+ecan['np_id'],
                       json.dumps(postdata))
@@ -506,7 +506,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         Delete a notification plan
         """
-        ecan = self.get_ecan_objectIds()
+        ecan = self.get_ecan_object_ids()
         req = request(self, self.root, "DELETE", self.uri+'/notification_plans/'+ecan['np_id'], '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
@@ -535,7 +535,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         Get a specific suppression
         """
-        ecan = self.get_ecan_objectIds()
+        ecan = self.get_ecan_object_ids()
         req = request(self, self.root, "GET", self.uri+'/suppressions/'+ecan['sp_id'], '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
@@ -546,7 +546,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         Get all the suppressions
         """
-        ecan = self.get_ecan_objectIds()
+        ecan = self.get_ecan_object_ids()
         req = request(self, self.root, "GET", self.uri+'/suppressions', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
@@ -558,7 +558,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         Update an suppression
         """
-        ecan = self.get_ecan_objectIds()
+        ecan = self.get_ecan_object_ids()
         postdata = {'id': ecan['sp_id'], 'label': 'changed'}
         req = request(self, self.root, "PUT", self.uri+'/suppressions/'+ecan['sp_id'],
                       json.dumps(postdata))
@@ -574,7 +574,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         Delete an suppression
         """
-        ecan = self.get_ecan_objectIds()
+        ecan = self.get_ecan_object_ids()
         req = request(self, self.root, "DELETE", self.uri+'/suppressions/'+ecan['sp_id'], '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
@@ -604,7 +604,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         test_alarms_by_np
         """
-        ecan = self.get_ecan_objectIds()
+        ecan = self.get_ecan_object_ids()
         req = request(self, self.root, "GET", self.uri+'/views/overview', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
@@ -625,7 +625,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         Cant delete a notificationPlan that's being pointed to by alarms
         """
-        ecan = self.get_ecan_objectIds()
+        ecan = self.get_ecan_object_ids()
         req = request(self, self.root, "GET", self.uri+'/views/overview', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
