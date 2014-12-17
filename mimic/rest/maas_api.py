@@ -21,6 +21,7 @@ from mimic.catalog import Endpoint
 from mimic.rest.mimicapp import MimicApp
 from mimic.imimic import IAPIMock
 from mimic.canned_responses.maas_json_home import json_home
+from mimic.canned_responses.maas_monitoring_zones import monitoring_zones
 from mimic.util.helper import random_hex_generator
 
 
@@ -849,7 +850,23 @@ class MaasMock(object):
                 break
         request.setResponseCode(204)
         request.setHeader('content-type', 'text/plain')
-        pass
+        return ''
+
+    @app.route('/v1.0/<string:tenant_id>/monitoring_zones', methods=['GET'])
+    def list_monitoring_zones(self, request, tenant_id):
+        """
+        Lists the monitoring zones
+        """
+        mzs = monitoring_zones()
+        metadata = {
+            'count': len(mzs),
+            'limit': 100,
+            'marker': None,
+            'next_marker': None,
+            'next_href': None
+            }
+        request.setResponseCode(200)
+        return json.dumps({'values': mzs, 'metadata': metadata})
 
     @app.route('/v1.0/<string:tenant_id>/views/alarmCountsPerNp', methods=['GET'])
     def alarm_counts_per_np(self, request, tenant_id):
