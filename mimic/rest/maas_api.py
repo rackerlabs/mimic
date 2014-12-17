@@ -88,7 +88,7 @@ class M_Cache(dict):
                                         'label': 'Technical Contacts - Email',
                                         'critical_state': [], 'warning_state': [],
                                         'ok_state': [], 'metadata': None}]
-        self.notificationtypes_list = [{'id': 'webhock', 'fields': [{'name': 'url',
+        self.notificationtypes_list = [{'id': 'webhook', 'fields': [{'name': 'url',
                                                                      'optional': False,
                                                                      'description': 'An HTTP or \
                                                                       HTTPS URL to POST to'}]},
