@@ -303,6 +303,19 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 200)
         self.assertEquals(0, len(self.get_responsebody(resp)['values'][0]['alarms']))
 
+    def test_get_alarms_for_entity(self):
+        """
+        get all alarms for the entity
+        """
+        ecan = self.get_ecan_objectIds()
+        req = request(self, self.root, "GET",
+                      self.uri + '/entities/' + ecan['entity_id'] + '/alarms', '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertEquals(1, data['metadata']['count'])
+        self.assertEquals(ecan['alarm_id'], data['values'][0]['id'])
+
     def test_delete_check(self):
         """
         delete check
