@@ -91,7 +91,7 @@ Building a mac application bundle
 Due to several quirks in the current version of `py2app`_, specific versions of libraries are needed in order for `py2app`_ to build correctly.
 These requirements are specified in ``py2app-requirements.txt``.
 
-To start off, install all of the ``mimic's`` requirements into a virtualenv using
+To start off, install all of the ``mimic's`` requirements into a `virtualenv`_ using
 
 .. code-block:: console
 
@@ -131,3 +131,4 @@ To run ``mimic``\'s test suite using the application's bundled interpreter, type
 .. _`pyflakes`: https://pypi.python.org/pypi/coverage
 .. _`pyobjc`: http://pythonhosted.org//pyobjc/
 .. _`py2app`: http://pythonhosted.org//py2app/
+.. _`virtualenv`: https://virtualenv.pypa.io/en/latest/
