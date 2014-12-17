@@ -555,7 +555,7 @@ class MaasMock(object):
         alarms = [
             dict(alarm) for alarm in self._entity_cache_for_tenant(tenant_id).alarms_list
             if alarm['entity_id'] == entity_id
-            ]
+        ]
         for alarm in alarms:
             del alarm['entity_id']
         metadata = {}
@@ -788,7 +788,7 @@ class MaasMock(object):
             'marker': None,
             'next_marker': None,
             'next_href': None
-            }
+        }
         request.setResponseCode(200)
         return json.dumps({'values': splist, 'metadata': metadata})
 
@@ -864,7 +864,7 @@ class MaasMock(object):
             'marker': None,
             'next_marker': None,
             'next_href': None
-            }
+        }
         request.setResponseCode(200)
         return json.dumps({'values': mzs, 'metadata': metadata})
 
