@@ -129,6 +129,5 @@ To run ``mimic``\'s test suite using the application's bundled interpreter, type
 .. _`coverage`: https://pypi.python.org/pypi/coverage
 .. _`pep8`: http://legacy.python.org/dev/peps/pep-0008/
 .. _`pyflakes`: https://pypi.python.org/pypi/coverage
-.. _`pyobjc`: http://pythonhosted.org//pyobjc/
-.. _`py2app`: http://pythonhosted.org//py2app/
-.. _`virtualenv`: https://virtualenv.pypa.io/en/latest/
+.. _`pyobjc`: https://pypi.python.org/pypi/pyobjc 
+.. _`py2app`: https://pypi.python.org/pypi/py2app
