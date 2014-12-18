@@ -84,8 +84,8 @@ Alternately, you can use our ``tox`` job:
 
     $ tox -e docs
 
-Building a mac application bundle
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Building a Mac application
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``mimic`` can be built using `py2app`_ and `pyobjc`_.
 Due to several quirks in the current version of `py2app`_, specific versions of libraries are needed in order for `py2app`_ to build correctly.
