@@ -88,13 +88,12 @@ Building a Mac application
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``mimic`` can be built using `py2app`_ and `pyobjc`_.
-Due to several quirks in the current version of `py2app`_, specific 
-versions of libraries are needed in order for `py2app`_ to build 
-correctly. These requirements are specified in 
-``py2app-requirements.txt``.
+Due to several quirks in the current version of `py2app`_, specific versions of
+ libraries are needed in order for `py2app`_ to build correctly.
+These requirements are specified in ``py2app-requirements.txt``.
 
-To start off, install all of the ``mimic's`` requirements into a 
-`virtualenv`_ using
+To start off, install all of the ``mimic's`` requirements into a `virtualenv`_
+ using
 
 .. code-block:: console
 
@@ -108,13 +107,12 @@ The to build the the application, run ``make`` from the root directory.
 This will build the application, test it, and, finally, run it.
 
 If the build was successful, the application will have started.
-When the application is running, the word ``mimic`` should be visible in 
-the menubar. To quit the application, simply click on ``mimic`` and 
-select ``Quit``. Application logs can be seen by opening 
-``Applications/Utilities/Console.app``.
+When the application is running, the word ``mimic`` should be visible in the
+ menubar.
+To quit the application, simply click on ``mimic`` and select ``Quit``.
+Application logs can be seen by opening ``Applications/Utilities/Console.app``.
 
-To run ``mimic``\'s test suite using the application's bundled 
-interpreter, type
+To run ``mimic``\'s test suite using the application's bundled interpreter, type
 
 .. code-block:: console
 
