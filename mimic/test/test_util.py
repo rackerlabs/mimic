@@ -36,7 +36,7 @@ class HelperTests(SynchronousTestCase):
 
     def test_random_hex_generator(self):
         """
-        A completely random and unique hex encoded data is generated.
+        A completely random and unique 2x bits of hex data is generated.
         """
         self.assertNotEqual(helper.random_hex_generator(3),
                             helper.random_hex_generator(3))
