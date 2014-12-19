@@ -103,7 +103,7 @@ using
    (venv)$ pip install -r dev-requirements.txt
    (venv)$ pip install -r py2app-requirements.txt
 
-The to build the the application, run ``make`` from the root directory.
+Then to build the the application, run ``make`` from the root directory.
 This will build the application, test it, and, finally, run it.
 
 If the build was successful, the application will have started.
