@@ -38,7 +38,7 @@ class MyAppDelegate(NSObject):
         loop.
         """
         self.statusItem = NSStatusBar.systemStatusBar().statusItemWithLength_(NSVariableStatusItemLength)
-        self.statusItem.setTitle_(u"mimic")
+        self.statusItem.setTitle_(u"M")
         self.statusItem.setHighlightMode_(TRUE)
         self.statusItem.setEnabled_(TRUE)
 
@@ -56,7 +56,7 @@ class MyAppDelegate(NSObject):
 
         #add menu to statusitem
         self.statusItem.setMenu_(self.menubarMenu)
-        self.statusItem.setToolTip_(u"mimic")
+        self.statusItem.setToolTip_(u"mimic - rackspace mock api")
 
         AppHelper.callLater(1, startMimic)
         # XXX I"m continuing to get an exception here
