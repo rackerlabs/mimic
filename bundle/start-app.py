@@ -24,6 +24,7 @@ from twisted.python import log
 
 from sys import stdout
 
+_PORT="8800"
 
 class MyAppDelegate(NSObject):
     """
@@ -42,9 +43,13 @@ class MyAppDelegate(NSObject):
         self.statusItem.setEnabled_(TRUE)
 
         self.quit = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
-                                  'Quit', 'terminate:', '')
+                                  "Quit", "terminate:", "")
+        # ugly but... it provides the information.
+        self.port = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+            "Listening on localhost:{0}".format(_PORT), "", "")
 
         self.menubarMenu = NSMenu.alloc().init()
+        self.menubarMenu.addItem_(self.port)
         self.menubarMenu.addItem_(self.quit)
 
         # XXX add a an item displaying the port
@@ -54,11 +59,11 @@ class MyAppDelegate(NSObject):
         self.statusItem.setToolTip_(u"mimic")
 
         AppHelper.callLater(1, startMimic)
-        # XXX I'm continuing to get an exception here
-        # <type 'exceptions.AttributeError'>: 'CFReactor'
-        # object has no attribute 'interleave'
+        # XXX I"m continuing to get an exception here
+        # <type "exceptions.AttributeError">: "CFReactor"
+        # object has no attribute "interleave"
         # it seems like using interleave is necessary
-        # but, it could be I'm misunderstanding the API.
+        # but, it could be I"m misunderstanding the API.
         #reactor.interleave(AppHelper.callAfter)
 
     def applicationShouldTerminate_(self, sender):
@@ -68,7 +73,7 @@ class MyAppDelegate(NSObject):
         log.msg("stopping mimic reactor")
         if reactor.running:
             reactor.addSystemEventTrigger(
-                'after', 'shutdown', AppHelper.stopEventLoop)
+                "after", "shutdown", AppHelper.stopEventLoop)
             reactor.stop()
             return False
         return True
@@ -86,12 +91,12 @@ def startMimic():
 
     endpoint = serverFromString(
         reactor,
-        b"tcp:8800:interface=127.0.0.1"
+        b"tcp:{0}:interface=127.0.0.1".format(_PORT)
     )
     endpoint.listen(site)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     log.startLogging(stdout)
     application = NSApplication.sharedApplication()
     delegate = MyAppDelegate.alloc().init()
