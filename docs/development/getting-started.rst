@@ -107,8 +107,8 @@ Then to build the the application, run ``make`` from the root directory.
 This will build the application, test it, and, finally, run it.
 
 If the build was successful, the application will have started.
-When the application is running, the word ``mimic`` should be visible in the
-menubar. To quit the application, simply click on ``mimic`` and select
+When the application is running, the letter ``m`` should be visible in the
+menubar. To quit the application, simply click on the ``m`` and select
 ``Quit``. Application logs can be seen by opening
 ``Applications/Utilities/Console.app``.
 
