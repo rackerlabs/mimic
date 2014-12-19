@@ -32,7 +32,7 @@ setup(
     app=[app_data],
     options={
         'py2app': {
-            'includes': ['syslog', 'mimic.test.*'],
+            'includes': ['syslog', 'mimic.test.*', 'twisted.plugin'],
             #'argv_emulation': True
         }
     }
