@@ -112,7 +112,7 @@ This will build the application and test it.
 
 After the application bundle has been built, the bundle will be available
 inside of ``./dist/mimic.app``.
-This application can be treated like any other mac appliaction and moved into
+This application can be treated like any other mac application and moved into
 ~/Applications.
 
 To run the application normally, you need only use ``open path/to/mimic.app``.
@@ -130,8 +130,7 @@ type
 
 .. code-block:: console
 
-    $ ./mimic.app/Contents/MacOS/run-tests
-
+   $ ./mimic.app/Contents/MacOS/run-tests
 
 .. _`homebrew`: http://brew.sh/
 .. _`pytest`: https://pypi.python.org/pypi/pytest
