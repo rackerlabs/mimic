@@ -92,6 +92,9 @@ Due to several quirks in the current version of `py2app`_, specific versions of
 libraries are needed in order for `py2app`_ to build correctly.
 These requirements are specified in ``py2app-requirements.txt``.
 
+`py2app`_ requires that a non-system python be installed for bundling.
+To get around this, I've found it easiest to install a brewed 2.7.9 python.
+
 To start off, install all of the ``mimic's`` requirements into a `virtualenv`_
 using
 
@@ -103,11 +106,21 @@ using
    (venv)$ pip install -r dev-requirements.txt
    (venv)$ pip install -r py2app-requirements.txt
 
-Then to build the the application, run ``make`` from the root directory.
-This will build the application, test it, and, finally, run it.
+Then to build the the application, run ``make`` from mimic's working
+directory.
+This will build the application and test it.
 
-If the build was successful, the application will have started.
-When the application is running, the letter ``M`` should be visible in the
+After the application bundle has been built, the bundle will be available
+inside of ``./dist/mimic.app``.
+This application can be treated like any other mac appliaction and moved into
+~/Applications.
+
+To run the application normally, you need only use ``open path/to/mimic.app``.
+
+If you have just built the application, running ``make run`` from the
+working directory will start mimic.
+
+When the application is running, the letter ``M`` will be visible in the
 menubar. To quit the application, simply click on the ``M`` and select
 ``Quit``. Application logs can be seen by opening
 ``Applications/Utilities/Console.app``.

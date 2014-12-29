@@ -1,4 +1,4 @@
-all: clean build test run
+all: clean build test
 
 build:
 	python setup-mac.py py2app
