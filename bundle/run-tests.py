@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-run the tests for the mimic.aplication bundle.
+run the tests for the mimic.application bundle.
 """
 import sys
 
@@ -17,9 +17,9 @@ sys.path.insert(0, b'./lib/python/site-packages.zip')
 from mimic import test
 
 
-def runTests():
+def run_tests():
     """
-    run tests from the mimic module.
+    Run all of mimics tests.
     """
     loader = TestLoader()
     suite = loader.loadPackage(test)
@@ -27,4 +27,4 @@ def runTests():
 
 
 if __name__ == '__main__':
-    runTests()
+    run_tests()
