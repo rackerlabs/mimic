@@ -14,7 +14,7 @@ class HelperTests(SynchronousTestCase):
     def _validate_ipv4_address(self, address, *prefixes):
         nums = [int(x) for x in address.split('.')]
         self.assertEqual(4, len(nums))
-        self.assertTrue(all(x >= 0 and x < 255 for x in nums))
+        self.assertTrue(all(x >= 0 and x < 256 for x in nums))
         self.assertEqual(prefixes[:len(nums)], tuple(nums[:len(prefixes)]))
 
     def test_random_ipv4_completely_random(self):
@@ -33,6 +33,14 @@ class HelperTests(SynchronousTestCase):
             prefixes.append(i)
             self._validate_ipv4_address(helper.random_ipv4(*prefixes),
                                         *prefixes)
+
+    def test_random_hex_generator(self):
+        """
+        A completely random and unique hex encoded data is generated.
+        """
+        self.assertNotEqual(helper.random_hex_generator(3),
+                            helper.random_hex_generator(3))
+        self.assertEqual(len(helper.random_hex_generator(4)), 8)
 
     def test_attribute_names(self):
         """

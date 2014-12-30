@@ -4,10 +4,9 @@ Canned response for add/get/list/delete load balancers and
 add/get/delete/list nodes
 """
 from random import randrange
-from datetime import datetime
 from copy import deepcopy
 from mimic.util.helper import (not_found_response, invalid_resource,
-                               set_resource_status, fmt as time_format)
+                               set_resource_status, seconds_to_timestamp)
 from twisted.python import log
 
 
@@ -80,7 +79,7 @@ def add_load_balancer(tenant_id, store, lb_info, lb_id, current_timestamp):
         status = "BUILD"
 
     # Add tenant_id and nodeCount to store.lbs
-    current_timestring = datetime.utcfromtimestamp(current_timestamp).strftime(time_format)
+    current_timestring = seconds_to_timestamp(current_timestamp)
     store.lbs[lb_id] = load_balancer_example(lb_info, lb_id, status,
                                              current_timestring)
     store.lbs[lb_id].update({"tenant_id": tenant_id})
@@ -334,7 +333,7 @@ def _verify_and_update_lb_state(store, lb_id, set_state=True,
     been in that state, set the appropriate state in store.lbs
     Note: Reconsider if update metadata is implemented
     """
-    current_timestring = datetime.utcfromtimestamp(current_timestamp).strftime(time_format)
+    current_timestring = seconds_to_timestamp(current_timestamp)
     if store.lbs[lb_id]["status"] == "BUILD":
         store.meta[lb_id]["lb_building"] = store.meta[lb_id]["lb_building"] or 10
         store.lbs[lb_id]["status"] = set_resource_status(

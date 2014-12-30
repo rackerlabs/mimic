@@ -6,9 +6,31 @@ Mimic helps with:
 * fast set-up
 * instant response
 * cost efficient
-* enables offline developmenet
+* enables offline development
 * enables ability to test unusual behaviors/errors of an api
 * acts as a central repository for mocked responses from services
+
+### Quick start
+
+The fastest way to install and start Mimic is:
+
+    pip install mimic
+    twistd -n mimic
+
+You can test the server started successfully by sending this request and checking for the
+welcome message:
+
+    curl http://localhost:8900
+    >> To get started with Mimic, POST an authentication request to:
+    >> /identity/v2.0/tokens
+
+You can use the command below test authentication and see your service catalog. The service catalog containts the endpoints for other available APIs.
+
+    curl -s -XPOST -d '{"auth":{"RAX-KSKEY:apiKeyCredentials":{"username":"mimic","apiKey":"12345"}}}' http://localhost:8900/identity/v2.0/tokens | python -m json.tool
+
+In order to use Mimic with most other projects you just need to override the Authentication Endpoint. In many projects, including the [OpenStack Client CLI](https://wiki.openstack.org/wiki/OpenStackClient) or the [OpenStack Keystone client](https://github.com/openstack/python-keystoneclient/) you can do that by setting the `OS_AUTH_URL` environment variable or the `--os-auth-url` option. For example:
+
+    keystone --os-username mimic --os-password 1235 --os-auth-url http://localhost:8900/identity/v2.0/ catalog
 
 ### Come join us develop Mimic! Talk to us at ##mimic on irc.freenode.net ###
 
@@ -91,7 +113,6 @@ node, for 20 seconds:
 
 `{"loadBalancer": {"name": "a-new-loadbalancer2", "protocol": "HTTP", "virtualIps": [{"type": "PUBLIC"}], "metadata": [{"key": "lb_pending_update", "value": 20}], "nodes": []}}`
 
-
 ## Mimic Control APIs ##
 
 When any of Mimic's included plugins schedule a timeout, you will need to cause
@@ -124,3 +145,14 @@ If you would prefer to advance Mimic to something resembling the present day ins
 3. `pip install -r requirements.txt` from within the mimic folder (if there is a gcc error, `apt-get install python-dev`)
 4. cd into mimic or add the mimic to the PYTHONPATH and run `twistd -n mimic`
 
+## Running Mimic on Docker ##
+
+The repository root has a `Dockerfile` that does what you want. It exposes Mimic on port 8900 by default.
+
+To play around with Mimic locally, try:
+
+```
+docker build -t mimic . && docker run --restart=no --rm=true -p 8900:8900 mimic
+```
+
+This will expose Mimic on port 8900, so you can access it directly from the host. The default port exposure is intended for communication between containers; see the Docker documentation for more information. If you're using `boot2docker`, run `boot2docker ip` to find the right IP.
