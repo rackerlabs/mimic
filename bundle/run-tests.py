@@ -1,7 +1,7 @@
-#!/usr/bin/env python
 """
 run the tests for the mimic.application bundle.
 """
+
 import sys
 
 from twisted.trial.runner import (
@@ -17,14 +17,14 @@ sys.path.insert(0, b'./lib/python/site-packages.zip')
 from mimic import test
 
 
-def run_tests():
+def runTests():
     """
     Run all of mimics tests.
     """
     loader = TestLoader()
     suite = loader.loadPackage(test)
-    runner = TrialRunner(VerboseTextReporter).run(suite)
+    TrialRunner(VerboseTextReporter).run(suite)
 
 
 if __name__ == '__main__':
-    run_tests()
+    runTests()
