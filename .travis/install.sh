@@ -6,6 +6,7 @@
 set -e
 set -x
 
+
 if [[ "${TOX_ENV}" == "pypy"* ]]; then
     sudo add-apt-repository -y ppa:pypy/ppa
     sudo apt-get -y update
@@ -14,6 +15,12 @@ if [[ "${TOX_ENV}" == "pypy"* ]]; then
     # This is required because we need to get rid of the Travis installed PyPy
     # or it'll take precedence over the PPA installed one.
     sudo rm -rf /usr/local/pypy/bin
+fi
+
+if [[ "$(uname -s)" == 'Darwin' ]]; then
+    DARWIN=true
+else
+    DARWIN=false
 fi
 
 if [[ "${TOX_ENV}" == "docs-spellcheck" ]]; then
@@ -32,7 +39,8 @@ if [[ "${TOX_ENV}" == "bundle" ]]; then
         brew install python pyenv
 
         # a non-system python must be used for py2app.
-        pyenv local 2.7.9
+        pyenv global 2.7.9
+	pyenv rehash
     fi
 fi
 
