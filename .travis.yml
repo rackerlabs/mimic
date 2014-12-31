@@ -1,4 +1,7 @@
 language: python
+os:
+  - osx
+  - linux
 
 env:
   - TOX_ENV=lint
@@ -8,10 +11,27 @@ env:
   - TOX_ENV=docs
   - TOX_ENV=docs-spellcheck
   - TOX_ENV=docs-linkcheck
+  - TOX_ENV=bundle
 
 matrix:
   allow_failures:
     - env: "TOX_ENV=docs-linkcheck"
+
+  exclude:
+    - os: osx
+      env: lint
+    - os: osx
+      env: py26
+    - os: osx
+      env: py27
+    - os: osx
+      env: docs
+    - os: osx
+      env: docs-spellcheck
+    - os: osx
+      env: docs-linkcheck
+    - os: linux
+      env: bundle
 
 install:
   - ./.travis/install.sh

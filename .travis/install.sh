@@ -26,4 +26,14 @@ if [[ "${TOX_ENV}" == "docs-spellcheck" ]]; then
     fi
 fi
 
+if [[ "${TOX_ENV}" == "bundle" ]]; then
+    if [[ "$DARWIN" = true ]]; then
+        brew update
+        brew install python pyenv
+
+        # a non-system python must be used for py2app.
+        pyenv local 2.7.9
+    fi
+fi
+
 pip install tox coveralls
