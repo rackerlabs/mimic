@@ -27,6 +27,10 @@ matrix:
       compiler: gcc
     - os: linux
       compiler: clang
+
+    # no need to build docs on OSX
+    - os: osx
+      env: TOX_ENV=docs
     - os: osx
       env: TOX_ENV=docs-spellcheck
     - os: osx
