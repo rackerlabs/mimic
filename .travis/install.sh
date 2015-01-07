@@ -20,11 +20,13 @@ if [[ "$DARWIN" = true ]]; then
         py26)
             curl -O https://bootstrap.pypa.io/get-pip.py
             sudo python get-pip.py
+	    pyenv install 2.6
 	    pyenv global 2.6
             ;;
         py27)
             curl -O https://bootstrap.pypa.io/get-pip.py
             sudo python get-pip.py
+	    pyenv install 2.7.8
 	    pyenv global 2.7
             ;;
         pypy)
@@ -39,7 +41,8 @@ if [[ "$DARWIN" = true ]]; then
 	bundle)
 	    curl -O https://bootstrap.pypa.io/get-pip.py
             sudo python get-pip.py
-	    brew install python
+	    pyenv install 2.7.8
+	    pyenv global 2.7.8
 	    ;;
     esac
     pyenv rehash
