@@ -22,27 +22,13 @@ env:
 matrix:
   allow_failures:
     - env: TOX_ENV=docs-linkcheck
-  include:
-    - os: linux
-      compiler: gcc
-      env: TOX_ENV=lint
-    - os: linux
-      compiler: gcc
-      env: TOX_ENV=py26
-    - os: linux
-      compiler: gcc
-      env: TOX_ENV=py27
-    - os: linux
-      compiler: gcc
-      env: TOX_ENV=docs
-    - os: linux
-      compiler: gcc
-      env: TOX_ENV=docs-spellcheck
-    - os: linux
-      compiler: gcc
-      env: TOX_ENV=docs-linkcheck
+  exclude:
     - os: osx
+      compiler: gcc
+    - os: linux
       compiler: clang
+    # don't try building the mac app on linux
+    - os: linux
       env: TOX_ENV=bundle
 
 install:
