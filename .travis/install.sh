@@ -39,7 +39,7 @@ if [[ "$DARWIN" = true ]]; then
 	bundle)
 	    curl -O https://bootstrap.pypa.io/get-pip.py
             sudo python get-pip.py
-	    pyenv global 2.7
+	    brew install python
 	    ;;
     esac
     pyenv rehash
