@@ -8,4 +8,5 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
 fi
 
 source ~/.venv/bin/activate
-tox --
+# run the tests for a single env
+tox -e $TOXENV
