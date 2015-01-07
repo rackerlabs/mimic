@@ -8,4 +8,4 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
     eval "$(pyenv init -)"
 fi
 
-tox -e "$(TOXENV)"
+tox -e "${TOXENV}"
