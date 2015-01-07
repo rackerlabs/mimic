@@ -9,4 +9,4 @@ fi
 
 source ~/.venv/bin/activate
 # run the tests for a single env
-tox -e $TOXENV
+tox -e $TOX_ENV
