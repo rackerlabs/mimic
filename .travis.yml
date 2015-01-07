@@ -4,6 +4,10 @@ os:
   - osx
   - linux
 
+compiler:
+    - clang
+    - gcc
+
 env:
   matrix:
     - TOX_ENV=lint
@@ -20,16 +24,22 @@ matrix:
     - env: "TOX_ENV=docs-linkcheck"
   exclude:
     - os: osx
+      compiler: gcc
       env: lint
     - os: osx
+      compiler: gcc
       env: py26
     - os: osx
+      compiler: gcc
       env: py27
     - os: osx
+      compiler: gcc
       env: docs
     - os: osx
+      compiler: gcc
       env: docs-spellcheck
     - os: osx
+      compiler: gcc
       env: docs-linkcheck
     - os: linux
       env: bundle
