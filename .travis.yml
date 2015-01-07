@@ -21,28 +21,29 @@ env:
 
 matrix:
   allow_failures:
-    - env: "TOX_ENV=docs-linkcheck"
-  exclude:
-    - os: osx
-      compiler: gcc
-      env: lint
-    - os: osx
-      compiler: gcc
-      env: py26
-    - os: osx
-      compiler: gcc
-      env: py27
-    - os: osx
-      compiler: gcc
-      env: docs
-    - os: osx
-      compiler: gcc
-      env: docs-spellcheck
-    - os: osx
-      compiler: gcc
-      env: docs-linkcheck
+    - env: TOX_ENV=docs-linkcheck
+  include:
     - os: linux
-      env: bundle
+      compiler: gcc
+      env: TOX_ENV=lint
+    - os: linux
+      compiler: gcc
+      env: TOX_ENV=py26
+    - os: linux
+      compiler: gcc
+      env: TOX_ENV=py27
+    - os: linux
+      compiler: gcc
+      env: TOX_ENV=docs
+    - os: linux
+      compiler: gcc
+      env: TOX_ENV=docs-spellcheck
+    - os: linux
+      compiler: gcc
+      env: TOX_ENV=docs-linkcheck
+    - os: osx
+      compiler: clang
+      env: TOX_ENV=bundle
 
 install:
   - ./.travis/install.sh
