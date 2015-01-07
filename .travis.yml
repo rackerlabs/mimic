@@ -27,6 +27,11 @@ matrix:
       compiler: gcc
     - os: linux
       compiler: clang
+    - os: osx
+      env: TOX_ENV=docs-spellcheck
+    - os: osx
+      env: TOX_ENV=docs-linkcheck
+
     # don't build mac app on linux
     - os: linux
       env: TOX_ENV=bundle
