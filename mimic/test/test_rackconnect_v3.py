@@ -37,14 +37,16 @@ class LoadBalancerObjectTests(SynchronousTestCase):
     """
 
     def setUp(self):
-        self.pool = LoadBalancerPool(id="pool_id", virtual_ip="10.0.0.1")
+        self.pool = LoadBalancerPool(id=text_type("pool_id"),
+                                     virtual_ip="10.0.0.1")
         for i in range(10):
             self.pool.nodes.append(
-                LoadBalancerPoolNode(id="node_{0}".format(i),
+                LoadBalancerPoolNode(id=text_type("node_{0}".format(i)),
                                      created="2000-01-01T00:00:00Z",
                                      load_balancer_pool=self.pool,
                                      updated=None,
-                                     cloud_server="server_{0}".format(i)))
+                                     cloud_server=text_type(
+                                         "server_{0}".format(i))))
 
     def test_LBPoolNode_short_json(self):
         """

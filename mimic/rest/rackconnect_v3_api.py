@@ -72,7 +72,8 @@ class RackConnectV3(object):
 
 
 lb_pool_attrs = [
-    Attribute("id", default_factory=lambda: text_type(uuid4())),
+    Attribute("id", default_factory=lambda: text_type(uuid4()),
+              instance_of=text_type),
     Attribute("name", default_value=u"default", instance_of=text_type),
     Attribute("port", default_value=80, instance_of=int),
     Attribute("status", default_value=u"ACTIVE", instance_of=text_type),
@@ -84,15 +85,20 @@ lb_pool_attrs = [
 @attributes(lb_pool_attrs, apply_with_cmp=False)
 class LoadBalancerPool(object):
     """
-    Represents a Load Balancer Pool, which cannot be created via the API.
+    Represents a RackConnecvt v3 Load Balancer Pool.
 
-    :param str id: The ID of the load balancer pool - is randomly generated
-        if not provided
-    :param str name: The name of the load balancer pool - defaults to
+    Load balancer pools cannot be created via the API, they have to just
+    already exist on the account.
+
+    :param text_type id: The ID of the load balancer pool - is randomly
+        generated if not provided
+    :param text_type name: The name of the load balancer pool - defaults to
         'default'
     :param int port: The incoming port of the load balancer - defaults to 80
-    :param str status: The status of the load balancer - defaults to "ACTIVE"
-    :param str status_detail: Any details about the status - defaults to None
+    :param text_Type status: The status of the load balancer - defaults to
+        "ACTIVE"
+    :param text_type status_detail: Any details about the status - defaults
+        to None
     :param list nodes: :class:`LoadBalancerPoolNode`s
     """
     def as_json(self):
@@ -113,7 +119,10 @@ class LoadBalancerPool(object):
 
     def node_by_cloud_server(self, cloud_server_id):
         """
-        Find a node by it's cloud server ID.
+        Find a node by its cloud server ID.
+
+        :return: a :class:`LoadBalancerPoolNode` with a server id matching
+            the given cloud server, or `None` if none are found
         """
         return next((node for node in self.nodes
                      if node.cloud_server == cloud_server_id),
@@ -122,6 +131,9 @@ class LoadBalancerPool(object):
     def node_by_id(self, node_id):
         """
         Find a node by it's node_id.
+
+        :return: a :class:`LoadBalancerPoolNode` with the given node id,
+            or `None` if none are found
         """
         return next((node for node in self.nodes if node.id == node_id), None)
 
@@ -130,9 +142,10 @@ class LoadBalancerPool(object):
 lb_node_attrs = [
     "created", "load_balancer_pool", "cloud_server",
     Attribute("id", default_factory=lambda: text_type(uuid4()),
-              instance_of=basestring),
+              instance_of=text_type),
     Attribute("updated", default_value=None),
-    Attribute("status", default_value="ACTIVE", instance_of=basestring),
+    Attribute("status", default_value=text_type("ACTIVE"),
+              instance_of=text_type),
     Attribute("status_detail", default_value=None)]
 
 
@@ -141,17 +154,19 @@ class LoadBalancerPoolNode(object):
     """
     Represents a Load Balancer Pool Node.
 
-    :param str id: The ID of the load balancer pool node - is randomly
+    :param text_type id: The ID of the load balancer pool node - is randomly
         generated if not provided
-    :param str created: The timestamp of when the load balancer node was
+    :param text_type created: The timestamp of when the load balancer node was
         created
-    :param str updated: The timestamp of when the load balancer node was
+    :param text_type updated: The timestamp of when the load balancer node was
         updated.  Can be None.
     :param load_balancer_pool: :class:`LoadBalancerPool` to which
         this node belongs
-    :param str status: The status of the load balancer - defaults to "ACTIVE"
-    :param str status_detail: Any details about the status - defaults to None
-    :param str cloud_server: The ID of the cloud server corresponding to
+    :param text_type status: The status of the load balancer - defaults to
+        "ACTIVE"
+    :param text_type status_detail: Any details about the status - defaults
+        to None
+    :param text_type cloud_server: The ID of the cloud server corresponding to
         this node.  The cloud server's ID is not equivalent to the ``id``
         attribute on :class:`LoadBalancerPoolNode`, because a node
         in theory can also be some external (not a cloud server) resource,
@@ -284,7 +299,7 @@ class LoadBalancerPoolsInRegion(object):
                                                  timestamp_format),
                     load_balancer_pool=pool,
                     cloud_server=add['cloud_server']['id'],
-                    status="ADDING")
+                    status=text_type("ADDING"))
 
                 pool.nodes.append(node)
                 added_nodes.append(node)
