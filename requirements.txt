@@ -2,5 +2,5 @@ klein==0.2.1
 twisted==14.0.0
 jsonschema==2.0
 treq==0.2.0
-characteristic==14.1.0
+characteristic==14.2.0
 six==1.6.1
