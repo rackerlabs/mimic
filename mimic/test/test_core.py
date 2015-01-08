@@ -1,11 +1,11 @@
-
 from __future__ import unicode_literals
 
 from twisted.internet.task import Clock
 from twisted.trial.unittest import SynchronousTestCase
 
 from mimic.core import MimicCore
-from mimic.plugins import nova_plugin, loadbalancer_plugin, swift_plugin, queue_plugin
+from mimic.plugins import (nova_plugin, loadbalancer_plugin, swift_plugin,
+                           queue_plugin, rackconnect_v3_plugin)
 
 
 class CoreBuildingTests(SynchronousTestCase):
@@ -29,7 +29,8 @@ class CoreBuildingTests(SynchronousTestCase):
         """
         core = MimicCore.fromPlugins(Clock())
         plugin_apis = set((nova_plugin.nova, loadbalancer_plugin.loadbalancer,
-                           swift_plugin.swift, queue_plugin.queue))
+                           swift_plugin.swift, queue_plugin.queue,
+                           rackconnect_v3_plugin.rackconnect))
         self.assertEqual(
             plugin_apis,
             set(core._uuid_to_api.values()))
