@@ -36,7 +36,7 @@ class LoadBalancerObjectTests(SynchronousTestCase):
 
     def setUp(self):
         self.pool = LoadBalancerPool(id=text_type("pool_id"),
-                                     virtual_ip="10.0.0.1")
+                                     virtual_ip=text_type("10.0.0.1"))
         for i in range(10):
             self.pool.nodes.append(
                 LoadBalancerPoolNode(id=text_type("node_{0}".format(i)),
@@ -222,10 +222,10 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
 
     def test_default_multiple_pools(self):
         """
-        If ``default_lbs`` is passed to :class:`RackConnectV3`, multiple load
-        balancers will be created per tenant per region
+        If ``default_pools`` is passed to :class:`RackConnectV3`, multiple
+        load balancer pools will be created per tenant per region
         """
-        self.rcv3 = RackConnectV3(regions=["ORD", "DFW"], default_lbs=2)
+        self.rcv3 = RackConnectV3(regions=["ORD", "DFW"], default_pools=2)
         self.helper = APIMockHelper(self, [self.rcv3])
         lb_ids = self.get_lb_ids()
         self.assertEqual(2, len(lb_ids[0]))

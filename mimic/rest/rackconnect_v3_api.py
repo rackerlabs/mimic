@@ -35,16 +35,16 @@ class RackConnectV3(object):
     :ivar regions: The regions for which endpoints should be produced
     :type regions: ``iterable``
 
-    :ivar int default_lbs: The number of default load balancers to be created
-        per tenant per region
+    :ivar int default_pools: The number of default load balancers to be
+        created per tenant per region
     """
 
-    def __init__(self, regions=("ORD",), default_lbs=1):
+    def __init__(self, regions=("ORD",), default_pools=1):
         """
         Construct a :class:`RackConnectV3` object.
         """
         self.regions = regions
-        self.default_lbs = default_lbs
+        self.default_pools = default_pools
 
     def catalog_entries(self, tenant_id):
         """
@@ -67,7 +67,7 @@ class RackConnectV3(object):
             uri_prefix=uri_prefix,
             session_store=session_store,
             region_name=region,
-            default_lbs=self.default_lbs).app.resource()
+            default_pools=self.default_pools).app.resource()
 
 
 @attributes(
@@ -77,7 +77,8 @@ class RackConnectV3(object):
      Attribute("port", default_value=80, instance_of=int),
      Attribute("status", default_value=u"ACTIVE", instance_of=text_type),
      Attribute("status_detail", default_value=None),
-     Attribute("virtual_ip", default_factory=random_ipv4),
+     Attribute("virtual_ip", default_factory=random_ipv4,
+               instance_of=text_type),
      Attribute('nodes', default_factory=list, instance_of=list)],
     apply_with_cmp=False)
 class LoadBalancerPool(object):
@@ -92,10 +93,11 @@ class LoadBalancerPool(object):
     :param text_type name: The name of the load balancer pool - defaults to
         'default'
     :param int port: The incoming port of the load balancer - defaults to 80
-    :param text_Type status: The status of the load balancer - defaults to
+    :param text_type status: The status of the load balancer - defaults to
         "ACTIVE"
     :param text_type status_detail: Any details about the status - defaults
         to None
+    :param text_type virtual_ip: The IP of the load balancer pool
     :param list nodes: :class:`LoadBalancerPoolNode`s
     """
     def as_json(self):
@@ -129,15 +131,13 @@ class LoadBalancerPool(object):
 
     def node_by_id(self, node_id):
         """
-        Find a node by it's node_id.
+        Find a node by its node_id.
 
         :return: a :class:`LoadBalancerPoolNode` with the given node id,
             or `None` if none are found
         """
         return next((node for node in self.nodes if node.id == node_id), None)
 
-
-# XXX: External nodes are not currently supported in RackConnectV3
 
 @attributes(["created", "load_balancer_pool", "cloud_server",
              Attribute("id", default_factory=lambda: text_type(uuid4()),
@@ -149,6 +149,9 @@ class LoadBalancerPool(object):
 class LoadBalancerPoolNode(object):
     """
     Represents a Load Balancer Pool Node.
+
+    A load currently only corresponds to a particular cloud server.
+    External nodes are not currently supported in RackConnectV3
 
     :param text_type id: The ID of the load balancer pool node - is randomly
         generated if not provided
@@ -198,7 +201,7 @@ class LoadBalancerPoolNode(object):
 
 
 @attributes(["iapi", "uri_prefix", "session_store", "region_name",
-             "default_lbs"])
+             "default_pools"])
 class RackConnectV3Region(object):
     """
     A set of ``klein`` routes representing a RackConnect V3 endpoint.
@@ -217,7 +220,7 @@ class RackConnectV3Region(object):
 
         if not per_tenant_per_region_lbs:
             per_tenant_per_region_lbs.extend([
-                LoadBalancerPool() for _ in range(self.default_lbs)])
+                LoadBalancerPool() for _ in range(self.default_pools)])
 
         handler = LoadBalancerPoolsInRegion(lbpools=per_tenant_per_region_lbs,
                                             clock=self.session_store.clock)
