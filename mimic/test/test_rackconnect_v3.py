@@ -67,6 +67,30 @@ class LoadBalancerObjectTests(SynchronousTestCase):
             },
             self.pool.nodes[0].short_json())
 
+    def test_LBPoolNode_update(self):
+        """
+        Updating the status changes the 'now', 'status', and 'status_detail'
+        attributes.
+        """
+        self.pool.nodes[0].update(now="2000-01-02T00:00:00Z",
+                                  status="DISABLED",
+                                  status_detail="Broken.")
+        self.assertEqual(
+            {
+                "id": "node_0",
+                "created": "2000-01-01T00:00:00Z",
+                "updated": "2000-01-02T00:00:00Z",
+                "load_balancer_pool": {
+                    "id": "pool_id"
+                },
+                "cloud_server": {
+                    "id": "server_0"
+                },
+                "status": "DISABLED",
+                "status_detail": "Broken."
+            },
+            self.pool.nodes[0].short_json())
+
     def test_LBPool_short_json(self):
         """
         Valid JSON response (as would be displayed when listing pools or
