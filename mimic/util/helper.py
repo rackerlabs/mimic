@@ -9,7 +9,6 @@ import os
 from datetime import datetime, timedelta
 from random import randint
 
-from characteristic import Attribute
 from six import text_type
 
 
@@ -32,15 +31,6 @@ def random_hex_generator(num):
     Returns randomly generated n bytes of encoded hex data for the given `num`
     """
     return os.urandom(num).encode("hex")
-
-
-def attribute_names(attribute_list):
-    """
-    Get a list of attribute names given an attribute list of either `str` or
-    :class:`characteristic.Attribute`
-    """
-    return [attr.name if isinstance(attr, Attribute) else attr
-            for attr in attribute_list]
 
 
 def seconds_to_timestamp(seconds, format=fmt):

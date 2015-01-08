@@ -20,8 +20,7 @@ from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.imimic import IAPIMock
 from mimic.rest.mimicapp import MimicApp
-from mimic.util.helper import (attribute_names, random_ipv4,
-                               seconds_to_timestamp)
+from mimic.util.helper import random_ipv4, seconds_to_timestamp
 
 
 Request.defaultContentType = 'application/json'
@@ -71,18 +70,16 @@ class RackConnectV3(object):
             default_lbs=self.default_lbs).app.resource()
 
 
-lb_pool_attrs = [
-    Attribute("id", default_factory=lambda: text_type(uuid4()),
-              instance_of=text_type),
-    Attribute("name", default_value=u"default", instance_of=text_type),
-    Attribute("port", default_value=80, instance_of=int),
-    Attribute("status", default_value=u"ACTIVE", instance_of=text_type),
-    Attribute("status_detail", default_value=None),
-    Attribute("virtual_ip", default_factory=random_ipv4),
-    Attribute('nodes', default_factory=list, instance_of=list)]
-
-
-@attributes(lb_pool_attrs, apply_with_cmp=False)
+@attributes(
+    [Attribute("id", default_factory=lambda: text_type(uuid4()),
+               instance_of=text_type),
+     Attribute("name", default_value=u"default", instance_of=text_type),
+     Attribute("port", default_value=80, instance_of=int),
+     Attribute("status", default_value=u"ACTIVE", instance_of=text_type),
+     Attribute("status_detail", default_value=None),
+     Attribute("virtual_ip", default_factory=random_ipv4),
+     Attribute('nodes', default_factory=list, instance_of=list)],
+    apply_with_cmp=False)
 class LoadBalancerPool(object):
     """
     Represents a RackConnecvt v3 Load Balancer Pool.
@@ -108,8 +105,10 @@ class LoadBalancerPool(object):
         details of this particular object
         """
         # no dictionary comprehensions in py2.6
-        response = dict([(attr, getattr(self, attr)) for attr in
-                         attribute_names(lb_pool_attrs) if attr != "nodes"])
+        response = dict([
+            (attr.name, getattr(self, attr.name))
+            for attr in LoadBalancerPool.characteristic_attributes
+            if attr.name != "nodes"])
         response['node_counts'] = {
             "cloud_servers": len(self.nodes),
             "external": 0,
@@ -139,17 +138,14 @@ class LoadBalancerPool(object):
 
 
 # XXX: External nodes are not currently supported in RackConnectV3
-lb_node_attrs = [
-    "created", "load_balancer_pool", "cloud_server",
-    Attribute("id", default_factory=lambda: text_type(uuid4()),
-              instance_of=text_type),
-    Attribute("updated", default_value=None),
-    Attribute("status", default_value=text_type("ACTIVE"),
-              instance_of=text_type),
-    Attribute("status_detail", default_value=None)]
 
-
-@attributes(lb_node_attrs)
+@attributes(["created", "load_balancer_pool", "cloud_server",
+             Attribute("id", default_factory=lambda: text_type(uuid4()),
+                       instance_of=text_type),
+             Attribute("updated", default_value=None),
+             Attribute("status", default_value=text_type("ACTIVE"),
+                       instance_of=text_type),
+             Attribute("status_detail", default_value=None)])
 class LoadBalancerPoolNode(object):
     """
     Represents a Load Balancer Pool Node.
@@ -184,10 +180,10 @@ class LoadBalancerPoolNode(object):
         (list load balancer pool nodes)
         """
         # no dictionary comprehensions in py2.6
-        response = dict([(attr, getattr(self, attr)) for attr in
-                         attribute_names(lb_node_attrs)
-                         if attr not in ('load_balancer_pool', 'cloud_server')
-                         ])
+        response = dict([
+            (attr.name, getattr(self, attr.name))
+            for attr in LoadBalancerPoolNode.characteristic_attributes
+            if attr.name not in ('load_balancer_pool', 'cloud_server')])
         response['load_balancer_pool'] = {'id': self.load_balancer_pool.id}
         response['cloud_server'] = {'id': self.cloud_server}
         return response

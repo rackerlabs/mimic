@@ -10,9 +10,7 @@ from six import text_type
 from twisted.trial.unittest import SynchronousTestCase
 from mimic.test.fixtures import APIMockHelper
 from mimic.rest.rackconnect_v3_api import (
-    LoadBalancerPool, LoadBalancerPoolNode, RackConnectV3,
-    lb_pool_attrs)
-from mimic.util.helper import attribute_names
+    LoadBalancerPool, LoadBalancerPoolNode, RackConnectV3)
 from mimic.test.helpers import json_request, request_with_content
 
 
@@ -168,12 +166,14 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
         pool_json = response_json[0]
         # has the right JSON
         self.assertTrue(all(
-            attr in pool_json for attr in attribute_names(lb_pool_attrs)
-            if attr != "nodes"))
+            attr.name in pool_json
+            for attr in LoadBalancerPool.characteristic_attributes
+            if attr.name != "nodes"))
         # Generated values
         self.assertTrue(all(
-            pool_json.get(attr) for attr in attribute_names(lb_pool_attrs)
-            if attr not in ("nodes", "status_detail")))
+            pool_json.get(attr.name)
+            for attr in LoadBalancerPool.characteristic_attributes
+            if attr.name not in ("nodes", "status_detail")))
 
         self.assertEqual(
             {

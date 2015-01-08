@@ -1,7 +1,6 @@
 """
 Unit tests for :mod:`mimic.util`
 """
-from characteristic import Attribute
 from twisted.trial.unittest import SynchronousTestCase
 
 from mimic.util import helper
@@ -41,16 +40,6 @@ class HelperTests(SynchronousTestCase):
         self.assertNotEqual(helper.random_hex_generator(3),
                             helper.random_hex_generator(3))
         self.assertEqual(len(helper.random_hex_generator(4)), 8)
-
-    def test_attribute_names(self):
-        """
-        :func:`helper.attribute_names` returns the string if an attribute is
-        a string, and the name if the attribute is a
-        :class:`characteristic.Attribute`
-        """
-        self.assertEqual(['ima_string', 'ima_name'],
-                         helper.attribute_names(['ima_string',
-                                                 Attribute('ima_name')]))
 
     def test_seconds_to_timestamp_default_timestamp(self):
         """
