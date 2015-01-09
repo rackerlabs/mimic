@@ -23,7 +23,8 @@ def runTests():
     """
     loader = TestLoader()
     suite = loader.loadPackage(test)
-    TrialRunner(VerboseTextReporter).run(suite)
+    passFail = not TrialRunner(VerboseTextReporter).run(suite).wasSuccessful()
+    sys.exit(passFail)
 
 
 if __name__ == '__main__':
