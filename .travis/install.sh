@@ -20,14 +20,15 @@ if [[ "$DARWIN" = true ]]; then
 	py26)
 	    curl -O https://bootstrap.pypa.io/get-pip.py
 	    sudo python get-pip.py
-	    pyenv install 2.6
-	    pyenv global 2.6
+	    pyenv install 2.6.9
+	    pyenv global 2.6.9
+	    python --version
 	    ;;
 	py27)
 	    curl -O https://bootstrap.pypa.io/get-pip.py
 	    sudo python get-pip.py
 	    pyenv install 2.7.8
-	    pyenv global 2.7
+	    pyenv global 2.7.8
 	    ;;
 	pypy)
 	    brew upgrade pyenv
