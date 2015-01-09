@@ -28,9 +28,11 @@ if [[ "$DARWIN" = true ]]; then
             pyenv global 2.7.8
             ;;
         pypy)
-            brew upgrade pyenv
-            pyenv install pypy-2.4.0
-            pyenv global pypy-2.4.0
+	    # do not like this idea
+	    brew install pypy
+            # brew upgrade pyenv
+            # pyenv install pypy-2.4.0
+            # pyenv global pypy-2.4.0
             ;;
         docs)
             curl -O https://bootstrap.pypa.io/get-pip.py
