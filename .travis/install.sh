@@ -48,8 +48,14 @@ if [[ "$DARWIN" = true ]]; then
     pyenv rehash
 
 else
-    sudo apt-get -y update
+
     sudo add-apt-repository -y ppa:fkrull/deadsnakes
+
+    if [[ "${TOXENV}" == "pypy" ]]; then
+        sudo add-apt-repository -y ppa:pypy/ppa
+    fi
+
+    sudo apt-get -y update
 
     case "${TOXENV}" in
 	py26)
@@ -59,13 +65,7 @@ else
 	    sudo apt-get install python2.7 python2.7-dev
 	    ;;
 	pypy)
-	    # This is required because we need to get rid of the Travis installed PyPy
-	    # or it'll take precedence over the PPA installed one.
-	    sudo rm -rf /usr/local/pypy/bin
-
-	    sudo add-apt-repository -y ppa:pypy/ppa
-	    sudo apt-get -y update
-	    sudo apt-get install -y pypy pypy-dev
+	    sudo apt-get install --force-yes pypy pypy-dev
 	    ;;
 	docs)
 	    sudo apt-get install libenchant-dev
