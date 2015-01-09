@@ -15,9 +15,9 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
         make
     else
         # run the tests for a single env
-        tox -e $TOX_ENV
+        tox -e $TOX_ENV -- $TOX_FLAGS
     fi
 else
     # I realize this is ugly.
-    tox -e $TOX_ENV
+    tox -e $TOX_ENV -- $TOX_FLAGS
 fi
