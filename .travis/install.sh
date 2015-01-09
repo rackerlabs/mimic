@@ -18,14 +18,12 @@ if [[ "$DARWIN" = true ]]; then
 
     case "${TOX_ENV}" in
         py26)
-            curl -O https://bootstrap.pypa.io/get-pip.py
-            sudo python get-pip.py
+            brew upgrade pyenv
             pyenv install 2.6.9
             pyenv global 2.6.9
             ;;
         py27)
-            curl -O https://bootstrap.pypa.io/get-pip.py
-            sudo python get-pip.py
+            brew upgrade pyenv
             pyenv install 2.7.8
             pyenv global 2.7.8
             ;;
@@ -39,8 +37,7 @@ if [[ "$DARWIN" = true ]]; then
             sudo python get-pip.py
             ;;
         bundle)
-            curl -O https://bootstrap.pypa.io/get-pip.py
-            sudo python get-pip.py
+            brew upgrade pyenv
             pyenv install 2.7.8
             pyenv global 2.7.8
             ;;
