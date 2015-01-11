@@ -9,7 +9,7 @@ test:
 clean:
 	find . -name 'dist' -print0 | xargs rm -rf
 	find . -name 'build' -print0 | xargs rm -rf
-
+	find . -name 'dropin.cache' -delete
 run:
 	open ./dist/mimic.app
 
