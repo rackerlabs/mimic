@@ -22,11 +22,21 @@ PLIST = dict(
     LSMultipleInstancesProhibited = '1',
 )
 
-app_data = dict(
+APP_DATA = dict(
     script=SCRIPT,
     plist=PLIST,
     extra_scripts=[TEST_SCRIPT]
 )
+
+DATA_FILES = [
+    ('', ['twisted/plugins/dropin.cache',
+#          'mimic/dropin.cache',
+          'mimic/plugins/dropin.cache',
+          'mimic/canned_responses/dropin.cache',
+          'mimic/test/dropin.cache',
+          'mimic/rest/dropin.cache',
+          'mimic/util/dropin.cache']),
+]
 
 class BuildWithCache(py2app):
     """
@@ -42,7 +52,8 @@ setup(
     name='mimic',
     version='1.3.0',
     description='An API-compatible mock service',
-    app=[app_data],
+    app=[APP_DATA],
+    data_files=DATA_FILES,
     cmdclass={
         'py2app': BuildWithCache
     },
