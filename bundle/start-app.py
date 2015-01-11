@@ -24,6 +24,7 @@ from twisted.internet.endpoints import serverFromString
 from twisted.internet.task import Clock
 from twisted.web.server import Site
 from twisted.python import log
+from twisted.plugin import getPlugins, IPlugin
 
 from sys import stdout
 
@@ -91,7 +92,7 @@ def startMimic():
     Setup the mimic application using steps similar to
     :obj:`mimic.tap.makeService' and start listening for requests.
     """
-
+    list(getPlugins(IPlugin))
     clock = Clock()
     core = MimicCore.fromPlugins(clock)
     root = MimicRoot(core, clock)
@@ -103,13 +104,6 @@ def startMimic():
         b"tcp:{0}:interface=127.0.0.1".format(_PORT)
     )
     endpoint.listen(site)
-
-
-def _makeDropinCache():
-    """
-    rebuild the dropin.cache file so that the application can find it.
-    """
-    list(getPlugins(IPlugin))
 
 
 if __name__ == "__main__":

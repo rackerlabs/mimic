@@ -9,6 +9,7 @@ from twisted.trial.runner import (
     TrialRunner
 )
 from twisted.trial.reporter import VerboseTextReporter
+from twisted.plugin import getPlugins, IPlugin
 
 # in order to find the app-bundle, the site-packages.zip
 # file needs to be added to path.
@@ -21,6 +22,7 @@ def runTests():
     """
     Run all of mimics tests.
     """
+    list(getPlugins(IPlugin))
     loader = TestLoader()
     suite = loader.loadPackage(test)
     passFail = not TrialRunner(VerboseTextReporter).run(suite).wasSuccessful()
