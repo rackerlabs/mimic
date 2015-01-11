@@ -28,15 +28,16 @@ app_data = dict(
     extra_scripts=[TEST_SCRIPT]
 )
 
+data_files = [('', ['twisted/plugins/dropin.cache'])]
+
 def makeDropInCache():
     """
     Creates a dropin.cache file for mimic's twisted plugins.
 
     :returns: None
     """
-    plugins = list(getPlugins(IPlugin))
-    # import os
-    # der = os.path.exists("./twisted/plugins/dropin.cache")
+    list(getPlugins(IPlugin))
+
 
 class BuildWithCache(py2app):
     """
@@ -55,6 +56,7 @@ setup(
     cmdclass={
         'py2app': BuildWithCache
     },
+    data_files=data_files,
     app=[app_data],
     options={
         'py2app': {
