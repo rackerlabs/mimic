@@ -29,21 +29,26 @@ APP_DATA = dict(
 )
 
 DATA_FILES = [
-    ('', ['twisted/plugins/dropin.cache',
-#          'mimic/dropin.cache',
-          'mimic/plugins/dropin.cache',
-          'mimic/canned_responses/dropin.cache',
-          'mimic/test/dropin.cache',
-          'mimic/rest/dropin.cache',
-          'mimic/util/dropin.cache']),
+    ('', [
+        'twisted/plugins/dropin.cache',
+        #'mimic/canned_responses/dropin.cache',
+        #'mimic/test/dropin.cache',
+        # this file is needed for the tests to pass. But, regenerating it
+        # is eluding me at the moment.
+        'mimic/plugins/dropin.cache'
+        #'mimic/rest/dropin.cache',
+        #'mimic/util/dropin.cache'
+    ]),
 ]
 
 class BuildWithCache(py2app):
     """
-    Before building the application rebuild the `dropin.cache` file that
-    caches plugins.
+    Before building the application rebuild the `dropin.cache` files.
     """
     def run(self):
+        """
+        This needs to generate dropin.cache files in several locations.
+        """
         list(getPlugins(IPlugin))
         py2app.run(self)
 
