@@ -5,6 +5,7 @@ Setup file for mimic
 from setuptools import setup, find_packages
 from twisted.plugin import getPlugins, IPlugin
 from py2app.build_app import py2app
+from mimic import plugins
 
 
 NAME = 'mimic'
@@ -29,16 +30,7 @@ APP_DATA = dict(
 )
 
 DATA_FILES = [
-    ('', [
-        'twisted/plugins/dropin.cache',
-        #'mimic/canned_responses/dropin.cache',
-        #'mimic/test/dropin.cache',
-        # this file is needed for the tests to pass. But, regenerating it
-        # is eluding me at the moment.
-        'mimic/plugins/dropin.cache'
-        #'mimic/rest/dropin.cache',
-        #'mimic/util/dropin.cache'
-    ]),
+    ('', ['twisted/plugins/dropin.cache', 'mimic/plugins/dropin.cache']),
 ]
 
 class BuildWithCache(py2app):
@@ -50,6 +42,7 @@ class BuildWithCache(py2app):
         This needs to generate dropin.cache files in several locations.
         """
         list(getPlugins(IPlugin))
+        list(getPlugins(IPlugin, package=plugins))
         py2app.run(self)
 
 
