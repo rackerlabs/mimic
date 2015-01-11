@@ -35,8 +35,8 @@ def makeDropInCache():
     :returns: None
     """
     plugins = list(getPlugins(IPlugin))
-    print plugins
-
+    # import os
+    # der = os.path.exists("./twisted/plugins/dropin.cache")
 
 class BuildWithCache(py2app):
     """
