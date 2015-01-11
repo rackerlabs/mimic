@@ -28,6 +28,14 @@ app_data = dict(
     extra_scripts=[TEST_SCRIPT]
 )
 
+class BuildWithCache(py2app):
+    """
+    Before building the application rebuild the `dropin.cache` file that
+    caches plugins.
+    """
+    def run(self):
+        list(getPlugins(IPlugin))
+        py2app.run(self)
 
 
 setup(
@@ -35,6 +43,9 @@ setup(
     version='1.3.0',
     description='An API-compatible mock service',
     app=[app_data],
+    cmdclass={
+        'py2app': BuildWithCache
+    },
     options={
         'py2app': {
             'includes': ['syslog', 'mimic.test.*', 'twisted.plugin'],
