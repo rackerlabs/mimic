@@ -3,6 +3,9 @@ Setup file for mimic
 """
 
 from setuptools import setup, find_packages
+from twisted.plugin import getPlugins, IPlugin
+from py2app.build_app import py2app
+
 
 NAME = 'mimic'
 VERSION = '0.1'
@@ -25,10 +28,33 @@ app_data = dict(
     extra_scripts=[TEST_SCRIPT]
 )
 
+def makeDropInCache():
+    """
+    Creates a dropin.cache file for mimic's twisted plugins.
+
+    :returns: None
+    """
+    plugins = list(getPlugins(IPlugin))
+    print plugins
+
+
+class BuildWithCache(py2app):
+    """
+    Run all of the normal py2app steps, but build the dropin.cache file
+    first.
+    """
+    def run(self):
+        makeDropInCache()
+        py2app.run(self)
+
+
 setup(
     name='mimic',
     version='1.3.0',
     description='An API-compatible mock service',
+    cmdclass={
+        'py2app': BuildWithCache
+    },
     app=[app_data],
     options={
         'py2app': {
