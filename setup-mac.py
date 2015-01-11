@@ -28,40 +28,16 @@ app_data = dict(
     extra_scripts=[TEST_SCRIPT]
 )
 
-data_files = [('', ['twisted/plugins/dropin.cache'])]
-
-def makeDropInCache():
-    """
-    Creates a dropin.cache file for mimic's twisted plugins.
-
-    :returns: None
-    """
-    list(getPlugins(IPlugin))
-
-
-class BuildWithCache(py2app):
-    """
-    Run all of the normal py2app steps, but build the dropin.cache file
-    first.
-    """
-    def run(self):
-        makeDropInCache()
-        py2app.run(self)
 
 
 setup(
     name='mimic',
     version='1.3.0',
     description='An API-compatible mock service',
-    cmdclass={
-        'py2app': BuildWithCache
-    },
-    data_files=data_files,
     app=[app_data],
     options={
         'py2app': {
             'includes': ['syslog', 'mimic.test.*', 'twisted.plugin'],
-            #'argv_emulation': True
         }
     }
 )

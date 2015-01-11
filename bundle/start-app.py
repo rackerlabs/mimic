@@ -91,6 +91,7 @@ def startMimic():
     Setup the mimic application using steps similar to
     :obj:`mimic.tap.makeService' and start listening for requests.
     """
+
     clock = Clock()
     core = MimicCore.fromPlugins(clock)
     root = MimicRoot(core, clock)
@@ -102,6 +103,13 @@ def startMimic():
         b"tcp:{0}:interface=127.0.0.1".format(_PORT)
     )
     endpoint.listen(site)
+
+
+def _makeDropinCache():
+    """
+    rebuild the dropin.cache file so that the application can find it.
+    """
+    list(getPlugins(IPlugin))
 
 
 if __name__ == "__main__":
