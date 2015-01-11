@@ -39,9 +39,7 @@ if [[ "$DARWIN" = true ]]; then
             sudo python get-pip.py
             ;;
         bundle)
-            brew upgrade pyenv
-            pyenv install 2.7.8
-            pyenv global 2.7.8
+	    brew install python
             ;;
     esac
     pyenv rehash

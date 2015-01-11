@@ -29,6 +29,7 @@ APP_DATA = dict(
     extra_scripts=[TEST_SCRIPT]
 )
 
+
 class BuildWithCache(py2app):
     """
     Before building the application rebuild the `dropin.cache` files.
