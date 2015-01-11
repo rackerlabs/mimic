@@ -29,12 +29,6 @@ APP_DATA = dict(
     extra_scripts=[TEST_SCRIPT]
 )
 
-# this might be unnecessary, as it needs to be written into the zip file.
-# DATA_FILES = [
-#     ('twisted/plugins', ['twisted/plugins/dropin.cache']),
-#     ('mimic/plugins', ['mimic/plugins/dropin.cache']),
-# ]
-
 class BuildWithCache(py2app):
     """
     Before building the application rebuild the `dropin.cache` files.
@@ -53,7 +47,6 @@ setup(
     version='1.3.0',
     description='An API-compatible mock service',
     app=[APP_DATA],
-    # data_files=DATA_FILES,
     cmdclass={
         'py2app': BuildWithCache
     },
