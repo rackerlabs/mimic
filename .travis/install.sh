@@ -10,6 +10,7 @@ else
 fi
 
 if [[ "$DARWIN" = true ]]; then
+    sw_vers # what osx version is this?
     brew update
 
     if which pyenv > /dev/null; then
@@ -39,7 +40,9 @@ if [[ "$DARWIN" = true ]]; then
             sudo python get-pip.py
             ;;
         bundle)
-	    brew install python
+            brew upgrade pyenv
+            pyenv install 2.7.8
+            pyenv global 2.7.8
             ;;
     esac
     pyenv rehash
@@ -76,4 +79,5 @@ fi
 sudo pip install virtualenv
 virtualenv ~/.venv
 source ~/.venv/bin/activate
+which python
 pip install tox coveralls
