@@ -10,7 +10,7 @@ else
 fi
 
 if [[ "$DARWIN" = true ]]; then
-    sw_vers # what osx version is this?
+
     brew update
 
     if which pyenv > /dev/null; then
