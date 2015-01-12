@@ -38,7 +38,6 @@ class BuildWithCache(py2app):
         """
         This needs to generate dropin.cache files in several locations.
         """
-        list(getPlugins(IPlugin))
         list(getPlugins(IPlugin, package=plugins))
         py2app.run(self)
 
