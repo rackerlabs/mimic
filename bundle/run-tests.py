@@ -22,7 +22,6 @@ def runTests():
     """
     Run all of mimics tests.
     """
-    list(getPlugins(IPlugin))
     loader = TestLoader()
     suite = loader.loadPackage(test)
     passFail = not TrialRunner(VerboseTextReporter).run(suite).wasSuccessful()

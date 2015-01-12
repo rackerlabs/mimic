@@ -92,7 +92,6 @@ def startMimic():
     Setup the mimic application using steps similar to
     :obj:`mimic.tap.makeService' and start listening for requests.
     """
-    list(getPlugins(IPlugin))
     clock = Clock()
     core = MimicCore.fromPlugins(clock)
     root = MimicRoot(core, clock)
