@@ -95,28 +95,14 @@ These requirements are specified in ``py2app-requirements.txt``.
 `py2app`_ requires that a non-system python be installed for bundling.
 To get around this, I've found it easiest to install a brewed 2.7.9 python.
 
-To start off, install all of the ``mimic's`` requirements into a `virtualenv`_
-using
+To build the the application, simply run ``tox -e bundle``. This will
+install all of the necessary dependencies, run the tests, and, if they pass,
+will place the ``mimic.app`` bundle inside of ``./dist/mimic.app``.
 
-.. code-block:: console
-
-   $ virtualenv venv
-   $ . venv/bin/activate
-   (venv)$ pip install -r requirements.txt
-   (venv)$ pip install -r dev-requirements.txt
-   (venv)$ pip install -r py2app-requirements.txt
-
-Then to build the the application, run ``make`` from mimic's working
-directory.
-This will build the application and test it.
-
-After the application bundle has been built, the bundle will be available
-inside of ``./dist/mimic.app``.
 This application can be treated like any other mac application and moved into
 ~/Applications.
 
 To run the application normally, you need only use ``open path/to/mimic.app``.
-
 If you have just built the application, running ``make run`` from the
 working directory will start mimic.
 
