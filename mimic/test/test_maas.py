@@ -602,6 +602,17 @@ class MaasAPITests(SynchronousTestCase):
         mz = data['values'][0]
         self.assertEquals('mzdfw', mz['id'])
 
+    def test_list_alarm_examples(self):
+        """
+        List the alarm examples
+        """
+        req = request(self, self.root, "GET", self.uri + '/alarm_examples', '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        ax = data['values'][0]
+        self.assertEquals('remote.http_body_match_1', ax['id'])
+
     def test_alarm_count_per_np(self):
         """
         test_alarm_count_per_np
