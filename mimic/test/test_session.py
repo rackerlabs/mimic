@@ -163,3 +163,25 @@ class SessionCreationTests(SynchronousTestCase):
                              "{0} is not an integer.".format(
                                  session.tenant_id))
             self.assertTrue(int(session.tenant_id) < 1e15)
+
+    def test_sessions_created_honor_specified_tenant_id(self):
+        """
+        Sessions created by
+        :class:`SessionStore.session_for_username_password`,
+        :class:`SessionStore.session_for_api_key`, and
+        :class:`SessionStore.session_for_token`,
+        :class:`SessionStore.session_for_tenant_id` all honor the passed-in
+        tenant ID.
+        """
+        clock = Clock()
+        sessions = SessionStore(clock)
+        sessions = [
+            sessions.session_for_username_password("user1", "pass",
+                                                   "tenant1"),
+            sessions.session_for_api_key("user2", "apikey",
+                                         tenant_id="tenant2"),
+            sessions.session_for_token("token", tenant_id="tenant3"),
+            sessions.session_for_tenant_id("tenant4")
+        ]
+        for i, session in enumerate(sessions):
+            self.assertEqual("tenant{0}".format(i + 1), session.tenant_id)
