@@ -241,7 +241,7 @@ class AkamaiResponse(object):
                             responses.append(response)
                             bln_errors = True
                             bln_behavior_error = True
-                            bln_rule_errors = True  
+                            bln_rule_errors = True
 
                         if not(bln_behavior_error):
                             behaviors.append(behavior)

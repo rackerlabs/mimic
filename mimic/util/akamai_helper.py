@@ -134,19 +134,21 @@ def value_not_string(rule, field, subfld_index, value):
 
     return resp
 
+
 def type_not_valid(value):
     """Value of the type field is not valid
     :param value: A required string parameter
     :returns: This method returns dictionary for a mimic akamai error response
     """
     resp = {
-        'errorCode': 4000,	
+        'errorCode': 4000,
         'message': 'BadRequest',
         'errorInstanceId': u'cd472d0e12',
         'helpLink': u'https: //developer.akamai.com/api/delivery-policies/errors.html#4000',
-        'error': ("Invalid behavior_type '{0}' for behavior 'caching'. Allowed behavior types : ['no-store', "
-                  + "'bypass-cache', 'fixed', 'honor', 'honor-cc', 'honor-expires']")
-                 .format(value)
+        'error': (("Invalid behavior_type '{0}' for behavior 'caching'. Allowed behavior types : "
+                   + "['no-store', "
+                   + "'bypass-cache', 'fixed', 'honor', 'honor-cc', 'honor-expires']")
+                  .format(value))
     }
 
     return resp
