@@ -165,11 +165,17 @@ class MaasAPITests(SynchronousTestCase):
         np_id = self.getXobjectIDfromResponse(self.createNotificationPlan('ItsANotificationPlan'))
         sp_id = self.getXobjectIDfromResponse(self.createSuppression('ItsASuppression'))
         self.assertNotEquals(None, entity_id)
+        self.assertTrue(entity_id.startswith('en'))
         self.assertNotEquals(None, check_id)
+        self.assertTrue(check_id.startswith('ch'))
         self.assertNotEquals(None, alarm_id)
+        self.assertTrue(alarm_id.startswith('al'))
         self.assertNotEquals(None, nt_id)
+        self.assertTrue(nt_id.startswith('nt'))
         self.assertNotEquals(None, np_id)
+        self.assertTrue(np_id.startswith('np'))
         self.assertNotEquals(None, sp_id)
+        self.assertTrue(sp_id.startswith('sp'))
 
     def test_list_entity(self):
         """
