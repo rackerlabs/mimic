@@ -79,6 +79,10 @@ class SessionStore(object):
         for key in ['username', 'token', 'tenant_id']:
             if attributes.get(key, None) is None:
                 attributes[key] = key + "_" + text_type(uuid4())
+                if key == 'tenant_id':
+                    # integer tenant IDs - uuid4 ints are too long
+                    attributes[key] = text_type(int(uuid4().int % 1e15))
+
         if 'expires' not in attributes:
             attributes['expires'] = (
                 datetime.utcfromtimestamp(self.clock.seconds())

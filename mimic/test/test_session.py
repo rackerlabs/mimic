@@ -1,6 +1,7 @@
 
 import six
 from datetime import datetime
+import re
 
 from twisted.trial.unittest import SynchronousTestCase
 
@@ -138,3 +139,27 @@ class SessionCreationTests(SynchronousTestCase):
         )
         session2 = sessions.session_for_tenant_id("sometenant")
         self.assertIdentical(session, session2)
+
+    def test_sessions_created_all_have_integer_tenant_ids(self):
+        """
+        Sessions created by
+        :class:`SessionStore.session_for_username_password`,
+        :class:`SessionStore.session_for_impersonation`,
+        :class:`SessionStore.session_for_api_key`, and
+        :class:`SessionStore.session_for_token`, when not passed a specific
+        tenant ID, all generate integer-style tenant IDs.
+        """
+        clock = Clock()
+        sessions = SessionStore(clock)
+        sessions = [
+            sessions.session_for_username_password("someuser1", "testpass"),
+            sessions.session_for_impersonation("someuser2", 12),
+            sessions.session_for_api_key("someuser3", "someapikey"),
+            sessions.session_for_token("sometoken"),
+        ]
+        integer = re.compile('^\d+$')
+        for session in sessions:
+            self.assertIsNot(integer.match(session.tenant_id), None,
+                             "{0} is not an integer.".format(
+                                 session.tenant_id))
+            self.assertTrue(int(session.tenant_id) < 1e15)
