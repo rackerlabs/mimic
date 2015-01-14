@@ -1,7 +1,6 @@
 """
 Classes which represent the objects within the service catalog.
 """
-from uuid import uuid4
 
 __all__ = ("Endpoint", "Entry")
 
@@ -29,10 +28,7 @@ class Endpoint(object):
         """
         Generate a URL to this endpoint, given the URI prefix for the service.
         """
-        if self.tenant_id is None:
-            postfix = ''
-        else:
-            postfix = self.tenant_id
+        postfix = self.tenant_id
         segments = [uri_prefix.rstrip("/")]
         if self.prefix is not None:
             segments.append(self.prefix)
@@ -58,15 +54,3 @@ class Entry(object):
         self.tenant_id = tenant_id
         self.name = name
         self.endpoints = endpoints
-
-    @classmethod
-    def with_regions(self, tenant_id, type, name, regions):
-        """
-        Constructor for a catalog entry with multiple regions.
-
-        Endpoint IDs will be random UUIDs.
-        """
-        return Entry(tenant_id, type, name, [
-            Endpoint(tenant_id, region, str(uuid4()))
-            for region in regions
-        ])

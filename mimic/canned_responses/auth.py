@@ -3,7 +3,6 @@
 Canned response for get auth token
 """
 from datetime import datetime, timedelta
-from mimic.catalog import Entry
 
 
 GLOBAL_MUTABLE_AUTH_STORE = {}
@@ -11,24 +10,9 @@ GLOBAL_MUTABLE_TOKEN_STORE = {}
 
 HARD_CODED_TOKEN = "fff73937db5047b8b12fc9691ea5b9e8"
 HARD_CODED_USER_ID = "10002"
-HARD_CODED_USER_NAME = "autoscaleaus"
-HARD_CODED_ROLES = [{"id": "1", "description": "Admin", "name": "Identity"}]
-
-
-def HARD_CODED_PREFIX(entry):
-    """
-    Temporary hack.
-    """
-    # ugly hack corresponding to hard-coding in mimic.tap, eliminate as soon as
-    # that is gone.  note that the responsibility here is correct though; URI
-    # generation belongs in the auth system.
-    port_offset_by_service = {
-        "compute": 2,
-        "rax:load-balancer": 3,
-    }
-    return "http://localhost:{port}/".format(
-        port=8900 + port_offset_by_service[entry.type]
-    )
+HARD_CODED_USER_NAME = "mimictestuser"
+HARD_CODED_ROLES = [{"id": "3", "description": "User Admin Role.",
+                     "name": "identity:user-admin"}]
 
 
 def format_timestamp(dt):
@@ -40,28 +24,14 @@ def format_timestamp(dt):
     return dt.strftime('%Y-%m-%dT%H:%M:%S.999-05:00')
 
 
-def canned_entries(tenant_id):
-    """
-    Some canned catalog entries.
-    """
-    return [
-        Entry.with_regions(
-            tenant_id, "compute", "cloudServersOpenStack", ["ORD"]
-        ),
-        Entry.with_regions(
-            tenant_id, "rax:load-balancer", "cloudLoadBalancers", ["ORD"]
-        ),
-    ]
-
-
 def get_token(tenant_id,
+              entry_generator,
+              prefix_for_endpoint,
               timestamp=format_timestamp,
-              entry_generator=canned_entries,
               response_token=HARD_CODED_TOKEN,
               response_user_id=HARD_CODED_USER_ID,
               response_user_name=HARD_CODED_USER_NAME,
-              response_roles=HARD_CODED_ROLES,
-              prefix_for_entry=HARD_CODED_PREFIX):
+              response_roles=HARD_CODED_ROLES):
     """
     Canned response for authentication, with service catalog containing
     endpoints only for services implemented by Mimic.
@@ -82,7 +52,7 @@ def get_token(tenant_id,
                         "region": endpoint.region,
                         "tenantId": endpoint.tenant_id,
                         "publicURL": endpoint.url_with_prefix(
-                            prefix_for_entry(entry)
+                            prefix_for_endpoint(endpoint)
                         ),
                     }
             yield {
@@ -112,8 +82,7 @@ def get_token(tenant_id,
     }
 
 
-def get_endpoints(tenant_id, entry_generator=canned_entries,
-                  prefix_for_entry=HARD_CODED_PREFIX):
+def get_endpoints(tenant_id, entry_generator, prefix_for_endpoint):
     """
     Canned response for Identity's get endpoints call.  This returns endpoints
     only for the services implemented by Mimic.
@@ -128,7 +97,7 @@ def get_endpoints(tenant_id, entry_generator=canned_entries,
                 "region": endpoint.region,
                 "tenantId": endpoint.tenant_id,
                 "publicURL": endpoint.url_with_prefix(
-                    prefix_for_entry(entry)
+                    prefix_for_endpoint(endpoint)
                 ),
                 "name": entry.name,
                 "type": entry.type,

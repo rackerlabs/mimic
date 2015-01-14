@@ -1,9 +1,11 @@
+# -*- test-case-name: mimic.test.test_nova -*-
 """
 Defines create, delete, get, list servers and get images and flavors.
 """
 
 from uuid import uuid4
 import json
+import collections
 from random import randrange
 
 from six import text_type
@@ -21,6 +23,7 @@ from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.imimic import IAPIMock
+from mimic.util.helper import seconds_to_timestamp, invalid_resource
 
 Request.defaultContentType = 'application/json'
 
@@ -31,6 +34,12 @@ class NovaApi(object):
     Rest endpoints for mocked Nova Api.
     """
 
+    def __init__(self, regions=["ORD"]):
+        """
+        Create a NovaApi with an empty region cache, no servers or tenants yet.
+        """
+        self._regions = regions
+
     def catalog_entries(self, tenant_id):
         """
         List catalog entries for the Nova API.
@@ -39,30 +48,74 @@ class NovaApi(object):
             Entry(
                 tenant_id, "compute", "cloudServersOpenStack",
                 [
-                    Endpoint(tenant_id, "ORD", text_type(uuid4()), prefix="v2")
+                    Endpoint(tenant_id, region, text_type(uuid4()),
+                             prefix="v2")
+                    for region in self._regions
                 ]
             )
         ]
 
-    def resource_for_region(self, uri_prefix):
+    def resource_for_region(self, region, uri_prefix, session_store):
         """
         Get an :obj:`twisted.web.iweb.IResource` for the given URI prefix;
         implement :obj:`IAPIMock`.
         """
-        return NovaRegion(uri_prefix).app.resource()
+        return (NovaRegion(self, uri_prefix, session_store, region)
+                .app.resource())
+
+
+def _list_servers(request, tenant_id, s_cache, details=False, current_timestamp=None):
+    """
+    Return a list of servers, possibly filtered by name, possibly with details
+    """
+    server_name = None
+    if 'name' in request.args:
+        server_name = request.args['name'][0]
+    response_data = list_server(tenant_id, s_cache, name=server_name,
+                                details=details,
+                                current_timestamp=current_timestamp)
+    request.setResponseCode(response_data[1])
+    return json.dumps(response_data[0])
+
+
+class S_Cache(dict):
+    """
+    Sketch: A replacement for s_cache-as-dictionary,
+    s_cache-as-object-with-methods-and-attributes.  It's still a dictionary so
+    that we can continue to treat it as one in the slightly crufty
+    canned_responses module that expects dumb data structures rather than a
+    structured object.
+    """
 
 
 class NovaRegion(object):
     """
     Klein routes for the API within a Cloud Servers region.
+
+    :ivar dict _tenant_cache: a mapping of tenant_id (bytes) to a "server
+        cache" (:obj:`S_Cache`), which itself maps server_id to a
+        JSON-serializable data structure of the 'server' key of GET responses.
     """
 
-    def __init__(self, uri_prefix):
+    def __init__(self, api_mock, uri_prefix, session_store, name):
         """
         Create a nova region with a given URI prefix (used for generating URIs
         to servers).
         """
         self.uri_prefix = uri_prefix
+        self._api_mock = api_mock
+        self._session_store = session_store
+        self._name = name
+
+    def _server_cache_for_tenant(self, tenant_id):
+        """
+        Get the given server-cache object for the given tenant, creating one if
+        there isn't one.
+        """
+        return (self._session_store.session_for_tenant_id(tenant_id)
+                .data_for_api(self._api_mock,
+                              lambda: collections.defaultdict(S_Cache))
+                [self._name])
 
     app = MimicApp()
 
@@ -71,10 +124,20 @@ class NovaRegion(object):
         """
         Returns a generic create server response, with status 'ACTIVE'.
         """
+        try:
+            content = json.loads(request.content.read())
+        except ValueError:
+            request.setResponseCode(400)
+            return json.dumps(invalid_resource("Invalid JSON request body"))
+
         server_id = 'test-server{0}-id-{0}'.format(str(randrange(9999999999)))
-        content = json.loads(request.content.read())
-        response_data = create_server(tenant_id, content['server'], server_id,
-                                      self.uri_prefix)
+        response_data = create_server(
+            tenant_id, content['server'], server_id,
+            self.uri_prefix,
+            s_cache=self._server_cache_for_tenant(tenant_id),
+            current_time=seconds_to_timestamp(
+                self._session_store.clock.seconds())
+        )
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
@@ -83,37 +146,41 @@ class NovaRegion(object):
         """
         Returns a generic get server response, with status 'ACTIVE'
         """
-        response_data = get_server(server_id)
+        response_data = get_server(
+            server_id, self._server_cache_for_tenant(tenant_id),
+            self._session_store.clock.seconds()
+        )
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
     @app.route('/v2/<string:tenant_id>/servers', methods=['GET'])
     def list_servers(self, request, tenant_id):
         """
-        Returns list of servers that were created by the mocks, with the given name.
+        Returns list of servers that were created by the mocks, with the given
+        name.
         """
-        server_name = ''
-        if 'name' in request.args:
-            server_name = request.args['name'][0]
-        response_data = list_server(tenant_id, server_name, details=False)
-        request.setResponseCode(response_data[1])
-        return json.dumps(response_data[0])
+        return _list_servers(request, tenant_id,
+                             s_cache=self._server_cache_for_tenant(tenant_id),
+                             current_timestamp=self._session_store.clock.seconds())
 
     @app.route('/v2/<string:tenant_id>/servers/detail', methods=['GET'])
     def list_servers_with_details(self, request, tenant_id):
         """
-        Returns list of servers that were created by the mocks, with details such as the metadata.
+        Returns list of servers that were created by the mocks, with details
+        such as the metadata.
         """
-        response_data = list_server(tenant_id)
-        request.setResponseCode(response_data[1])
-        return json.dumps(response_data[0])
+        return _list_servers(request, tenant_id, details=True,
+                             s_cache=self._server_cache_for_tenant(tenant_id),
+                             current_timestamp=self._session_store.clock.seconds())
 
     @app.route('/v2/<string:tenant_id>/servers/<string:server_id>', methods=['DELETE'])
     def delete_server(self, request, tenant_id, server_id):
         """
         Returns a 204 response code, for any server id'
         """
-        response_data = delete_server(server_id)
+        response_data = delete_server(
+            server_id, s_cache=self._server_cache_for_tenant(tenant_id)
+        )
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
@@ -122,7 +189,9 @@ class NovaRegion(object):
         """
         Returns a get image response, for any given imageid
         """
-        response_data = get_image(image_id)
+        response_data = get_image(
+            image_id, s_cache=self._server_cache_for_tenant(tenant_id)
+        )
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
@@ -131,7 +200,10 @@ class NovaRegion(object):
         """
         Returns a get flavor response, for any given flavorid
         """
-        response_data = get_flavor(flavor_id)
+        response_data = get_flavor(
+            flavor_id,
+            s_cache=self._server_cache_for_tenant(tenant_id)
+        )
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
@@ -141,7 +213,9 @@ class NovaRegion(object):
         Returns a get flavor response, for any given flavorid
         """
         request.setResponseCode(200)
-        return json.dumps(get_limit())
+        return json.dumps(
+            get_limit(s_cache=self._server_cache_for_tenant(tenant_id))
+        )
 
     @app.route('/v2/<string:tenant_id>/servers/<string:server_id>/ips', methods=['GET'])
     def get_ips(self, request, tenant_id, server_id):
@@ -149,6 +223,9 @@ class NovaRegion(object):
         Returns a get flavor response, for any given flavorid.
         (currently the GET ips works only after a GET server after the server is created)
         """
-        response_data = list_addresses(server_id)
+        response_data = list_addresses(
+            server_id,
+            s_cache=self._server_cache_for_tenant(tenant_id)
+        )
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])

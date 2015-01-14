@@ -4,19 +4,25 @@ Helper objects for tests, mostly to allow testing HTTP routes.
 
 from __future__ import print_function
 
+import json
+
 from zope.interface import implementer
 
 from twisted.test.proto_helpers import StringTransport, MemoryReactor
 
+from twisted.internet.address import IPv4Address
 from twisted.internet.error import ConnectionDone
 from twisted.internet.defer import succeed
 
 from twisted.web.client import Agent
 from twisted.web.server import Site
+from twisted.web.http_headers import Headers
 from twisted.web.iweb import IBodyProducer
 from twisted.python.urlpath import URLPath
 
 from twisted.python.failure import Failure
+
+import treq
 
 
 class RequestTraversalAgent(object):
@@ -74,6 +80,7 @@ class RequestTraversalAgent(object):
         # Connect the channel to another in-memory transport so we can collect
         # the response.
         serverTransport = StringTransport()
+        serverTransport.hostAddr = IPv4Address('TCP', '127.0.0.1', 80)
         channel.makeConnection(serverTransport)
 
         # Feed it the data that the Agent synthesized.
@@ -121,14 +128,57 @@ class SynchronousProducer(object):
 
 
 def request(testCase, rootResource, method, uri, body=b"",
-            baseURI='http://localhost:8900/'):
+            baseURI='http://localhost:8900/',
+            headers=None):
     """
     Issue a request and return a synchronous response.
     """
     # allow for relative or absolute URIs, since we're going to the same
     # resource no matter what
+    if headers is not None:
+        headers_object = Headers()
+        for key, value in headers.items():
+            headers_object.setRawHeaders(key, value)
+    else:
+        headers_object = None
     return (
         RequestTraversalAgent(testCase, rootResource)
         .request(method, str(URLPath.fromString(baseURI).click(uri)),
-                 bodyProducer=SynchronousProducer(body))
+                 bodyProducer=SynchronousProducer(body),
+                 headers=headers_object)
     )
+
+
+def request_with_content(testCase, rootResource, method, uri, body=b"",
+                         baseURI='http://localhost:8900/'):
+    """
+    Issue a request with a body (if there's a body at all) and return
+    synchronously with a tuple of ``(response, response body)``
+    """
+    d = request(testCase, rootResource, method, uri, body, baseURI)
+
+    def get_body(response):
+        body_d = treq.content(response)
+        body_d.addCallback(lambda body: (response, body))
+        return body_d
+
+    return d.addCallback(get_body)
+
+
+def json_request(testCase, rootResource, method, uri, body=b"",
+                 baseURI='http://localhost:8900/'):
+    """
+    Issue a request with a JSON body (if there's a body at all) and return
+    synchronously with a tuple of ``(response, JSON response body)``
+    """
+    if body != "":
+        body = json.dumps(body)
+
+    d = request(testCase, rootResource, method, uri, body, baseURI)
+
+    def get_body(response):
+        body_d = treq.json_content(response)
+        body_d.addCallback(lambda body: (response, body))
+        return body_d
+
+    return d.addCallback(get_body)

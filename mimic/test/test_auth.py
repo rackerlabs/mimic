@@ -1,7 +1,3 @@
-import json
-
-import treq
-
 from twisted.trial.unittest import SynchronousTestCase
 from twisted.internet.task import Clock
 
@@ -12,10 +8,12 @@ from mimic.canned_responses.auth import (
     HARD_CODED_USER_NAME, HARD_CODED_ROLES,
     get_endpoints
 )
-from mimic.test.helpers import request
+from mimic.test.dummy import ExampleAPI
+from mimic.test.helpers import request, json_request
+from mimic.catalog import Entry, Endpoint
 
 
-class ExampleCatalogEndpoint:
+class ExampleCatalogEndpoint(object):
     def __init__(self, tenant, num, endpoint_id):
         self._tenant = tenant
         self._num = num
@@ -81,7 +79,8 @@ class CatalogGenerationTests(SynchronousTestCase):
         self.assertEqual(
             get_token(
                 tenant_id=tenant_id, timestamp=lambda dt: "<<<timestamp>>>",
-                entry_generator=example_endpoints(lambda: 1)
+                entry_generator=example_endpoints(lambda: 1),
+                prefix_for_endpoint=lambda e: 'prefix'
             ),
             {
                 "access": {
@@ -161,6 +160,7 @@ class CatalogGenerationTests(SynchronousTestCase):
             get_endpoints(
                 tenant_id=tenant_id,
                 entry_generator=example_endpoints(counter),
+                prefix_for_endpoint=lambda e: 'prefix'
             ),
             {
                 "endpoints": [
@@ -200,24 +200,57 @@ class CatalogGenerationTests(SynchronousTestCase):
             },
         )
 
-
-class APITests(SynchronousTestCase):
-    """
-    Tests for :obj:`get_service_catalog_for_token`
-    """
-
-    def test_token_has_token(self):
+    def test_unversioned_entry(self):
         """
-        ``/identity/v2.0/tokens`` returns a JSON response with an
-        access.token.id key corresponding to its MimicCore session, and
-        therefore access.token.tenant.id should match that session's tenant_id.
+        An L{Endpoint} created without a 'prefix' returns a URI without a
+        version.
+        """
+        self.assertEqual(
+            get_endpoints(
+                tenant_id="1234",
+                entry_generator=lambda t_id: [Entry(
+                    tenant_id=t_id, type="compute",
+                    name="compute_name", endpoints=[
+                        Endpoint(tenant_id=t_id,
+                                 region="None",
+                                 endpoint_id="eid")
+                    ]
+                )],
+                prefix_for_endpoint=lambda ep: "http://prefix/"
+            ),
+            {
+                "endpoints": [
+                    {
+                        "id": "eid",
+                        "name": "compute_name",
+                        "type": "compute",
+                        "region": "None",
+                        "tenantId": "1234",
+                        "publicURL": "http://prefix/1234"
+                    }
+                ]
+            }
+        )
+
+
+class GetAuthTokenAPITests(SynchronousTestCase):
+    """
+    Tests for ``/identity/v2.0/tokens``, provided by
+    :obj:`mimic.rest.auth_api.AuthApi.get_token_and_service_catalog`
+    """
+
+    def test_response_has_auth_token(self):
+        """
+        The JSON response has a access.token.id key corresponding to its
+        MimicCore session, and therefore access.token.tenant.id should match
+        that session's tenant_id.
         """
         core = MimicCore(Clock(), [])
         root = MimicRoot(core).app.resource()
 
-        response = request(
+        (response, json_body) = self.successResultOf(json_request(
             self, root, "POST", "/identity/v2.0/tokens",
-            json.dumps({
+            {
                 "auth": {
                     "passwordCredentials": {
                         "username": "demoauthor",
@@ -225,14 +258,379 @@ class APITests(SynchronousTestCase):
                     }
 
                 }
-            })
-        )
+            }
+        ))
 
-        auth_response = self.successResultOf(response)
-        json_body = self.successResultOf(treq.json_content(auth_response))
-
+        self.assertEqual(200, response.code)
         token = json_body['access']['token']['id']
         tenant_id = json_body['access']['token']['tenant']['id']
-        session = core.session_for_token(token)
+        session = core.sessions.session_for_token(token)
         self.assertEqual(token, session.token)
         self.assertEqual(tenant_id, session.tenant_id)
+
+    def test_response_has_user_admin_identity_role(self):
+        """
+        The JSON response for authenticate has the role `identity:user-admin`.
+        """
+        core = MimicCore(Clock(), [])
+        root = MimicRoot(core).app.resource()
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens",
+            {
+                "auth": {
+                    "passwordCredentials": {
+                        "username": "demoauthor",
+                        "password": "theUsersPassword"
+                    }
+
+                }
+            }
+        ))
+
+        self.assertEqual(200, response.code)
+        self.assertEqual(json_body['access']['user']['roles'], HARD_CODED_ROLES)
+
+    def test_authentication_request_with_no_body_causes_http_bad_request(self):
+        """
+        The response for empty body request is bad_request.
+        """
+        core = MimicCore(Clock(), [])
+        root = MimicRoot(core).app.resource()
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens", ""))
+
+        self.assertEqual(400, response.code)
+
+    def test_authentication_request_with_invalid_body_causes_http_bad_request(self):
+        """
+        The response for not JSON body request is bad_request.
+        """
+        core = MimicCore(Clock(), [])
+        root = MimicRoot(core).app.resource()
+
+        response = self.successResultOf(request(
+            self, root, "POST", "/identity/v2.0/tokens", "{ bad request: }"))
+
+        self.assertEqual(400, response.code)
+
+    def test_auth_accepts_tenant_name(self):
+        """
+        If "tenantName" is passed, the tenant specified is used instead of a
+        generated tenant ID.
+        """
+        core = MimicCore(Clock(), [])
+        root = MimicRoot(core).app.resource()
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens",
+            {
+                "auth": {
+                    "passwordCredentials": {
+                        "username": "demoauthor",
+                        "password": "theUsersPassword"
+                    },
+                    "tenantName": "turtlepower"
+                }
+            }
+        ))
+
+        self.assertEqual(200, response.code)
+        self.assertEqual("turtlepower",
+                         json_body['access']['token']['tenant']['id'])
+        token = json_body['access']['token']['id']
+        session = core.sessions.session_for_token(token)
+        self.assertEqual(token, session.token)
+        self.assertEqual("turtlepower", session.tenant_id)
+
+    def test_auth_accepts_tenant_id(self):
+        """
+        If "tenantId" is passed, the tenant specified is used instead of a
+        generated tenant ID.
+        """
+        core = MimicCore(Clock(), [])
+        root = MimicRoot(core).app.resource()
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens",
+            {
+                "auth": {
+                    "passwordCredentials": {
+                        "username": "demoauthor",
+                        "password": "theUsersPassword"
+                    },
+                    "tenantId": "turtlepower"
+                }
+            }
+        ))
+
+        self.assertEqual(200, response.code)
+        self.assertEqual("turtlepower",
+                         json_body['access']['token']['tenant']['id'])
+        token = json_body['access']['token']['id']
+        session = core.sessions.session_for_token(token)
+        self.assertEqual(token, session.token)
+        self.assertEqual("turtlepower", session.tenant_id)
+
+    def test_response_service_catalog_has_base_uri(self):
+        """
+        The JSON response's service catalog whose endpoints all begin with
+        the same base URI as the request.
+        """
+        core = MimicCore(Clock(), [ExampleAPI()])
+        root = MimicRoot(core).app.resource()
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "POST", "http://mybase/identity/v2.0/tokens",
+            {
+                "auth": {
+                    "passwordCredentials": {
+                        "username": "demoauthor",
+                        "password": "theUsersPassword"
+                    }
+                }
+            }
+        ))
+
+        self.assertEqual(200, response.code)
+        services = json_body['access']['serviceCatalog']
+        self.assertEqual(1, len(services))
+
+        urls = [
+            endpoint['publicURL'] for endpoint in services[0]['endpoints']
+        ]
+        self.assertEqual(1, len(urls))
+        self.assertTrue(urls[0].startswith('http://mybase/'),
+                        '{0} does not start with "http://mybase"'
+                        .format(urls[0]))
+
+
+class GetEndpointsForTokenTests(SynchronousTestCase):
+    """
+    Tests for ``/identity/v2.0/tokens/<token>/endpoints``, provided by
+    `:obj:`mimic.rest.auth_api.AuthApi.get_endpoints_for_token`
+    """
+
+    def test_session_created_for_token(self):
+        """
+        A session is created for the token provided
+        """
+        core = MimicCore(Clock(), [])
+        root = MimicRoot(core).app.resource()
+
+        token = '1234567890'
+
+        request(
+            self, root, "GET",
+            "/identity/v2.0/tokens/{0}/endpoints".format(token)
+        )
+
+        session = core.sessions.session_for_token(token)
+        self.assertEqual(token, session.token)
+
+    def test_response_service_catalog_has_base_uri(self):
+        """
+        The JSON response's service catalog whose endpoints all begin with
+        the same base URI as the request.
+        """
+        core = MimicCore(Clock(), [ExampleAPI()])
+        root = MimicRoot(core).app.resource()
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "GET",
+            "http://mybase/identity/v2.0/tokens/1234567890/endpoints"
+        ))
+
+        self.assertEqual(200, response.code)
+        urls = [endpoint['publicURL'] for endpoint in json_body['endpoints']]
+        self.assertEqual(1, len(urls))
+
+        self.assertTrue(
+            urls[0].startswith('http://mybase/'),
+            '{0} does not start with "http://mybase"'.format(urls[0]))
+
+    def test_api_service_endpoints_are_not_duplicated(self):
+        """
+        The service catalog should not duplicate endpoints for an entry/endpoints
+        """
+        regions_and_versions_list = [("ORD", "v1"), ("DFW", "v1"), ("DFW", "v2"), ("IAD", "v3")]
+        core = MimicCore(Clock(), [ExampleAPI(regions_and_versions=regions_and_versions_list)])
+        root = MimicRoot(core).app.resource()
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens",
+            {
+                "auth": {
+                    "passwordCredentials": {
+                        "username": "demoauthor",
+                        "password": "theUsersPassword"
+                    }
+
+                }
+            }
+        ))
+        self.assertEqual(response.code, 200)
+        service_catalog = json_body["access"]["serviceCatalog"]
+        self.assertEqual(len(service_catalog), 1)
+        endpoints_list = service_catalog[0]["endpoints"]
+        self.assertEqual(len(endpoints_list), 4)
+
+    def test_get_token_and_catalog_for_password_credentials(self):
+        """
+        The response returned should include the password credentials that were supplied
+        during authentication
+        """
+        core = MimicCore(Clock(), [ExampleAPI()])
+        root = MimicRoot(core).app.resource()
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens",
+            {
+                "auth": {
+                    "passwordCredentials": {
+                        "username": "demoauthor",
+                        "password": "theUsersPassword"
+                    },
+                    "tenantId": "12345"
+                }
+            }
+        ))
+        self.assertEqual(response.code, 200)
+        tenant_id = json_body["access"]["token"]["tenant"]["id"]
+        self.assertEqual(tenant_id, "12345")
+        tenant_name = json_body["access"]["token"]["tenant"]["name"]
+        self.assertEqual(tenant_name, tenant_id)
+        user_name = json_body["access"]["user"]["name"]
+        self.assertEqual(user_name, "demoauthor")
+
+    def test_get_token_and_catalog_for_api_credentials(self):
+        """
+        The response returned should include the credentials that were supplied
+        during authentication
+        """
+        core = MimicCore(Clock(), [ExampleAPI()])
+        root = MimicRoot(core).app.resource()
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens",
+            {
+                "auth": {
+                    "RAX-KSKEY:apiKeyCredentials": {
+                        "username": "demoauthor",
+                        "apiKey": "jhgjhghg-nhghghgh-12222"
+                    },
+                    "tenantName": "12345"
+                }
+            }
+        ))
+        self.assertEqual(response.code, 200)
+        tenant_id = json_body["access"]["token"]["tenant"]["id"]
+        self.assertEqual(tenant_id, "12345")
+        tenant_name = json_body["access"]["token"]["tenant"]["name"]
+        self.assertEqual(tenant_name, tenant_id)
+        user_name = json_body["access"]["user"]["name"]
+        self.assertEqual(user_name, "demoauthor")
+
+    def test_get_token_and_catalog_for_token_credentials(self):
+        """
+        The response returned should include the credentials that were supplied
+        during authentication
+        """
+        core = MimicCore(Clock(), [ExampleAPI()])
+        root = MimicRoot(core).app.resource()
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens",
+            {
+                "auth": {
+                    "tenantId": "12345",
+                    "token": {
+                        "id": "iuyiuyiuy-uyiuyiuy-1987878"
+                    }
+                }
+            }
+        ))
+        self.assertEqual(response.code, 200)
+        tenant_id = json_body["access"]["token"]["tenant"]["id"]
+        self.assertEqual(tenant_id, "12345")
+        tenant_name = json_body["access"]["token"]["tenant"]["name"]
+        self.assertEqual(tenant_name, tenant_id)
+        user_name = json_body["access"]["user"]["name"]
+        self.assertTrue(user_name)
+
+    def test_get_token_and_catalog_for_invalid_json_request_body(self):
+        """
+        :func: `get_token_and_service_catalog` returns response code 400, when
+        an invalid json request body is used to authenticate.
+        """
+        core = MimicCore(Clock(), [ExampleAPI()])
+        root = MimicRoot(core).app.resource()
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens",
+            {
+                "auth": {
+                    "token": {
+                        "id": "iuyiuyiuy-uyiuyiuy-1987878"
+                    }
+                }
+            }
+        ))
+        self.assertEqual(response.code, 400)
+        self.assertEqual(json_body["message"], "Invalid JSON request body")
+
+    def test_response_for_get_username(self):
+        """
+        Test to verify :func: `get_username`.
+        """
+        core = MimicCore(Clock(), [ExampleAPI()])
+        root = MimicRoot(core).app.resource()
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "GET",
+            "http://mybase/identity/v1.1/mosso/123456"
+        ))
+        self.assertEqual(301, response.code)
+        self.assertTrue(json_body['user']['id'])
+
+    def test_response_for_impersonation(self):
+        """
+        Test to verify :func: `get_impersonation_token`.
+        """
+        core = MimicCore(Clock(), [ExampleAPI()])
+        root = MimicRoot(core).app.resource()
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "POST",
+            "http://mybase/identity/v2.0/RAX-AUTH/impersonation-tokens",
+            {"RAX-AUTH:impersonation": {"expire-in-seconds": 1,
+                                        "user": {"username": "test"}}}
+        ))
+        self.assertEqual(200, response.code)
+        self.assertTrue(json_body['access']['token']['id'])
+
+    def test_impersonation_request_with_no_body_causes_http_bad_request(self):
+        """
+        The response for empty body request is bad_request.
+        """
+        core = MimicCore(Clock(), [])
+        root = MimicRoot(core).app.resource()
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "POST", "http://mybase/identity/v2.0/RAX-AUTH/impersonation-tokens", ""))
+
+        self.assertEqual(400, response.code)
+
+    def test_impersonation_request_with_invalid_body_causes_http_bad_request(self):
+        """
+        The response for not JSON body request is bad_request.
+        """
+        core = MimicCore(Clock(), [])
+        root = MimicRoot(core).app.resource()
+
+        response = self.successResultOf(request(
+            self, root, "POST", "http://mybase/identity/v2.0/RAX-AUTH/impersonation-tokens",
+                                "{ bad request: }"))
+
+        self.assertEqual(400, response.code)
