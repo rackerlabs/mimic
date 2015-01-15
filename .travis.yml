@@ -10,14 +10,14 @@ compiler:
 
 env:
   matrix:
-    - TOX_ENV=lint
-    - TOX_ENV=py26
-    - TOX_ENV=py27
-    - TOX_ENV=pypy
-    - TOX_ENV=docs
-    - TOX_ENV=docs-spellcheck
-    - TOX_ENV=docs-linkcheck
-    - TOX_ENV=bundle
+     - TOX_ENV=lint
+     - TOX_ENV=py26
+     - TOX_ENV=py27
+     - TOX_ENV=pypy
+     - TOX_ENV=docs
+     - TOX_ENV=docs-spellcheck
+     - TOX_ENV=docs-linkcheck
+     - TOX_ENV=bundle
 
 matrix:
   allow_failures:

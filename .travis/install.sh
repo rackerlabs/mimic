@@ -29,20 +29,15 @@ if [[ "$DARWIN" = true ]]; then
             pyenv global 2.7.8
             ;;
         pypy)
-	    # do not like this idea
-	    brew install pypy
-            # brew upgrade pyenv
-            # pyenv install pypy-2.4.0
-            # pyenv global pypy-2.4.0
+            # do not like this idea
+            brew install pypy
             ;;
         docs)
             curl -O https://bootstrap.pypa.io/get-pip.py
             sudo python get-pip.py
             ;;
         bundle)
-            brew upgrade pyenv
-            pyenv install 2.7.8
-            pyenv global 2.7.8
+            brew install python
             ;;
     esac
     pyenv rehash
@@ -79,5 +74,4 @@ fi
 sudo pip install virtualenv
 virtualenv ~/.venv
 source ~/.venv/bin/activate
-which python
 pip install tox coveralls
