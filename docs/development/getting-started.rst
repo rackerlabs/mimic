@@ -93,7 +93,7 @@ libraries are needed in order for `py2app`_ to build correctly.
 These requirements are specified in ``py2app-requirements.txt``.
 
 `py2app`_ requires that a non-system python be installed for bundling.
-To get around this, I've found it easiest to install a brewed 2.7.9 python.
+To get around this, I've found it easiest to install a brewed 2.7 python.
 
 To build the the application, simply run ``tox -e bundle``. This will
 install all of the necessary dependencies, run the tests, and, if they pass,
