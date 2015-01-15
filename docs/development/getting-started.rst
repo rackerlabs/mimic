@@ -94,6 +94,8 @@ These requirements are specified in ``py2app-requirements.txt``.
 
 `py2app`_ requires that a non-system python be installed for bundling.
 To get around this, I've found it easiest to install a brewed 2.7 python.
+This is preferable to using ``pyenv`` because ``brew`` installs a framework
+python.
 
 To build the the application, simply run ``tox -e bundle``. This will
 install all of the necessary dependencies, run the tests, and, if they pass,
