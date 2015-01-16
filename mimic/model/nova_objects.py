@@ -1,7 +1,9 @@
 from characteristic import attributes, Attribute
 from random import randrange
+from json import loads
 from twisted.python.urlpath import URLPath
 from mimic.util.helper import seconds_to_timestamp
+from mimic.util.helper import invalid_resource
 
 @attributes(["collection", "server_id", "server_name", "metadata",
              "creation_time", "update_time", "public_ips", "private_ips",
@@ -23,24 +25,28 @@ class Server(object):
         "user_id": "170454"
     }
 
+    def url(self, suffix):
+        """
+
+        """
+        return str(URLPath.fromString(
+            self.collection.uri_prefix).child(suffix))
+
     def links_json(self):
         """
         
         """
-        def url(suffix):
-            return str(URLPath.fromString(
-                self.collection.uri_prefix).child(suffix))
         tenant_id = self.collection.tenant_id
         server_id = self.server_id
         return [
             {
-                "href": url("v2/{0}/servers/{1}".format(
-                    tenant_id, server_id
-                )),
+                "href": self.url("v2/{0}/servers/{1}"
+                                 .format(tenant_id, server_id)),
                 "rel": "self"
             },
             {
-                "href": url("{0}/servers/{1}".format(tenant_id, server_id)),
+                "href": self.url("{0}/servers/{1}"
+                                 .format(tenant_id, server_id)),
                 "rel": "bookmark"
             }
         ]
@@ -57,7 +63,9 @@ class Server(object):
 
     def detail_json(self):
         """
-        
+        Long-form JSON-serializable object representation of this server, as
+        returned by either a GET on this individual server or a member in the
+        list returned by the list-details request.
         """
         template = self.static_defaults.copy()
         template.update({
@@ -71,25 +79,37 @@ class Server(object):
             "updated": seconds_to_timestamp(self.updated_time),
             "flavor": {
                 "id": self.flavor_ref,
-                "link": [
-                    {
-                        
-                    }
-                ]
-}
-            {}
+                "links": [{"href": self.url(
+                    "{0}/flavors/{1}".format(self.tenant_id,
+                                             self.flavor_ref))}],
+                "rel": "bookmark"
+            },
+            "image": {
+                "id": self.image_ref,
+                "links": [{
+                    "href": self.url("{0}/images/{1}".format(self.tenant_id,
+                                                             self.flavor_ref))
+                }]
+            }
+            if self.image_ref is not None else '',
+            "links": self.links_json(),
+            "metadata": self.metadata,
+            "name": self.name,
+            "tenant_id": self.tenant_id,
+            "status": self.status
         })
 
     def creation_response_json(self):
         """
-        
+        A JSON-serializable object returned for the initial creation of this
+        server.
         """
         return {
             'server': {
                 "OS-DCF:diskConfig": self.disk_config,
-                "id": s_cache[server_id]['id'],
-                "links": s_cache[server_id]['links'],
-                "adminPass": "testpassword"
+                "id": self.server_id,
+                "links": self.links_json(),
+                "adminPass": self.admin_password,
             }
         }
 
@@ -97,12 +117,12 @@ class Server(object):
 @attributes(["address"])
 class IPv4Address(object):
     """
-    
+    An IPv6 address for a server.
     """
 
     def json(self):
         """
-        
+        A JSON-serializable representation of this address.
         """
         return {"addr": self.address, "version": 4}
 
@@ -110,12 +130,12 @@ class IPv4Address(object):
 @attributes(["address"])
 class IPv6Address(object):
     """
-    
+    An IPv6 address for a server.
     """
 
     def json(self):
         """
-        
+        A JSON-serializable representation of this address.
         """
         return {"addr": self.address, "version": 6}
 
@@ -146,11 +166,28 @@ def default_create_behavior(collection, http, json,
         ],
         creation_request_json=json,
         flavor_ref=json['flavorRef'],
-        image_ref=json['imageRef'],
+        image_ref=json['imageRef'] or '',
         disk_config=json['OS-DCF:diskConfig'],
     )
     collection.add_server(server)
     return server.creation_response_json()
+
+
+def metadata_to_creation_behavior(metadata):
+    """
+    Examine the metadata given to a server creation request, and return a
+    behavior based on the values present there.
+    """
+    if 'create_server_failure' in metadata:
+        def fail_and_dont_do_anything(collection, http, json):
+            # behavior for failing to even start to build
+            failure = loads(metadata['create_server_failure'])
+            http.setResponseCode(failure['code'])
+            return invalid_resource(failure['message', failure['code']])
+    return None
+
+
+
 
 
 @attributes(["tenant_id", "region_name", "clock",
@@ -160,18 +197,28 @@ class RegionalServerCollection(object):
     A collection of servers, in a given region, for a given tenant.
 
     :ivar uri_prefix: The URL which points at this tenant/region collection of
-        servers, *not* including 
+        servers, *not* including the version number (therefore suitable for
+        generating bookmark links).
     """
+
+    def registered_creation_behavior(self, creation_http_request,
+                                     creation_json):
+        """
+        Retrieve a behavior that was previously registered via a control plane
+        request to inject an error in advance, based on whether it matches the
+        parameters in the given creation JSON and HTTP request properties.
+        """
+        return None
 
     def request_creation(self, creation_http_request, creation_json):
         """
-        
+        Request that a server be created.
         """
         behavior = metadata_to_creation_behavior(
             creation_json.get('metadata'))
         if behavior is None:
-            behavior = self.registered_behavior(creation_http_request,
-                                                creation_json)
+            behavior = self.registered_creation_behavior(creation_http_request,
+                                                         creation_json)
         if behavior is None:
             behavior = default_create_behavior
         return behavior(self, creation_http_request, creation_json)
