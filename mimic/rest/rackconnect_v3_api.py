@@ -298,7 +298,7 @@ class LoadBalancerPoolsInRegion(object):
                                                  timestamp_format),
                     load_balancer_pool=pool,
                     cloud_server=add['cloud_server']['id'],
-                    status=text_type("ADDING"))
+                    status=text_type("ACTIVE"))
 
                 pool.nodes.append(node)
                 added_nodes.append(node)
