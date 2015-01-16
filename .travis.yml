@@ -1,29 +1,44 @@
-language: python
+language: c
+
+os:
+  - osx
+  - linux
+
+compiler:
+    - clang
+    - gcc
 
 env:
-  - TOX_ENV=lint
-  - TOX_ENV=py26
-  - TOX_ENV=py27
-  - TOX_ENV=pypy
-  - TOX_ENV=docs
-  - TOX_ENV=docs-spellcheck
-  - TOX_ENV=docs-linkcheck
+  matrix:
+     - TOX_ENV=lint
+     - TOX_ENV=py26
+     - TOX_ENV=py27
+     - TOX_ENV=pypy
+     - TOX_ENV=docs
+     - TOX_ENV=docs-spellcheck
+     - TOX_ENV=docs-linkcheck
 
 matrix:
   allow_failures:
-    - env: "TOX_ENV=docs-linkcheck"
+    - env: TOX_ENV=docs-linkcheck
+  exclude:
+    - os: osx
+      compiler: gcc
+    - os: linux
+      compiler: clang
 
 install:
   - ./.travis/install.sh
 
-script: tox -e $TOX_ENV
+script:
+  - ./.travis/run.sh
 
 after_success:
-    - if [[ "${TOX_ENV:0:2}" == 'py' ]]; then coveralls; fi
+  - source ~/.venv/bin/activate && coveralls
 
 notifications:
   irc:
-    channels: "chat.freenode.net##mimic"
-    template:
-      - "%{repository}@%{branch} - %{author}: %{message} (%{build_url})"
-    use_notice: true
+     channels: "chat.freenode.net##mimic"
+     template:
+       - "%{repository}@%{branch} - %{author}: %{message} (%{build_url})"
+     use_notice: true
