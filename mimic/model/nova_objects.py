@@ -1,6 +1,6 @@
 from characteristic import attributes, Attribute
 from random import randrange
-from json import loads
+from json import loads, dumps
 from twisted.python.urlpath import URLPath
 from mimic.util.helper import seconds_to_timestamp
 from mimic.util.helper import invalid_resource
@@ -113,6 +113,34 @@ class Server(object):
             }
         }
 
+    def from_creation_request_json(self, collection, json,
+                                   ipsegment=lambda: randrange(255)):
+        """
+        Create a :obj:`Server` from a JSON-serializable object that would be in
+        the body of a create server request.
+        """
+        now = collection.clock.seconds()
+        return Server(
+            collection=collection,
+            server_name=json['name'],
+            server_id=('test-server{0}-id-{0}'
+                       .format(str(randrange(9999999999)))),
+            metadata=json.get("metadata") or {},
+            created_time=now,
+            update_time=now,
+            private_ips=[
+                IPv4Address("10.180.{0}.{1}".format(ipsegment(), ipsegment())),
+            ],
+            public_ips=[
+                IPv4Address(address="198.101.241.{0}".format(ipsegment())),
+                IPv6Address(address="2001:4800:780e:0510:d87b:9cbc:ff04:513a")
+            ],
+            creation_request_json=json,
+            flavor_ref=json['flavorRef'],
+            image_ref=json['imageRef'] or '',
+            disk_config=json['OS-DCF:diskConfig'],
+        )
+
 
 @attributes(["address"])
 class IPv4Address(object):
@@ -140,7 +168,6 @@ class IPv6Address(object):
         return {"addr": self.address, "version": 6}
 
 
-
 def default_create_behavior(collection, http, json,
                             ipsegment=lambda: randrange(255)):
     """
@@ -149,28 +176,9 @@ def default_create_behavior(collection, http, json,
     :param ipsegment: A hook provided for IP generation so the IP addresses in
         tests are deterministic; normally a random number between 0 and 255.
     """
-    now = collection.clock.seconds()
-    server = Server(
-        collection=collection,
-        server_name=json['name'],
-        server_id='test-server{0}-id-{0}'.format(str(randrange(9999999999))),
-        metadata=json.get("metadata") or {},
-        created_time=now,
-        update_time=now,
-        private_ips=[
-            IPv4Address("10.180.{0}.{1}".format(ipsegment(), ipsegment())),
-        ],
-        public_ips=[
-            IPv4Address(address="198.101.241.{0}".format(ipsegment())),
-            IPv6Address(address="2001:4800:780e:0510:d87b:9cbc:ff04:513a")
-        ],
-        creation_request_json=json,
-        flavor_ref=json['flavorRef'],
-        image_ref=json['imageRef'] or '',
-        disk_config=json['OS-DCF:diskConfig'],
-    )
-    collection.add_server(server)
-    return server.creation_response_json()
+    new_server = Server.from_creation_request_json(collection, json, ipsegment)
+    response = new_server.creation_response_json()
+    return dumps(response)
 
 
 def metadata_to_creation_behavior(metadata):
@@ -185,9 +193,6 @@ def metadata_to_creation_behavior(metadata):
             http.setResponseCode(failure['code'])
             return invalid_resource(failure['message', failure['code']])
     return None
-
-
-
 
 
 @attributes(["tenant_id", "region_name", "clock",
