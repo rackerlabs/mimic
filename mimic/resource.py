@@ -9,6 +9,7 @@ from twisted.web.resource import NoResource
 from mimic.canned_responses.mimic_presets import get_presets
 from mimic.rest.mimicapp import MimicApp
 from mimic.rest.auth_api import AuthApi, base_uri_from_request
+from mimic.rest.noit_api import NoitApi
 from mimic.util.helper import seconds_to_timestamp
 
 
@@ -44,6 +45,13 @@ class MimicRoot(object):
         Get the identity ...
         """
         return AuthApi(self.core).app.resource()
+
+    @app.route("/noit", branch=True)
+    def get_noit_api(self, request):
+        """
+        Mock Noit api here ... until mimic allows services outside of the service catalog.
+        """
+        return NoitApi(self.core).app.resource()
 
     @app.route('/mimic/v1.0/presets', methods=['GET'])
     def get_mimic_presets(self, request):
