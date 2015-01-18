@@ -5,8 +5,8 @@ os:
   - linux
 
 compiler:
-    - clang
-    - gcc
+  - clang
+  - gcc
 
 env:
   matrix:
@@ -36,9 +36,9 @@ script:
 after_success:
   - source ~/.venv/bin/activate && coveralls
 
-# notifications:
-#   irc:
-#      channels: "chat.freenode.net##mimic"
-#      template:
-#        - "%{repository}@%{branch} - %{author}: %{message} (%{build_url})"
-#      use_notice: true
+notifications:
+  irc:
+     channels: "chat.freenode.net##mimic"
+     template:
+       - "%{repository}@%{branch} - %{author}: %{message} (%{build_url})"
+     use_notice: true
