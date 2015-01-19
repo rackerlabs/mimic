@@ -4,3 +4,4 @@ jsonschema==2.0
 treq==0.2.0
 characteristic==14.2.0
 six==1.6.1
+xmltodict==0.9.1
