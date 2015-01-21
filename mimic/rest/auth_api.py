@@ -11,6 +11,7 @@ from mimic.canned_responses.auth import get_token, get_endpoints
 from mimic.rest.mimicapp import MimicApp
 from mimic.canned_responses.auth import format_timestamp
 from mimic.util.helper import invalid_resource
+from mimic.session import NonMatchingTenantError
 
 Request.defaultContentType = 'application/json'
 
@@ -44,41 +45,79 @@ class AuthApi(object):
 
         tenant_id = (content['auth'].get('tenantName', None) or
                      content['auth'].get('tenantId', None))
+
+        def format_response(callable_returning_session,
+                            nonmatching_tenant_message_generator):
+            try:
+                session = callable_returning_session()
+            except NonMatchingTenantError as e:
+                request.setResponseCode(401)
+                return json.dumps({
+                    "unauthorized": {
+                        "code": 401,
+                        "message": nonmatching_tenant_message_generator(e)
+                    }
+                })
+            else:
+                request.setResponseCode(200)
+                prefix_map = {
+                    # map of entry to URI prefix for that entry
+                }
+
+                def lookup(entry):
+                    return prefix_map[entry]
+                result = get_token(
+                    session.tenant_id,
+                    entry_generator=lambda tenant_id:
+                    list(self.core.entries_for_tenant(
+                         tenant_id, prefix_map, base_uri_from_request(request))),
+                    prefix_for_endpoint=lookup,
+                    response_token=session.token,
+                    response_user_id=session.user_id,
+                    response_user_name=session.username,
+                )
+                result['access']['user']['roles'].append({
+                    'description': 'User Admin Role.',
+                    'id': '3',
+                    'name': 'identity:user-admin'})
+                return json.dumps(result)
+
+        username_generator = (
+            lambda exception: "Tenant with Name/Id: '{0}' is not valid for "
+                              "User '{1}' (id: '{2}')".format(
+                                  exception.desired_tenant,
+                                  exception.session.username,
+                                  exception.session.user_id))
+
         if content['auth'].get('passwordCredentials'):
             username = content['auth']['passwordCredentials']['username']
             password = content['auth']['passwordCredentials']['password']
-            session = self.core.sessions.session_for_username_password(
-                username, password, tenant_id)
+            return format_response(
+                lambda: self.core.sessions.session_for_username_password(
+                    username, password, tenant_id),
+                username_generator)
+
         elif content['auth'].get('RAX-KSKEY:apiKeyCredentials'):
-            username = content['auth']['RAX-KSKEY:apiKeyCredentials']['username']
-            api_key = content['auth']['RAX-KSKEY:apiKeyCredentials']['apiKey']
-            session = self.core.sessions.session_for_api_key(
-                username, api_key, tenant_id)
+            username = content['auth']['RAX-KSKEY:apiKeyCredentials'][
+                'username']
+            api_key = content['auth']['RAX-KSKEY:apiKeyCredentials'][
+                'apiKey']
+            return format_response(
+                lambda: self.core.sessions.session_for_api_key(
+                    username, api_key, tenant_id),
+                username_generator)
+
         elif content['auth'].get('token') and tenant_id:
-            session = self.core.sessions.session_for_tenant_id(tenant_id)
+            token = content['auth']['token']['id']
+            return format_response(
+                lambda: self.core.sessions.session_for_token(token,
+                                                             tenant_id),
+                lambda e: "Token doesn't belong to Tenant with Id/Name: "
+                          "'{0}'".format(e.desired_tenant))
         else:
             request.setResponseCode(400)
-            return json.dumps(invalid_resource("Invalid JSON request body"))
-        request.setResponseCode(200)
-        prefix_map = {
-            # map of entry to URI prefix for that entry
-        }
-
-        def lookup(entry):
-            return prefix_map[entry]
-        result = get_token(
-            session.tenant_id,
-            entry_generator=lambda tenant_id:
-            list(self.core.entries_for_tenant(
-                 tenant_id, prefix_map, base_uri_from_request(request))),
-            prefix_for_endpoint=lookup,
-            response_token=session.token,
-            response_user_id=session.user_id,
-            response_user_name=session.username,
-        )
-        result['access']['user']['roles'].append(
-            {'description': 'User Admin Role.', 'id': '3', 'name': 'identity:user-admin'})
-        return json.dumps(result)
+            return json.dumps(
+                invalid_resource("Invalid JSON request body"))
 
     @app.route('/v1.1/mosso/<string:tenant_id>', methods=['GET'])
     def get_username(self, request, tenant_id):
