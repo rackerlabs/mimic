@@ -76,10 +76,6 @@ class AuthApi(object):
                     response_user_id=session.user_id,
                     response_user_name=session.username,
                 )
-                result['access']['user']['roles'].append({
-                    'description': 'User Admin Role.',
-                    'id': '3',
-                    'name': 'identity:user-admin'})
                 return json.dumps(result)
 
         username_generator = (
