@@ -11,6 +11,7 @@ from mimic.canned_responses.auth import get_token, get_endpoints
 from mimic.rest.mimicapp import MimicApp
 from mimic.canned_responses.auth import format_timestamp
 from mimic.util.helper import invalid_resource
+from mimic.session import NonMatchingTenantError
 
 Request.defaultContentType = 'application/json'
 
@@ -44,21 +45,39 @@ class AuthApi(object):
 
         tenant_id = (content['auth'].get('tenantName', None) or
                      content['auth'].get('tenantId', None))
-        if content['auth'].get('passwordCredentials'):
-            username = content['auth']['passwordCredentials']['username']
-            password = content['auth']['passwordCredentials']['password']
-            session = self.core.sessions.session_for_username_password(
-                username, password, tenant_id)
-        elif content['auth'].get('RAX-KSKEY:apiKeyCredentials'):
-            username = content['auth']['RAX-KSKEY:apiKeyCredentials']['username']
-            api_key = content['auth']['RAX-KSKEY:apiKeyCredentials']['apiKey']
-            session = self.core.sessions.session_for_api_key(
-                username, api_key, tenant_id)
-        elif content['auth'].get('token') and tenant_id:
-            session = self.core.sessions.session_for_tenant_id(tenant_id)
-        else:
-            request.setResponseCode(400)
-            return json.dumps(invalid_resource("Invalid JSON request body"))
+
+        try:
+            if content['auth'].get('passwordCredentials'):
+                username = content['auth']['passwordCredentials']['username']
+                password = content['auth']['passwordCredentials']['password']
+                session = self.core.sessions.session_for_username_password(
+                    username, password, tenant_id)
+            elif content['auth'].get('RAX-KSKEY:apiKeyCredentials'):
+                username = content['auth']['RAX-KSKEY:apiKeyCredentials'][
+                    'username']
+                api_key = content['auth']['RAX-KSKEY:apiKeyCredentials'][
+                    'apiKey']
+                session = self.core.sessions.session_for_api_key(
+                    username, api_key, tenant_id)
+            elif content['auth'].get('token') and tenant_id:
+                session = self.core.sessions.session_for_tenant_id(tenant_id)
+            else:
+                request.setResponseCode(400)
+                return json.dumps(
+                    invalid_resource("Invalid JSON request body"))
+        except NonMatchingTenantError as e:
+            request.setResponseCode(401)
+            message = ("Tenant with Name/Id: '{0}' is not valid for "
+                       "User '{1}' (id: '{2}')".format(e.desired_tenant,
+                                                       e.session.username,
+                                                       e.session.user_id))
+            return json.dumps({
+                "unauthorized": {
+                    "code": 401,
+                    "message": message
+                }
+            })
+
         request.setResponseCode(200)
         prefix_map = {
             # map of entry to URI prefix for that entry
