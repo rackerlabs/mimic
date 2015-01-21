@@ -657,7 +657,6 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         (response, json_body) = self.successResultOf(json_request(
             self, root, "POST", "/identity/v2.0/tokens", creds))
         self.assertEqual(response.code, 200)
-        username = json_body["access"]["user"]["id"]
 
         creds['auth']['tenantId'] = "23456"
 
@@ -667,8 +666,8 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         self.assertEqual(fail_body, {
             "unauthorized": {
                 "code": 401,
-                "message": ("Tenant with Name/Id: '23456' is not valid for "
-                            "User 'demoauthor' (id: '{0}')".format(username))
+                "message": ("Token doesn't belong to Tenant with Id/Name: "
+                            "'23456'")
             }
         })
 
