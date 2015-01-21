@@ -291,6 +291,34 @@ class GetAuthTokenAPITests(SynchronousTestCase):
         self.assertEqual(200, response.code)
         self.assertEqual(json_body['access']['user']['roles'], HARD_CODED_ROLES)
 
+    def test_response_has_same_roles_despite_number_of_auths(self):
+        """
+        The JSON response for authenticate has only one `identity:user-admin`
+        role, no matter how many times the user authenticates.
+        """
+        core = MimicCore(Clock(), [])
+        root = MimicRoot(core).app.resource()
+
+        creds = {
+            "auth": {
+                "passwordCredentials": {
+                    "username": "demoauthor",
+                    "password": "theUsersPassword"
+                }
+
+            }
+        }
+
+        self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens", creds))
+        self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens", creds))
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens", creds))
+
+        self.assertEqual(200, response.code)
+        self.assertEqual(json_body['access']['user']['roles'], HARD_CODED_ROLES)
+
     def test_authentication_request_with_no_body_causes_http_bad_request(self):
         """
         The response for empty body request is bad_request.
