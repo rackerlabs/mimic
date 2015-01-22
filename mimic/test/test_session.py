@@ -7,7 +7,7 @@ from twisted.trial.unittest import SynchronousTestCase
 
 from twisted.internet.task import Clock
 
-from mimic.session import SessionStore
+from mimic.session import NonMatchingTenantError, SessionStore
 
 
 class SessionCreationTests(SynchronousTestCase):
@@ -33,6 +33,30 @@ class SessionCreationTests(SynchronousTestCase):
         self.assertNotEqual(session.username, session.token)
         self.assertNotEqual(session.token, session.tenant_id)
 
+    def test_username_password_wrong_tenant(self):
+        """
+        Tenant ID is validated in
+        :func:`SessionStore.session_for_username_password`.
+
+        If called with the token of an existing session but the wrong tenant,
+        raises :class:`NonMatchingTenantError`.
+        """
+        """
+        SessionStore.session_for_username_password, if called with the
+        username of an existing session but the wrong tenant, raises
+        :class:`NonMatchingTenantError`.
+        """
+        clock = Clock()
+        sessions = SessionStore(clock)
+        clock.advance(4321)
+        sessions.session_for_username_password("example_user",
+                                               "password",
+                                               "tenant_orig")
+        self.assertRaises(
+            NonMatchingTenantError,
+            sessions.session_for_username_password,
+            "example_user", "password", "tenant_new")
+
     def test_different_username_different_token(self):
         """
         Sessions are distinct if they are requested with distinct usernames.
@@ -45,7 +69,8 @@ class SessionCreationTests(SynchronousTestCase):
     def test_by_username_after_token(self):
         """
         SessionStore.session_for_username_password should retrieve the same
-        session that was created by SessionStore.session_for_token.
+        session that was created by SessionStore.session_for_token.  Similarly
+        for the API key.
         """
         sessions = SessionStore(Clock())
         a = sessions.session_for_token("testtoken")
@@ -54,10 +79,27 @@ class SessionCreationTests(SynchronousTestCase):
         self.assertIdentical(a, b)
         self.assertIdentical(a, c)
 
+    def test_session_for_apikey_after_username_wrong_tenant(self):
+        """
+        Tenant ID is validated in :func:`SessionStore.session_for_api_key`.
+
+        If called with the token of an existing session but the wrong tenant,
+        raises :class:`NonMatchingTenantError`.
+        """
+        sessions = SessionStore(Clock())
+        a = sessions.session_for_username_password("username", "testpswd")
+        self.assertRaises(
+            NonMatchingTenantError,
+            sessions.session_for_api_key,
+            a.username, "testapikey", a.tenant_id + "wrong")
+
     def test_by_token_after_username(self):
         """
-        SessionStore.session_for_token should retrieve the same session that
-        was created by SessionStore.session_for_username_password.
+        Session retrieved by all the ``session_for_*`` methods are identical.
+
+        :func:`SessionStore.session_for_token` should retrieve the same
+        session that was created by
+        :func:`SessionStore.session_for_username_password`.
         """
         sessions = SessionStore(Clock())
         a = sessions.session_for_username_password("username",
@@ -67,6 +109,21 @@ class SessionCreationTests(SynchronousTestCase):
         c = sessions.session_for_api_key("apiuser", "testkey")
         d = sessions.session_for_token(c.token)
         self.assertIdentical(c, d)
+
+    def test_by_token_after_username_wrong_tenant(self):
+        """
+        Tenant ID is validated in :func:`SessionStore.session_for_token`.
+
+        If called with the token of an existing session but the wrong tenant,
+        raises :class:`NonMatchingTenantError`.
+        """
+        sessions = SessionStore(Clock())
+        a = sessions.session_for_username_password("username",
+                                                   "testpswd")
+        self.assertRaises(
+            NonMatchingTenantError,
+            sessions.session_for_token,
+            a.token, a.tenant_id + 'wrong')
 
     def test_impersonation(self):
         """
