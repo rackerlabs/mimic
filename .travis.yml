@@ -24,8 +24,6 @@ matrix:
   exclude:
     - os: osx
       compiler: gcc
-    - os: linux
-      compiler: clang
 
 install:
   - ./.travis/install.sh
