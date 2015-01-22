@@ -1,7 +1,7 @@
 from characteristic import attributes, Attribute
 from random import randrange
 from json import loads, dumps
-from twisted.python.urlpath import URLPath
+
 from mimic.util.helper import seconds_to_timestamp
 from mimic.util.helper import invalid_resource
 
@@ -25,14 +25,16 @@ class Server(object):
         "user_id": "170454"
     }
 
-    def url(self, suffix):
+    def addresses_json(self):
         """
-
+        
         """
-        return str(URLPath.fromString(
-            self.collection.uri_prefix).child(suffix))
+        return {
+            "private": [addr.json() for addr in self.private_ips],
+            "public": [addr.json() for addr in self.public_ips]
+        }
 
-    def links_json(self):
+    def links_json(self, absolutize_url):
         """
         
         """
@@ -40,28 +42,28 @@ class Server(object):
         server_id = self.server_id
         return [
             {
-                "href": self.url("v2/{0}/servers/{1}"
-                                 .format(tenant_id, server_id)),
+                "href": absolutize_url("v2/{0}/servers/{1}"
+                            .format(tenant_id, server_id)),
                 "rel": "self"
             },
             {
-                "href": self.url("{0}/servers/{1}"
-                                 .format(tenant_id, server_id)),
+                "href": absolutize_url("{0}/servers/{1}"
+                            .format(tenant_id, server_id)),
                 "rel": "bookmark"
             }
         ]
 
-    def brief_json(self):
+    def brief_json(self, absolutize_url):
         """
         Brief version of this server, for the non-details list servers request.
         """
         return {
             'name': self.server_name,
-            'links': self.links_json(),
+            'links': self.links_json(absolutize_url),
             'id': self.server_id
         }
 
-    def detail_json(self):
+    def detail_json(self, absolutize_url):
         """
         Long-form JSON-serializable object representation of this server, as
         returned by either a GET on this individual server or a member in the
@@ -71,15 +73,12 @@ class Server(object):
         template.update({
             "OS-DCF:diskConfig": self.disk_config,
             "OS-EXT-STS:vm_state": self.status,
-            "addresses": {
-                "private": [addr.json() for addr in self.private_ips],
-                "public": [addr.json() for addr in self.public_ips]
-            },
+            "addresses": self.addresses_json(),
             "created": seconds_to_timestamp(self.creation_time),
             "updated": seconds_to_timestamp(self.updated_time),
             "flavor": {
                 "id": self.flavor_ref,
-                "links": [{"href": self.url(
+                "links": [{"href": absolutize_url(
                     "{0}/flavors/{1}".format(self.tenant_id,
                                              self.flavor_ref))}],
                 "rel": "bookmark"
@@ -87,8 +86,8 @@ class Server(object):
             "image": {
                 "id": self.image_ref,
                 "links": [{
-                    "href": self.url("{0}/images/{1}".format(self.tenant_id,
-                                                             self.flavor_ref))
+                    "href": absolutize_url("{0}/images/{1}".format(
+                        self.tenant_id, self.flavor_ref))
                 }]
             }
             if self.image_ref is not None else '',
@@ -99,7 +98,7 @@ class Server(object):
             "status": self.status
         })
 
-    def creation_response_json(self):
+    def creation_response_json(self, absolutize_url):
         """
         A JSON-serializable object returned for the initial creation of this
         server.
@@ -108,7 +107,7 @@ class Server(object):
             'server': {
                 "OS-DCF:diskConfig": self.disk_config,
                 "id": self.server_id,
-                "links": self.links_json(),
+                "links": self.links_json(absolutize_url),
                 "adminPass": self.admin_password,
             }
         }
@@ -168,16 +167,23 @@ class IPv6Address(object):
         return {"addr": self.address, "version": 6}
 
 
-def default_create_behavior(collection, http, json,
+def default_create_behavior(collection, http, json, absolutize_url,
                             ipsegment=lambda: randrange(255)):
     """
     Default behavior in response to a server creation.
 
+    :param absolutize_url: A 1-argument function that takes a string and
+        returns a string, where the input is the list of segments identifying a
+        particular object within a tenant's URL hierarchy, and the output is an
+        absolute URL that identifies that same object.  Note that the tenant's
+        URL hierarchy begins at their tenant ID, not at the tenantID/version,
+        because bookmark URLs don't include API versions; be sure to include
+        'v2' if you need a versioned URL.
     :param ipsegment: A hook provided for IP generation so the IP addresses in
         tests are deterministic; normally a random number between 0 and 255.
     """
     new_server = Server.from_creation_request_json(collection, json, ipsegment)
-    response = new_server.creation_response_json()
+    response = new_server.creation_response_json(absolutize_url)
     return dumps(response)
 
 
@@ -196,15 +202,19 @@ def metadata_to_creation_behavior(metadata):
 
 
 @attributes(["tenant_id", "region_name", "clock",
-             "uri_prefix", Attribute("servers", default_factory=list)])
+             Attribute("servers", default_factory=list)])
 class RegionalServerCollection(object):
     """
     A collection of servers, in a given region, for a given tenant.
-
-    :ivar uri_prefix: The URL which points at this tenant/region collection of
-        servers, *not* including the version number (therefore suitable for
-        generating bookmark links).
     """
+
+    def server_by_id(self, server_id):
+        """
+        Retrieve a :obj:`Server` object by its ID.
+        """
+        for server in self.servers:
+            if server.server_id == server_id:
+                return server
 
     def registered_creation_behavior(self, creation_http_request,
                                      creation_json):
@@ -227,3 +237,57 @@ class RegionalServerCollection(object):
         if behavior is None:
             behavior = default_create_behavior
         return behavior(self, creation_http_request, creation_json)
+
+    def request_read(self, url, http_get_request, server_id):
+        """
+        Request the information / details for an individual server.
+        """
+        return dumps(self.server_by_id(server_id).detail_json(url))
+
+    def request_ips(self, http_get_ips_request, server_id):
+        """
+        Request the addresses JSON for a specific server.
+        """
+        http_get_ips_request.setResponseCode(200)
+        server = self.server_by_id(server_id)
+        return {"addresses": server.addresses_json()}
+
+    def request_list(self, url, http_get_request, include_details, name=None):
+        """
+        Request the list JSON for all servers.
+
+        Note: only supports filtering by name right now, but will need to
+        support more going forward.
+        """
+        return dumps({"servers": [
+            server.brief_json(url) if not include_details
+            else server.detail_json(url)
+            for server in self.servers]})
+
+    def request_delete(self, http_delete_request, server_id):
+        """
+        Delete a server with the given ID.
+        """
+        http_delete_request.setResponseCode(204)
+        self.servers.remove(self.server_by_id(server_id))
+        return b''
+
+
+@attributes(["tenant_id", "clock",
+             Attribute("regional_collections", default_factory=dict)])
+class GlobalServerCollections(object):
+    """
+    
+    """
+
+    def collection_for_region(self, region_name):
+        """
+        
+        """
+        if region_name not in self.regional_collections:
+            self.regional_collections[region_name] = (
+                RegionalServerCollection(tenant_id=self.tenant_id,
+                                         region_name=region_name,
+                                         clock=self.clock)
+            )
+        return self.regional_collections[region_name]

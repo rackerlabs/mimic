@@ -14,6 +14,8 @@ from zope.interface import implementer
 
 from twisted.web.server import Request
 
+from twisted.python.urlpath import URLPath
+
 from twisted.plugin import IPlugin
 
 from mimic.canned_responses.nova import (get_server, list_server, get_limit,
@@ -106,6 +108,9 @@ class NovaRegion(object):
         self._api_mock = api_mock
         self._session_store = session_store
         self._name = name
+
+    def url(self, suffix):
+        return str(URLPath.fromString(self.uri_prefix).child(suffix))
 
     def _server_cache_for_tenant(self, tenant_id):
         """
