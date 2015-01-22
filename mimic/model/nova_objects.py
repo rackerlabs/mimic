@@ -197,6 +197,7 @@ def default_create_behavior(collection, http, json, absolutize_url,
     """
     new_server = Server.from_creation_request_json(collection, json, ipsegment)
     response = new_server.creation_response_json(absolutize_url)
+    http.setResponseCode(201)
     return dumps(response)
 
 
@@ -206,7 +207,7 @@ def metadata_to_creation_behavior(metadata):
     behavior based on the values present there.
     """
     if 'create_server_failure' in metadata:
-        def fail_and_dont_do_anything(collection, http, json):
+        def fail_and_dont_do_anything(collection, http, json, absolutize_url):
             # behavior for failing to even start to build
             failure = loads(metadata['create_server_failure'])
             http.setResponseCode(failure['code'])
@@ -238,7 +239,8 @@ class RegionalServerCollection(object):
         """
         return None
 
-    def request_creation(self, creation_http_request, creation_json):
+    def request_creation(self, creation_http_request, creation_json,
+                         absolutize_url):
         """
         Request that a server be created.
         """
@@ -249,13 +251,14 @@ class RegionalServerCollection(object):
                                                          creation_json)
         if behavior is None:
             behavior = default_create_behavior
-        return behavior(self, creation_http_request, creation_json)
+        return behavior(self, creation_http_request, creation_json,
+                        absolutize_url)
 
-    def request_read(self, url, http_get_request, server_id):
+    def request_read(self, http_get_request, server_id, absolutize_url):
         """
         Request the information / details for an individual server.
         """
-        return dumps(self.server_by_id(server_id).detail_json(url))
+        return dumps(self.server_by_id(server_id).detail_json(absolutize_url))
 
     def request_ips(self, http_get_ips_request, server_id):
         """
@@ -265,7 +268,8 @@ class RegionalServerCollection(object):
         server = self.server_by_id(server_id)
         return {"addresses": server.addresses_json()}
 
-    def request_list(self, url, http_get_request, include_details, name=None):
+    def request_list(self, http_get_request, include_details, absolutize_url,
+                     name=None):
         """
         Request the list JSON for all servers.
 
