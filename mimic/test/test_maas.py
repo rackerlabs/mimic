@@ -154,20 +154,20 @@ class MaasAPITests(SynchronousTestCase):
         self.uri = helper.uri
         self.entity_id = self.getXobjectIDfromResponse(self.createEntity('ItsAnEntity'))
         self.check_id = self.getXobjectIDfromResponse(self.createCheck('ItsAcheck',
-                                                      self.entity_id))
+                                                                       self.entity_id))
         self.alarm_id = self.getXobjectIDfromResponse(self.createAlarm('ItsAnAlarm',
-                                                      self.entity_id,
-                                                      self.check_id))
+                                                                       self.entity_id,
+                                                                       self.check_id))
         self.nt_id = self.getXobjectIDfromResponse(self.createNotification('ItsANotificationTarget'))
         self.np_id = self.getXobjectIDfromResponse(self.createNotificationPlan('ItsANotificationPlan'))
         self.sp_id = self.getXobjectIDfromResponse(self.createSuppression('ItsASuppression'))
 
     def test_resource_ids(self):
         """
-        MAAS sets IDs for reources it created by prefixing it with
-        the first two characters of the resource type.
-        For example an entity id is prefixed with 'en'.
-        Test that the ids are not null and are prefixed.
+        MAAS sets IDs for resources it created by prefixing it with the
+        first two characters of the resource type.For example an entity
+        id is prefixed with 'en'. Test that the ids are not null and are
+        prefixed.
         """
         self.assertNotEquals(None, self.entity_id)
         self.assertTrue(self.entity_id.startswith('en'))
