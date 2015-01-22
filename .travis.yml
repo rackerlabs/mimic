@@ -1,12 +1,12 @@
 language: c
 
 os:
-    - osx
-    - linux
+  - osx
+  - linux
 
 compiler:
-    - clang
-    - gcc
+  - clang
+  - gcc
 
 env:
   matrix:
@@ -25,10 +25,8 @@ matrix:
   exclude:
     - os: osx
       compiler: gcc
-    - os: linux
-      compiler: clang
 
-    # don't build mac app on linux, it won't work.
+    # don't build mac app on linux
     - os: linux
       env: TOX_ENV=bundle
 
@@ -39,11 +37,11 @@ script:
   - ./.travis/run.sh
 
 after_success:
-    - source ~/.venv/bin/activate && coveralls
+  - source ~/.venv/bin/activate && coveralls
 
-# notifications:
-#   irc:
-#     channels: "chat.freenode.net##mimic"
-#     template:
-#       - "%{repository}@%{branch} - %{author}: %{message} (%{build_url})"
-#     use_notice: true
+notifications:
+  irc:
+     channels: "chat.freenode.net##mimic"
+     template:
+       - "%{repository}@%{branch} - %{author}: %{message} (%{build_url})"
+     use_notice: true

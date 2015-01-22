@@ -29,7 +29,7 @@ if [[ "$DARWIN" = true ]]; then
             pyenv global 2.7.8
             ;;
         pypy)
-            # do not like this idea
+	    # travis/tox are not finding pypy when installed using pyenv.
             brew install pypy
             ;;
         docs)

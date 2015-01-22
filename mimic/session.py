@@ -35,6 +35,14 @@ class Session(object):
         return self._api_objects[api_mock]
 
 
+@attributes([Attribute('session', instance_of=Session),
+             'desired_tenant'])
+class NonMatchingTenantError(Exception):
+    """
+    A session's tenant ID does not match the desired tenant ID.
+    """
+
+
 class SessionStore(object):
     """
     A collection of sessions addressable by multiple different keys.
@@ -108,7 +116,12 @@ class SessionStore(object):
         :raise: :obj:`KeyError` if no such thing exists.
         """
         if token in self._token_to_session:
-            return self._token_to_session[token]
+            s = self._token_to_session[token]
+            if tenant_id is not None and s.tenant_id != tenant_id:
+                raise NonMatchingTenantError(session=s,
+                                             desired_tenant=tenant_id)
+            return s
+
         return self._new_session(token=token, tenant_id=tenant_id)
 
     def session_for_api_key(self, username, api_key, tenant_id=None):
@@ -130,7 +143,12 @@ class SessionStore(object):
         Create or return a :obj:`Session` based on a user's credentials.
         """
         if username in self._username_to_token:
-            return self._token_to_session[self._username_to_token[username]]
+            s = self._token_to_session[self._username_to_token[username]]
+            if tenant_id is not None and s.tenant_id != tenant_id:
+                raise NonMatchingTenantError(session=s,
+                                             desired_tenant=tenant_id)
+            return s
+
         return self._new_session(username=username,
                                  tenant_id=tenant_id)
 
