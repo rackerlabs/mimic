@@ -174,11 +174,24 @@ def default_create_behavior(collection, http, json, absolutize_url,
 
     :param absolutize_url: A 1-argument function that takes a string and
         returns a string, where the input is the list of segments identifying a
-        particular object within a tenant's URL hierarchy, and the output is an
-        absolute URL that identifies that same object.  Note that the tenant's
-        URL hierarchy begins at their tenant ID, not at the tenantID/version,
-        because bookmark URLs don't include API versions; be sure to include
-        'v2' if you need a versioned URL.
+        particular object within the compute service's URL hierarchy within a
+        region, and the output is an absolute URL that identifies that same
+        object.  Note that the region's URL hierarchy begins before the version
+        identifier, because bookmark links omit the version identifier and go
+        straight to the tenant ID.  Be sure to include the 'v2' first if you
+        are generating a versioned URL; the tenant ID itself should always be
+        passed in as part of the input, either the second or first segment,
+        depending on whether the version is included or not respectively.
+
+        Note that this is passed in on every request so that servers do not
+        retain a memory of their full URLs internally, and therefore you may
+        access Mimic under different hostnames and it will give you URLs
+        appropriate to how you accessed it every time.  This is intentionally
+        to support the use-case of running tests against your local dev machine
+        as 'localhost' and then showing someone else the state that things are
+        in when they will have to access your machine under a different
+        hostname and therefore a different URI.
+
     :param ipsegment: A hook provided for IP generation so the IP addresses in
         tests are deterministic; normally a random number between 0 and 255.
     """
