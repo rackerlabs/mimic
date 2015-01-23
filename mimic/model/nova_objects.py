@@ -5,7 +5,7 @@ from json import loads, dumps
 from mimic.util.helper import seconds_to_timestamp
 from mimic.util.helper import invalid_resource
 
-from twisted.web.http import ACCEPTED
+from twisted.web.http import ACCEPTED, NOT_FOUND
 
 @attributes(["collection", "server_id", "server_name", "metadata",
              "creation_time", "update_time", "public_ips", "private_ips",
@@ -126,7 +126,7 @@ class Server(object):
         """
         now = collection.clock.seconds()
         server_json = creation_json['server']
-        return cls(
+        self = cls(
             collection=collection,
             server_name=server_json['name'],
             server_id=('test-server{0}-id-{0}'
@@ -151,6 +151,8 @@ class Server(object):
             admin_password="testpassword",
             # ^ TODO: should be random
         )
+        collection.servers.append(self)
+        return self
 
 
 @attributes(["address"])
@@ -180,7 +182,7 @@ class IPv6Address(object):
 
 
 def default_create_behavior(collection, http, json, absolutize_url,
-                            ipsegment=lambda: randrange(255)):
+                            ipsegment=lambda: randrange(255), hook=None):
     """
     Default behavior in response to a server creation.
 
@@ -208,11 +210,20 @@ def default_create_behavior(collection, http, json, absolutize_url,
         tests are deterministic; normally a random number between 0 and 255.
     """
     new_server = Server.from_creation_request_json(collection, json, ipsegment)
+    if hook is not None:
+        hook(new_server)
     response = new_server.creation_response_json(absolutize_url)
     http.setResponseCode(ACCEPTED)
-    collection.servers.append(new_server)
     return dumps(response)
 
+def default_with_hook(function):
+    """
+    Convert a function that takes a function.
+    """
+    def hooked(collection, http, json, absolutize_url):
+        return default_create_behavior(collection, http, json, absolutize_url,
+                                       hook=function)
+    return hooked
 
 def metadata_to_creation_behavior(metadata):
     """
@@ -220,11 +231,28 @@ def metadata_to_creation_behavior(metadata):
     behavior based on the values present there.
     """
     if 'create_server_failure' in metadata:
+        failure = loads(metadata['create_server_failure'])
         def fail_and_dont_do_anything(collection, http, json, absolutize_url):
             # behavior for failing to even start to build
-            failure = loads(metadata['create_server_failure'])
             http.setResponseCode(failure['code'])
-            return invalid_resource(failure['message', failure['code']])
+            return dumps(invalid_resource(failure['message'], failure['code']))
+        return fail_and_dont_do_anything
+    if 'server_building' in metadata:
+        @default_with_hook
+        def set_building(server):
+            server.status = u"BUILD"
+            server.collection.clock.callLater(
+                metadata['server_building'],
+                lambda: setattr(server, "status", u"ACTIVE"))
+        return set_building
+    if 'server_error' in metadata:
+        @default_with_hook
+        def set_error(server):
+            server.status = u"ERROR"
+            server.collection.clock.callLater(
+                metadata['server_error'],
+                lambda: setattr(server, "status", u"ACTIVE"))
+        return set_error
     return None
 
 
@@ -284,11 +312,12 @@ class RegionalServerCollection(object):
         http_get_ips_request.setResponseCode(200)
         server = self.server_by_id(server_id)
         if server is None:
+            http_get_ips_request.setResponseCode(NOT_FOUND)
             return None
         return dumps({"addresses": server.addresses_json()})
 
     def request_list(self, http_get_request, include_details, absolutize_url,
-                     name=None):
+                     name=u""):
         """
         Request the list JSON for all servers.
 
@@ -300,6 +329,7 @@ class RegionalServerCollection(object):
                 server.brief_json(absolutize_url) if not include_details
                 else server.detail_json(absolutize_url)
                 for server in self.servers
+                if name in server.server_name
             ]}
         )
 
@@ -309,9 +339,15 @@ class RegionalServerCollection(object):
         """
         server = self.server_by_id(server_id)
         if server is None:
-            print("NO SERVER", server_id)
             http_delete_request.setResponseCode(404)
             return b''
+        if 'delete_server_failure' in server.metadata:
+            srvfail = loads(server.metadata['delete_server_failure'])
+            if srvfail['times']:
+                srvfail['times'] -= 1
+                server.metadata['delete_server_failure'] = dumps(srvfail)
+                http_delete_request.setResponseCode(500)
+                return b''
         http_delete_request.setResponseCode(204)
         self.servers.remove(server)
         return b''
