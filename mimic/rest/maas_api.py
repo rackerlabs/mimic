@@ -117,7 +117,7 @@ def createEntity(params):
     params = collections.defaultdict(lambda: '', params)
     newentity = {}
     newentity['label'] = params[u'label'].encode("ascii")
-    newentity['id'] = 'e' + random_hex_generator(4)
+    newentity['id'] = 'en' + random_hex_generator(4)
     newentity['agent_id'] = params['agent_id'] or random_hex_generator(12)
     newentity['created_at'] = time.time()
     newentity['updated_at'] = time.time()
@@ -135,7 +135,7 @@ def createCheck(params):
     for k in params.keys():
         if 'encode' in dir(params[k]):
             params[k] = params[k].encode('ascii')
-    params['id'] = 'c' + random_hex_generator(4)
+    params['id'] = 'ch' + random_hex_generator(4)
     params['collectors'] = []
     for q in range(3):
         params['collectors'].append('co' + random_hex_generator(3))
