@@ -1,3 +1,7 @@
+"""
+Model objects for the Nova mimic.
+"""
+
 from characteristic import attributes, Attribute
 from random import randrange
 from json import loads, dumps
@@ -7,19 +11,22 @@ from mimic.util.helper import invalid_resource
 
 from twisted.web.http import ACCEPTED, NOT_FOUND
 
+
 @attributes(["collection", "server_id", "server_name", "metadata",
              "creation_time", "update_time", "public_ips", "private_ips",
              "status", "flavor_ref", "image_ref", "disk_config",
              "admin_password", "creation_request_json"])
 class Server(object):
     """
-    
+    A :obj:`Server` is a representation of all the state associated with a nova
+    server.  It can produce JSON-serializable objects for various pieces of
+    state that are required for API responses.
     """
 
     static_defaults = {
         "OS-EXT-STS:power_state": 1,
         "OS-EXT-STS:task_state": None,
-        "accessIPv4": "198.101.241.238", # TODO: same as public IP
+        "accessIPv4": "198.101.241.238",  # TODO: same as public IP
         "accessIPv6": "2001:4800:780e:0510:d87b:9cbc:ff04:513a",
         "key_name": None,
         "hostId": "33ccb6c82f3625748b6f2338f54d8e9df07cc583251e001355569056",
@@ -29,7 +36,8 @@ class Server(object):
 
     def addresses_json(self):
         """
-        
+        Create a JSON-serializable data structure describing the public and
+        private IPs associated with this server.
         """
         return {
             "private": [addr.json() for addr in self.private_ips],
@@ -38,26 +46,30 @@ class Server(object):
 
     def links_json(self, absolutize_url):
         """
-        
+        Create a JSON-serializable data structure describing the links to this
+        server.
+
+        :param callable absolutize_url: see :obj:`default_create_behavior`.
         """
         tenant_id = self.collection.tenant_id
         server_id = self.server_id
         return [
             {
                 "href": absolutize_url("v2/{0}/servers/{1}"
-                            .format(tenant_id, server_id)),
+                                       .format(tenant_id, server_id)),
                 "rel": "self"
             },
             {
                 "href": absolutize_url("{0}/servers/{1}"
-                            .format(tenant_id, server_id)),
+                                       .format(tenant_id, server_id)),
                 "rel": "bookmark"
             }
         ]
 
     def brief_json(self, absolutize_url):
         """
-        Brief version of this server, for the non-details list servers request.
+        Brief JSON-serializable version of this server, for the non-details
+        list servers request.
         """
         return {
             'name': self.server_name,
@@ -216,6 +228,7 @@ def default_create_behavior(collection, http, json, absolutize_url,
     http.setResponseCode(ACCEPTED)
     return dumps(response)
 
+
 def default_with_hook(function):
     """
     Convert a function that takes a function.
@@ -225,6 +238,7 @@ def default_with_hook(function):
                                        hook=function)
     return hooked
 
+
 def metadata_to_creation_behavior(metadata):
     """
     Examine the metadata given to a server creation request, and return a
@@ -232,6 +246,7 @@ def metadata_to_creation_behavior(metadata):
     """
     if 'create_server_failure' in metadata:
         failure = loads(metadata['create_server_failure'])
+
         def fail_and_dont_do_anything(collection, http, json, absolutize_url):
             # behavior for failing to even start to build
             http.setResponseCode(failure['code'])
@@ -357,12 +372,16 @@ class RegionalServerCollection(object):
              Attribute("regional_collections", default_factory=dict)])
 class GlobalServerCollections(object):
     """
-    
+    A :obj:`GlobalServerCollections` is a set of all the
+    :obj:`RegionalServerCollection` objects owned by a given tenant.  In other
+    words, all the objects that a single tenant owns globally in a Nova
+    service.
     """
 
     def collection_for_region(self, region_name):
         """
-        
+        Get a :obj:`RegionalServerCollection` for the region identified by the
+        given name.
         """
         if region_name not in self.regional_collections:
             self.regional_collections[region_name] = (

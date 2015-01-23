@@ -83,6 +83,10 @@ class NovaRegion(object):
         self._name = name
 
     def url(self, suffix):
+        """
+        Generate a URL to an object within the Nova URL hierarchy, given the
+        part of the URL that comes after.
+        """
         return str(URLPath.fromString(self.uri_prefix).child(suffix))
 
     def _region_collection_for_tenant(self, tenant_id):
