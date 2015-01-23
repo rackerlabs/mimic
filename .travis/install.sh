@@ -29,7 +29,7 @@ if [[ "$DARWIN" = true ]]; then
             pyenv global 2.7.8
             ;;
         pypy)
-	    # travis/tox are not finding pypy when installed using pyenv.
+            # travis/tox are not finding pypy when installed using pyenv.
             brew install pypy
             ;;
         docs)
@@ -37,7 +37,8 @@ if [[ "$DARWIN" = true ]]; then
             sudo python get-pip.py
             ;;
         bundle)
-            brew install python
+            curl -O https://bootstrap.pypa.io/get-pip.py
+            sudo python get-pip.py
             ;;
     esac
     pyenv rehash
