@@ -320,6 +320,8 @@ class NovaAPITests(SynchronousTestCase):
             self, self.root, "GET",
             "{0}/servers/detail?name={1}".format(self.uri, self.server_name)))
         self.assertEqual(response.code, 200)
+        self.assertIsNot(body['servers'], None)
+        self.assertIsNot(body['servers'][0], None)
         self.assertEqual(body['servers'][0]['id'], self.server_id)
         self.assertEqual(len(body['servers']), 1)
         self.assertEqual(body['servers'][0]['status'], 'ACTIVE')

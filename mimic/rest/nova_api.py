@@ -16,8 +16,7 @@ from twisted.python.urlpath import URLPath
 
 from twisted.plugin import IPlugin
 
-from mimic.canned_responses.nova import (get_limit, delete_server,
-                                         get_image, get_flavor, list_addresses)
+from mimic.canned_responses.nova import get_limit, get_image, get_flavor
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
@@ -96,7 +95,8 @@ class NovaRegion(object):
             .data_for_api(
                 self._api_mock,
                 lambda: GlobalServerCollections(
-                    tenant_id, self._session_store.clock
+                    tenant_id=tenant_id,
+                    clock=self._session_store.clock
                 )
             )
             .collection_for_region(self._name)
@@ -148,29 +148,31 @@ class NovaRegion(object):
         Returns list of servers that were created by the mocks, with details
         such as the metadata.
         """
-        return _list_servers(request, tenant_id, details=True,
-                             s_cache=_server_cache_for_tenant(tenant_id),
-                             current_timestamp=self._session_store.clock.seconds())
+        return (
+            self._region_collection_for_tenant(tenant_id)
+            .request_list(
+                request, include_details=True, absolutize_url=self.url,
+                name=request.args.get('name', [None])[0]
+            )
+        )
 
-    @app.route('/v2/<string:tenant_id>/servers/<string:server_id>', methods=['DELETE'])
+    @app.route('/v2/<string:tenant_id>/servers/<string:server_id>',
+               methods=['DELETE'])
     def delete_server(self, request, tenant_id, server_id):
         """
         Returns a 204 response code, for any server id'
         """
-        response_data = delete_server(
-            server_id, s_cache=_server_cache_for_tenant(tenant_id)
+        return (
+            self._region_collection_for_tenant(tenant_id)
+            .request_delete(request, server_id)
         )
-        request.setResponseCode(response_data[1])
-        return json.dumps(response_data[0])
 
     @app.route('/v2/<string:tenant_id>/images/<string:image_id>', methods=['GET'])
     def get_image(self, request, tenant_id, image_id):
         """
         Returns a get image response, for any given imageid
         """
-        response_data = get_image(
-            image_id, s_cache=_server_cache_for_tenant(tenant_id)
-        )
+        response_data = get_image(image_id)
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
@@ -179,10 +181,7 @@ class NovaRegion(object):
         """
         Returns a get flavor response, for any given flavorid
         """
-        response_data = get_flavor(
-            flavor_id,
-            s_cache=_server_cache_for_tenant(tenant_id)
-        )
+        response_data = get_flavor(flavor_id)
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
@@ -192,19 +191,16 @@ class NovaRegion(object):
         Returns a get flavor response, for any given flavorid
         """
         request.setResponseCode(200)
-        return json.dumps(
-            get_limit(s_cache=_server_cache_for_tenant(tenant_id))
-        )
+        return json.dumps(get_limit())
 
     @app.route('/v2/<string:tenant_id>/servers/<string:server_id>/ips', methods=['GET'])
     def get_ips(self, request, tenant_id, server_id):
         """
-        Returns a get flavor response, for any given flavorid.
-        (currently the GET ips works only after a GET server after the server is created)
+        Returns a get flavor response, for any given flavorid.  (currently the
+        GET ips works only after a GET server after the server is created)
         """
-        response_data = list_addresses(
-            server_id,
-            s_cache=_server_cache_for_tenant(tenant_id)
+        return (
+            self._region_collection_for_tenant(tenant_id).request_ips(
+                request, server_id
+            )
         )
-        request.setResponseCode(response_data[1])
-        return json.dumps(response_data[0])

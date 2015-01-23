@@ -208,7 +208,7 @@ def list_addresses(server_id, s_cache):
         return not_found_response(), 404
 
 
-def get_image(image_id, s_cache):
+def get_image(image_id):
     """
     Canned response for get image.  The image id provided is substituted in the
     response, if not one of the invalid image ids specified in mimic_presets.
@@ -221,7 +221,7 @@ def get_image(image_id, s_cache):
     return {'image': {'status': 'ACTIVE', 'id': image_id, 'name': 'mimic-test-image'}}, 200
 
 
-def get_flavor(flavor_id, s_cache):
+def get_flavor(flavor_id):
     """
     Canned response for get flavor.
     The flavor id provided is substituted in the response
@@ -234,7 +234,7 @@ def get_flavor(flavor_id, s_cache):
             200)
 
 
-def get_limit(s_cache):
+def get_limit():
     """
     Canned response for limits for servers. Returns only the absolute limits
     """

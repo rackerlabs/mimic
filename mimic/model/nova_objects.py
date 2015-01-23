@@ -5,6 +5,8 @@ from json import loads, dumps
 from mimic.util.helper import seconds_to_timestamp
 from mimic.util.helper import invalid_resource
 
+from twisted.web.http import ACCEPTED
+
 @attributes(["collection", "server_id", "server_name", "metadata",
              "creation_time", "update_time", "public_ips", "private_ips",
              "status", "flavor_ref", "image_ref", "disk_config",
@@ -70,16 +72,18 @@ class Server(object):
         list returned by the list-details request.
         """
         template = self.static_defaults.copy()
+        tenant_id = self.collection.tenant_id
         template.update({
+            "id": self.server_id,
             "OS-DCF:diskConfig": self.disk_config,
             "OS-EXT-STS:vm_state": self.status,
             "addresses": self.addresses_json(),
             "created": seconds_to_timestamp(self.creation_time),
-            "updated": seconds_to_timestamp(self.updated_time),
+            "updated": seconds_to_timestamp(self.update_time),
             "flavor": {
                 "id": self.flavor_ref,
                 "links": [{"href": absolutize_url(
-                    "{0}/flavors/{1}".format(self.tenant_id,
+                    "{0}/flavors/{1}".format(tenant_id,
                                              self.flavor_ref))}],
                 "rel": "bookmark"
             },
@@ -87,16 +91,17 @@ class Server(object):
                 "id": self.image_ref,
                 "links": [{
                     "href": absolutize_url("{0}/images/{1}".format(
-                        self.tenant_id, self.flavor_ref))
+                        tenant_id, self.flavor_ref))
                 }]
             }
             if self.image_ref is not None else '',
-            "links": self.links_json(),
+            "links": self.links_json(absolutize_url),
             "metadata": self.metadata,
-            "name": self.name,
-            "tenant_id": self.tenant_id,
+            "name": self.server_name,
+            "tenant_id": tenant_id,
             "status": self.status
         })
+        return template
 
     def creation_response_json(self, absolutize_url):
         """
@@ -112,32 +117,39 @@ class Server(object):
             }
         }
 
-    def from_creation_request_json(self, collection, json,
+    @classmethod
+    def from_creation_request_json(cls, collection, creation_json,
                                    ipsegment=lambda: randrange(255)):
         """
         Create a :obj:`Server` from a JSON-serializable object that would be in
         the body of a create server request.
         """
         now = collection.clock.seconds()
-        return Server(
+        server_json = creation_json['server']
+        return cls(
             collection=collection,
-            server_name=json['name'],
+            server_name=server_json['name'],
             server_id=('test-server{0}-id-{0}'
                        .format(str(randrange(9999999999)))),
-            metadata=json.get("metadata") or {},
-            created_time=now,
+            metadata=server_json.get("metadata") or {},
+            creation_time=now,
             update_time=now,
             private_ips=[
-                IPv4Address("10.180.{0}.{1}".format(ipsegment(), ipsegment())),
+                IPv4Address(address="10.180.{0}.{1}"
+                            .format(ipsegment(), ipsegment())),
             ],
             public_ips=[
                 IPv4Address(address="198.101.241.{0}".format(ipsegment())),
                 IPv6Address(address="2001:4800:780e:0510:d87b:9cbc:ff04:513a")
             ],
-            creation_request_json=json,
-            flavor_ref=json['flavorRef'],
-            image_ref=json['imageRef'] or '',
-            disk_config=json['OS-DCF:diskConfig'],
+            creation_request_json=creation_json,
+            flavor_ref=server_json['flavorRef'],
+            image_ref=server_json['imageRef'] or '',
+            disk_config="AUTO",
+            # ^ TODO: should be: server_json['OS-DCF:diskConfig'],
+            status="ACTIVE",
+            admin_password="testpassword",
+            # ^ TODO: should be random
         )
 
 
@@ -197,7 +209,8 @@ def default_create_behavior(collection, http, json, absolutize_url,
     """
     new_server = Server.from_creation_request_json(collection, json, ipsegment)
     response = new_server.creation_response_json(absolutize_url)
-    http.setResponseCode(201)
+    http.setResponseCode(ACCEPTED)
+    collection.servers.append(new_server)
     return dumps(response)
 
 
@@ -245,7 +258,7 @@ class RegionalServerCollection(object):
         Request that a server be created.
         """
         behavior = metadata_to_creation_behavior(
-            creation_json.get('metadata'))
+            creation_json.get('server', {}).get('metadata', {}))
         if behavior is None:
             behavior = self.registered_creation_behavior(creation_http_request,
                                                          creation_json)
@@ -258,7 +271,11 @@ class RegionalServerCollection(object):
         """
         Request the information / details for an individual server.
         """
-        return dumps(self.server_by_id(server_id).detail_json(absolutize_url))
+        server = self.server_by_id(server_id)
+        if server is None:
+            http_get_request.setResponseCode(404)
+            return None
+        return dumps({"server": server.detail_json(absolutize_url)})
 
     def request_ips(self, http_get_ips_request, server_id):
         """
@@ -266,7 +283,9 @@ class RegionalServerCollection(object):
         """
         http_get_ips_request.setResponseCode(200)
         server = self.server_by_id(server_id)
-        return {"addresses": server.addresses_json()}
+        if server is None:
+            return None
+        return dumps({"addresses": server.addresses_json()})
 
     def request_list(self, http_get_request, include_details, absolutize_url,
                      name=None):
@@ -276,17 +295,25 @@ class RegionalServerCollection(object):
         Note: only supports filtering by name right now, but will need to
         support more going forward.
         """
-        return dumps({"servers": [
-            server.brief_json(url) if not include_details
-            else server.detail_json(url)
-            for server in self.servers]})
+        return dumps(
+            {"servers": [
+                server.brief_json(absolutize_url) if not include_details
+                else server.detail_json(absolutize_url)
+                for server in self.servers
+            ]}
+        )
 
     def request_delete(self, http_delete_request, server_id):
         """
         Delete a server with the given ID.
         """
+        server = self.server_by_id(server_id)
+        if server is None:
+            print("NO SERVER", server_id)
+            http_delete_request.setResponseCode(404)
+            return b''
         http_delete_request.setResponseCode(204)
-        self.servers.remove(self.server_by_id(server_id))
+        self.servers.remove(server)
         return b''
 
 
