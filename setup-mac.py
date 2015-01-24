@@ -18,7 +18,7 @@ PLIST = dict(
     CFBundleShortVersionString  = ' '.join([NAME, VERSION]),
     CFBundleGetInfoString       = NAME,
     CFBundleExecutable          = NAME,
-    CFBundleIdentifier          = 'com.yourdn.%s' % ID,
+    CFBundleIdentifier          = 'com.%s.%s' % (NAME, ID),
     LSUIElement                 = '1',
     LSMultipleInstancesProhibited = '1',
 )
