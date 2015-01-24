@@ -92,7 +92,8 @@ Due to several quirks in the current version of `py2app`_, specific versions of
 libraries are needed in order for `py2app`_ to build correctly.
 These requirements are specified in ``py2app-requirements.txt``.
 
-`py2app`_ requires that a non-system python be installed for bundling.
+`py2app`_ requires that a non-system python be installed used to build a
+standalone python application.
 To get around this, I've found it easiest to install a brewed 2.7 python.
 This is preferable to using ``pyenv`` because ``brew`` installs a framework
 python.
