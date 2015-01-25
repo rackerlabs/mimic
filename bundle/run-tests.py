@@ -17,7 +17,6 @@ sys.path.insert(0, b'./lib/python/site-packages.zip')
 
 from mimic import test
 
-
 def runTests():
     """
     Run all of mimics tests.
