@@ -1,6 +1,8 @@
 """
 Canned response for Nova
 """
+from mimic.canned_responses.noit_metrics_fixture import (metrics_common_template,
+                                                          metrics)
 
 noit_cache = {}
 
@@ -41,6 +43,15 @@ def create_check(request, check_id):
     return
 
 
+def test_check(check_type):
+    """
+
+    """
+    if metrics_common_template["check"]["state"].get("metric"):
+        del metrics_common_template["check"]["state"]["metric"]
+    metrics_common_template["check"]["state"].update(metrics.get(check_type, {}))
+    return metrics_common_template
+
 def get_check(check_id):
     """
     Gets the check_id from noit_cache
@@ -48,8 +59,19 @@ def get_check(check_id):
     return noit_cache[check_id]
 
 
-def get_checks(check_id):
+def get_checks():
     """
     Gets all checks from noit_cache
     """
     return noit_cache
+
+
+def delete_check(check_id):
+    """
+    Delete the check_id from noit cache
+    """
+    try:
+        del noit_cache[check_id]
+    except:
+        return 404
+    return
