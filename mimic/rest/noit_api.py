@@ -4,13 +4,14 @@ Defines get token, impersonation
 """
 import xmltodict
 import json
+from uuid import UUID
 from twisted.web.server import Request
 from mimic.rest.mimicapp import MimicApp
-from mimic.canned_responses.noit import (create_check, get_check, get_checks,
+from mimic.canned_responses.noit import (create_check, get_check, get_all_checks,
                                          delete_check, test_check)
 
 
-### TO DO:
+# TO DO:
 # Move away from using dict for the templates
 # Include all check type to the metrics in the fixtures
 # Metrics Fixture to populate as per test check request
@@ -52,7 +53,6 @@ class NoitApi(object):
                 return 404, None
         return 200, payload["check"]["attributes"]
 
-
     @app.route('/checks/test', methods=['POST'])
     def test_check(self, request):
         """
@@ -74,7 +74,11 @@ class NoitApi(object):
         TBD: Include error 400 and 500s. Module cannot be updated (test against noit service
             to see the response code expected)
         """
-        # validate check_id is a uuid ?? does noit fail if not?
+        try:
+            UUID(check_id)
+        except (ValueError, AttributeError):
+            request.setResponseCode(500)
+            return
         request.setHeader("content-type", "application/xml")
         response = self.validate_check_payload(request)
         request.setResponseCode(response[0])
@@ -97,14 +101,14 @@ class NoitApi(object):
         Return the current configuration and state of all checks.
         """
         request.setHeader("content-type", "application/xml")
-        return xmltodict.unparse(get_checks())
+        return xmltodict.unparse(get_all_checks())
 
     @app.route('/checks/delete/<check_id>', methods=['DELETE'])
     def delete_checks(self, request, check_id):
         """
         Delete the specified check and return 204 response code
         """
-        response_code = delete_check(check_id) or  200
+        response_code = delete_check(check_id) or 200
         request.setResponseCode(response_code)
         request.setHeader("content-type", "application/xml")
         return

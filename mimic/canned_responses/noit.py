@@ -88,7 +88,7 @@ def get_check(check_id):
     return noit_cache[check_id]
 
 
-def get_checks():
+def get_all_checks():
     """
     Gets all checks from noit_cache
     """
@@ -114,11 +114,8 @@ def get_checks():
         each_check["uuid"] = key
         each_check["config"] = value["check"]["config"]
         check_list.append(each_check)
+    get_all_check_common_template["checks"]["check"] = check_list
     return get_all_check_common_template
-
-
-
-    response = get_all_check_common_template.update
 
 
 def delete_check(check_id):
