@@ -15,6 +15,7 @@ setup(
         "klein==0.2.1",
         "twisted>=13.2.0",
         "jsonschema==2.0",
+        "xmltodict==0.9.1",
         "treq",
         "six",
     ],
