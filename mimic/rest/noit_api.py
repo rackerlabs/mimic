@@ -11,12 +11,11 @@ from mimic.canned_responses.noit import (create_check, get_check, get_checks,
 
 
 ### TO DO:
-# Convert responses to XML
-# Include all check type to the metrics in the fixtures
-# Fixture to populate as per test check request
 # Move away from using dict for the templates
-# add tests
-# Include errors such as 500s on create check
+# Include all check type to the metrics in the fixtures
+# Metrics Fixture to populate as per test check request
+# add support for getVersion and getLiveStream (maybe)???
+# Include more error cases based on ele's tests
 
 
 Request.defaultContentType = 'application/xml'
@@ -42,7 +41,10 @@ class NoitApi(object):
         Validate the check request payload and returns the response code
         """
         content = str(request.content.read())
-        payload = xmltodict.parse(content)
+        try:
+            payload = xmltodict.parse(content)
+        except:
+            return 500, None
         attributes = ["name", "module", "target", "period", "timeout",
                       "filterset"]
         for each in attributes:
@@ -54,7 +56,7 @@ class NoitApi(object):
     @app.route('/checks/test', methods=['POST'])
     def test_check(self, request):
         """
-        Validates the check xml and returns ????
+        Validates the check xml and returns the metrics
         """
         response = self.validate_check_payload(request)
         if (response[0] == 200):
@@ -77,13 +79,11 @@ class NoitApi(object):
         response = self.validate_check_payload(request)
         request.setResponseCode(response[0])
         if (response[0] == 200):
-            # construct xml response
             response_body = create_check(response[1], check_id)
-            print response_body
             return xmltodict.unparse(response_body)
         return
 
-    @app.route('/check/show/<check_id>', methods=['GET'])
+    @app.route('/checks/show/<check_id>', methods=['GET'])
     def get_checks(self, request, check_id):
         """
         Return the current configuration and state of the specified check.
@@ -91,14 +91,13 @@ class NoitApi(object):
         request.setHeader("content-type", "application/xml")
         return xmltodict.unparse(get_check(check_id))
 
-    @app.route('/checks', methods=['GET'])
+    @app.route('/config/checks', methods=['GET'])
     def get_all_checks(self, request):
         """
         Return the current configuration and state of all checks.
         """
-        # request.setHeader("content-type", "application/xml")
-        return json.dumps(get_checks())
-
+        request.setHeader("content-type", "application/xml")
+        return xmltodict.unparse(get_checks())
 
     @app.route('/checks/delete/<check_id>', methods=['DELETE'])
     def delete_checks(self, request, check_id):

@@ -22,10 +22,30 @@ class NoitAPITests(SynchronousTestCase):
         """
         core = MimicCore(Clock(), [])
         root = MimicRoot(core).app.resource()
-        req = request(self, root, "GET", "noit/checks")
+        req = request(self, root, "GET", "noit/config/checks")
         response = self.successResultOf(req)
         self.assertEqual(response.code, 200)
-        # self.assertEqual(treq.response)
+
+    def test_test_check(self):
+        """
+
+        """
+        core = MimicCore(Clock(), [])
+        root = MimicRoot(core).app.resource()
+        test_check_payload = xmltodict.unparse({"check": {
+            "attributes": {
+                "name": "name",
+                "module": "module",
+                "target": "target",
+                "period": "period",
+                "timeout": "timeout",
+                "filterset": "filterset"
+            }
+        }}).encode("utf-8")
+        req = request(self, root, "POST", "noit/checks/test", body=test_check_payload,
+                      headers={'content-type': ['application/xml']})
+        response = self.successResultOf(req)
+        self.assertEqual(response.code, 200)
 
     def test_create_check(self):
         """
@@ -42,11 +62,89 @@ class NoitAPITests(SynchronousTestCase):
                 "timeout": "timeout",
                 "filterset": "filterset"
             }
-        }})
+        }}).encode("utf-8")
         check_id = uuid.uuid4()
         url = "noit/checks/set/{0}".format(check_id)
-        print create_check
-        req = request(self, root, "POST", "noit/checks/test", body=create_check,
+        req = request(self, root, "PUT", url, body=create_check,
                       headers={'content-type': ['application/xml']})
         response = self.successResultOf(req)
         self.assertEqual(response.code, 200)
+
+    def test_delete_check(self):
+        """
+
+        """
+        core = MimicCore(Clock(), [])
+        root = MimicRoot(core).app.resource()
+        create_check = xmltodict.unparse({"check": {
+            "attributes": {
+                "name": "name",
+                "module": "module",
+                "target": "target",
+                "period": "period",
+                "timeout": "timeout",
+                "filterset": "filterset"
+            }
+        }}).encode("utf-8")
+        check_id = uuid.uuid4()
+        url = "noit/checks/set/{0}".format(check_id)
+        req = request(self, root, "PUT", url, body=create_check,
+                      headers={'content-type': ['application/xml']})
+        response = self.successResultOf(req)
+        self.assertEqual(response.code, 200)
+        del_req = request(self, root, "DELETE", "noit/checks/delete/{0}".format(check_id))
+        del_response = self.successResultOf(del_req)
+        self.assertEqual(del_response.code, 200)
+
+
+    def test_get_check(self):
+        """
+
+        """
+        core = MimicCore(Clock(), [])
+        root = MimicRoot(core).app.resource()
+        create_check = xmltodict.unparse({"check": {
+            "attributes": {
+                "name": "name",
+                "module": "module",
+                "target": "target",
+                "period": "period",
+                "timeout": "timeout",
+                "filterset": "filterset"
+            }
+        }}).encode("utf-8")
+        check_id = uuid.uuid4()
+        url = "noit/checks/set/{0}".format(check_id)
+        req = request(self, root, "PUT", url, body=create_check,
+                      headers={'content-type': ['application/xml']})
+        response = self.successResultOf(req)
+        self.assertEqual(response.code, 200)
+        get_req = request(self, root, "GET", "noit/checks/show/{0}".format(check_id))
+        get_response = self.successResultOf(get_req)
+        self.assertEqual(get_response.code, 200)
+
+
+    def test_create_check_fails_with_500(self):
+        """
+
+        """
+        core = MimicCore(Clock(), [])
+        root = MimicRoot(core).app.resource()
+        create_check = xmltodict.unparse({"check": {
+            "attributes": {
+                "name": "name",
+                "module": "module",
+                "target": "target",
+                "period": "period",
+                "timeout": "timeout",
+                "filterset": "filterset"
+            }
+        }}).encode("utf-8")
+        check_id = uuid.uuid4()
+        url = "noit/checks/set/{0}".format(check_id)
+
+        req = request(self, root, "PUT", url, body=create_check.replace('</check>', ' abc'),
+                      headers={'content-type': ['application/xml']})
+        response = self.successResultOf(req)
+        self.assertEqual(response.code, 500)
+

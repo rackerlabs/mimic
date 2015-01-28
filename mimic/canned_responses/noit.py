@@ -92,7 +92,33 @@ def get_checks():
     """
     Gets all checks from noit_cache
     """
-    return noit_cache
+    get_all_check_common_template = {
+        "checks": {
+            "@resolve_targets": "true",
+            "@max_initial_stutter": "30000",
+            "@filterset": "default",
+            "@transient_min_period": "1000",
+            "@transient_period_granularity": "500",
+            "@backingstore": "/tmp/noit-bs",
+            "config": {
+                "@xmlns:ip_acl": "noit://module/ip_acl",
+                "ip_acl:whitelist": None
+            }
+        }
+    }
+    if get_all_check_common_template.get("check"):
+        del get_all_check_common_template["check"]
+    check_list = []
+    for key, value in noit_cache.items():
+        each_check = value["check"]["attributes"]
+        each_check["uuid"] = key
+        each_check["config"] = value["check"]["config"]
+        check_list.append(each_check)
+    return get_all_check_common_template
+
+
+
+    response = get_all_check_common_template.update
 
 
 def delete_check(check_id):
