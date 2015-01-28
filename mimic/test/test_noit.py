@@ -37,9 +37,11 @@ class NoitAPITests(SynchronousTestCase):
         self.check_id = uuid.uuid4()
         url = "noit/checks/set/{0}".format(self.check_id)
 
-        (self.response, self.body) = self.successResultOf(
+        (self.response, response_body) = self.successResultOf(
             request_with_content(self, self.root, "PUT", url,
                                  body=self.create_check_xml_payload))
+        self.create_json_response = json.loads(
+            json.dumps(xmltodict.parse(response_body)))
 
     def test_get_all_checks(self):
         """
@@ -58,26 +60,33 @@ class NoitAPITests(SynchronousTestCase):
         (response, body) = self.successResultOf(
             request_with_content(self, self.root, "POST", "noit/checks/test",
                                  body=self.create_check_xml_payload))
+        json_response = json.loads(json.dumps(xmltodict.parse(body)))
         self.assertEqual(response.code, 200)
+        self.assertTrue(json_response["check"]["state"]["metrics"])
 
     def test_create_check(self):
         """
         Test to verify :func:`set_check` on ``PUT /checks/set/<check_id>``
         """
         self.assertEqual(self.response.code, 200)
+        self.assertEqual(self.create_check["check"]["attributes"],
+                         self.create_json_response["check"]["attributes"])
 
     def test_update_check(self):
         """
         Test to verify update check on :func:`set_check` using
         ``PUT /checks/set/<check_id>``
         """
-        self.create_check["check"]["attributes"]["names"] = "rename"
+        self.create_check["check"]["attributes"]["name"] = "rename"
         (response, body) = self.successResultOf(
             request_with_content(self, self.root, "PUT",
                                  "noit/checks/set/{0}".format(self.check_id),
                                  body=xmltodict.unparse(self.create_check
                                                         ).encode("utf-8")))
+        json_response = json.loads(json.dumps(xmltodict.parse(body)))
         self.assertEqual(self.response.code, 200)
+        self.assertEqual(json_response["check"]["attributes"]["name"],
+                         "rename")
 
     def test_get_check(self):
         """
@@ -86,7 +95,10 @@ class NoitAPITests(SynchronousTestCase):
         (get_response, body) = self.successResultOf(
             request_with_content(self, self.root, "GET",
                                  "noit/checks/show/{0}".format(self.check_id)))
+        json_response = json.loads(json.dumps(xmltodict.parse(body)))
         self.assertEqual(get_response.code, 200)
+        self.assertEqual(self.create_check["check"]["attributes"],
+                         json_response["check"]["attributes"])
 
     def test_delete_check(self):
         """

@@ -66,8 +66,6 @@ def create_check(request, check_id):
     Create the check and saves it in the cache.
     """
     noit_cache[check_id] = noit_check_template(request)
-    # construct xml response and return it
-
     return noit_cache[check_id]
 
 
