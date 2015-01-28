@@ -89,7 +89,8 @@ metrics = {
             {
                 "@name": "cert_subject",
                 "@type": "s",
-                "#text": "\/C=US\/ST=Texas\/L=San Antonio\/O=Rackspace US, Inc.\/OU=Marketing\/CN=www.rackspace.com"
+                "#text": ("\/C=US\/ST=Texas\/L=San Antonio\/O=Rackspace US,"
+                          " Inc.\/OU=Marketing\/CN=www.rackspace.com")
             },
             {
                 "@name": "cert_start",
@@ -99,7 +100,8 @@ metrics = {
             {
                 "@name": "cert_issuer",
                 "@type": "s",
-                "#text": "\/C=US\/O=Symantec Corporation\/OU=Symantec Trust Network\/CN=Symantec Class 3 Secure Server CA - G4"
+                "#text": ("\/C=US\/O=Symantec Corporation\/OU=Symantec"
+                          " Trust Network\/CN=Symantec Class 3 Secure Server CA - G4")
             },
             {
                 "@name": "code",
@@ -129,12 +131,15 @@ metrics = {
             {
                 "@name": "cert_subject_alternative_names",
                 "@type": "s",
-                "#text": "wwwp.wip.rackspace.com, ord.wwwp.wip.rackspace.com, iad.wwwp.wip.rackspace.com, admin.rackspace.com, iad.wip.rackspace.com, ord.wip.rackspace.com, www.rackspace.com"
+                "#text": ("wwwp.wip.rackspace.com, ord.wwwp.wip.rackspace.com,"
+                          " iad.wwwp.wip.rackspace.com, admin.rackspace.com,"
+                          " iad.wip.rackspace.com, ord.wip.rackspace.com, www.rackspace.com")
             },
             {
                 "@name": "cert_error",
                 "@type": "s",
-                "#text": "No certificate present., host header does not match CN or SANs in certificate"
+                "#text": ("No certificate present., host header "
+                          "does not match CN or SANs in certificate")
             },
             {
                 "@name": "duration",
