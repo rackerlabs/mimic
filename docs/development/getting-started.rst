@@ -91,45 +91,48 @@ Building a Mac application
 application.
 
 To build using the system python, you need only to create a `virtualenv`_
-using the system python and the `pyojbc`_ and `py2app`_ packages
+using the system python and the `pyobjc`_ and `py2app`_ packages
 preinstalled on your system.
-
-The following steps will create a `virtualenv`_, install the packages
-needed to build ``mimic``, and finally build and test the ``mimic.app``
 
 .. code-block:: console
 
    $ cd /dir/where/mimic/lives/
+
+   # build a virtualenv using system of py2app and pyobjc
    $ virtualenv -p /usr/bin/python2.7 --system-site-packages ./venv
    $ source ./venv/bin/activate
-   $ pip install -r requirements.txt \
-		-r dev-requirements.txt
+
+   # install mimic's requirements
+   $ pip install -r requirements.txt -r dev-requirements.txt
+
+   # build the application and run its tests
    $ make
 
 
 The alternative is to build the application without the dependency on the
 system's python.
-To do so, you must install a framework python build.
+
 In my experience, it has been simplest to install a brewed 2.7 python.
 To install a brew python, you'll need to have homebrew installed on your Mac.
-
-The following steps will install a brew python, install the packages needed
-to build ``mimic``, and finally build and test the ``mimic.app``.
 
 .. code-block:: console
 
    $ brew install python
    $ cd /dir/where/mimic/lives/
-   $ virtualenv -p /usr/bin/python2.7 --system-site-packages ./venv
-   $ source ./venv/bin/activate
-   $ pip install -r requirements.txt
-		-r dev-requirements.txt \
-		-r py2app-requirements.txt
 
+   # build a virtualenv using the brewed python
+   $ virtualenv -p /usr/local/bin/python2.7 ./venv
+   $ source ./venv/bin/activate
+
+   # install mimic's dependencies including pyobjc and py2app
+   $ pip install -r requirements.txt
+   $ pip install -r dev-requirements.txt
+   $ pip install -r py2app-requirements.txt
+
+   # build the application and run its tests
    $ make
 
-Once built, the ``mimic.app`` application will be found in the ``./dist``
-directory.
+Once built, ``mimic.app`` can be found in the ``./dist`` directory.
 This application can be treated like any other mac application and moved into
 ~/Applications.
 
