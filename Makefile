@@ -1,7 +1,6 @@
 all: clean build test
 
 build:
-	trial mimic
 	python setup-mac.py py2app
 
 test:
