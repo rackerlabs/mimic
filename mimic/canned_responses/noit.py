@@ -73,7 +73,7 @@ def create_check(request, check_id):
 
 def test_check(check_type):
     """
-
+    Creates a response for test check
     """
     if metrics_common_template["check"]["state"].get("metric"):
         del metrics_common_template["check"]["state"]["metric"]

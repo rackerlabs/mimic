@@ -1,3 +1,7 @@
+"""
+Fixtures for metrics
+"""
+
 # Remove this when changing over to object model
 # as this is repeated within the check_template
 

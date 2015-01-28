@@ -3,7 +3,6 @@
 Defines get token, impersonation
 """
 import xmltodict
-import json
 from uuid import UUID
 from twisted.web.server import Request
 from mimic.rest.mimicapp import MimicApp
