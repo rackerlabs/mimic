@@ -91,8 +91,8 @@ Building a Mac application
 application.
 
 To build using the system python, you need only to create a `virtualenv`_
-using the system python and the `pyobjc`_ and `py2app`_ packages
-preinstalled on your system.
+using the system python and its packages.
+This is because OSX comes with `py2app`_ and `pyobjc`_ already installed.
 
 .. code-block:: console
 
@@ -113,7 +113,8 @@ The alternative is to build the application without the dependency on the
 system's python.
 
 In my experience, it has been simplest to install a brewed 2.7 python.
-To install a brew python, you'll need to have homebrew installed on your Mac.
+To install a brew python, you'll need to have `homebrew`_ installed on your
+Mac.
 
 .. code-block:: console
 
