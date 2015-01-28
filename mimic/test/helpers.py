@@ -38,7 +38,6 @@ class AbortableStringTransport(StringTransport):
         self.loseConnection()
 
 
-
 class RequestTraversalAgent(object):
     """
     :obj:`IAgent` implementation that issues an in-memory request rather than
