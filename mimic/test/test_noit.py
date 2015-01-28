@@ -42,7 +42,7 @@ class NoitAPITests(SynchronousTestCase):
                 "timeout": "timeout",
                 "filterset": "filterset"
             }
-        }})
+        }}).encode("utf-8")
         check_id = uuid.uuid4()
         url = "noit/checks/set/{0}".format(check_id)
         print create_check
