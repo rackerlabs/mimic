@@ -58,9 +58,9 @@ class NoitApi(object):
         """
         response = self.validate_check_payload(request)
         if (response[0] == 200):
-            # request.setHeader("content-type", "application/xml")
+            request.setHeader("content-type", "application/xml")
             response_body = test_check(response[1]["module"])
-            return json.dumps(response_body)
+            return xmltodict.unparse(response_body)
         request.setResponseCode(response[0])
         return
 
@@ -73,12 +73,14 @@ class NoitApi(object):
             to see the response code expected)
         """
         # validate check_id is a uuid ?? does noit fail if not?
-
+        request.setHeader("content-type", "application/xml")
         response = self.validate_check_payload(request)
         request.setResponseCode(response[0])
         if (response[0] == 200):
             # construct xml response
-            return create_check(response[1], check_id)
+            response_body = create_check(response[1], check_id)
+            print response_body
+            return xmltodict.unparse(response_body)
         return
 
     @app.route('/check/show/<check_id>', methods=['GET'])
@@ -86,8 +88,8 @@ class NoitApi(object):
         """
         Return the current configuration and state of the specified check.
         """
-        # request.setHeader("content-type", "application/xml")
-        return json.dumps(get_check(check_id))
+        request.setHeader("content-type", "application/xml")
+        return xmltodict.unparse(get_check(check_id))
 
     @app.route('/checks', methods=['GET'])
     def get_all_checks(self, request):
