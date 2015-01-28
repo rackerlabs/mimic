@@ -49,9 +49,10 @@ class MimicRoot(object):
     @app.route("/noit", branch=True)
     def get_noit_api(self, request):
         """
-        Mock Noit api here ... until mimic allows services outside of the service catalog.
+        Mock Noit api here ... until mimic allows services outside of the
+        service catalog.
         """
-        return NoitApi(self.core).app.resource()
+        return NoitApi(self.core, self.clock).app.resource()
 
     @app.route('/mimic/v1.0/presets', methods=['GET'])
     def get_mimic_presets(self, request):
