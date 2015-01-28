@@ -2,8 +2,10 @@
 Unit tests for :mod:`mimic.util`
 """
 from twisted.trial.unittest import SynchronousTestCase
+from twisted.web.resource import Resource
 
 from mimic.util import helper
+from mimic.test.helpers import request
 
 
 class HelperTests(SynchronousTestCase):
@@ -65,3 +67,19 @@ class HelperTests(SynchronousTestCase):
         for match in matches:
             self.assertEqual(match[1],
                              helper.seconds_to_timestamp(0, match[0]))
+
+
+class TestHelperTests(SynchronousTestCase):
+    """
+    Tests for :obj:`mimic.test.helpers`.
+    """
+
+    def test_unicode_body(self):
+        """
+        If :obj:`request` is given a unicode request body, the deferred
+        synchronously fails so that the caller can immediately tell something
+        is wrong.
+        """
+        self.failureResultOf(
+            request(self, Resource(), b"POST", b"", u"not bytes")
+        )
