@@ -75,7 +75,7 @@ def test_check(check_type):
     """
     if metrics_common_template["check"]["state"].get("metric"):
         del metrics_common_template["check"]["state"]["metric"]
-    metrics_common_template["check"]["state"].update(metrics.get(check_type, {}))
+    metrics_common_template["check"]["state"]["metrics"][1].update(metrics.get(check_type, {}))
     return metrics_common_template
 
 

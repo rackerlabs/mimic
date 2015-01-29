@@ -20,7 +20,7 @@ metrics_common_template = {
             "runtime": "0.958",
             "availability": "available",
             "state": "good",
-            "status": "code=200,rt=0.957s,bytes=44779,sslerror",
+            "status": "ok",
             "metrics": [
                 {
                     "@type": "inprogress"
@@ -36,6 +36,34 @@ metrics_common_template = {
 
 
 metrics = {
+    "selfcheck": {
+        "metric": [
+            {"@name": "version",
+             "@type": "s",
+             "#text": "ckdev-stage.8e17ed475b8a80103d11ec29e5e122fe256f8bf7.1416497041"},
+            {"@name": "check_cnt",
+             "@type": "i",
+             "#text": "5"},
+            {"@name": "transient_cnt",
+             "@type": "i",
+             "#text": "0"},
+            {"@name": "uptime",
+             "@type": "l",
+             "#text": "165"},
+            {"@name": "metrics_collected",
+             "@type": "L",
+             "#text": "321"},
+            {"@name": "feed_bytes",
+             "@type": "l",
+             "#text": "23817"},
+            {"@name": "default_queue_threads",
+             "@type": "i",
+             "#text": "10"},
+            {"@name": "checks_run",
+             "@type": "L",
+             "#text": "50"}
+        ]
+    },
     "ping_icmp": {
         "metric": [
             {"@name": "available",
