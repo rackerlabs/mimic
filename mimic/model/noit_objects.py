@@ -14,7 +14,8 @@ from twisted.web.http import ACCEPTED, NOT_FOUND
 
 
 @attributes(["check_id", "check_name", "check_module",
-             "check_target", "check_period", "check_timeout", "check_filterset"
+             "check_target", "check_period", "check_timeout", "check_filterset",
+             "config", "state"
              ])
 class NoitCheck(object):
 
@@ -66,7 +67,7 @@ class NoitCheck(object):
         Create a :obj:`NoitCheck` from a JSON-serializable object that is parsed
         from the body of a create check request.
         """
-        noit_check_json = creation_json['check']
+        noit_check_json = creation_json['check']['attributes']
         self = cls(
             check_id=check_id,
             check_name=noit_check_json['name'],
@@ -74,9 +75,11 @@ class NoitCheck(object):
             check_target=noit_check_json['target'],
             check_period=noit_check_json['period'],
             check_timeout=noit_check_json['timeout'],
-            check_filterset=noit_check_json['filterset']
+            check_filterset=noit_check_json['filterset'],
+            config=static_defaults['config'],
+            state=static_defaults['state']
         )
-        collection.servers.append(self)
+        # collection.servers.append(self)
         return self
 
     def parse_dict_to_xml(self, json_object):
@@ -89,17 +92,19 @@ class NoitCheck(object):
         """
 
         """
-        return {
-            # create response goes here
+        response_object = {"check": self}
+        return parse_dict_to_xml({
+
+
         }
 
-    def default_create_behavior(request, json, check_id):
-        """
-        """
-        new_check = NoitCheck.create_check_from_request(json, check_id)
-        response = new_check.creation_response_json()
-        request.setHeader("content-type", "application/xml")
-        return parse_dict_to_xml(response)
+
+def default_create_behavior(request_payload, check_id):
+    """
+    """
+    new_check = NoitCheck.create_check_from_request(request_payload, check_id)
+    response = new_check.creation_response_json()
+    return parse_dict_to_xml(response)
 
 
 # @attributes(["request", "check_id",
@@ -110,10 +115,10 @@ class NoitChecksCollection(object):
     Collection of checks in a given instance of Noit
     """
 
-    def __init__(self, request, check_id, checks=[]):
+    def __init__(self, request_payload, check_id, checks=[]):
         """
         """
-        self.request = request
+        self.request_payload = request_payload
         self.check_id = check_id
 
     def check_by_id(self, check_id):
@@ -126,16 +131,16 @@ class NoitChecksCollection(object):
 
     def parse_xml_to_dict(self, xml_payload):
         """
-
+        xmltodict parses xml_payload to be an ordered dict.
+        dumps converts an ordered dict to a json and loads converts
+        it to a dict.
         """
         return loads(dumps(xmltodict.parse(xml_payload)))
-
 
     def request_creation(self, creation_request, check_id):
         """
         Request that a check should be created in Noit.
         """
-        content = str(creation_request.content.read())
-        creation_json = self.parse_xml_to_dict(content)
-        behavior = default_create_behavior
-        return behavior(self, creation_request, creation_json, check_id)
+        # content = str(creation_request.content.read())
+        # creation_json = self.parse_xml_to_dict(content)
+        return default_create_behavior(self, request_payload, check_id)
