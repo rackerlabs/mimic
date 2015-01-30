@@ -170,7 +170,7 @@ class Server(object):
 @attributes(["address"])
 class IPv4Address(object):
     """
-    An IPv6 address for a server.
+    An IPv4 address for a server.
     """
 
     def json(self):
