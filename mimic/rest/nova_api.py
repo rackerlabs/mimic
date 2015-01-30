@@ -200,8 +200,7 @@ class NovaRegion(object):
     @app.route('/v2/<string:tenant_id>/servers/<string:server_id>/ips', methods=['GET'])
     def get_ips(self, request, tenant_id, server_id):
         """
-        Returns a get flavor response, for any given flavorid.  (currently the
-        GET ips works only after a GET server after the server is created)
+        Returns the IP addresses for the specified server.
         """
         return (
             self._region_collection_for_tenant(tenant_id).request_ips(
