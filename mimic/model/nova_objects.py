@@ -158,10 +158,10 @@ class Server(object):
             flavor_ref=server_json['flavorRef'],
             image_ref=server_json['imageRef'] or '',
             disk_config="AUTO",
-            # ^ TODO: should be: server_json['OS-DCF:diskConfig'],
+            # ^ TODO: https://github.com/rackerlabs/mimic/issues/163
             status="ACTIVE",
             admin_password="testpassword",
-            # ^ TODO: should be random
+            # ^ TODO: https://github.com/rackerlabs/mimic/issues/164
         )
         collection.servers.append(self)
         return self
