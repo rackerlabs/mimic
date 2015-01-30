@@ -220,6 +220,10 @@ def default_create_behavior(collection, http, json, absolutize_url,
 
     :param ipsegment: A hook provided for IP generation so the IP addresses in
         tests are deterministic; normally a random number between 0 and 255.
+    :param callable hook: a 1-argument callable which, if specified, will be
+        invoked with the :obj:`Server` object after creating it, but before
+        generating the response.  This allows for invoking the default behavior
+        with a small tweak to alter the server's state in some way.
     """
     new_server = Server.from_creation_request_json(collection, json, ipsegment)
     if hook is not None:
