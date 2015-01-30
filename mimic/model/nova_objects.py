@@ -235,7 +235,17 @@ def default_create_behavior(collection, http, json, absolutize_url,
 
 def default_with_hook(function):
     """
-    Convert a function that takes a function.
+    A convenience decorator to make it easy to write a slightly-customized
+    version of :obj:`default_create_behavior`.
+
+    :param Server function: a 1-argument function taking a :obj:`Server` and
+        returning Nothing.
+
+    :return: a creation behavior, i.e. a function with the same signature as
+             :obj:`default_create_behavior`, which does the default behavior of
+             creating a server, adding it to the collection, and returning a
+             successful ``ACCEPTED`` response, but with the server's state
+             first modified by whatever the input ``function`` does.
     """
     def hooked(collection, http, json, absolutize_url):
         return default_create_behavior(collection, http, json, absolutize_url,
