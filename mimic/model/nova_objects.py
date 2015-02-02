@@ -271,7 +271,7 @@ def metadata_to_creation_behavior(metadata):
         def set_building(server):
             server.status = u"BUILD"
             server.collection.clock.callLater(
-                metadata['server_building'],
+                float(metadata['server_building']),
                 lambda: setattr(server, "status", u"ACTIVE"))
         return set_building
     if 'server_error' in metadata:
@@ -279,7 +279,7 @@ def metadata_to_creation_behavior(metadata):
         def set_error(server):
             server.status = u"ERROR"
             server.collection.clock.callLater(
-                metadata['server_error'],
+                float(metadata['server_error']),
                 lambda: setattr(server, "status", u"ACTIVE"))
         return set_error
     return None
