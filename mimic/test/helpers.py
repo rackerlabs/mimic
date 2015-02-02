@@ -25,6 +25,19 @@ from twisted.python.failure import Failure
 import treq
 
 
+class AbortableStringTransport(StringTransport):
+    """
+    A :obj:`StringTransport` that supports ``abortConnection``.
+    """
+
+    def abortConnection(self):
+        """
+        Since all connection cessation is immediate in this in-memory
+        transport, just call ``loseConnection``.
+        """
+        self.loseConnection()
+
+
 class RequestTraversalAgent(object):
     """
     :obj:`IAgent` implementation that issues an in-memory request rather than
@@ -63,7 +76,7 @@ class RequestTraversalAgent(object):
 
         # We want to capture the output of that connection so we'll make an
         # in-memory transport.
-        clientTransport = StringTransport()
+        clientTransport = AbortableStringTransport()
 
         # When the protocol is connected to a transport, it ought to send the
         # whole request because callers of this should not use an asynchronous
