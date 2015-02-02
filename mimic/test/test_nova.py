@@ -371,7 +371,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         Test to verify :func:`create_server` creates a server in BUILD
         status for the time specified in the metadata.
         """
-        metadata = {"server_building": 1}
+        metadata = {"server_building": "1"}
         # create server with metadata to keep the server in building state for
         # 3 seconds
         create_server_response = self.create_server(metadata=metadata)
@@ -409,7 +409,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         """
         Test to verify :func:`create_server` creates a server in ERROR state.
         """
-        metadata = {"server_error": 1}
+        metadata = {"server_error": "1"}
         # create server with metadata to set status in ERROR
         create_server_response = self.create_server(metadata=metadata)
         # verify the create server was successful
