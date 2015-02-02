@@ -195,3 +195,35 @@ def json_request(testCase, rootResource, method, uri, body=b"",
         return body_d
 
     return d.addCallback(get_body)
+
+
+def validate_link_json(testCase, json_containing_links):
+    """
+    Ensure that a JSON blob has the keys "id" and "links", and that the value
+    for links is a list of dicts containing 'href' and 'rel'
+
+    :param TestCase testCase: a test case to call assertions on
+    :param dict json_content: A dictionary to validate that it has a correct
+        'links' attribute.
+    """
+    testCase.assertIsInstance(json_containing_links, dict,
+                              "{0} is not a dictionary"
+                              .format(json_containing_links))
+    testCase.assertIn('id', json_containing_links,
+                      'There is no "id" attribute in {0}'
+                      .format(json_containing_links))
+    testCase.assertIn('links', json_containing_links,
+                      'There is no "links" attribute in {0}'
+                      .format(json_containing_links))
+    testCase.assertIsInstance(json_containing_links['links'], list,
+                              "Links is not a list in {0}"
+                              .format(json_containing_links))
+    for link in json_containing_links['links']:
+        testCase.assertIn('href', link,
+                          'Link does not contain "href": {0}'.format(link))
+        testCase.assertIn('rel', link,
+                          'Link does not contain "rel": {0}'.format(link))
+        testCase.assertIsInstance(link['href'], basestring,
+                                  '"href" is not a string: {0}'.format(link))
+        testCase.assertIsInstance(link['rel'], basestring,
+                                  '"rel" is not a string: {0}'.format(link))

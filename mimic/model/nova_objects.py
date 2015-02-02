@@ -94,16 +94,17 @@ class Server(object):
             "updated": seconds_to_timestamp(self.update_time),
             "flavor": {
                 "id": self.flavor_ref,
-                "links": [{"href": absolutize_url(
-                    "{0}/flavors/{1}".format(tenant_id,
-                                             self.flavor_ref))}],
-                "rel": "bookmark"
+                "links": [{
+                    "href": absolutize_url(
+                        "{0}/flavors/{1}".format(tenant_id, self.flavor_ref)),
+                    "rel": "bookmark"}],
             },
             "image": {
                 "id": self.image_ref,
                 "links": [{
                     "href": absolutize_url("{0}/images/{1}".format(
-                        tenant_id, self.flavor_ref))
+                        tenant_id, self.flavor_ref)),
+                    "rel": "bookmark"
                 }]
             }
             if self.image_ref is not None else '',
