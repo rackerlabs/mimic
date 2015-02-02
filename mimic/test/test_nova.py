@@ -33,9 +33,9 @@ class NovaAPITests(SynchronousTestCase):
                 }
             }))
         self.create_server_response = self.successResultOf(create_server)
-        create_server_response_body = self.successResultOf(
+        self.create_server_response_body = self.successResultOf(
             treq.json_content(self.create_server_response))
-        self.server_id = create_server_response_body['server']['id']
+        self.server_id = self.create_server_response_body['server']['id']
         self.nth_endpoint_public = helper.nth_endpoint_public
 
     def validate_server_detail_json(self, server_json):
@@ -71,6 +71,7 @@ class NovaAPITests(SynchronousTestCase):
         """
         self.assertEqual(self.create_server_response.code, 202)
         self.assertTrue(type(self.server_id), unicode)
+        validate_link_json(self, self.create_server_response_body['server'])
 
     def test_list_servers(self):
         """
@@ -84,6 +85,7 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(list_servers_response_body['servers'][0]['id'],
                          self.server_id)
         self.assertEqual(len(list_servers_response_body['servers']), 1)
+        validate_link_json(self, list_servers_response_body['servers'][0])
 
     def test_list_servers_with_args(self):
         """
