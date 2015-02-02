@@ -4,7 +4,7 @@ import treq
 
 from twisted.trial.unittest import SynchronousTestCase
 
-from mimic.test.helpers import json_request, request
+from mimic.test.helpers import json_request, request, validate_link_json
 from mimic.rest.nova_api import NovaApi
 from mimic.test.fixtures import APIMockHelper, TenantAuthentication
 
@@ -33,10 +33,37 @@ class NovaAPITests(SynchronousTestCase):
                 }
             }))
         self.create_server_response = self.successResultOf(create_server)
-        create_server_response_body = self.successResultOf(
+        self.create_server_response_body = self.successResultOf(
             treq.json_content(self.create_server_response))
-        self.server_id = create_server_response_body['server']['id']
+        self.server_id = self.create_server_response_body['server']['id']
         self.nth_endpoint_public = helper.nth_endpoint_public
+
+    def validate_server_detail_json(self, server_json):
+        """
+        Tests to validate the server JSON.
+        """
+        validate_link_json(self, server_json)
+        # id and links has already been checked, there are others that are not
+        # yet implemented in mimic/optional
+        response_keys = ("accessIPv4", "accessIPv6", "addresses", "created",
+                         "flavor", "image", "metadata", "name", "status",
+                         "tenant_id", "updated", "OS-EXT-STS:task_state",
+                         "OS-DCF:diskConfig")
+        for key in response_keys:
+            self.assertIn(key, server_json)
+
+        validate_link_json(self, server_json['image'])
+        validate_link_json(self, server_json['flavor'])
+
+        self.assertIsInstance(server_json['addresses'], dict)
+        for addresses in server_json['addresses'].values():
+            self.assertIsInstance(addresses, list)
+            for address in addresses:
+                self.assertIn('addr', address)
+                self.assertIn('version', address)
+                self.assertIn(address['version'], (4, 6),
+                              "Address version must be 4 or 6: {0}"
+                              .format(address))
 
     def test_create_server(self):
         """
@@ -44,6 +71,7 @@ class NovaAPITests(SynchronousTestCase):
         """
         self.assertEqual(self.create_server_response.code, 202)
         self.assertTrue(type(self.server_id), unicode)
+        validate_link_json(self, self.create_server_response_body['server'])
 
     def test_list_servers(self):
         """
@@ -57,6 +85,7 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(list_servers_response_body['servers'][0]['id'],
                          self.server_id)
         self.assertEqual(len(list_servers_response_body['servers']), 1)
+        validate_link_json(self, list_servers_response_body['servers'][0])
 
     def test_list_servers_with_args(self):
         """
@@ -96,7 +125,9 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(get_server_response.code, 200)
         self.assertEqual(get_server_response_body['server']['id'],
                          self.server_id)
-        self.assertEqual(get_server_response_body['server']['status'], 'ACTIVE')
+        self.assertEqual(
+            get_server_response_body['server']['status'], 'ACTIVE')
+        self.validate_server_detail_json(get_server_response_body['server'])
 
     def test_get_server_negative(self):
         """
@@ -120,6 +151,9 @@ class NovaAPITests(SynchronousTestCase):
                          self.server_id)
         self.assertEqual(len(list_servers_detail_response_body['servers']), 1)
         self.assertEqual(list_servers_detail_response_body['servers'][0]['status'], 'ACTIVE')
+
+        self.validate_server_detail_json(
+            list_servers_detail_response_body['servers'][0])
 
     def test_list_servers_with_details_with_args(self):
         """
@@ -146,6 +180,7 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(body['servers'][0]['id'], self.server_id)
         self.assertEqual(len(body['servers']), 1)
         self.assertEqual(body['servers'][0]['status'], 'ACTIVE')
+        self.validate_server_detail_json(body['servers'][0])
 
     def test_list_servers_with_details_with_args_negative(self):
         """
