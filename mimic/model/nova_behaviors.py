@@ -35,7 +35,7 @@ class BehaviorLookup(object):
 
 server_creation = BehaviorLookup()
 
-@server_creation.behavior("fail")
+@server_creation.behavior_creator("fail")
 def create_fail_behavior(parameters):
     """
     Create a failing behavior for server creation.
