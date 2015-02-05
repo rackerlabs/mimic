@@ -22,15 +22,15 @@ class BehaviorLookup(object):
             return thunk
         return decorator
 
-    def create_behavior(self, name, params):
+    def create_behavior(self, name, parameters):
         """
         Create behavior identified by the given name, with the given
         parameters.  This is used during the process of registering a behavior.
 
-        :param params: An object (deserialized from JSON) which serves as
+        :param parameters: An object (deserialized from JSON) which serves as
             parameters to the named behavior creator.
         """
-        return self.behaviors[name](params)
+        return self.behaviors[name](parameters)
 
 
 server_creation = BehaviorLookup()
