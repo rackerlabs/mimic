@@ -331,8 +331,9 @@ class NovaAPINegativeTests(SynchronousTestCase):
         Create a :obj:`MimicCore` with :obj:`NovaApi` as the only plugin,
         and create a server
         """
-        helper = APIMockHelper(self, [NovaApi(["ORD", "MIMIC"]),
-            NovaControlApi(NovaApi)])
+        nova_api = NovaApi(["ORD", "MIMIC"])
+        nova_control_api = NovaControlApi(nova_api=nova_api)
+        helper = APIMockHelper(self, [nova_api, nova_control_api])
         self.nova_control_endpoint = helper.auth.get_service_endpoint(
             "cloudServersBehavior",
             "ORD")
@@ -553,8 +554,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
                      "criteria": [{"server_name": "failing_server_name"}]}
         set_criteria = request(self, self.root, "POST", self.nova_control_endpoint,
             json.dumps(criterion))
-        set_criteria_response = self.successResultOf(
-            treq.json_content(set_criteria))
+        set_criteria_response = self.successResultOf(set_criteria)
         self.assertEqual(set_criteria_response.code, 201)
         create_server_response = self.create_server(name="failing_server_name")
         self.assertEquals(create_server_response.code, 500)

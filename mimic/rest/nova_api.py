@@ -6,6 +6,7 @@ Defines create, delete, get, list servers and get images and flavors.
 from uuid import uuid4
 import json
 
+from characteristic import attributes
 from six import text_type
 
 from zope.interface import implementer
@@ -15,6 +16,7 @@ from twisted.web.server import Request
 from twisted.python.urlpath import URLPath
 
 from twisted.plugin import IPlugin
+from twisted.web.http import CREATED
 
 from mimic.canned_responses.nova import get_limit, get_image, get_flavor
 from mimic.rest.mimicapp import MimicApp
@@ -29,6 +31,7 @@ Request.defaultContentType = 'application/json'
 
 @implementer(IAPIMock, IPlugin)
 class NovaApi(object):
+
     """
     Rest endpoints for mocked Nova Api.
     """
@@ -63,7 +66,55 @@ class NovaApi(object):
                 .app.resource())
 
 
+@implementer(IAPIMock, IPlugin)
+@attributes(["nova_api"])
+class NovaControlApi(object):
+
+    """
+    Rest endpoints for the Nova Control Api.
+    """
+
+    def catalog_entries(self, tenant_id):
+        """
+        List catalog entries for the Nova API.
+        """
+        return [
+            Entry(
+                tenant_id, "compute", "cloudServersBehavior",
+                [
+                    Endpoint(tenant_id, region, text_type(uuid4()),
+                             prefix="v2")
+                    for region in self.nova_api._regions
+                ]
+            )
+        ]
+
+    def resource_for_region(self, region, uri_prefix, session_store):
+        """
+        Get an :obj:`twisted.web.iweb.IResource` for the given URI prefix;
+        implement :obj:`IAPIMock`.
+        """
+        return (NovaControlApiRegion(api_mock=self, uri_prefix=uri_prefix,
+                                     session_store=session_store, region=region)
+                .app.resource())
+
+
+@attributes(["api_mock", "uri_prefix", "session_store", "region"])
+class NovaControlApiRegion(object):
+
+    """
+    Klien resources for the Nova Control plane API
+    """
+    app = MimicApp()
+
+    @app.route('/v2/<string:tenant_id>', methods=['POST'])
+    def create_criterion(self, request, tenant_id):
+        request.setResponseCode(CREATED)
+        return b''
+
+
 class NovaRegion(object):
+
     """
     Klein routes for the API within a Cloud Servers region.
 
