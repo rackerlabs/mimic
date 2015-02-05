@@ -47,3 +47,23 @@ def create_fail_behavior(parameters):
         http.setResponseCode(status_code)
         return dumps(invalid_resource(failure_message, status_code))
     return fail_without_creating
+
+
+
+"""
+POST /mimicking/...nova-behavior.../...your-tenant.../behaviors/creation/
+
+{
+    "criteria": [
+        {"tenant_id": "maybe_fail_.*"},
+        {"server_name": "failing_server_.*"},
+        {"metadata_field": {"name": "should", "value": "fail"}},
+        {"metadata_field": {"name": "yes", "value": "definitely"}},
+    ],
+    "name": "fail",
+    "parameters": {
+        "code": 404,
+        "message": "Stuff is broken, what"
+    }
+}
+"""
