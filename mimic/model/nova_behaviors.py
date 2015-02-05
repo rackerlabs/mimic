@@ -1,6 +1,8 @@
 """
 Custom behaviors for the nova mimic.
 """
+
+import re
 from json import dumps
 from characteristic import attributes, Attribute
 from mimic.util.helper import invalid_resource
@@ -57,8 +59,8 @@ POST /mimicking/...nova-behavior.../...your-tenant.../behaviors/creation/
     "criteria": [
         {"tenant_id": "maybe_fail_.*"},
         {"server_name": "failing_server_.*"},
-        {"metadata_field": {"name": "should", "value": "fail"}},
-        {"metadata_field": {"name": "yes", "value": "definitely"}},
+        {"metadata": {"name": "should", "value": "fail"}},
+        {"metadata": {"name": "yes", "value": "definitely"}},
     ],
     "name": "fail",
     "parameters": {
@@ -67,3 +69,81 @@ POST /mimicking/...nova-behavior.../...your-tenant.../behaviors/creation/
     }
 }
 """
+
+@attributes(['name', 'predicate'])
+class Criterion(object):
+    """
+    
+    """
+    def evaluate(self, attributes):
+        """
+        
+        """
+        return self.predicate(attributes[self.name])
+
+
+@attributes(['criteria'])
+class CriteriaCollection(object):
+    """
+    
+    """
+
+    def evaluate(self, attributes):
+        """
+        Evaluate the list of :obj:`Criterion`.
+        """
+        for criterion in self.criteria:
+            if not criterion.evaluate(attributes):
+                return False
+        return True
+
+
+def regexp_predicate(value):
+    """
+    
+    """
+    return re.compile(value).match
+
+
+def tenant_id_criterion(value):
+    """
+    
+    """
+    return Criterion(name='tenant_id', predicate=regexp_predicate(value))
+
+
+def server_name_criterion(value):
+    """
+    
+    """
+    return Criterion(name='server_name', predicate=regexp_predicate(value))
+
+
+def metadata_criterion(value):
+    """
+    
+    """
+    name = value['name']
+    value_predicate = regexp_predicate(value['value'])
+    def predicate(metadata):
+        return value_predicate(metadata.get(name))
+    return Criterion(name='metadata', predicate=predicate)
+
+nova_criterion_factories = {
+    "tenant_id": tenant_id_criterion,
+    "server_name": server_name_criterion,
+    "metadata": metadata_criterion
+}
+
+def criteria_collection_from_request_criteria(request_criteria,
+                                              name_to_criterion):
+    """
+    Create a :obj:`CriteriaCollection` from the ``"criteria"`` section of an
+    API request.
+    """
+    def create_criteria():
+        for crit_spec in request_criteria:
+            for k, v in crit_spec.items():
+                yield name_to_criterion[k](v)
+    return CriteriaCollection(criteria=list(create_criteria()))
+
