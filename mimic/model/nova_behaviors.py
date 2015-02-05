@@ -7,8 +7,10 @@ from json import dumps
 from characteristic import attributes, Attribute
 from mimic.util.helper import invalid_resource
 
+
 @attributes([Attribute("behaviors", default_factory=dict)])
 class BehaviorLookup(object):
+
     """
     A collection of behaviors with a related schema.
     """
@@ -37,6 +39,7 @@ class BehaviorLookup(object):
 
 server_creation = BehaviorLookup()
 
+
 @server_creation.behavior_creator("fail")
 def create_fail_behavior(parameters):
     """
@@ -44,12 +47,12 @@ def create_fail_behavior(parameters):
     """
     status_code = parameters.get("code", 500)
     failure_message = parameters.get("message", "Server creation failed.")
+
     def fail_without_creating(collection, http, json, absolutize_url):
         # behavior for failing to even start to build
         http.setResponseCode(status_code)
         return dumps(invalid_resource(failure_message, status_code))
     return fail_without_creating
-
 
 
 """
@@ -59,8 +62,8 @@ POST /mimicking/...nova-behavior.../...your-tenant.../behaviors/creation/
     "criteria": [
         {"tenant_id": "maybe_fail_.*"},
         {"server_name": "failing_server_.*"},
-        {"metadata": {"name": "should", "value": "fail"}},
-        {"metadata": {"name": "yes", "value": "definitely"}},
+        {"metadata": {"key_we_should_have": "fail",
+                      "key_we_should_not_have": null}}
     ],
     "name": "fail",
     "parameters": {
@@ -70,22 +73,26 @@ POST /mimicking/...nova-behavior.../...your-tenant.../behaviors/creation/
 }
 """
 
+
 @attributes(['name', 'predicate'])
 class Criterion(object):
+
     """
-    
+
     """
+
     def evaluate(self, attributes):
         """
-        
+
         """
         return self.predicate(attributes[self.name])
 
 
 @attributes(['criteria'])
 class CriteriaCollection(object):
+
     """
-    
+
     """
 
     def evaluate(self, attributes):
@@ -100,31 +107,32 @@ class CriteriaCollection(object):
 
 def regexp_predicate(value):
     """
-    
+
     """
     return re.compile(value).match
 
 
 def tenant_id_criterion(value):
     """
-    
+
     """
     return Criterion(name='tenant_id', predicate=regexp_predicate(value))
 
 
 def server_name_criterion(value):
     """
-    
+
     """
     return Criterion(name='server_name', predicate=regexp_predicate(value))
 
 
 def metadata_criterion(value):
     """
-    
+
     """
     name = value['name']
     value_predicate = regexp_predicate(value['value'])
+
     def predicate(metadata):
         return value_predicate(metadata.get(name))
     return Criterion(name='metadata', predicate=predicate)
@@ -134,6 +142,7 @@ nova_criterion_factories = {
     "server_name": server_name_criterion,
     "metadata": metadata_criterion
 }
+
 
 def criteria_collection_from_request_criteria(request_criteria,
                                               name_to_criterion):
@@ -146,4 +155,3 @@ def criteria_collection_from_request_criteria(request_criteria,
             for k, v in crit_spec.items():
                 yield name_to_criterion[k](v)
     return CriteriaCollection(criteria=list(create_criteria()))
-
