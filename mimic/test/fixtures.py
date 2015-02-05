@@ -83,4 +83,6 @@ class APIMockHelper(object):
         self.nth_endpoint_public = self.auth.nth_endpoint_public
         self.get_service_endpoint = self.auth.get_service_endpoint
 
-        self.uri = self.nth_endpoint_public(0)
+        tenant_id = self.auth.service_catalog_json["access"]["token"]["tenant"]["id"]
+        service_name = apis[0].catalog_entries(tenant_id)[0].name
+        self.uri = self.get_service_endpoint(service_name)
