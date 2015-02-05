@@ -21,6 +21,7 @@ from mimic.catalog import Endpoint
 from mimic.rest.mimicapp import MimicApp
 from mimic.imimic import IAPIMock
 from mimic.canned_responses.maas_json_home import json_home
+from mimic.canned_responses.maas_agent_info import agent_info
 from mimic.canned_responses.maas_monitoring_zones import monitoring_zones
 from mimic.canned_responses.maas_alarm_examples import alarm_examples
 from mimic.util.helper import random_hex_generator
@@ -75,6 +76,7 @@ class MCache(dict):
         """
         Create the initial structs for cache
         """
+        self.agenthostinfo_querycount = collections.defaultdict(lambda: 0, {})
         self.entities_list = []
         self.checks_list = []
         self.alarms_list = []
@@ -629,16 +631,33 @@ class MaasMock(object):
     @app.route('/v1.0/<string:tenant_id>/views/agent_host_info', methods=['GET'])
     def view_agent_host_info(self, request, tenant_id):
         """
-        No agent monitoring. For now, always return 400.
+        Return 400 until the fifth attempt, then start to return data as if the
+        Agent is truly installed and working.
         """
-        request.setResponseCode(400)
-        return json.dumps({
-            "type": "agentDoesNotExist",
-            "code": 400,
-            "message": "Agent does not exist",
-            "details": "Agent XYZ does not exist.",
-            "txnId": ".fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf"
-        })
+        if 'entityId' not in request.args:
+            request.setResponseCode(400)
+            return json.dumps({'type': 'badRequest',
+                               'code': 400,
+                               'message': 'Validation error for key \'agentId, entityId, uri\'',
+                               'details': 'You must specify an agentId, entityId, or an entity URI.',
+                               'mimicNotes': 'But mimic will only accept entityId right now',
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+        entity_id = request.args['entityId'][0].strip()
+        for e in self._entity_cache_for_tenant(tenant_id).entities_list:
+            if e['id'] == entity_id:
+                agent_id = e['agent_id']
+        self._entity_cache_for_tenant(tenant_id).agenthostinfo_querycount[entity_id] += 1
+        if self._entity_cache_for_tenant(tenant_id).agenthostinfo_querycount[entity_id] < 5:
+            request.setResponseCode(400)
+            return json.dumps({
+                "type": "agentDoesNotExist",
+                "code": 400,
+                "message": "Agent does not exist",
+                "details": "Agent XYZ does not exist.",
+                "txnId": ".fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf"
+            })
+        else:
+            return json.dumps(agent_info(entity_id, agent_id))
 
     @app.route('/v1.0/<string:tenant_id>/agent_installers', methods=['POST'])
     def agent_installer(self, request, tenant_id):
