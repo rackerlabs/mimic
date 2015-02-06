@@ -4,7 +4,6 @@ Setup file for mimic
 
 from setuptools import setup, find_packages
 
-# none of this should execute without py2app
 _NAME = 'mimic'
 _VERSION = '1.3.0'
 
@@ -23,7 +22,7 @@ def bundleable(name, version):
     except ImportError:
         can_bundle = False
     if not can_bundle:
-        return
+        return dict()
 
     from twisted.plugin import getPlugins, IPlugin
     from mimic import plugins
@@ -87,5 +86,5 @@ setup(
     ],
     include_package_data=True,
     license="Apache License, Version 2.0",
-    bundleable(_NAME, _VERSION)
+    **bundleable(_NAME, _VERSION)
 )
