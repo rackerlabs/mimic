@@ -26,6 +26,8 @@ matrix:
   exclude:
     - os: osx
       compiler: gcc
+    - os: linux
+      compiler: clang
 
     # don't build mac app on linux
     - os: linux
