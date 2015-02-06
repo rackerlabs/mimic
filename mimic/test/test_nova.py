@@ -1,196 +1,17 @@
 
-import itertools
 import json
 import treq
 
 from twisted.trial.unittest import SynchronousTestCase
 
-from mimic.canned_responses.nova import server_template
-from mimic.test.helpers import json_request, request
+from mimic.test.helpers import json_request, request, validate_link_json
 from mimic.rest.nova_api import NovaApi
 from mimic.test.fixtures import APIMockHelper, TenantAuthentication
 
 
-class ResponseGenerationTests(SynchronousTestCase):
-
-    """
-    Tests for Nova response generation.
-    """
-
-    def test_server_template(self):
-        """
-        :obj:`server_template` generates a JSON object representing an
-        individual Nova server.  This includes a dictionary for the ``image``
-        parameter that contains the ID and some links, if ``imageRef`` is
-        provided in the server info
-        """
-
-        input_server_info = {
-            "flavorRef": "some_flavor",
-            "imageRef": "some_image",
-            "name": "some_server_name",
-            "metadata": {
-                "some_key": "some_value",
-                "some_other_key": "some_other_value",
-            }
-        }
-
-        counter = itertools.count(1)
-
-        compute_service_uri_prefix = (
-            "http://mimic.example.com/services/region/compute/"
-        )
-
-        actual = server_template("some_tenant", input_server_info,
-                                 "some_server_id", "some_status",
-                                 "the_current_time",
-                                 lambda: next(counter),
-                                 compute_service_uri_prefix)
-
-        expectation = {
-            "OS-DCF:diskConfig": "AUTO",
-            "OS-EXT-STS:power_state": 1,
-            "OS-EXT-STS:task_state": None,
-            "OS-EXT-STS:vm_state": "some_status",
-            "accessIPv4": "198.101.241.238",
-            "accessIPv6": "2001:4800:780e:0510:d87b:9cbc:ff04:513a",
-            "key_name": None,
-            "addresses": {
-                "private": [
-                    {
-                        "addr": "10.180.1.2",
-                        "version": 4
-                    }
-                ],
-                "public": [
-                    {
-                        "addr": "198.101.241.3",
-                        "version": 4
-                    },
-                    {
-                        "addr": "2001:4800:780e:0510:d87b:9cbc:ff04:513a",
-                        "version": 6
-                    }
-                ]
-            },
-            "created": "the_current_time",
-            "flavor": {
-                "id": "some_flavor",
-                "links": [
-                    {
-                        "href": ("http://mimic.example.com/services/region/"
-                                 "compute/some_tenant/flavors/some_flavor"),
-                        "rel": "bookmark"
-                    }
-                ]
-            },
-            "hostId": ("33ccb6c82f3625748b6f2338f54d8e9df07cc583251e001355569"
-                       "056"),
-            "id": "some_server_id",
-            "image": {
-                "id": "some_image",
-                "links": [
-                    {
-                        "href": "http://mimic.example.com/services/region/"
-                        "compute/some_tenant/images/some_image",
-                        "rel": "bookmark"
-                    }
-                ]
-            },
-            "links": [
-                {
-                    "href": ("http://mimic.example.com/services/region/"
-                             "compute/v2/some_tenant/servers/some_server_id"),
-                    "rel": "self"
-                },
-                {
-                    "href": "http://mimic.example.com/services/region/compute/"
-                    "some_tenant/servers/some_server_id",
-                    "rel": "bookmark"
-                }
-            ],
-            "metadata": {"some_key": "some_value",
-                         "some_other_key": "some_other_value"},
-            "name": "some_server_name",
-            "progress": 100,
-            "status": "some_status",
-            "tenant_id": "some_tenant",
-            "updated": "the_current_time",
-            "user_id": "170454"
-        }
-        self.assertEquals(expectation, actual)
-
-    def _test_server_template_without_image(self, input_server_info):
-        """
-        Helper function to test generation of a server template with an empty
-        image.
-        """
-        counter = itertools.count(1)
-
-        compute_service_uri_prefix = (
-            "http://mimic.example.com/services/region/compute/"
-        )
-
-        actual = server_template("some_tenant", input_server_info,
-                                 "some_server_id", "some_status",
-                                 "the_current_time",
-                                 lambda: next(counter),
-                                 compute_service_uri_prefix)
-
-        self.assertEquals("", actual['image'])
-
-    def test_server_template_with_blank_imageRef(self):
-        """
-        :obj:`server_template` generates a JSON object representing an
-        individual Nova server, but the ``image`` parameter is empty if
-        ``imageRef`` in the server info is blank.
-        """
-        self._test_server_template_without_image({
-            "flavorRef": "some_flavor",
-            "imageRef": "",
-            "name": "some_server_name",
-            "metadata": {
-                "some_key": "some_value",
-                "some_other_key": "some_other_value",
-            }
-        })
-
-    def test_server_template_with_null_imageRef(self):
-        """
-        :obj:`server_template` generates a JSON object representing an
-        individual Nova server, but the ``image`` parameter is empty if
-        ``imageRef`` in the server info is null.
-        """
-        self._test_server_template_without_image({
-            "flavorRef": "some_flavor",
-            "imageRef": None,
-            "name": "some_server_name",
-            "metadata": {
-                "some_key": "some_value",
-                "some_other_key": "some_other_value",
-            }
-        })
-
-    def test_server_template_with_no_imageRef(self):
-        """
-        :obj:`server_template` generates a JSON object representing an
-        individual Nova server, but the ``image`` parameter is empty if
-        no ``imageRef`` is provided in the server info.
-        """
-        self._test_server_template_without_image({
-            "flavorRef": "some_flavor",
-            "name": "some_server_name",
-            "metadata": {
-                "some_key": "some_value",
-                "some_other_key": "some_other_value",
-            }
-        })
-
-
 class NovaAPITests(SynchronousTestCase):
-
     """
-    Tests for the Nova plugin api
+    Tests for the Nova Api plugin.
     """
 
     def setUp(self):
@@ -212,10 +33,37 @@ class NovaAPITests(SynchronousTestCase):
                 }
             }))
         self.create_server_response = self.successResultOf(create_server)
-        create_server_response_body = self.successResultOf(
+        self.create_server_response_body = self.successResultOf(
             treq.json_content(self.create_server_response))
-        self.server_id = create_server_response_body['server']['id']
+        self.server_id = self.create_server_response_body['server']['id']
         self.nth_endpoint_public = helper.nth_endpoint_public
+
+    def validate_server_detail_json(self, server_json):
+        """
+        Tests to validate the server JSON.
+        """
+        validate_link_json(self, server_json)
+        # id and links has already been checked, there are others that are not
+        # yet implemented in mimic/optional
+        response_keys = ("accessIPv4", "accessIPv6", "addresses", "created",
+                         "flavor", "image", "metadata", "name", "status",
+                         "tenant_id", "updated", "OS-EXT-STS:task_state",
+                         "OS-DCF:diskConfig")
+        for key in response_keys:
+            self.assertIn(key, server_json)
+
+        validate_link_json(self, server_json['image'])
+        validate_link_json(self, server_json['flavor'])
+
+        self.assertIsInstance(server_json['addresses'], dict)
+        for addresses in server_json['addresses'].values():
+            self.assertIsInstance(addresses, list)
+            for address in addresses:
+                self.assertIn('addr', address)
+                self.assertIn('version', address)
+                self.assertIn(address['version'], (4, 6),
+                              "Address version must be 4 or 6: {0}"
+                              .format(address))
 
     def test_create_server(self):
         """
@@ -223,6 +71,7 @@ class NovaAPITests(SynchronousTestCase):
         """
         self.assertEqual(self.create_server_response.code, 202)
         self.assertTrue(type(self.server_id), unicode)
+        validate_link_json(self, self.create_server_response_body['server'])
 
     def test_list_servers(self):
         """
@@ -236,6 +85,7 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(list_servers_response_body['servers'][0]['id'],
                          self.server_id)
         self.assertEqual(len(list_servers_response_body['servers']), 1)
+        validate_link_json(self, list_servers_response_body['servers'][0])
 
     def test_list_servers_with_args(self):
         """
@@ -275,7 +125,9 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(get_server_response.code, 200)
         self.assertEqual(get_server_response_body['server']['id'],
                          self.server_id)
-        self.assertEqual(get_server_response_body['server']['status'], 'ACTIVE')
+        self.assertEqual(
+            get_server_response_body['server']['status'], 'ACTIVE')
+        self.validate_server_detail_json(get_server_response_body['server'])
 
     def test_get_server_negative(self):
         """
@@ -300,6 +152,9 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(len(list_servers_detail_response_body['servers']), 1)
         self.assertEqual(list_servers_detail_response_body['servers'][0]['status'], 'ACTIVE')
 
+        self.validate_server_detail_json(
+            list_servers_detail_response_body['servers'][0])
+
     def test_list_servers_with_details_with_args(self):
         """
         :func:`list_servers_with_details`, used by
@@ -320,9 +175,12 @@ class NovaAPITests(SynchronousTestCase):
             self, self.root, "GET",
             "{0}/servers/detail?name={1}".format(self.uri, self.server_name)))
         self.assertEqual(response.code, 200)
+        self.assertIsNot(body['servers'], None)
+        self.assertIsNot(body['servers'][0], None)
         self.assertEqual(body['servers'][0]['id'], self.server_id)
         self.assertEqual(len(body['servers']), 1)
         self.assertEqual(body['servers'][0]['status'], 'ACTIVE')
+        self.validate_server_detail_json(body['servers'][0])
 
     def test_list_servers_with_details_with_args_negative(self):
         """
@@ -548,7 +406,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         Test to verify :func:`create_server` creates a server in BUILD
         status for the time specified in the metadata.
         """
-        metadata = {"server_building": 1}
+        metadata = {"server_building": "1"}
         # create server with metadata to keep the server in building state for
         # 3 seconds
         create_server_response = self.create_server(metadata=metadata)
@@ -586,7 +444,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         """
         Test to verify :func:`create_server` creates a server in ERROR state.
         """
-        metadata = {"server_error": 1}
+        metadata = {"server_error": "1"}
         # create server with metadata to set status in ERROR
         create_server_response = self.create_server(metadata=metadata)
         # verify the create server was successful
