@@ -5,8 +5,8 @@ Setup file for mimic
 from setuptools import setup, find_packages
 
 
-_NAME = 'mimic'
-_VERSION = '1.3.0'
+_NAME = "mimic"
+_VERSION = "1.3.0"
 
 
 def setup_options(name, version):
@@ -23,7 +23,7 @@ def setup_options(name, version):
     if not py2app_available:
         return dict(
             packages=find_packages(exclude=[]) + ["twisted.plugins"],
-            package_dir={'mimic': 'mimic'},
+            package_dir={"mimic": "mimic"},
             install_requires=[
                 "characteristic==14.2.0",
                 "klein==0.2.1",
@@ -39,16 +39,16 @@ def setup_options(name, version):
     from twisted.plugin import getPlugins, IPlugin
     from mimic import plugins
 
-    SCRIPT='bundle/start-app.py'
-    TEST_SCRIPT='bundle/run-tests.py'
+    SCRIPT="bundle/start-app.py"
+    TEST_SCRIPT="bundle/run-tests.py"
     PLIST = dict(
         CFBundleName                = name,
-        CFBundleShortVersionString  = ' '.join([name, version]),
+        CFBundleShortVersionString  = " ".join([name, version]),
         CFBundleGetInfoString       = name,
         CFBundleExecutable          = name,
-        CFBundleIdentifier          = 'com.%s.%s' % (name, version),
-        LSUIElement                 = '1',
-        LSMultipleInstancesProhibited = '1',
+        CFBundleIdentifier          = "com.%s.%s" % (name, version),
+        LSUIElement                 = "1",
+        LSMultipleInstancesProhibited = "1",
     )
     APP_DATA = dict(
         script=SCRIPT,
@@ -63,7 +63,7 @@ def setup_options(name, version):
 
         def run(self):
             """
-            This generates `dropin.cache` files for mimic's plugins.
+            This generates `dropin.cache` files for mimic"s plugins.
             """
             list(getPlugins(IPlugin, package=plugins))
             py2app.run(self)
@@ -79,20 +79,19 @@ def setup_options(name, version):
             "unittest2==0.5.1",
         ],
         cmdclass={
-            'py2app': BuildWithCache
+            "py2app": BuildWithCache
         },
         options={
-            'py2app': {
-                'includes': ['syslog', 'mimic.test.*', 'twisted.plugin'],
+            "py2app": {
+                "includes": ["syslog", "mimic.test.*", "twisted.plugin"],
             }
         }
     )
 
-
 setup(
     name=_NAME,
     version=_VERSION,
-    description='An API-compatible mock service',
+    description="An API-compatible mock service",
     license="Apache License, Version 2.0",
     **setup_options(_NAME, _VERSION)
 )
