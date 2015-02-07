@@ -44,9 +44,6 @@ class BuildWithCache(py2app):
 
 
 setup(
-    name=NAME,
-    version=VERSION,
-    description='An API-compatible mock service',
     app=[APP_DATA],
     cmdclass={
         'py2app': BuildWithCache

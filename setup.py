@@ -4,26 +4,38 @@ Setup file for mimic
 
 from setuptools import setup, find_packages
 
+
 _NAME = 'mimic'
 _VERSION = '1.3.0'
 
 
-def bundleable(name, version):
+def setup_options(name, version):
     """
     If py2app is present, then make the application buildable.
-
-    :returns: the options that can be enabled if py2app is importable
-    :rtype: a dictionary
     """
-    can_bundle = None
+    py2app_available = None
     try:
         from py2app.build_app import py2app
-        can_bundle = True
+        py2app_available = True
     except ImportError:
-        can_bundle = False
-    if not can_bundle:
-        return dict()
+        py2app_available = False
 
+    if not py2app_available:
+        return dict(
+            packages=find_packages(exclude=[]) + ["twisted.plugins"],
+            package_dir={'mimic': 'mimic'},
+            install_requires=[
+                "characteristic==14.2.0",
+                "klein==0.2.1",
+                "twisted>=13.2.0",
+                "jsonschema==2.0",
+                "treq",
+                "six",
+            ],
+            include_package_data=True
+        )
+
+    # proceed with py2app
     from twisted.plugin import getPlugins, IPlugin
     from mimic import plugins
 
@@ -56,7 +68,6 @@ def bundleable(name, version):
             list(getPlugins(IPlugin, package=plugins))
             py2app.run(self)
 
-    # return all of this as a dictionary so that it can be used
     return dict(
         app=[APP_DATA],
         cmdclass={
@@ -74,17 +85,6 @@ setup(
     name=_NAME,
     version=_VERSION,
     description='An API-compatible mock service',
-    packages=find_packages(exclude=[]) + ["twisted.plugins"],
-    package_dir={'mimic': 'mimic'},
-    install_requires=[
-        "characteristic==14.2.0",
-        "klein==0.2.1",
-        "twisted>=13.2.0",
-        "jsonschema==2.0",
-        "treq",
-        "six",
-    ],
-    include_package_data=True,
     license="Apache License, Version 2.0",
-    **bundleable(_NAME, _VERSION)
+    **setup_options(_NAME, _VERSION)
 )
