@@ -5,11 +5,8 @@ set -x
 
 source ~/.venv/bin/activate
 
-case "${BUNDLE_ENV}" in
-    system)
+if [[ "${MACAPP_ENV}" == 'system' ]]; then
         ./build-app.sh
-        ;;
-    *)
+else
     	tox -e $TOX_ENV
-        ;;
 esac
