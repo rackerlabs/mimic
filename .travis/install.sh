@@ -75,6 +75,8 @@ if [["${MACAPP_ENV}" == "system" ]]; then
 	source ~/.venv/bin/activate
 	pip install -r requirements.txt
 	pip install -r dev-requirements.txt
+        # for debugging purposes
+        pip freeze
 else
         virtualenv ~/.venv
         source ~/.venv/bin/activate
