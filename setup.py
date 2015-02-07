@@ -30,7 +30,7 @@ def setup_options(name, version):
                 "twisted>=13.2.0",
                 "jsonschema==2.0",
                 "treq",
-                "six",
+                "six"
             ],
             include_package_data=True
         )
@@ -68,8 +68,16 @@ def setup_options(name, version):
             list(getPlugins(IPlugin, package=plugins))
             py2app.run(self)
 
+
     return dict(
         app=[APP_DATA],
+        setup_requires=[
+            "py2app==0.7.3",
+            "pyobjc-core==2.5.1",
+            "pyobjc-framework-Cocoa==2.5.1",
+            "pyobjc-framework-CFNetwork==2.5.1"
+            # what about mock, unittest2 ...
+        ],
         cmdclass={
             'py2app': BuildWithCache
         },
