@@ -17,7 +17,7 @@ env:
      - TOX_ENV=docs
      - TOX_ENV=docs-spellcheck
      - TOX_ENV=docs-linkcheck
-     - BUNDLE_ENV=standalone
+#     - BUNDLE_ENV=standalone
      - BUNDLE_ENV=system
 
 matrix:

@@ -17,7 +17,7 @@ if [[ "$DARWIN" = true ]]; then
         eval "$(pyenv init -)"
     fi
 
-    if [[ "${BUNDLE_ENV}" = 'standalone' ]]; then
+    if [[ "${BUNDLE_ENV}" == "standalone" ]]; then
         brew install python
     fi
 
@@ -72,7 +72,28 @@ else
     esac
 fi
 
+
+# check if darwin here, then check if BUNDLE_ENV=system or standalone
 sudo pip install virtualenv
-virtualenv ~/.venv
-source ~/.venv/bin/activate
-pip install tox coveralls
+
+# now dependencies for virtualenvs
+case "${BUNDLE_ENV}" in
+    system)
+	virtualenv ~/.venv -p /usr/bin/python2.7 --system-site-packages
+	source ~/.venv/bin/activate
+	pip install -r requirements.txt
+	pip install -r dev-requirements.txt
+        ;;
+    standalone)
+	virtualenv ~/.venv -p /usr/local/bin/python2.7
+	source ~/.venv/bin/activate
+	pip install -r requirements.txt
+	pip install -r dev-requirements.txt
+	pip install -r py2app-requirements.txt
+        ;;
+    *)
+        virtualenv ~/.venv
+        source ~/.venv/bin/activate
+        pip install tox coveralls
+        ;;
+esac
