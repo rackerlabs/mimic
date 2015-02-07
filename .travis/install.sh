@@ -17,10 +17,6 @@ if [[ "$DARWIN" = true ]]; then
         eval "$(pyenv init -)"
     fi
 
-    if [[ "${BUNDLE_ENV}" == "standalone" ]]; then
-        brew install python
-    fi
-
     case "${TOX_ENV}" in
         py26)
             brew upgrade pyenv

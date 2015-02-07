@@ -7,10 +7,7 @@ source ~/.venv/bin/activate
 
 case "${BUNDLE_ENV}" in
     system)
-        build-app.sh
-        ;;
-    standalone)
-        build-app.sh
+        ./build-app.sh
         ;;
     *)
     	tox -e $TOX_ENV
