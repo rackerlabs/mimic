@@ -3,10 +3,9 @@
 set -e
 set -x
 
-source ~/.venv/bin/activate
-
 if [[ "${MACAPP_ENV}" == "system" ]]; then
-        ./build-app.sh
+    ./build-app.sh
 else
-    	tox -e $TOX_ENV
+    source ~/.venv/bin/activate
+    tox -e $TOX_ENV
 fi

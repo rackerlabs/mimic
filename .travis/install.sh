@@ -70,10 +70,8 @@ fi
 
 sudo pip install virtualenv
 
-if [[ "${MACAPP_ENV}" == "system" ]]; then
-	virtualenv ~/.venv -p /usr/bin/python2.7 --system-site-packages
-else
-        virtualenv ~/.venv
-        source ~/.venv/bin/activate
-        pip install tox coveralls
+if [[ "${MACAPP_ENV}" != "system" ]]; then
+    virtualenv ~/.venv
+    source ~/.venv/bin/activate
+    pip install tox coveralls
 fi

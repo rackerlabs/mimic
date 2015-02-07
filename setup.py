@@ -16,18 +16,6 @@ _INSTALL_REQUIRES = [
     "six"
 ]
 
-_APP_REQUIRES = [
-    "unittest2==0.5.1",
-    "pyobjc-core>=2.3.0",
-    "pyobjc-framework-Cocoa>=2.3.0",
-    "pyobjc-framework-CFNetwork>=2.3.0",
-]
-
-_SETUP_REQUIRES = [
-    "py2app"
-]
-
-
 def setup_options(name, version):
     """
     If py2app is present, then make the application buildable.
@@ -83,8 +71,6 @@ def setup_options(name, version):
 
     return dict(
         app=[APP_DATA],
-        install_requires=_INSTALL_REQUIRES + _APP_REQUIRES,
-        setup_requires=_SETUP_REQUIRES,
         cmdclass={
             "py2app": BuildWithCache
         },
