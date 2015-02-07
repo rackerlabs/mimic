@@ -7,6 +7,22 @@ from setuptools import setup, find_packages
 
 _NAME = "mimic"
 _VERSION = "1.3.0"
+_INSTALL_REQUIRES = [
+    "characteristic==14.2.0",
+    "klein==0.2.1",
+    "twisted>=13.2.0",
+    "jsonschema==2.0",
+    "treq",
+    "six"
+]
+
+_SETUP_REQUIRES = [
+    "py2app==0.7.3",
+    "pyobjc-core==2.5.1",
+    "pyobjc-framework-Cocoa==2.5.1",
+    "pyobjc-framework-CFNetwork==2.5.1",
+    "unittest2==0.5.1"
+]
 
 
 def setup_options(name, version):
@@ -24,14 +40,7 @@ def setup_options(name, version):
         return dict(
             packages=find_packages(exclude=[]) + ["twisted.plugins"],
             package_dir={"mimic": "mimic"},
-            install_requires=[
-                "characteristic==14.2.0",
-                "klein==0.2.1",
-                "twisted>=13.2.0",
-                "jsonschema==2.0",
-                "treq",
-                "six"
-            ],
+            install_requires=_INSTALL_REQUIRES,
             include_package_data=True
         )
 
@@ -68,16 +77,9 @@ def setup_options(name, version):
             list(getPlugins(IPlugin, package=plugins))
             py2app.run(self)
 
-
     return dict(
         app=[APP_DATA],
-        setup_requires=[
-            "py2app==0.7.3",
-            "pyobjc-core==2.5.1",
-            "pyobjc-framework-Cocoa==2.5.1",
-            "pyobjc-framework-CFNetwork==2.5.1",
-            "unittest2==0.5.1",
-        ],
+        setup_requires=_SETUP_REQUIRES + _INSTALL_REQUIRES,
         cmdclass={
             "py2app": BuildWithCache
         },
