@@ -17,6 +17,10 @@ if [[ "$DARWIN" = true ]]; then
         eval "$(pyenv init -)"
     fi
 
+    if [[ "${BUNDLE_ENV}" = 'standalone' ]]; then
+        brew install python
+    fi
+
     case "${TOX_ENV}" in
         py26)
             brew upgrade pyenv
@@ -35,9 +39,6 @@ if [[ "$DARWIN" = true ]]; then
         docs)
             curl -O https://bootstrap.pypa.io/get-pip.py
             sudo python get-pip.py
-            ;;
-        bundle)
-            brew install python
             ;;
     esac
     pyenv rehash

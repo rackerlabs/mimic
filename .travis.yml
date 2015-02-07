@@ -17,8 +17,8 @@ env:
      - TOX_ENV=docs
      - TOX_ENV=docs-spellcheck
      - TOX_ENV=docs-linkcheck
-     - TOX_ENV=bundle
-     - TOX_ENV=bundle-system
+     - BUNDLE_ENV=standalone
+     - BUNDLE_ENV=system
 
 matrix:
   allow_failures:
@@ -31,9 +31,9 @@ matrix:
 
     # don't build mac app on linux
     - os: linux
-      env: TOX_ENV=bundle
+      env: BUNDLE_ENV=standalone
     - os: linux
-      env: TOX_ENV=bundle-system
+      env: BUNDLE_ENV=system
 
 install:
   - ./.travis/install.sh
