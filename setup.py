@@ -18,9 +18,9 @@ _INSTALL_REQUIRES = [
 
 _SETUP_REQUIRES = [
     "py2app==0.7.3",
-    "pyobjc-core==2.5.1",
-    "pyobjc-framework-Cocoa==2.5.1",
-    "pyobjc-framework-CFNetwork==2.5.1",
+    "pyobjc-core>=2.3.0",
+    "pyobjc-framework-Cocoa>=2.3.0",
+    "pyobjc-framework-CFNetwork>=2.3.0",
     "unittest2==0.5.1"
 ]
 
@@ -76,6 +76,7 @@ def setup_options(name, version):
             """
             list(getPlugins(IPlugin, package=plugins))
             py2app.run(self)
+
 
     return dict(
         app=[APP_DATA],
