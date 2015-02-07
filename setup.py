@@ -75,8 +75,8 @@ def setup_options(name, version):
             "py2app==0.7.3",
             "pyobjc-core==2.5.1",
             "pyobjc-framework-Cocoa==2.5.1",
-            "pyobjc-framework-CFNetwork==2.5.1"
-            # what about mock, unittest2 ...
+            "pyobjc-framework-CFNetwork==2.5.1",
+            "unittest2==0.5.1",
         ],
         cmdclass={
             'py2app': BuildWithCache
