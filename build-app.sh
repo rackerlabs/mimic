@@ -9,7 +9,7 @@ pip freeze
 
 pip install -r requirements.txt
 pip install -r dev-requirements.txt
-# pip install -r py2app-requirements.txt
+pip install -r py2app-requirements.txt
 
 find . -name 'dist' -print0 | xargs rm -rf
 find . -name 'build' -print0 | xargs rm -rf
