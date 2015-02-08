@@ -6,3 +6,4 @@ modulegraph>=0.10.1
 py2app>=0.7.1
 pyobjc-framework-Cocoa>=2.3.2a0
 pyobjc-framework-CFNetwork>=2.3.2.a0
+unittest2==0.5.1

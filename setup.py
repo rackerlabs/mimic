@@ -7,14 +7,7 @@ from setuptools import setup, find_packages
 
 _NAME = "mimic"
 _VERSION = "1.3.0"
-_INSTALL_REQUIRES = [
-    "characteristic==14.2.0",
-    "klein==0.2.1",
-    "twisted>=13.2.0",
-    "jsonschema==2.0",
-    "treq",
-    "six"
-]
+
 
 def setup_options(name, version):
     """
@@ -31,7 +24,14 @@ def setup_options(name, version):
         return dict(
             packages=find_packages(exclude=[]) + ["twisted.plugins"],
             package_dir={"mimic": "mimic"},
-            install_requires=_INSTALL_REQUIRES,
+            install_requires=[
+                "characteristic==14.2.0",
+                "klein==0.2.1",
+                "twisted>=13.2.0",
+                "jsonschema==2.0",
+                "treq",
+                "six"
+            ],
             include_package_data=True
         )
 
@@ -39,9 +39,9 @@ def setup_options(name, version):
     from twisted.plugin import getPlugins, IPlugin
     from mimic import plugins
 
-    SCRIPT="bundle/start-app.py"
-    TEST_SCRIPT="bundle/run-tests.py"
-    PLIST = dict(
+    script="bundle/start-app.py"
+    test_script="bundle/run-tests.py"
+    plist = dict(
         CFBundleName                = name,
         CFBundleShortVersionString  = " ".join([name, version]),
         CFBundleGetInfoString       = name,
@@ -50,10 +50,10 @@ def setup_options(name, version):
         LSUIElement                 = "1",
         LSMultipleInstancesProhibited = "1",
     )
-    APP_DATA = dict(
-        script=SCRIPT,
-        plist=PLIST,
-        extra_scripts=[TEST_SCRIPT]
+    app_data = dict(
+        script=script,
+        plist=plist,
+        extra_scripts=[test_script]
     )
 
     class BuildWithCache(py2app):
@@ -70,7 +70,7 @@ def setup_options(name, version):
 
 
     return dict(
-        app=[APP_DATA],
+        app=[app_data],
         cmdclass={
             "py2app": BuildWithCache
         },
