@@ -1,13 +1,14 @@
 #!/bin/bash
 
-if [[ ! -d ./build-venv ]]; then
-    virtualenv ./build-venv -p /usr/bin/python2.7 --system-site-packages
+if [[ ! -d ./.build-venv ]]; then
+    virtualenv ./.build-venv -p /usr/bin/python2.7 --system-site-packages
 fi
 
-source  ./build-venv/bin/activate
+source  ./.build-venv/bin/activate
 
 pip install -r requirements.txt
 pip install -r dev-requirements.txt
+pip install -r py2app-requirements.txt
 
 find . -name 'dist' -print0 | xargs rm -rf
 find . -name 'build' -print0 | xargs rm -rf
