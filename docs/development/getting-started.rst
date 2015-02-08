@@ -87,63 +87,29 @@ Alternately, you can use our ``tox`` job:
 Building a Mac application
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``mimic`` can be built using either the system python or a standalone
-application.
-
-To build using the system python, you need only to create a `virtualenv`_
-using the system python and its packages.
-This is because OSX comes with `py2app`_ and `pyobjc`_ already installed.
+To build the application use the following commands:
 
 .. code-block:: console
 
    $ cd /dir/where/mimic/lives/
 
-   # build a virtualenv using system of py2app and pyobjc
-   $ virtualenv -p /usr/bin/python2.7 --system-site-packages ./venv
-   $ source ./venv/bin/activate
+   # if your shell is bash or zsh, run
+   $ ./build-app.sh
 
-   # install mimic's requirements
-   $ pip install -r requirements.txt -r dev-requirements.txt
+   # if you are using the fish shell, run
+   $ eval "./build.sh"
 
-   # build the application and run its tests
-   $ make
-
-
-The alternative is to build the application without the dependency on the
-system's python.
-
-In my experience, it has been simplest to install a brewed 2.7 python.
-To install a brew python, you'll need to have `homebrew`_ installed on your
-Mac.
-
-.. code-block:: console
-
-   $ brew install python
-   $ cd /dir/where/mimic/lives/
-
-   # build a virtualenv using the brewed python
-   $ virtualenv -p /usr/local/bin/python2.7 ./venv
-   $ source ./venv/bin/activate
-
-   # install mimic's dependencies including pyobjc and py2app
-   $ pip install -r requirements.txt
-   $ pip install -r dev-requirements.txt
-   $ pip install -r py2app-requirements.txt
-
-   # build the application and run its tests
-   $ make
+This will build the application and run it's tests.
 
 Once built, ``mimic.app`` can be found in the ``./dist`` directory.
 This application can be treated like any other mac application and moved into
-~/Applications.
-
-To run the application normally, you need only use ``open path/to/mimic.app``.
-If you have just built the application, running ``make run`` from the
-working directory will start mimic.
+``~/Applications``.
+To start ``mimic`` use the normal open command with the path to ``mimic.app``
+, e.g. ``open ./dist/mimic.app``.
 
 When the application is running, the letter ``M`` will be visible in the
 menubar. To quit the application, simply click on the ``M`` and select
-``Quit``. Application logs can be seen by opening
+``Quit``. You can view the application logs by opening
 ``Applications/Utilities/Console.app``.
 
 To run ``mimic``\'s test suite using the application's bundled interpreter,
@@ -151,7 +117,7 @@ type
 
 .. code-block:: console
 
-   $ ./mimic.app/Contents/MacOS/run-tests
+   $ /path/to/mimic.app/Contents/MacOS/run-tests
 
 .. _`homebrew`: http://brew.sh/
 .. _`pytest`: https://pypi.python.org/pypi/pytest
