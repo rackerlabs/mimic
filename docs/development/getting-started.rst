@@ -104,7 +104,7 @@ This will build the application and run it's tests.
 Once built, ``mimic.app`` can be found in the ``./dist`` directory.
 This application can be treated like any other mac application and moved into
 ``~/Applications``.
-To start ``mimic`` use the normal open command with the path to ``mimic.app``
+To start ``mimic`` use the open command with the path to ``mimic.app``
 , e.g. ``open ./dist/mimic.app``.
 
 When the application is running, the letter ``M`` will be visible in the
@@ -132,5 +132,3 @@ type
 .. _`coverage`: https://pypi.python.org/pypi/coverage
 .. _`pep8`: http://legacy.python.org/dev/peps/pep-0008/
 .. _`pyflakes`: https://pypi.python.org/pypi/coverage
-.. _`pyobjc`: https://pypi.python.org/pypi/pyobjc
-.. _`py2app`: https://pypi.python.org/pypi/py2app
