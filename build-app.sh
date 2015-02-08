@@ -13,11 +13,12 @@ source  ./venv-app/bin/activate
 # install the dependencies for the main application
 pip install -r requirements.txt
 
-# install minimum needed dependencies or confirm 
+# install minimum needed dependencies or confirm
 # that they are installed
 pip install -r py2app-requirements.txt
 
 # build the application using py2app
 python setup.py py2app
-# run the tests for application py2app built
+
+# run the tests for application that py2app built
 ./dist/mimic.app/Contents/MacOS/run-tests
