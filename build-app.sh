@@ -10,9 +10,11 @@ fi
 
 source  ./venv-app/bin/activate
 
+# install the dependencies for the main application
 pip install -r requirements.txt
+# the test bundle needs to unittest2
 pip install "unittest2>=0.5.1"
-
+# build the application using py2app
 python setup.py py2app
-
+# run the tests for application py2app built
 ./dist/mimic.app/Contents/MacOS/run-tests
