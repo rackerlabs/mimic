@@ -12,8 +12,11 @@ source  ./venv-app/bin/activate
 
 # install the dependencies for the main application
 pip install -r requirements.txt
-# the test bundle needs to unittest2
-pip install "unittest2>=0.5.1"
+
+# install minimum needed dependencies or confirm 
+# that they are installed
+pip install -r py2app-requirements.txt
+
 # build the application using py2app
 python setup.py py2app
 # run the tests for application py2app built
