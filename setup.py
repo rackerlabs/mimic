@@ -3,6 +3,15 @@ Setup file for mimic
 """
 
 from setuptools import setup, find_packages
+from twisted.plugin import getPlugins, IPlugin
+from mimic import plugins
+
+py2app_available = None
+try:
+    from py2app.build_app import py2app
+    py2app_available = True
+except ImportError:
+    py2app_available = False
 
 
 _NAME = "mimic"
@@ -11,19 +20,14 @@ _VERSION = "1.3.0"
 
 def setup_options(name, version):
     """
-    If py2app is present, then make the application buildable.
-    """
-    py2app_available = None
-    try:
-        from py2app.build_app import py2app
-        py2app_available = True
-    except ImportError:
-        py2app_available = False
+    If `py2app` is present in path, then enable to option to build the app.
 
+    This also disables the options needed for normal `sdist` installs.
+
+    :returns: a dictionary of setup options.
+    """
     if not py2app_available:
         return dict(
-            packages=find_packages(exclude=[]) + ["twisted.plugins"],
-            package_dir={"mimic": "mimic"},
             install_requires=[
                 "characteristic==14.2.0",
                 "klein==0.2.1",
@@ -32,13 +36,11 @@ def setup_options(name, version):
                 "treq",
                 "six"
             ],
-            include_package_data=True
+            package_dir={"mimic": "mimic"},
+            packages=find_packages(exclude=[]) + ["twisted.plugins"],
         )
 
-    # proceed with py2app
-    from twisted.plugin import getPlugins, IPlugin
-    from mimic import plugins
-
+    # py2app available, proceed.
     script="bundle/start-app.py"
     test_script="bundle/run-tests.py"
     plist = dict(
@@ -86,5 +88,6 @@ setup(
     version=_VERSION,
     description="An API-compatible mock service",
     license="Apache License, Version 2.0",
+    include_package_data=True,
     **setup_options(_NAME, _VERSION)
 )
