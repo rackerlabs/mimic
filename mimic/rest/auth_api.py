@@ -152,22 +152,7 @@ class AuthApi(object):
         Validate a token id and return its roles.
         """
         request.setResponseCode(200)
-        # try:
-        #     content = json.loads(request.content.read())
-        # except ValueError:
-        #     request.setResponseCode(400)
-        #     return json.dumps(invalid_resource("Invalid JSON request body"))
-
-        # expires_in = content['RAX-AUTH:impersonation']['expire-in-seconds']
-        # username = content['RAX-AUTH:impersonation']['user']['username']
-
-        # session = self.core.sessions.session_for_impersonation(username,
-        #                                                        expires_in)
-        # return json.dumps({"access": {
-        #     "token": {"id": session.token,
-        # #               "expires": format_timestamp(session.expires)}
-        # }})
-        return b''
+        return json.dumps({})
 
     @app.route('/v2.0/tokens/<string:token_id>/endpoints', methods=['GET'])
     def get_endpoints_for_token(self, request, token_id):
