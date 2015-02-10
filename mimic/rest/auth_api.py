@@ -172,7 +172,7 @@ class AuthApi(object):
                     "roles": [
                         {
                             "id": "234",
-                            "name": "identity:service-admin",
+                            "name": "identity:user-admin",
                         },
                         {
                             "id": "456",
