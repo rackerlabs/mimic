@@ -152,7 +152,34 @@ class AuthApi(object):
         Validate a token id and return its roles.
         """
         request.setResponseCode(200)
-        return json.dumps({})
+        tenant_id = request.args.get('belongsTo', None)
+        response = {
+            "access": {
+                "token": {
+                    "id": token_id,
+                    "expires": "2010-11-01T03:32:15-05:00",
+                    "tenant": {
+                        "id": tenant_id,
+                        "name": "My Project"
+                    }
+                },
+                "user": {
+                    "RAX-AUTH:defaultRegion": "DFW",
+                    "id": "123",
+                    "name": "testuser",
+                    "roles": [{
+                        "id": "123",
+                        "name": "compute:admin"
+                    },
+                        {
+                        "id": "234",
+                        "name": "object-store:admin",
+                    }
+                    ]
+                }
+            }
+        }
+        return json.dumps(response)
 
     @app.route('/v2.0/tokens/<string:token_id>/endpoints', methods=['GET'])
     def get_endpoints_for_token(self, request, token_id):
