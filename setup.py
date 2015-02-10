@@ -3,8 +3,6 @@ Setup file for mimic
 """
 
 from setuptools import setup, find_packages
-from twisted.plugin import getPlugins, IPlugin
-from mimic import plugins
 
 py2app_available = None
 try:
@@ -39,6 +37,9 @@ def setup_options(name, version):
             package_dir={"mimic": "mimic"},
             packages=find_packages(exclude=[]) + ["twisted.plugins"],
         )
+
+    from twisted.plugin import getPlugins, IPlugin
+    from mimic import plugins
 
     # py2app available, proceed.
     script="bundle/start-app.py"
