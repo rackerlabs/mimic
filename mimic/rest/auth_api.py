@@ -169,14 +169,15 @@ class AuthApi(object):
                     "RAX-AUTH:defaultRegion": "DFW",
                     "id": "123",
                     "name": "testuser",
-                    "roles": [{
-                        "id": "123",
-                        "name": "monitoring:service-admin"
-                    },
+                    "roles": [
                         {
-                        "id": "234",
-                        "name": "object-store:admin",
-                    }
+                            "id": "234",
+                            "name": "identity:service-admin",
+                        },
+                        {
+                            "id": "456",
+                            "name": "identity:default"
+                        }
                     ]
                 }
             }
