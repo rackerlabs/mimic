@@ -124,6 +124,22 @@ class AuthApi(object):
         session = self.core.sessions.session_for_tenant_id(tenant_id)
         return json.dumps(dict(user=dict(id=session.username)))
 
+    @app.route('/v2.0/users/<string:user_id>/OS-KSADM/credentials/RAX-KSKEY:apiKeyCredentials',
+               methods=['GET'])
+    def rax_kskey_apikeycredentials(self, request, user_id):
+        """
+        Support, such as it is, for the apiKeysCredentials call.
+        """
+        if user_id in self.core.sessions._userid_to_session:
+            username = self.core.sessions._userid_to_session[user_id].username.decode('ascii')
+            apikey = '7fc56270e7a70fa81a5935b72eacbe29'  # echo -n A | md5sum
+            return json.dumps({'RAX-KSKEY:apiKeyCredentials': {'username': username,
+                               'apiKey': apikey}})
+        else:
+            request.setResponseCode(404)
+            return json.dumps({'itemNotFound':
+                              {'code': 404, 'message': 'User ' + user_id + ' not found'}})
+
     @app.route('/v2.0/RAX-AUTH/impersonation-tokens', methods=['POST'])
     def get_impersonation_token(self, request):
         """
