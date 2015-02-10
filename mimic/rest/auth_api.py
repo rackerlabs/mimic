@@ -4,6 +4,7 @@ Defines get token, impersonation
 """
 
 import json
+import time
 
 from twisted.web.server import Request
 from twisted.python.urlpath import URLPath
@@ -12,6 +13,7 @@ from mimic.rest.mimicapp import MimicApp
 from mimic.canned_responses.auth import format_timestamp
 from mimic.util.helper import invalid_resource
 from mimic.session import NonMatchingTenantError
+from mimic.util.helper import seconds_to_timestamp
 
 Request.defaultContentType = 'application/json'
 
@@ -157,7 +159,7 @@ class AuthApi(object):
             "access": {
                 "token": {
                     "id": token_id,
-                    "expires": "2010-11-01T03:32:15-05:00",
+                    "expires": seconds_to_timestamp(int(time.time() + 36000)),
                     "tenant": {
                         "id": tenant_id,
                         "name": "My Project"
