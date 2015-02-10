@@ -774,3 +774,20 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
                                 "{ bad request: }"))
 
         self.assertEqual(400, response.code)
+
+    def test_response_for_validate_token(self):
+        """
+        Test to verify :func: `validate_token`.
+        """
+        core = MimicCore(Clock(), [ExampleAPI()])
+        root = MimicRoot(core).app.resource()
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "GET",
+            "http://mybase/identity/v2.0/tokens/123456a?belongsTo='111111'"
+        ))
+        self.assertEqual(200, response.code)
+        self.assertTrue(json_body['access']['token']['id'])
+        self.assertTrue(json_body['access']['user']['id'])
+        self.assertTrue(len(json_body['access']['user']['roles']) > 0)
+        self.assertTrue(json_body['access'].get('serviceCatalog') is None)

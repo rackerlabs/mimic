@@ -25,8 +25,8 @@ def format_timestamp(dt):
 
 
 def get_token(tenant_id,
-              entry_generator,
-              prefix_for_endpoint,
+              entry_generator=None,
+              prefix_for_endpoint=None,
               timestamp=format_timestamp,
               response_token=HARD_CODED_TOKEN,
               response_user_id=HARD_CODED_USER_ID,
@@ -61,7 +61,7 @@ def get_token(tenant_id,
                 "endpoints": list(endpoint_json())
             }
 
-    return {
+    response = {
         "access": {
             "token": {
                 # TODO: This token should be synthesized and stored in an
@@ -72,7 +72,6 @@ def get_token(tenant_id,
                     "id": tenant_id,
                     "name": tenant_id},
                 "RAX-AUTH:authenticatedBy": ["PASSWORD"]},
-            "serviceCatalog": list(entry_json()),
             "user": {
                 "id": response_user_id,
                 "name": response_user_name,
@@ -80,6 +79,10 @@ def get_token(tenant_id,
             }
         }
     }
+
+    if (entry_generator and prefix_for_endpoint):
+        response["access"]["serviceCatalog"] = list(entry_json())
+    return response
 
 
 def get_endpoints(tenant_id, entry_generator, prefix_for_endpoint):

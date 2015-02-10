@@ -4,7 +4,6 @@ Defines get token, impersonation
 """
 
 import json
-import time
 
 from twisted.web.server import Request
 from twisted.python.urlpath import URLPath
@@ -13,7 +12,6 @@ from mimic.rest.mimicapp import MimicApp
 from mimic.canned_responses.auth import format_timestamp
 from mimic.util.helper import invalid_resource
 from mimic.session import NonMatchingTenantError
-from mimic.util.helper import seconds_to_timestamp
 
 Request.defaultContentType = 'application/json'
 
@@ -151,37 +149,18 @@ class AuthApi(object):
     @app.route('/v2.0/tokens/<string:token_id>', methods=['GET'])
     def validate_token(self, request, token_id):
         """
-        Validate a token id and return its roles.
+        Creates a new session for the given tenant_id and token_id
+        and always returns response code 200.
         """
         request.setResponseCode(200)
-        tenant_id = request.args.get('belongsTo', None)
-        response = {
-            "access": {
-                "token": {
-                    "id": token_id,
-                    "expires": seconds_to_timestamp(int(time.time() + 36000)),
-                    "tenant": {
-                        "id": tenant_id,
-                        "name": "My Project"
-                    }
-                },
-                "user": {
-                    "RAX-AUTH:defaultRegion": "DFW",
-                    "id": "123",
-                    "name": "testuser",
-                    "roles": [
-                        {
-                            "id": "234",
-                            "name": "identity:user-admin",
-                        },
-                        {
-                            "id": "456",
-                            "name": "identity:default"
-                        }
-                    ]
-                }
-            }
-        }
+        tenant_id = request.args.get('belongsTo')
+        session = self.core.sessions.session_for_token(token_id, tenant_id[0])
+        response = get_token(
+            session.tenant_id,
+            response_token=session.token,
+            response_user_id=session.user_id,
+            response_user_name=session.username,
+        )
         return json.dumps(response)
 
     @app.route('/v2.0/tokens/<string:token_id>/endpoints', methods=['GET'])
