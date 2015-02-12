@@ -24,6 +24,9 @@ from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.imimic import IAPIMock
 from mimic.model.nova_objects import GlobalServerCollections
+from mimic.model.nova_behaviors import server_creation
+from mimic.model.nova_behaviors import criteria_collection_from_request_criteria
+from mimic.model.nova_behaviors import nova_criterion_factories
 from mimic.util.helper import invalid_resource
 
 Request.defaultContentType = 'application/json'
@@ -125,9 +128,46 @@ class NovaControlApiRegion(object):
     """
     app = MimicApp()
 
-    @app.route('/v2/<string:tenant_id>', methods=['POST'])
-    def create_criterion(self, request, tenant_id):
+    @app.route('/v2/<string:tenant_id>/behaviors/creation/', methods=['POST'])
+    def register_creation_behavior(self, request, tenant_id):
+        """
+        Register the specified behavior to cause a future server creation
+        operation to behave in the described way.
+
+        The request looks like this::
+
+            {
+                # list of criteria for which requests will behave in the
+                # described way
+                "criteria": [
+                    {"tenant_id": "maybe_fail_.*"},
+                    {"server_name": "failing_server_.*"},
+                    {"metadata": {"key_we_should_have": "fail",
+                                  "key_we_should_not_have": null}}
+                ],
+                # what kind of behavior: in this case, "fail the request"
+                "name": "fail",
+                # parameters for the behavior: in this case,
+                # "return a 404 with a message".
+                "parameters": {
+                    "code": 404,
+                    "message": "Stuff is broken, what"
+                }
+            }
+        """
         request.setResponseCode(CREATED)
+        global_collection = self.api_mock.nova_api._get_session(
+            self.session_store, tenant_id)
+        behavior_description = json.loads(request.content.read())
+        behavior = server_creation.create_behavior(
+            behavior_description['name'], behavior_description['parameters'])
+        criteria = criteria_collection_from_request_criteria(
+            behavior_description['criteria'], nova_criterion_factories)
+        region_collection = global_collection.collection_for_region(
+            self.region)
+        region_collection.register_creation_behavior_for_criteria(
+            behavior, criteria
+        )
         return b''
 
 
