@@ -14,6 +14,7 @@ from mimic.catalog import Entry, Endpoint
 
 
 class ExampleCatalogEndpoint(object):
+
     def __init__(self, tenant, num, endpoint_id):
         self._tenant = tenant
         self._num = num
@@ -33,11 +34,13 @@ class ExampleCatalogEndpoint(object):
 
 
 class ExampleCatalogEntry(object):
+
     """
     Example of a thing that a plugin produces at some phase of its lifecycle;
     maybe you have to pass it a tenant ID to get one of these.  (Services which
     don't want to show up in the catalog won't produce these.)
     """
+
     def __init__(self, tenant_id, name, endpoint_count=2, idgen=lambda: 1):
         # some services transform their tenant ID
         self.name = name
@@ -59,6 +62,7 @@ def example_endpoints(counter):
 
 
 class CatalogGenerationTests(SynchronousTestCase):
+
     """
     Tests for generating a service catalog in various formats from a common
     data source.
@@ -234,6 +238,7 @@ class CatalogGenerationTests(SynchronousTestCase):
 
 
 class GetAuthTokenAPITests(SynchronousTestCase):
+
     """
     Tests for ``/identity/v2.0/tokens``, provided by
     :obj:`mimic.rest.auth_api.AuthApi.get_token_and_service_catalog`
@@ -289,7 +294,8 @@ class GetAuthTokenAPITests(SynchronousTestCase):
         ))
 
         self.assertEqual(200, response.code)
-        self.assertEqual(json_body['access']['user']['roles'], HARD_CODED_ROLES)
+        self.assertEqual(
+            json_body['access']['user']['roles'], HARD_CODED_ROLES)
 
     def test_response_has_same_roles_despite_number_of_auths(self):
         """
@@ -317,7 +323,8 @@ class GetAuthTokenAPITests(SynchronousTestCase):
             self, root, "POST", "/identity/v2.0/tokens", creds))
 
         self.assertEqual(200, response.code)
-        self.assertEqual(json_body['access']['user']['roles'], HARD_CODED_ROLES)
+        self.assertEqual(
+            json_body['access']['user']['roles'], HARD_CODED_ROLES)
 
     def test_authentication_request_with_no_body_causes_http_bad_request(self):
         """
@@ -435,6 +442,7 @@ class GetAuthTokenAPITests(SynchronousTestCase):
 
 
 class GetEndpointsForTokenTests(SynchronousTestCase):
+
     """
     Tests for ``/identity/v2.0/tokens/<token>/endpoints``, provided by
     `:obj:`mimic.rest.auth_api.AuthApi.get_endpoints_for_token`
@@ -482,8 +490,10 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         """
         The service catalog should not duplicate endpoints for an entry/endpoints
         """
-        regions_and_versions_list = [("ORD", "v1"), ("DFW", "v1"), ("DFW", "v2"), ("IAD", "v3")]
-        core = MimicCore(Clock(), [ExampleAPI(regions_and_versions=regions_and_versions_list)])
+        regions_and_versions_list = [
+            ("ORD", "v1"), ("DFW", "v1"), ("DFW", "v2"), ("IAD", "v3")]
+        core = MimicCore(
+            Clock(), [ExampleAPI(regions_and_versions=regions_and_versions_list)])
         root = MimicRoot(core).app.resource()
 
         (response, json_body) = self.successResultOf(json_request(
@@ -791,3 +801,34 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         self.assertTrue(json_body['access']['user']['id'])
         self.assertTrue(len(json_body['access']['user']['roles']) > 0)
         self.assertTrue(json_body['access'].get('serviceCatalog') is None)
+
+    def test_response_for_validate_token_then_authenticate(self):
+        """
+        Test to verify :func: `validate_token` and then authenticate
+        """
+        core = MimicCore(Clock(), [ExampleAPI()])
+        root = MimicRoot(core).app.resource()
+
+        (response1, json_body1) = self.successResultOf(json_request(
+            self, root, "GET",
+            "http://mybase/identity/v2.0/tokens/123456a?belongsTo=111111"
+        ))
+        self.assertEqual(200, response1.code)
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens",
+            {
+                "auth": {
+                    "tenantId": "111111",
+                    "token": {
+                        "id": "123456a"
+                    }
+                }
+            }
+        ))
+        self.assertEqual(response.code, 200)
+        self.assertEqual(json_body["access"]["token"]["id"],
+                         json_body1["access"]["token"]["id"])
+        self.assertEqual(json_body["access"]["token"]["tenant"]["id"],
+                         json_body1["access"]["token"]["tenant"]["id"])
+        self.assertEqual(json_body["access"]["user"]["name"],
+                         json_body1["access"]["user"]["name"])
