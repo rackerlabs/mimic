@@ -549,11 +549,13 @@ class NovaAPINegativeTests(SynchronousTestCase):
         and response code when the criteria is registered.
         """
         serverfail = {"message": "Create server failure", "code": 500}
-        criterion = {"name": "create_server_failure",
+        criterion = {"name": "fail",
                      "parameters": serverfail,
                      "criteria": [{"server_name": "failing_server_name"}]}
-        set_criteria = request(self, self.root, "POST", self.nova_control_endpoint,
-            json.dumps(criterion))
+        set_criteria = request(self, self.root, "POST",
+                               self.nova_control_endpoint +
+                               "/behaviors/creation/",
+                               json.dumps(criterion))
         set_criteria_response = self.successResultOf(set_criteria)
         self.assertEqual(set_criteria_response.code, 201)
         create_server_response = self.create_server(name="failing_server_name")
