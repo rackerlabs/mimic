@@ -65,6 +65,24 @@ class NovaApi(object):
         return (NovaRegion(self, uri_prefix, session_store, region)
                 .app.resource())
 
+    def _get_session(self, session_store, tenant_id):
+        """
+        Retrieve or create a new Nova session from a given tenant identifier
+        and :obj:`SessionStore`.
+
+        For use with ``data_for_api``.
+
+        Temporary hack; see this issue
+        https://github.com/rackerlabs/mimic/issues/158
+        """
+        return (
+            session_store.session_for_tenant_id(tenant_id)
+            .data_for_api(self, lambda: GlobalServerCollections(
+                tenant_id=tenant_id,
+                clock=session_store.clock
+            ))
+        )
+
 
 @implementer(IAPIMock, IPlugin)
 @attributes(["nova_api"])
