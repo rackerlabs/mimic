@@ -287,7 +287,9 @@ def metadata_to_creation_behavior(metadata):
 
 
 @attributes(["tenant_id", "region_name", "clock",
-             Attribute("servers", default_factory=list)])
+             Attribute("servers", default_factory=list),
+             Attribute("creation_behaviors_and_criteria",
+                       default_factory=list)])
 class RegionalServerCollection(object):
     """
     A collection of servers, in a given region, for a given tenant.
