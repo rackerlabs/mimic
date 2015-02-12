@@ -317,6 +317,14 @@ class RegionalServerCollection(object):
         request to inject an error in advance, based on whether it matches the
         parameters in the given creation JSON and HTTP request properties.
         """
+        creation_attributes = {
+            "tenant_id": self.tenant_id,
+            "server_name": creation_json["server"]["name"],
+            "metadata": creation_json["server"].get("metadata")
+        }
+        for behavior, criteria in self.creation_behaviors_and_criteria:
+            if criteria.evaluate(creation_attributes):
+                return behavior
         return None
 
     def request_creation(self, creation_http_request, creation_json,
