@@ -76,23 +76,26 @@ POST /mimicking/...nova-behavior.../...your-tenant.../behaviors/creation/
 
 @attributes(['name', 'predicate'])
 class Criterion(object):
-
     """
-
+    A criterion evaluates a predicate (callable object returning boolean)
+    against an attribute with the given name.
     """
 
     def evaluate(self, attributes):
         """
-
+        Extract the attribute with this Criterion's name from ``attributes``
+        and evaluate it against this Criterion's predicate, returning True if
+        it matches and False otherwise.
         """
         return self.predicate(attributes[self.name])
 
 
 @attributes(['criteria'])
 class CriteriaCollection(object):
-
     """
-
+    A CriteriaCollection is a collection of Criterion which implements the same
+    interface (``evaluate(attributes)``) by evaluating each of the Criterion
+    objects it comprises and returning True if they all match.
     """
 
     def evaluate(self, attributes):
@@ -107,28 +110,33 @@ class CriteriaCollection(object):
 
 def regexp_predicate(value):
     """
-
+    Return a predicate for use with a Criterion which matches a given regular
+    expression.
     """
     return re.compile(value).match
 
 
 def tenant_id_criterion(value):
     """
-
+    Return a Criterion which matches the given regular expression string
+    against the ``"tenant_id"`` attribute.
     """
     return Criterion(name='tenant_id', predicate=regexp_predicate(value))
 
 
 def server_name_criterion(value):
     """
-
+    Return a Criterion which matches the given regular expression string
+    against the ``"server_name"`` attribute.
     """
     return Criterion(name='server_name', predicate=regexp_predicate(value))
 
 
 def metadata_criterion(value):
     """
+    Return a Criterion which matches against metadata.
 
+    :param value: ??? (FIXME this is the wrong shape)
     """
     name = value['name']
     value_predicate = regexp_predicate(value['value'])
