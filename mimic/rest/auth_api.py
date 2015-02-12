@@ -154,7 +154,9 @@ class AuthApi(object):
         """
         request.setResponseCode(200)
         tenant_id = request.args.get('belongsTo')
-        session = self.core.sessions.session_for_token(token_id, tenant_id[0])
+        if tenant_id:
+            tenant_id = tenant_id[0]
+        session = self.core.sessions.session_for_token(token_id, tenant_id)
         response = get_token(
             session.tenant_id,
             response_token=session.token,

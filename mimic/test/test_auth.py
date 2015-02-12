@@ -794,13 +794,29 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
 
         (response, json_body) = self.successResultOf(json_request(
             self, root, "GET",
-            "http://mybase/identity/v2.0/tokens/123456a?belongsTo='111111'"
+            "http://mybase/identity/v2.0/tokens/123456a?belongsTo=111111"
         ))
         self.assertEqual(200, response.code)
-        self.assertTrue(json_body['access']['token']['id'])
+        self.assertEqual(json_body['access']['token']['id'], '123456a')
         self.assertTrue(json_body['access']['user']['id'])
         self.assertTrue(len(json_body['access']['user']['roles']) > 0)
         self.assertTrue(json_body['access'].get('serviceCatalog') is None)
+
+    def test_response_for_validate_token_when_tenant_not_provided(self):
+        """
+        Test to verify :func: `validate_token` when tenant_id is not
+        provided using the argument `belongsTo`
+        """
+        core = MimicCore(Clock(), [ExampleAPI()])
+        root = MimicRoot(core).app.resource()
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "GET",
+            "http://mybase/identity/v2.0/tokens/123456a"
+        ))
+        self.assertEqual(200, response.code)
+        self.assertEqual(json_body['access']['token']['id'], '123456a')
+        self.assertTrue(json_body['access']['token']['tenant']['id'])
 
     def test_response_for_validate_token_then_authenticate(self):
         """
