@@ -163,17 +163,8 @@ class NovaRegion(object):
         Get the given server-cache object for the given tenant, creating one if
         there isn't one.
         """
-        return (
-            self._session_store.session_for_tenant_id(tenant_id)
-            .data_for_api(
-                self._api_mock,
-                lambda: GlobalServerCollections(
-                    tenant_id=tenant_id,
-                    clock=self._session_store.clock
-                )
-            )
-            .collection_for_region(self._name)
-        )
+        return (self._api_mock._get_session(self._session_store, tenant_id)
+                .collection_for_region(self._name))
 
     app = MimicApp()
 
