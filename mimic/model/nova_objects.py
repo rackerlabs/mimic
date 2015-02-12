@@ -303,6 +303,13 @@ class RegionalServerCollection(object):
             if server.server_id == server_id:
                 return server
 
+    def register_creation_behavior_for_criteria(self, behavior, criteria):
+        """
+        Register the given behavior for server creation based on the given
+        criteria.
+        """
+        self.creation_behaviors_and_criteria.append((behavior, criteria))
+
     def registered_creation_behavior(self, creation_http_request,
                                      creation_json):
         """
