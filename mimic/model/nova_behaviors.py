@@ -55,25 +55,6 @@ def create_fail_behavior(parameters):
     return fail_without_creating
 
 
-"""
-POST /mimicking/...nova-behavior.../...your-tenant.../behaviors/creation/
-
-{
-    "criteria": [
-        {"tenant_id": "maybe_fail_.*"},
-        {"server_name": "failing_server_.*"},
-        {"metadata": {"key_we_should_have": "fail",
-                      "key_we_should_not_have": null}}
-    ],
-    "name": "fail",
-    "parameters": {
-        "code": 404,
-        "message": "Stuff is broken, what"
-    }
-}
-"""
-
-
 @attributes(['name', 'predicate'])
 class Criterion(object):
     """
