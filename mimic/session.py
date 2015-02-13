@@ -177,4 +177,4 @@ class SessionStore(object):
         """
         if tenant_id not in self._tenant_to_token:
             return self._new_session(tenant_id=tenant_id)
-        return self.session_for_token(self._tenant_to_token[tenant_id])
+        return self.session_for_token(self._tenant_to_token[tenant_id])[0]

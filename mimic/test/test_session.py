@@ -73,7 +73,7 @@ class SessionCreationTests(SynchronousTestCase):
         for the API key.
         """
         sessions = SessionStore(Clock())
-        a = sessions.session_for_token("testtoken")
+        (a, z) = sessions.session_for_token("testtoken")
         b = sessions.session_for_username_password(a.username, "testpswd")
         c = sessions.session_for_api_key(a.username, "testapikey")
         self.assertIdentical(a, b)
@@ -104,10 +104,10 @@ class SessionCreationTests(SynchronousTestCase):
         sessions = SessionStore(Clock())
         a = sessions.session_for_username_password("username",
                                                    "testpswd")
-        b = sessions.session_for_token(a.token)
+        (b, z) = sessions.session_for_token(a.token)
         self.assertIdentical(a, b)
         c = sessions.session_for_api_key("apiuser", "testkey")
-        d = sessions.session_for_token(c.token)
+        (d, y) = sessions.session_for_token(c.token)
         self.assertIdentical(c, d)
 
     def test_by_token_after_username_wrong_tenant(self):
@@ -122,7 +122,7 @@ class SessionCreationTests(SynchronousTestCase):
                                                    "testpswd")
         self.assertRaises(
             NonMatchingTenantError,
-            sessions.session_for_token,
+            sessions.session_for_token[0],
             a.token, a.tenant_id + 'wrong')
 
     def test_impersonation(self):
@@ -138,7 +138,7 @@ class SessionCreationTests(SynchronousTestCase):
         a = sessions.session_for_impersonation("pretender", A_LOT)
         a_prime = sessions.session_for_impersonation("pretender", A_LOT)
         self.assertIdentical(a, a_prime)
-        b = sessions.session_for_token(a.token)
+        (b, z) = sessions.session_for_token(a.token)
         self.assertEqual(
             a.expires, datetime.utcfromtimestamp(A_LITTLE + A_LOT))
         self.assertIdentical(a, b)
@@ -212,7 +212,7 @@ class SessionCreationTests(SynchronousTestCase):
             sessions.session_for_username_password("someuser1", "testpass"),
             sessions.session_for_impersonation("someuser2", 12),
             sessions.session_for_api_key("someuser3", "someapikey"),
-            sessions.session_for_token("sometoken"),
+            sessions.session_for_token("sometoken")[0],
         ]
         integer = re.compile('^\d+$')
         for session in sessions:
@@ -237,7 +237,7 @@ class SessionCreationTests(SynchronousTestCase):
                                                    "tenant1"),
             sessions.session_for_api_key("user2", "apikey",
                                          tenant_id="tenant2"),
-            sessions.session_for_token("token", tenant_id="tenant3"),
+            sessions.session_for_token("token", tenant_id="tenant3")[0],
             sessions.session_for_tenant_id("tenant4")
         ]
         for i, session in enumerate(sessions):
