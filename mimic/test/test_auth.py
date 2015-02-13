@@ -269,7 +269,8 @@ class GetAuthTokenAPITests(SynchronousTestCase):
         self.assertEqual(200, response.code)
         token = json_body['access']['token']['id']
         tenant_id = json_body['access']['token']['tenant']['id']
-        session = core.sessions.session_for_token(token)
+        (session, impersonator_session) = core.sessions.session_for_token(
+            token)
         self.assertEqual(token, session.token)
         self.assertEqual(tenant_id, session.tenant_id)
 
@@ -375,7 +376,8 @@ class GetAuthTokenAPITests(SynchronousTestCase):
         self.assertEqual("turtlepower",
                          json_body['access']['token']['tenant']['id'])
         token = json_body['access']['token']['id']
-        session = core.sessions.session_for_token(token)
+        (session, impersonator_session) = core.sessions.session_for_token(
+            token)
         self.assertEqual(token, session.token)
         self.assertEqual("turtlepower", session.tenant_id)
 
@@ -404,7 +406,8 @@ class GetAuthTokenAPITests(SynchronousTestCase):
         self.assertEqual("turtlepower",
                          json_body['access']['token']['tenant']['id'])
         token = json_body['access']['token']['id']
-        session = core.sessions.session_for_token(token)
+        (session, impersonator_session) = core.sessions.session_for_token(
+            token)
         self.assertEqual(token, session.token)
         self.assertEqual("turtlepower", session.tenant_id)
 
@@ -462,7 +465,8 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
             "/identity/v2.0/tokens/{0}/endpoints".format(token)
         )
 
-        session = core.sessions.session_for_token(token)
+        (session, impersonator_session) = core.sessions.session_for_token(
+            token)
         self.assertEqual(token, session.token)
 
     def test_response_service_catalog_has_base_uri(self):
@@ -848,3 +852,57 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
                          json_body1["access"]["token"]["tenant"]["id"])
         self.assertEqual(json_body["access"]["user"]["name"],
                          json_body1["access"]["user"]["name"])
+
+    def test_response_for_validate_impersonated_token(self):
+        """
+        Test to verify :func: `validate_token` and then authenticate
+        """
+        core = MimicCore(Clock(), [ExampleAPI()])
+        root = MimicRoot(core).app.resource()
+        # Authenticate the impersonator
+        (response0, json_body0) = self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens",
+            {
+                "auth": {
+                    "tenantId": "111111",
+                    "token": {
+                        "id": "123456a"
+                    }
+                }
+            }
+        ))
+        self.assertEqual(200, response0.code)
+        impersonator_token = json_body0["access"]["token"]["id"]
+
+        # Authenticate using the username so we know the tenant_id
+        (response1, json_body1) = self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens",
+            {
+                "auth": {
+                    "passwordCredentials": {
+                        "username": "test1",
+                        "password": "theUsersPassword"
+                    },
+                    "tenantId": "12345"
+                }
+            }
+        ))
+        self.assertEqual(200, response1.code)
+        # Impersonate user test1
+        (response2, json_body2) = self.successResultOf(json_request(
+            self, root, "POST",
+            "http://mybase/identity/v2.0/RAX-AUTH/impersonation-tokens",
+            {"RAX-AUTH:impersonation": {"expire-in-seconds": 1,
+                                        "user": {"username": "test1"}}},
+            headers={'X-Auth-Token': [str(impersonator_token)]}
+        ))
+        self.assertEqual(200, response2.code)
+        impersonated_token = json_body2["access"]["token"]["id"]
+        # validate the impersonated_token
+        (response3, json_body3) = self.successResultOf(json_request(
+            self, root, "GET",
+            "http://mybase/identity/v2.0/tokens/{0}?belongsTo=12345".format(
+                impersonated_token)
+        ))
+        self.assertEqual(200, response3.code)
+        self.assertTrue(json_body3["access"]["RAX-AUTH:impersonator"])

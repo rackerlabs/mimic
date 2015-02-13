@@ -7,7 +7,7 @@ import json
 
 from twisted.web.server import Request
 from twisted.python.urlpath import URLPath
-from mimic.canned_responses.auth import get_token, get_endpoints
+from mimic.canned_responses.auth import get_token, get_endpoints, impersonator_user_role
 from mimic.rest.mimicapp import MimicApp
 from mimic.canned_responses.auth import format_timestamp
 from mimic.util.helper import invalid_resource
@@ -106,8 +106,8 @@ class AuthApi(object):
         elif content['auth'].get('token') and tenant_id:
             token = content['auth']['token']['id']
             return format_response(
-                lambda: self.core.sessions.session_for_token(token,
-                                                             tenant_id),
+                lambda: self.core.sessions.session_for_token(
+                    token, tenant_id)[0],
                 lambda e: "Token doesn't belong to Tenant with Id/Name: "
                           "'{0}'".format(e.desired_tenant))
         else:
@@ -135,14 +135,15 @@ class AuthApi(object):
         except ValueError:
             request.setResponseCode(400)
             return json.dumps(invalid_resource("Invalid JSON request body"))
-
+        impersonator_token = request.getHeader("X-Auth-Token")
         expires_in = content['RAX-AUTH:impersonation']['expire-in-seconds']
         username = content['RAX-AUTH:impersonation']['user']['username']
 
         session = self.core.sessions.session_for_impersonation(username,
-                                                               expires_in)
+                                                               expires_in,
+                                                               impersonator_token)
         return json.dumps({"access": {
-            "token": {"id": session.token,
+            "token": {"id": session.impersonated_token,
                       "expires": format_timestamp(session.expires)}
         }})
 
@@ -156,13 +157,18 @@ class AuthApi(object):
         tenant_id = request.args.get('belongsTo')
         if tenant_id:
             tenant_id = tenant_id[0]
-        session = self.core.sessions.session_for_token(token_id, tenant_id)
+        (session, impersonator_session) = self.core.sessions.session_for_token(
+            token_id, tenant_id)
         response = get_token(
             session.tenant_id,
             response_token=session.token,
             response_user_id=session.user_id,
             response_user_name=session.username,
         )
+        if impersonator_session:
+            response["access"]["RAX-AUTH:impersonator"] = impersonator_user_role(
+                impersonator_session.user_id,
+                impersonator_session.username)
         return json.dumps(response)
 
     @app.route('/v2.0/tokens/<string:token_id>/endpoints', methods=['GET'])
@@ -174,7 +180,8 @@ class AuthApi(object):
         # FIXME: TEST
         request.setResponseCode(200)
         prefix_map = {}
-        session = self.core.sessions.session_for_token(token_id)
+        (session, impersonator_session) = self.core.sessions.session_for_token(
+            token_id)
         return json.dumps(get_endpoints(
             session.tenant_id,
             entry_generator=lambda tenant_id: list(
