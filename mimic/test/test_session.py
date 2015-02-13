@@ -122,7 +122,7 @@ class SessionCreationTests(SynchronousTestCase):
                                                    "testpswd")
         self.assertRaises(
             NonMatchingTenantError,
-            sessions.session_for_token[0],
+            sessions.session_for_token,
             a.token, a.tenant_id + 'wrong')
 
     def test_impersonation(self):
