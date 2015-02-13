@@ -128,7 +128,7 @@ class SessionCreationTests(SynchronousTestCase):
     def test_impersonation(self):
         """
         SessionStore.session_for_impersonation will return a session that can
-        be retrieved by token_id but not username.
+        be retrieved by impersonated token_id or username.
         """
         clock = Clock()
         sessions = SessionStore(clock)
@@ -144,7 +144,7 @@ class SessionCreationTests(SynchronousTestCase):
         self.assertIdentical(a, b)
         c = sessions.session_for_username_password("pretender",
                                                    "not a password")
-        self.assertNotIdentical(a, c)
+        self.assertIdentical(a, c)
         self.assertEqual(a.username, c.username)
         self.assertEqual(a.tenant_id, c.tenant_id)
 

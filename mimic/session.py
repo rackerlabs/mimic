@@ -159,13 +159,13 @@ class SessionStore(object):
     def session_for_impersonation(self, username, expires_in, impersonator_token=None):
         """
         Create or return a :obj:`Session` impersonating a given user; this
-        session is distinct from the user's normal login session in that it
-        will have an independent token.
+        session updates the expiration to be that indicated.
         """
         impersonator_session = self._token_to_session.get(impersonator_token)
         session = self.session_for_username_password(
             username, "lucky we don't check passwords, isn't it",
         )
+        session.expires = datetime.utcfromtimestamp(self.clock.seconds() + expires_in)
         self._impersonated_token_to_impersonator_session[
             session.impersonated_token] = impersonator_session
         return session
