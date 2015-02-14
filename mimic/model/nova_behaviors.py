@@ -97,14 +97,6 @@ def regexp_predicate(value):
     return re.compile(value).match
 
 
-def tenant_id_criterion(value):
-    """
-    Return a Criterion which matches the given regular expression string
-    against the ``"tenant_id"`` attribute.
-    """
-    return Criterion(name='tenant_id', predicate=regexp_predicate(value))
-
-
 def server_name_criterion(value):
     """
     Return a Criterion which matches the given regular expression string
