@@ -565,3 +565,37 @@ class NovaAPINegativeTests(SynchronousTestCase):
         self.assertEquals(create_server_response_body['message'],
                           "Create server failure")
         self.assertEquals(create_server_response_body['code'], 500)
+
+    def test_create_server_failure_based_on_metadata(self):
+        """
+        :func:`create_server` fails with the given error message and response
+        code when a behavior is registered that matches its metadata.
+        """
+        serverfail = {"message": "Sample failure message", "code": 503}
+        criterion = {"name": "fail",
+                     "parameters": serverfail,
+                     "criteria": [{"metadata": {"field1": "value1",
+                                                "field2": "reg.*ex"}}]}
+        set_criteria = request(self, self.root, "POST",
+                               self.nova_control_endpoint +
+                               "/behaviors/creation/",
+                               json.dumps(criterion))
+        set_criteria_response = self.successResultOf(set_criteria)
+        self.assertEqual(set_criteria_response.code, 201)
+
+        create_server_response = self.create_server(name="failing_server_name")
+        self.assertEquals(create_server_response.code, 202)
+        self.successResultOf(treq.json_content(create_server_response))
+
+        failing_create_response = self.create_server(
+            metadata={"field1": "value1",
+                      "field2": "regular expression"}
+        )
+
+        failing_create_response_body = self.successResultOf(
+            treq.json_content(failing_create_response)
+        )
+
+        self.assertEquals(failing_create_response_body['message'],
+                          "Sample failure message")
+        self.assertEquals(failing_create_response_body['code'], 503)
