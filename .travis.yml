@@ -28,7 +28,7 @@ matrix:
       compiler: clang
 
 install:
-  - ./.travis/install.sh
+  - travis_retry ./.travis/install.sh
 
 script:
   - ./.travis/run.sh
