@@ -111,15 +111,14 @@ def metadata_criterion(value):
 
     :param value: ??? (FIXME this is the wrong shape)
     """
-    name = value['name']
-    value_predicate = regexp_predicate(value['value'])
-
-    def predicate(metadata):
-        return value_predicate(metadata.get(name))
+    def predicate(attribute):
+        for k, v in value.items():
+            if not re.compile(v).match(attribute.get(k, "")):
+                return False
+        return True
     return Criterion(name='metadata', predicate=predicate)
 
 nova_criterion_factories = {
-    "tenant_id": tenant_id_criterion,
     "server_name": server_name_criterion,
     "metadata": metadata_criterion
 }
