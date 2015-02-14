@@ -545,8 +545,8 @@ class NovaAPINegativeTests(SynchronousTestCase):
 
     def test_create_server_failure_using_behaviors(self):
         """
-        Test to verify :func:`create_server` fails with given error message
-        and response code when the criteria is registered.
+        :func:`create_server` fails with given error message and response code
+        when a behavior is registered that matches its hostname.
         """
         serverfail = {"message": "Create server failure", "code": 500}
         criterion = {"name": "fail",
