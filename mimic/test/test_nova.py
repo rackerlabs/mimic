@@ -5,11 +5,12 @@ import treq
 from twisted.trial.unittest import SynchronousTestCase
 
 from mimic.test.helpers import json_request, request, validate_link_json
-from mimic.rest.nova_api import NovaApi
+from mimic.rest.nova_api import NovaApi, NovaControlApi
 from mimic.test.fixtures import APIMockHelper, TenantAuthentication
 
 
 class NovaAPITests(SynchronousTestCase):
+
     """
     Tests for the Nova Api plugin.
     """
@@ -92,7 +93,8 @@ class NovaAPITests(SynchronousTestCase):
         Test to verify :func:`list_servers` on ``GET /v2.0/<tenant_id>/servers?name<name>``,
         when a server with that name exists
         """
-        list_servers = request(self, self.root, "GET", self.uri + '/servers?name=' + self.server_name)
+        list_servers = request(
+            self, self.root, "GET", self.uri + '/servers?name=' + self.server_name)
         list_servers_response = self.successResultOf(list_servers)
         list_servers_response_body = self.successResultOf(
             treq.json_content(list_servers_response))
@@ -106,7 +108,8 @@ class NovaAPITests(SynchronousTestCase):
         Test to verify :func:`list_servers` on ``GET /v2.0/<tenant_id>/servers?name<name>``
         when a server with that name does not exist
         """
-        list_servers = request(self, self.root, "GET", self.uri + '/servers?name=no_server')
+        list_servers = request(
+            self, self.root, "GET", self.uri + '/servers?name=no_server')
         list_servers_response = self.successResultOf(list_servers)
         list_servers_response_body = self.successResultOf(
             treq.json_content(list_servers_response))
@@ -118,7 +121,8 @@ class NovaAPITests(SynchronousTestCase):
         Test to verify :func:`get_server` on ``GET /v2.0/<tenant_id>/servers/<server_id>``,
         when the server_id exists
         """
-        get_server = request(self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+        get_server = request(
+            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
         get_server_response = self.successResultOf(get_server)
         get_server_response_body = self.successResultOf(
             treq.json_content(get_server_response))
@@ -134,7 +138,8 @@ class NovaAPITests(SynchronousTestCase):
         Test to verify :func:`get_server` on ``GET /v2.0/<tenant_id>/servers/<server_id>``,
         when the server_id does not exist
         """
-        get_server = request(self, self.root, "GET", self.uri + '/servers/test-server-id')
+        get_server = request(
+            self, self.root, "GET", self.uri + '/servers/test-server-id')
         get_server_response = self.successResultOf(get_server)
         self.assertEqual(get_server_response.code, 404)
 
@@ -142,15 +147,18 @@ class NovaAPITests(SynchronousTestCase):
         """
         Test to verify :func:`list_servers_with_details` on ``GET /v2.0/<tenant_id>/servers/detail``
         """
-        list_servers_detail = request(self, self.root, "GET", self.uri + '/servers/detail')
-        list_servers_detail_response = self.successResultOf(list_servers_detail)
+        list_servers_detail = request(
+            self, self.root, "GET", self.uri + '/servers/detail')
+        list_servers_detail_response = self.successResultOf(
+            list_servers_detail)
         list_servers_detail_response_body = self.successResultOf(
             treq.json_content(list_servers_detail_response))
         self.assertEqual(list_servers_detail_response.code, 200)
         self.assertEqual(list_servers_detail_response_body['servers'][0]['id'],
                          self.server_id)
         self.assertEqual(len(list_servers_detail_response_body['servers']), 1)
-        self.assertEqual(list_servers_detail_response_body['servers'][0]['status'], 'ACTIVE')
+        self.assertEqual(
+            list_servers_detail_response_body['servers'][0]['status'], 'ACTIVE')
 
         self.validate_server_detail_json(
             list_servers_detail_response_body['servers'][0])
@@ -198,7 +206,8 @@ class NovaAPITests(SynchronousTestCase):
         """
         Test to verify :func:`delete_server` on ``DELETE /v2.0/<tenant_id>/servers/<server_id>``
         """
-        delete_server = request(self, self.root, "DELETE", self.uri + '/servers/' + self.server_id)
+        delete_server = request(
+            self, self.root, "DELETE", self.uri + '/servers/' + self.server_id)
         delete_server_response = self.successResultOf(delete_server)
         self.assertEqual(delete_server_response.code, 204)
         self.assertEqual(self.successResultOf(treq.content(delete_server_response)),
@@ -209,7 +218,8 @@ class NovaAPITests(SynchronousTestCase):
         Test to verify :func:`delete_server` on ``DELETE /v2.0/<tenant_id>/servers/<server_id>``,
         when the server_id does not exist
         """
-        delete_server = request(self, self.root, "DELETE", self.uri + '/servers/test-server-id')
+        delete_server = request(
+            self, self.root, "DELETE", self.uri + '/servers/test-server-id')
         delete_server_response = self.successResultOf(delete_server)
         self.assertEqual(delete_server_response.code, 404)
 
@@ -217,33 +227,40 @@ class NovaAPITests(SynchronousTestCase):
         """
         Test to verify :func:`get_image` on ``GET /v2.0/<tenant_id>/images/<image_id>``
         """
-        get_server_image = request(self, self.root, "GET", self.uri + '/images/test-image-id')
+        get_server_image = request(
+            self, self.root, "GET", self.uri + '/images/test-image-id')
         get_server_image_response = self.successResultOf(get_server_image)
         get_server_image_response_body = self.successResultOf(
             treq.json_content(get_server_image_response))
         self.assertEqual(get_server_image_response.code, 200)
-        self.assertEqual(get_server_image_response_body['image']['id'], 'test-image-id')
-        self.assertEqual(get_server_image_response_body['image']['status'], 'ACTIVE')
+        self.assertEqual(
+            get_server_image_response_body['image']['id'], 'test-image-id')
+        self.assertEqual(
+            get_server_image_response_body['image']['status'], 'ACTIVE')
 
     def test_get_server_flavor(self):
         """
         Test to verify :func:`get_image` on ``GET /v2.0/<tenant_id>/flavors/<flavor_id>``
         """
-        get_server_flavor = request(self, self.root, "GET", self.uri + '/flavors/test-flavor-id')
+        get_server_flavor = request(
+            self, self.root, "GET", self.uri + '/flavors/test-flavor-id')
         get_server_flavor_response = self.successResultOf(get_server_flavor)
         get_server_flavor_response_body = self.successResultOf(
             treq.json_content(get_server_flavor_response))
         self.assertEqual(get_server_flavor_response.code, 200)
-        self.assertEqual(get_server_flavor_response_body['flavor']['id'], 'test-flavor-id')
+        self.assertEqual(
+            get_server_flavor_response_body['flavor']['id'], 'test-flavor-id')
 
     def test_get_server_limits(self):
         """
         Test to verify :func:`get_limit` on ``GET /v2.0/<tenant_id>/limits``
         """
-        get_server_limits = request(self, self.root, "GET", self.uri + '/limits')
+        get_server_limits = request(
+            self, self.root, "GET", self.uri + '/limits')
         get_server_limits_response = self.successResultOf(get_server_limits)
         self.assertEqual(get_server_limits_response.code, 200)
-        self.assertTrue(self.successResultOf(treq.json_content(get_server_limits_response)))
+        self.assertTrue(
+            self.successResultOf(treq.json_content(get_server_limits_response)))
 
     def test_get_server_ips(self):
         """
@@ -255,8 +272,10 @@ class NovaAPITests(SynchronousTestCase):
         get_server_ips_response_body = self.successResultOf(
             treq.json_content(get_server_ips_response))
         self.assertEqual(get_server_ips_response.code, 200)
-        list_servers_detail = request(self, self.root, "GET", self.uri + '/servers/detail')
-        list_servers_detail_response = self.successResultOf(list_servers_detail)
+        list_servers_detail = request(
+            self, self.root, "GET", self.uri + '/servers/detail')
+        list_servers_detail_response = self.successResultOf(
+            list_servers_detail)
         list_servers_detail_response_body = self.successResultOf(
             treq.json_content(list_servers_detail_response))
         self.assertEqual(get_server_ips_response_body['addresses'],
@@ -312,7 +331,12 @@ class NovaAPINegativeTests(SynchronousTestCase):
         Create a :obj:`MimicCore` with :obj:`NovaApi` as the only plugin,
         and create a server
         """
-        helper = APIMockHelper(self, [NovaApi(["ORD", "MIMIC"])])
+        nova_api = NovaApi(["ORD", "MIMIC"])
+        nova_control_api = NovaControlApi(nova_api=nova_api)
+        helper = APIMockHelper(self, [nova_api, nova_control_api])
+        self.nova_control_endpoint = helper.auth.get_service_endpoint(
+            "cloudServersBehavior",
+            "ORD")
         self.root = helper.root
         self.uri = helper.uri
         self.helper = helper
@@ -420,9 +444,11 @@ class NovaAPINegativeTests(SynchronousTestCase):
         get_server_response = self.successResultOf(get_server)
         get_server_response_body = self.successResultOf(
             treq.json_content(get_server_response))
-        self.assertEquals(get_server_response_body['server']['status'], "BUILD")
+        self.assertEquals(
+            get_server_response_body['server']['status'], "BUILD")
         # List servers with details and verify the server is in BUILD status
-        list_servers = request(self, self.root, "GET", self.uri + '/servers/detail')
+        list_servers = request(
+            self, self.root, "GET", self.uri + '/servers/detail')
         list_servers_response = self.successResultOf(list_servers)
         self.assertEquals(list_servers_response.code, 200)
         list_servers_response_body = self.successResultOf(
@@ -438,7 +464,8 @@ class NovaAPINegativeTests(SynchronousTestCase):
         get_server_response = self.successResultOf(get_server)
         get_server_response_body = self.successResultOf(
             treq.json_content(get_server_response))
-        self.assertEquals(get_server_response_body['server']['status'], "ACTIVE")
+        self.assertEquals(
+            get_server_response_body['server']['status'], "ACTIVE")
 
     def test_server_in_error_state(self):
         """
@@ -457,7 +484,8 @@ class NovaAPINegativeTests(SynchronousTestCase):
         get_server_response = self.successResultOf(get_server)
         get_server_response_body = self.successResultOf(
             treq.json_content(get_server_response))
-        self.assertEquals(get_server_response_body['server']['status'], "ERROR")
+        self.assertEquals(
+            get_server_response_body['server']['status'], "ERROR")
 
     def test_delete_server_fails_specified_number_of_times(self):
         """
@@ -514,3 +542,60 @@ class NovaAPINegativeTests(SynchronousTestCase):
                                     '/flavors/1')
         get_server_flavor_response = self.successResultOf(get_server_flavor)
         self.assertEqual(get_server_flavor_response.code, 404)
+
+    def test_create_server_failure_using_behaviors(self):
+        """
+        :func:`create_server` fails with given error message and response code
+        when a behavior is registered that matches its hostname.
+        """
+        serverfail = {"message": "Create server failure", "code": 500}
+        criterion = {"name": "fail",
+                     "parameters": serverfail,
+                     "criteria": [{"server_name": "failing_server_name"}]}
+        set_criteria = request(self, self.root, "POST",
+                               self.nova_control_endpoint +
+                               "/behaviors/creation/",
+                               json.dumps(criterion))
+        set_criteria_response = self.successResultOf(set_criteria)
+        self.assertEqual(set_criteria_response.code, 201)
+        create_server_response = self.create_server(name="failing_server_name")
+        self.assertEquals(create_server_response.code, 500)
+        create_server_response_body = self.successResultOf(
+            treq.json_content(create_server_response))
+        self.assertEquals(create_server_response_body['message'],
+                          "Create server failure")
+        self.assertEquals(create_server_response_body['code'], 500)
+
+    def test_create_server_failure_based_on_metadata(self):
+        """
+        :func:`create_server` fails with the given error message and response
+        code when a behavior is registered that matches its metadata.
+        """
+        serverfail = {"message": "Sample failure message", "code": 503}
+        criterion = {"name": "fail",
+                     "parameters": serverfail,
+                     "criteria": [{"metadata": {"field1": "value1",
+                                                "field2": "reg.*ex"}}]}
+        set_criteria = request(self, self.root, "POST",
+                               self.nova_control_endpoint +
+                               "/behaviors/creation/",
+                               json.dumps(criterion))
+        set_criteria_response = self.successResultOf(set_criteria)
+        self.assertEqual(set_criteria_response.code, 201)
+
+        create_server_response = self.create_server(name="failing_server_name")
+        self.assertEquals(create_server_response.code, 202)
+        self.successResultOf(treq.json_content(create_server_response))
+
+        failing_create_response = self.create_server(
+            metadata={"field1": "value1",
+                      "field2": "regular expression"}
+        )
+
+        failing_create_response_body = self.successResultOf(
+            treq.json_content(failing_create_response)
+        )
+
+        self.assertEquals(failing_create_response_body['message'],
+                          "Sample failure message")
+        self.assertEquals(failing_create_response_body['code'], 503)
