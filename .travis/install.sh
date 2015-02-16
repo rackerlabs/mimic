@@ -73,3 +73,10 @@ virtualenv ~/.venv
 source ~/.venv/bin/activate
 pip install tox coveralls
 tox -e "${TOX_ENV}" --recreate --notest
+
+# If "installdeps" fails, "tox" exits with an error, and the "set -e" above
+# causes it to retry.  If "inst" fails, however, no error is reported for some
+# reason.  The following line causes "grep" to exit with error (and thanks to
+# "set -e", the whole script, so travis will retry it) if we didn't get to the
+# end stage of "inst" (i.e. installing mimic itself).
+./.tox/"${TOX_ENV}"/bin/pip freeze | grep -e '^mimic=='
