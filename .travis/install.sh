@@ -29,8 +29,9 @@ if [[ "$DARWIN" = true ]]; then
             pyenv global 2.7.8
             ;;
         pypy)
-	    # travis/tox are not finding pypy when installed using pyenv.
-            brew install pypy
+            brew upgrade pyenv
+            pyenv install pypy-2.5.0
+            pyenv global pypy-2.5.0
             ;;
         docs)
             curl -O https://bootstrap.pypa.io/get-pip.py
