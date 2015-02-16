@@ -73,4 +73,3 @@ virtualenv ~/.venv
 source ~/.venv/bin/activate
 pip install tox coveralls
 tox -e "${TOX_ENV}" --recreate --notest
-
