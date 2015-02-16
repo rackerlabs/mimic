@@ -80,10 +80,3 @@ tox -e "${TOX_ENV}" --recreate --notest
 # "set -e", the whole script, so travis will retry it) if we didn't get to the
 # end stage of "inst" (i.e. installing mimic itself).
 ./.tox/"${TOX_ENV}"/bin/pip freeze | grep -e '^mimic=='
-
-
-
-
-
-
-
