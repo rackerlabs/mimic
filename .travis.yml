@@ -28,10 +28,10 @@ matrix:
       compiler: clang
 
 install:
-  - ./.travis/install.sh
+  - travis_retry ./.travis/install.sh
 
 script:
-  - ./.travis/run.sh
+  - travis_retry ./.travis/run.sh
 
 after_success:
   - source ~/.venv/bin/activate && coveralls
