@@ -135,7 +135,7 @@ class AuthApi(object):
         except ValueError:
             request.setResponseCode(400)
             return json.dumps(invalid_resource("Invalid JSON request body"))
-        impersonator_token = request.getHeader("X-Auth-Token")
+        impersonator_token = request.getHeader("x-auth-token")
         expires_in = content['RAX-AUTH:impersonation']['expire-in-seconds']
         username = content['RAX-AUTH:impersonation']['user']['username']
 
