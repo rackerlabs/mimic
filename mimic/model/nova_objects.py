@@ -158,8 +158,7 @@ class Server(object):
             creation_request_json=creation_json,
             flavor_ref=server_json['flavorRef'],
             image_ref=server_json['imageRef'] or '',
-            disk_config="AUTO",
-            # ^ TODO: https://github.com/rackerlabs/mimic/issues/163
+            disk_config=server_json.get('OS-DCF:diskConfig', None) or "AUTO",
             status="ACTIVE",
             admin_password="testpassword",
             # ^ TODO: https://github.com/rackerlabs/mimic/issues/164
