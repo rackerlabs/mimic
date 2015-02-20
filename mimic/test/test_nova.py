@@ -72,6 +72,10 @@ class NovaAPITests(SynchronousTestCase):
         """
         self.assertEqual(self.create_server_response.code, 202)
         self.assertTrue(type(self.server_id), unicode)
+        self.assertNotEqual(
+            self.create_server_response_body['server']['adminPass'],
+            "testpassword"
+        )
         validate_link_json(self, self.create_server_response_body['server'])
 
     def test_list_servers(self):
@@ -131,6 +135,8 @@ class NovaAPITests(SynchronousTestCase):
                          self.server_id)
         self.assertEqual(
             get_server_response_body['server']['status'], 'ACTIVE')
+        admin_password = get_server_response_body['server'].get('adminPass', None)
+        self.assertEqual(admin_password, None)
         self.validate_server_detail_json(get_server_response_body['server'])
 
     def test_get_server_negative(self):

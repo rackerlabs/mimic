@@ -7,12 +7,31 @@ Helper methods
 """
 import os
 from datetime import datetime, timedelta
-from random import randint
+from random import choice, randint
 
 from six import text_type
 
 
 fmt = '%Y-%m-%dT%H:%M:%S.%fZ'
+
+
+def random_string(length, selectable=None):
+    """
+    Create a random string of the specified length.
+
+    :param int length: How long the string must be.
+    :param str selectable: If left unspecified, the random character selection
+        will be taken from uppercase and lowercase letters, digits, and a few
+        punctuation marks.  Otherwise, the characters will be taken from the
+        string provided.
+    :returns: A string of length `length`.
+    """
+    selectable = selectable or (
+        "abcdefghijklmnopqrstuvwxyz"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "1234567890!@#$%^&*():;.,<>"
+    )
+    return ''.join([choice(selectable) for _ in xrange(length)])
 
 
 def random_ipv4(*numbers):
