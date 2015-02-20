@@ -78,6 +78,27 @@ class NovaAPITests(SynchronousTestCase):
         )
         validate_link_json(self, self.create_server_response_body['server'])
 
+    def test_created_servers_have_dissimilar_admin_passwords(self):
+        """
+        Two (or more) servers created should not share passwords.
+        """
+        create_server = request(
+            self, self.root, "POST", self.uri + '/servers',
+            json.dumps({
+                "server": {
+                    "name": self.server_name,
+                    "imageRef": "test-image",
+                    "flavorRef": "test-flavor"
+                }
+            }))
+        other_response = self.successResultOf(create_server)
+        other_response_body = self.successResultOf(
+            treq.json_content(other_response))
+        self.assertNotEqual(
+            self.create_server_response_body['server']['adminPass'],
+            other_response_body['server']['adminPass']
+        )
+
     def test_list_servers(self):
         """
         Test to verify :func:`list_servers` on ``GET /v2.0/<tenant_id>/servers``
