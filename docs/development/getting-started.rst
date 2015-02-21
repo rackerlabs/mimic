@@ -96,12 +96,8 @@ To build the application and run its tests locally use the following commands.
 .. code-block:: console
 
    $ cd /dir/where/mimic/lives/
-
-   # if your shell is bash or zsh, run
    $ ./build-app.sh
 
-   # if you are using the fish shell, run
-   $ eval "./build-app.sh"
 
 Once built, ``mimic.app`` can be found in the ``./dist`` directory.
 This application can be treated like any other mac application and moved into
