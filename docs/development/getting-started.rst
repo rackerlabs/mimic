@@ -102,7 +102,7 @@ To build the application and run its tests locally use the following commands.
 Once built, ``mimic.app`` can be found in the ``./dist`` directory.
 This application can be treated like any other mac application and moved into
 ``~/Applications``.
-To start ``mimic`` use the open command with the path to ``mimic.app``
+To start ``mimic``, use the open command with the path to ``mimic.app``
 , e.g. ``open ./dist/mimic.app``.
 
 When the application is running, the letter ``M`` will be visible in the

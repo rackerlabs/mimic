@@ -66,7 +66,7 @@ def setup_options(name, version):
 
         def run(self):
             """
-            This generates `dropin.cache` files for mimic"s plugins.
+            This generates `dropin.cache` files for mimic's plugins.
             """
             list(getPlugins(IPlugin, package=plugins))
             py2app.run(self)
