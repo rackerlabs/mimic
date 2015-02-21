@@ -89,9 +89,9 @@ Building a Mac application
 
 The officially supported method of building of the application depends on the
 system python, `pyobjc`_, and `py2app`_ libraries installed with Mac OS.
-`Travis-CI`_ is configured to build the mac application and run it's tests.
+`Travis-CI`_ is configured to build the mac application and run its tests.
 
-To build the application and run it's tests use the following commands.
+To build the application and run its tests locally use the following commands.
 
 .. code-block:: console
 
@@ -130,7 +130,7 @@ non-system framework python.
 In my experience, it is easiest to install a brewed 2.7 python.
 To install a brew python, you'll need to have `homebrew`_ installed.
 
-The following commands will build the standalone application and run it's
+The following commands will build the standalone application and run its
 tests.
 
 .. code-block:: console
