@@ -6,6 +6,7 @@ Helper methods
 :var fmt: strftime format for datetimes used in JSON.
 """
 import os
+import string
 from datetime import datetime, timedelta
 from random import choice, randint
 
@@ -26,10 +27,8 @@ def random_string(length, selectable=None):
         string provided.
     :returns: A string of length `length`.
     """
-    selectable = selectable or (
-        "abcdefghijklmnopqrstuvwxyz"
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "1234567890!@#$%^&*():;.,<>"
+    selectable = (
+        selectable or (string.letters + string.digits + string.punctuation)
     )
     return ''.join([choice(selectable) for _ in xrange(length)])
 
