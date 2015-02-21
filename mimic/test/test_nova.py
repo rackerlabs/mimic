@@ -60,6 +60,24 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(
             response_body['server']['OS-DCF:diskConfig'], 'MANUAL')
 
+    def test_create_server_with_bad_diskConfig(self):
+        """
+        Given a diskConfig not in ["AUTO", "MANUAL"], we expect a 400
+        Bad Request error.
+        """
+        create_server = request(
+            self, self.root, "POST", self.uri + '/servers',
+            json.dumps({
+                "server": {
+                    "name": self.server_name + "A",
+                    "imageRef": "test-image",
+                    "flavorRef": "test-flavor",
+                    "OS-DCF:diskConfig": "AUTO-MANUAL",
+                }
+            }))
+        create_server_response = self.successResultOf(create_server)
+        self.assertEqual(create_server_response.code, 400)
+
     def validate_server_detail_json(self, server_json):
         """
         Tests to validate the server JSON.

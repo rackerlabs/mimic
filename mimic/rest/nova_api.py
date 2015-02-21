@@ -219,8 +219,16 @@ class NovaRegion(object):
             request.setResponseCode(400)
             return json.dumps(invalid_resource("Invalid JSON request body"))
 
-        return (self._region_collection_for_tenant(tenant_id)
-                .request_creation(request, content, self.url))
+        try:
+            creation = (self._region_collection_for_tenant(tenant_id)
+                        .request_creation(request, content, self.url))
+        except ValueError:
+            request.setResponseCode(400)
+            return json.dumps(
+                invalid_resource(
+                    "OS-DCF:diskConfig is neither AUTO nor MANUAL"))
+
+        return creation
 
     @app.route('/v2/<string:tenant_id>/servers/<string:server_id>', methods=['GET'])
     def get_server(self, request, tenant_id, server_id):

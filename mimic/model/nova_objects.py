@@ -139,6 +139,9 @@ class Server(object):
         """
         now = collection.clock.seconds()
         server_json = creation_json['server']
+        disk_config = server_json.get('OS-DCF:diskConfig', None) or "AUTO"
+        if disk_config not in ["AUTO", "MANUAL"]:
+            raise ValueError("OS-DCF:diskConfig not either AUTO or MANUAL")
         self = cls(
             collection=collection,
             server_name=server_json['name'],
@@ -158,7 +161,7 @@ class Server(object):
             creation_request_json=creation_json,
             flavor_ref=server_json['flavorRef'],
             image_ref=server_json['imageRef'] or '',
-            disk_config=server_json.get('OS-DCF:diskConfig', None) or "AUTO",
+            disk_config=disk_config,
             status="ACTIVE",
             admin_password="testpassword",
             # ^ TODO: https://github.com/rackerlabs/mimic/issues/164
