@@ -106,4 +106,4 @@ class TestRandomString(SynchronousTestCase):
         for iteration in xrange(100):
             a_string = helper.random_string(1024, selectable=desired_chars)
             for char in a_string:
-                self.assertFalse(char not in desired_chars)
+                self.assertTrue(char in desired_chars)
