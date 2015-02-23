@@ -83,3 +83,9 @@ class TestHelperTests(SynchronousTestCase):
         self.failureResultOf(
             request(self, Resource(), b"POST", b"", u"not bytes")
         )
+
+    def test_bad_request(self):
+        d = helper.bad_request("The cake is a lie.", 404)
+        self.assertTrue(d.get("badRequest", None))
+        self.assertEqual(d["badRequest"]["code"], 404)
+        self.assertEqual(d["badRequest"]["message"], "The cake is a lie.")
