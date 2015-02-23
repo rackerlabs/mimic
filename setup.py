@@ -4,7 +4,6 @@ Setup file for mimic
 
 from setuptools import setup, find_packages
 
-py2app_available = None
 try:
     from py2app.build_app import py2app
     py2app_available = True
