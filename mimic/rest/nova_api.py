@@ -27,7 +27,7 @@ from mimic.model.nova_objects import GlobalServerCollections
 from mimic.model.nova_behaviors import server_creation
 from mimic.model.nova_behaviors import criteria_collection_from_request_criteria
 from mimic.model.nova_behaviors import nova_criterion_factories
-from mimic.util.helper import invalid_resource
+from mimic.util.helper import bad_request
 
 Request.defaultContentType = 'application/json'
 
@@ -225,8 +225,8 @@ class NovaRegion(object):
         except ValueError:
             request.setResponseCode(400)
             return json.dumps(
-                invalid_resource(
-                    "OS-DCF:diskConfig is neither AUTO nor MANUAL"))
+                bad_request(
+                    "OS-DCF:diskConfig must be either 'MANUAL' or 'AUTO'."))
 
         return creation
 
