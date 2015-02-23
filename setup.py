@@ -44,11 +44,11 @@ def setup_options(name, version):
     script="bundle/start-app.py"
     test_script="bundle/run-tests.py"
     plist = dict(
-        CFBundleName                = name,
-        CFBundleShortVersionString  = " ".join([name, version]),
-        CFBundleGetInfoString       = name,
-        CFBundleExecutable          = name,
-        CFBundleIdentifier          = "com.%s.%s" % (name, version),
+        CFBundleName                = _NAME,
+        CFBundleShortVersionString  = " ".join([_NAME, _VERSION]),
+        CFBundleGetInfoString       = _NAME,
+        CFBundleExecutable          = _NAME,
+        CFBundleIdentifier          = "com.%s.%s" % (_NAME, _VERSION),
         LSUIElement                 = "1",
         LSMultipleInstancesProhibited = "1",
     )
