@@ -62,8 +62,9 @@ class NovaAPITests(SynchronousTestCase):
 
     def test_create_server_with_bad_diskConfig(self):
         """
-        Given a diskConfig not in ["AUTO", "MANUAL"], we expect a 400
-        Bad Request error.
+        When ``create_server`` is passed an invalid ``OS-DCF:diskImage``
+        (e.g., one which is neither AUTO nor MANUAL), it should return an HTTP
+        status code of 400.
         """
         create_server = request(
             self, self.root, "POST", self.uri + '/servers',

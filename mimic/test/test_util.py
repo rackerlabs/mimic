@@ -85,6 +85,14 @@ class TestHelperTests(SynchronousTestCase):
         )
 
     def test_bad_request(self):
+        """
+        ``bad_request`` provides a well-formed error body for HTTP errors.
+
+        The ``illegal_response`` function constructs a hash with a message and
+        HTTP response code, for the convenience of expressing error details in
+        JSON format.  However, it doesn't provide the full envelop expected by
+        Nova clients.
+        """
         d = helper.bad_request("The cake is a lie.", 404)
         self.assertTrue(d.get("badRequest", None))
         self.assertEqual(d["badRequest"]["code"], 404)
