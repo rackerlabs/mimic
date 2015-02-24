@@ -217,7 +217,7 @@ class NovaRegion(object):
             content = json.loads(request.content.read())
         except ValueError:
             request.setResponseCode(400)
-            return json.dumps(invalid_resource("Invalid JSON request body"))
+            return json.dumps(bad_request("Invalid JSON request body"))
 
         try:
             creation = (self._region_collection_for_tenant(tenant_id)

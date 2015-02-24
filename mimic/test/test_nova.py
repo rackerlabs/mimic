@@ -60,6 +60,17 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(
             response_body['server']['OS-DCF:diskConfig'], 'MANUAL')
 
+        # Make sure we report on proper state.
+        server_id = response_body['server']['id']
+        get_server = request(
+            self, self.root, "GET", self.uri + '/servers/' + server_id
+        )
+        get_server_response = self.successResultOf(get_server)
+        response_body = self.successResultOf(
+            treq.json_content(get_server_response))
+        self.assertEqual(
+            response_body['server']['OS-DCF:diskConfig'], 'MANUAL')
+
     def test_create_server_with_bad_diskConfig(self):
         """
         When ``create_server`` is passed an invalid ``OS-DCF:diskImage``
