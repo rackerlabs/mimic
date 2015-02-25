@@ -6,12 +6,12 @@ import re
 from json import dumps
 
 from mimic.model.behaviors import (
-    BehaviorLookup, Criterion, CriteriaCollection, regexp_predicate
+    EventDescription, Criterion, regexp_predicate
 )
 from mimic.util.helper import invalid_resource
 
 
-server_creation = BehaviorLookup()
+server_creation = EventDescription()
 
 
 @server_creation.behavior_creator("fail")
@@ -29,6 +29,7 @@ def create_fail_behavior(parameters):
     return fail_without_creating
 
 
+@server_creation.criterion("server_name")
 def server_name_criterion(value):
     """
     Return a Criterion which matches the given regular expression string
@@ -37,6 +38,7 @@ def server_name_criterion(value):
     return Criterion(name='server_name', predicate=regexp_predicate(value))
 
 
+@server_creation.criterion("metadata")
 def metadata_criterion(value):
     """
     Return a Criterion which matches against metadata.
@@ -49,21 +51,3 @@ def metadata_criterion(value):
                 return False
         return True
     return Criterion(name='metadata', predicate=predicate)
-
-nova_criterion_factories = {
-    "server_name": server_name_criterion,
-    "metadata": metadata_criterion
-}
-
-
-def criteria_collection_from_request_criteria(request_criteria,
-                                              name_to_criterion):
-    """
-    Create a :obj:`CriteriaCollection` from the ``"criteria"`` section of an
-    API request.
-    """
-    def create_criteria():
-        for crit_spec in request_criteria:
-            for k, v in crit_spec.items():
-                yield name_to_criterion[k](v)
-    return CriteriaCollection(criteria=list(create_criteria()))
