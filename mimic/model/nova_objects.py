@@ -12,6 +12,8 @@ from mimic.util.helper import (
     random_string,
 )
 
+from mimic.model.behaviors import BehaviorRegistry
+from mimic.model.nova_behaviors import server_creation
 from twisted.web.http import ACCEPTED, NOT_FOUND
 
 
@@ -290,8 +292,11 @@ def metadata_to_creation_behavior(metadata):
 
 @attributes(["tenant_id", "region_name", "clock",
              Attribute("servers", default_factory=list),
-             Attribute("creation_behaviors_and_criteria",
-                       default_factory=list)])
+             Attribute(
+                 "create_behavior_registry",
+                 default_factory=lambda:
+                 BehaviorRegistry(event=server_creation,
+                                  default_behavior=default_create_behavior))])
 class RegionalServerCollection(object):
     """
     A collection of servers, in a given region, for a given tenant.
@@ -305,30 +310,6 @@ class RegionalServerCollection(object):
             if server.server_id == server_id:
                 return server
 
-    def register_creation_behavior_for_criteria(self, behavior, criteria):
-        """
-        Register the given behavior for server creation based on the given
-        criteria.
-        """
-        self.creation_behaviors_and_criteria.append((behavior, criteria))
-
-    def registered_creation_behavior(self, creation_http_request,
-                                     creation_json):
-        """
-        Retrieve a behavior that was previously registered via a control plane
-        request to inject an error in advance, based on whether it matches the
-        parameters in the given creation JSON and HTTP request properties.
-        """
-        creation_attributes = {
-            "tenant_id": self.tenant_id,
-            "server_name": creation_json["server"]["name"],
-            "metadata": creation_json["server"].get("metadata")
-        }
-        for behavior, criteria in self.creation_behaviors_and_criteria:
-            if criteria.evaluate(creation_attributes):
-                return behavior
-        return None
-
     def request_creation(self, creation_http_request, creation_json,
                          absolutize_url):
         """
@@ -337,10 +318,11 @@ class RegionalServerCollection(object):
         behavior = metadata_to_creation_behavior(
             creation_json.get('server', {}).get('metadata', {}))
         if behavior is None:
-            behavior = self.registered_creation_behavior(creation_http_request,
-                                                         creation_json)
-        if behavior is None:
-            behavior = default_create_behavior
+            behavior = self.create_behavior_registry.behavior_for_attributes({
+                "tenant_id": self.tenant_id,
+                "server_name": creation_json["server"]["name"],
+                "metadata": creation_json["server"].get("metadata")
+            })
         return behavior(self, creation_http_request, creation_json,
                         absolutize_url)
 
