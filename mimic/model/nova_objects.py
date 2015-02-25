@@ -218,7 +218,9 @@ def metadata_criterion(value):
     """
     Return a Criterion which matches against metadata.
 
-    :param value: ??? (FIXME this is the wrong shape)
+    :param value: a dictionary, mapping a regular expression of a metadata key
+        to a regular expression describing a metadata value.
+    :type value: dict mapping unicode to unicode
     """
     def predicate(attribute):
         for k, v in value.items():
