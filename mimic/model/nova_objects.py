@@ -2,6 +2,8 @@
 Model objects for the Nova mimic.
 """
 
+import re
+
 from characteristic import attributes, Attribute
 from random import randrange
 from json import loads, dumps
@@ -12,8 +14,9 @@ from mimic.util.helper import (
     random_string,
 )
 
-from mimic.model.behaviors import BehaviorRegistry
-from mimic.model.nova_behaviors import server_creation
+from mimic.model.behaviors import (
+    BehaviorRegistry, EventDescription, Criterion, regexp_predicate
+)
 from twisted.web.http import ACCEPTED, NOT_FOUND
 
 
@@ -198,6 +201,34 @@ class IPv6Address(object):
         return {"addr": self.address, "version": 6}
 
 
+server_creation = EventDescription()
+
+
+@server_creation.declare_criterion("server_name")
+def server_name_criterion(value):
+    """
+    Return a Criterion which matches the given regular expression string
+    against the ``"server_name"`` attribute.
+    """
+    return Criterion(name='server_name', predicate=regexp_predicate(value))
+
+
+@server_creation.declare_criterion("metadata")
+def metadata_criterion(value):
+    """
+    Return a Criterion which matches against metadata.
+
+    :param value: ??? (FIXME this is the wrong shape)
+    """
+    def predicate(attribute):
+        for k, v in value.items():
+            if not re.compile(v).match(attribute.get(k, "")):
+                return False
+        return True
+    return Criterion(name='metadata', predicate=predicate)
+
+
+@server_creation.declare_default_behavior
 def default_create_behavior(collection, http, json, absolutize_url,
                             ipsegment=lambda: randrange(255), hook=None):
     """
@@ -258,6 +289,21 @@ def default_with_hook(function):
     return hooked
 
 
+@server_creation.declare_behavior_creator("fail")
+def create_fail_behavior(parameters):
+    """
+    Create a failing behavior for server creation.
+    """
+    status_code = parameters.get("code", 500)
+    failure_message = parameters.get("message", "Server creation failed.")
+
+    def fail_without_creating(collection, http, json, absolutize_url):
+        # behavior for failing to even start to build
+        http.setResponseCode(status_code)
+        return dumps(invalid_resource(failure_message, status_code))
+    return fail_without_creating
+
+
 def metadata_to_creation_behavior(metadata):
     """
     Examine the metadata given to a server creation request, and return a
@@ -290,13 +336,13 @@ def metadata_to_creation_behavior(metadata):
     return None
 
 
-@attributes(["tenant_id", "region_name", "clock",
-             Attribute("servers", default_factory=list),
-             Attribute(
-                 "create_behavior_registry",
-                 default_factory=lambda:
-                 BehaviorRegistry(event=server_creation,
-                                  default_behavior=default_create_behavior))])
+@attributes(
+    ["tenant_id", "region_name", "clock",
+     Attribute("servers", default_factory=list),
+     Attribute(
+         "create_behavior_registry",
+         default_factory=lambda: BehaviorRegistry(event=server_creation))]
+)
 class RegionalServerCollection(object):
     """
     A collection of servers, in a given region, for a given tenant.

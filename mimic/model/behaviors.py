@@ -48,33 +48,62 @@ def regexp_predicate(value):
     return re.compile(value).match
 
 
-@attributes([Attribute("behaviors", default_factory=dict),
-             Attribute("criteria", default_factory=dict)])
+@attributes([Attribute("_behaviors", default_factory=dict),
+             Attribute("_criteria", default_factory=dict)])
 class EventDescription(object):
     """
     A collection of behaviors which might be responses for a given event, and
     criteria which might evaluate when those behaviors are appropriate.
+
+    :ivar default_behavior: The behavior to return from
+        :obj:`BehaviorRegistry.behavior_for_attributes` if no registered
+        criteria match.
     """
 
-    def behavior_creator(self, name):
+    def declare_behavior_creator(self, name):
         """
-        Decorator which declares the decorated function is a behavior which
-        reacts to this event.
+        Decorator which declares that the decorated function is a factory,
+        taking parameters (a JSON-serialized object), and returning a behavior.
+
+        Use like so::
+
+            @event.declare_behavior_creator("do-something")
+            def do_something_behavior(parameters):
+                def do_something(args, to, behavior):
+                    do_a_thing(parameters.get("thing_to_do"))
+                    return result_expected_from_behavior
+                return do_something
         """
         def decorator(thunk):
             thunk.behavior_name = name
-            self.behaviors[name] = thunk
+            self._behaviors[name] = thunk
             return thunk
         return decorator
 
-    def criterion(self, name):
+    def declare_default_behavior(self, default_behavior):
+        """
+        Decorator which declares that the decorated function is the default
+        behavior that this event should provoke if no other registered behavior
+        is found.
+
+        Use like so::
+
+            @event.decoare_default_behavior
+            def do_something(args, to, behavior):
+                return result_expected_from_behavior
+
+        """
+        self.default_behavior = default_behavior
+        return default_behavior
+
+    def declare_criterion(self, name):
         """
         Decorator which declares the decorated function is a criterion which
         can evaluate behavior for this event.
         """
         def decorator(thunk):
             thunk.criterion_name = name
-            self.criteria[name] = thunk
+            self._criteria[name] = thunk
             return thunk
         return decorator
 
@@ -86,7 +115,7 @@ class EventDescription(object):
         :param parameters: An object (deserialized from JSON) which serves as
             parameters to the named behavior creator.
         """
-        return self.behaviors[name](parameters)
+        return self._behaviors[name](parameters)
 
     def create_criteria(self, request_criteria):
         """
@@ -96,12 +125,11 @@ class EventDescription(object):
         def create_criteria():
             for crit_spec in request_criteria:
                 for k, v in crit_spec.items():
-                    yield self.criteria[k](v)
+                    yield self._criteria[k](v)
         return CriteriaCollection(criteria=list(create_criteria()))
 
 
 @attributes(["event",
-             "default_behavior",
              Attribute("registered_behaviors", default_factory=list)])
 class BehaviorRegistry(object):
     """
@@ -109,9 +137,6 @@ class BehaviorRegistry(object):
 
     :ivar EventDescription event: The set of criteria and behaviors that this
         registry is operating for.
-    :ivar default_behavior: The behavior to return from
-        :obj:`BehaviorRegistry.behavior_for_attributes` if no registered
-        criteria match.
     """
 
     def register_from_json(self, json_payload):
@@ -130,4 +155,4 @@ class BehaviorRegistry(object):
         for behavior, criteria in self.registered_behaviors:
             if criteria.evaluate(attributes):
                 return behavior
-        return self.default_behavior
+        return self.event.default_behavior
