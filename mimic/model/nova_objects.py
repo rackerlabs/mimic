@@ -320,13 +320,7 @@ def metadata_to_creation_behavior(metadata):
     behavior based on the values present there.
     """
     if 'create_server_failure' in metadata:
-        failure = loads(metadata['create_server_failure'])
-
-        def fail_and_dont_do_anything(collection, http, json, absolutize_url):
-            # behavior for failing to even start to build
-            http.setResponseCode(failure['code'])
-            return dumps(invalid_resource(failure['message'], failure['code']))
-        return fail_and_dont_do_anything
+        return create_fail_behavior(loads(metadata['create_server_failure']))
     if 'server_building' in metadata:
         @default_with_hook
         def set_building(server):
