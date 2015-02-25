@@ -48,21 +48,33 @@ def regexp_predicate(value):
     return re.compile(value).match
 
 
-@attributes([Attribute("behaviors", default_factory=dict)])
-class BehaviorLookup(object):
-
+@attributes([Attribute("behaviors", default_factory=dict),
+             Attribute("criteria", default_factory=dict)])
+class EventDescription(object):
     """
-    A collection of behaviors with a related schema.
+    A collection of behaviors which might be responses for a given event, and
+    criteria which might evaluate when those behaviors are appropriate.
     """
 
     def behavior_creator(self, name):
         """
-        Decorator which declares the decorated function is a behavior for this
-        table.
+        Decorator which declares the decorated function is a behavior which
+        reacts to this event.
         """
         def decorator(thunk):
             thunk.behavior_name = name
             self.behaviors[name] = thunk
+            return thunk
+        return decorator
+
+    def criterion(self, name):
+        """
+        Decorator which declares the decorated function is a criterion which
+        can evaluate behavior for this event.
+        """
+        def decorator(thunk):
+            thunk.criterion_name = name
+            self.criteria[name] = thunk
             return thunk
         return decorator
 
@@ -75,3 +87,47 @@ class BehaviorLookup(object):
             parameters to the named behavior creator.
         """
         return self.behaviors[name](parameters)
+
+    def create_criteria(self, request_criteria):
+        """
+        Create a :obj:`CriteriaCollection` from the ``"criteria"`` section of
+        an API request.
+        """
+        def create_criteria():
+            for crit_spec in request_criteria:
+                for k, v in crit_spec.items():
+                    yield self.criteria[k](v)
+        return CriteriaCollection(criteria=list(create_criteria()))
+
+
+@attributes(["event",
+             "default_behavior",
+             Attribute("registered_behaviors", default_factory=list)])
+class BehaviorRegistry(object):
+    """
+    A registry of behavior.
+
+    :ivar EventDescription event: The set of criteria and behaviors that this
+        registry is operating for.
+    :ivar default_behavior: The behavior to return from
+        :obj:`BehaviorRegistry.behavior_for_attributes` if no registered
+        criteria match.
+    """
+
+    def register_from_json(self, json_payload):
+        """
+        Register a behavior with the given JSON payload from a request.
+        """
+        self.registered_behaviors.append(
+            (self.event.create_behavior(json_payload["name"],
+                                        json_payload["parameters"]),
+             self.event.create_criteria(json_payload["criteria"])))
+
+    def behavior_for_attributes(self, attributes):
+        """
+        Retrive a previously-registered behavior given the set of attributes.
+        """
+        for behavior, criteria in self.registered_behaviors:
+            if criteria.evaluate(attributes):
+                return behavior
+        return self.default_behavior
