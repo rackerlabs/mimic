@@ -50,7 +50,7 @@ class FastlyResponse(object):
             u'has_streaming': u'1'}
         return current_customer
 
-    def create_service(self, request, url_data):
+    def create_service(self, url_data):
         """
         Returns POST service with response json.
 
@@ -104,7 +104,7 @@ class FastlyResponse(object):
             u'id': service_id}
         return create_service
 
-    def get_service_by_name(self, request, service_name):
+    def get_service_by_name(self, service_name):
         """Returns service details json.
 
         :return: a JSON-serializable dictionary matching the format of the JSON
@@ -113,7 +113,7 @@ class FastlyResponse(object):
         """
         return self.fastly_cache[service_name]
 
-    def create_version(self, request, service_id):
+    def create_version(self, service_id):
         """
         Returns POST service with response json.
 
@@ -127,7 +127,7 @@ class FastlyResponse(object):
 
         return create_version
 
-    def create_domain(self, request, service_id, service_version):
+    def create_domain(self, url_data, service_id, service_version):
         """
         Returns POST create_domain with response json.
 
@@ -136,7 +136,6 @@ class FastlyResponse(object):
                  ("/service/<service_id>/version/<service_version>/domain")
                  request.
         """
-        url_data = request.args.items()
         request_dict = dict((k, v[0]) for k, v in url_data)
         domain_name = request_dict['name']
 
@@ -153,7 +152,7 @@ class FastlyResponse(object):
             [create_domain, 'None', 'False'])
         return create_domain
 
-    def check_domains(self, request, service_id, service_version):
+    def check_domains(self, service_id, service_version):
         """
         Returns GET check_domains with response json.
 
@@ -166,7 +165,7 @@ class FastlyResponse(object):
 
         return domain_list
 
-    def create_backend(self, request, service_id, service_version):
+    def create_backend(self, url_data, service_id, service_version):
         """
         Returns create_backend response json.
 
@@ -175,7 +174,6 @@ class FastlyResponse(object):
                  ("/service/<service_id>/version/<service_version>/backend")
                  request.
         """
-        url_data = request.args.items()
         request_dict = dict((k, v[0]) for k, v in url_data)
 
         create_backend = {
@@ -211,7 +209,7 @@ class FastlyResponse(object):
         self.fastly_cache[service_id]['origin_list'].append(create_backend)
         return create_backend
 
-    def list_versions(self, request, service_id):
+    def list_versions(self, service_id):
         """
         Returns GET list_versions with response json.
 
@@ -221,7 +219,7 @@ class FastlyResponse(object):
         """
         return [self.fastly_cache[service_id]['service_details']]
 
-    def activate_version(self, request, service_id, version_number):
+    def activate_version(self, service_id, version_number):
         """
         Returns activate_version response json.
 
@@ -232,7 +230,7 @@ class FastlyResponse(object):
         self.fastly_cache[service_id]['service_details']['active'] = True
         return self.fastly_cache[service_id]['service_details']
 
-    def deactivate_version(self, request, service_id, version_number):
+    def deactivate_version(self, service_id, version_number):
         """
         Returns deactivate_version response json.
 
@@ -243,7 +241,7 @@ class FastlyResponse(object):
         self.fastly_cache[service_id]['service_details']['active'] = False
         return self.fastly_cache[service_id]['service_details']
 
-    def get_service_details(self, request, service_id):
+    def get_service_details(self, service_id):
         """
         Returns get_service_details response json.
         :return: a JSON-serializable dictionary matching the format of the JSON
@@ -258,7 +256,7 @@ class FastlyResponse(object):
             u'active_version': {u'number': 1}}
         return service_details
 
-    def delete_service(self, request, service_id):
+    def delete_service(self, service_id):
         """
         Returns DELETE service with response json.
 

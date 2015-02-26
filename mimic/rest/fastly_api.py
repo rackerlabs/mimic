@@ -43,7 +43,7 @@ class FastlyApi(object):
         Returns POST Service.
         """
         url_data = request.args.items()
-        response = self.fastly_response.create_service(request, url_data)
+        response = self.fastly_response.create_service(url_data)
         return json.dumps(response)
 
     @app.route('/service/<string:service_id>/version', methods=['POST'])
@@ -51,7 +51,7 @@ class FastlyApi(object):
         """
         Returns POST Service.
         """
-        response = self.fastly_response.create_version(request, service_id)
+        response = self.fastly_response.create_version(service_id)
         return json.dumps(response)
 
     @app.route('/service/search', methods=['GET'])
@@ -63,8 +63,7 @@ class FastlyApi(object):
         data = dict((key, value) for key, value in url_data)
         service_name = data['name'][0]
 
-        response = self.fastly_response.get_service_by_name(request,
-                                                            service_name)
+        response = self.fastly_response.get_service_by_name(service_name)
         return json.dumps(response)
 
     @app.route(
@@ -74,7 +73,8 @@ class FastlyApi(object):
         """
         Returns Create Domain Response.
         """
-        response = self.fastly_response.create_domain(request,
+        url_data = request.args.items()
+        response = self.fastly_response.create_domain(url_data,
                                                       service_id, version_id)
         return json.dumps(response)
 
@@ -97,7 +97,8 @@ class FastlyApi(object):
         """
         Returns Create Backend Response.
         """
-        response = self.fastly_response.create_backend(request,
+        url_data = request.args.items()
+        response = self.fastly_response.create_backend(url_data,
                                                        service_id, version_id)
         return json.dumps(response)
 
@@ -106,7 +107,7 @@ class FastlyApi(object):
         """
         Returns List of Service versions.
         """
-        response = self.fastly_response.list_versions(request, service_id)
+        response = self.fastly_response.list_versions(service_id)
         return json.dumps(response)
 
     @app.route('/service/<string:service_id>/version/<string:version_number>/'
@@ -115,8 +116,7 @@ class FastlyApi(object):
         """
         Returns Activate Service versions.
         """
-        response = self.fastly_response.activate_version(request,
-                                                         service_id,
+        response = self.fastly_response.activate_version(service_id,
                                                          version_number)
         return json.dumps(response)
 
@@ -126,8 +126,7 @@ class FastlyApi(object):
         """
         Returns Activate Service versions.
         """
-        response = self.fastly_response.deactivate_version(request,
-                                                           service_id,
+        response = self.fastly_response.deactivate_version(service_id,
                                                            version_number)
         return json.dumps(response)
 
@@ -136,7 +135,7 @@ class FastlyApi(object):
         """
         Returns DELETE Service.
         """
-        response = self.fastly_response.delete_service(request, service_id)
+        response = self.fastly_response.delete_service(service_id)
         return json.dumps(response)
 
     @app.route('/service/<string:service_id>/details', methods=['GET'])
@@ -144,6 +143,5 @@ class FastlyApi(object):
         """
         Returns Service details.
         """
-        response = self.fastly_response.get_service_details(request,
-                                                            service_id)
+        response = self.fastly_response.get_service_details(service_id)
         return json.dumps(response)
