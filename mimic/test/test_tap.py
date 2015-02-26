@@ -18,6 +18,8 @@ from twisted.plugin import IPlugin
 from twisted.python.filepath import FilePath
 
 from twisted.trial.unittest import SynchronousTestCase
+from twisted.plugins.mimic import mimicService
+from twisted.application.service import IServiceMaker
 
 from mimic.core import MimicCore
 from mimic.tap import Options, makeService
@@ -133,3 +135,12 @@ class TapTests(SynchronousTestCase):
         # Grab the global reactor just for comparison.
         from twisted.internet import reactor as real_reactor
         self.assertIdentical(CheckClock.clock, real_reactor)
+
+    def test_plugin(self):
+        """
+        :obj:`twisted.plugins.mimic.mimicService` is a twistd plugin
+        referencing `mimic.tap.makeService`.
+        """
+        self.assertTrue(IPlugin.providedBy(mimicService))
+        self.assertTrue(IServiceMaker.providedBy(mimicService))
+        self.assertIs(mimicService.makeService, makeService)
