@@ -314,6 +314,45 @@ def create_fail_behavior(parameters):
     return fail_without_creating
 
 
+@server_creation.declare_behavior_creator("build")
+def create_building_behavior(parameters):
+    """
+    Create a "build" behavior for server creation.
+
+    Puts the server into the "BUILD" status immediately, transitioning it to
+    "ACTIVE" after a requested amount of time.
+
+    Takes one parameter:
+
+    ``"duration"`` which is a Number, the duration of the build process in
+    seconds.
+    """
+    duration = parameters["duration"]
+
+    @default_with_hook
+    def set_building(server):
+        server.status = u"BUILD"
+        server.collection.clock.callLater(
+            duration,
+            lambda: setattr(server, "status", u"ACTIVE"))
+    return set_building
+
+
+@server_creation.declare_behavior_creator("error")
+def create_error_status_behavior(parameters=None):
+    """
+    Create an "error" behavior for server creation.
+
+    The created server will go into the ``"ERROR"`` state immediately.
+
+    Takes no parameters.
+    """
+    @default_with_hook
+    def set_error(server):
+        server.status = u"ERROR"
+    return set_error
+
+
 def metadata_to_creation_behavior(metadata):
     """
     Examine the metadata given to a server creation request, and return a
@@ -322,21 +361,11 @@ def metadata_to_creation_behavior(metadata):
     if 'create_server_failure' in metadata:
         return create_fail_behavior(loads(metadata['create_server_failure']))
     if 'server_building' in metadata:
-        @default_with_hook
-        def set_building(server):
-            server.status = u"BUILD"
-            server.collection.clock.callLater(
-                float(metadata['server_building']),
-                lambda: setattr(server, "status", u"ACTIVE"))
-        return set_building
+        return create_building_behavior(
+            {"duration": float(metadata['server_building'])}
+        )
     if 'server_error' in metadata:
-        @default_with_hook
-        def set_error(server):
-            server.status = u"ERROR"
-            server.collection.clock.callLater(
-                float(metadata['server_error']),
-                lambda: setattr(server, "status", u"ACTIVE"))
-        return set_error
+        return create_error_status_behavior()
     return None
 
 
