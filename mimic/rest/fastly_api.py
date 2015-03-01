@@ -86,8 +86,7 @@ class FastlyApi(object):
         """
         Returns Check Domain.
         """
-        response = self.fastly_response.check_domains(request,
-                                                      service_id, version_id)
+        response = self.fastly_response.check_domains(service_id, version_id)
         return json.dumps(response)
 
     @app.route(

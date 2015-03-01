@@ -179,16 +179,16 @@ class FastlyResponse(object):
         create_backend = {
             u'comment': '',
             u'shield': None,
-            u'weight': request_dict['weight'],
+            u'weight': 100,
             u'ssl_client_key': None,
-            u'first_byte_timeout': request_dict['first_byte_timeout'],
-            u'auto_loadbalance': request_dict['auto_loadbalance'],
+            u'first_byte_timeout': 15000,
+            u'auto_loadbalance': False,
             u'use_ssl': request_dict['use_ssl'],
             u'port': request_dict['port'],
             u'ssl_hostname': None,
             u'hostname': request_dict['name'],
-            u'error_threshold': request_dict['error_threshold'],
-            u'max_conn': request_dict['max_conn'],
+            u'error_threshold': 0,
+            u'max_conn': 20,
             u'version': service_version,
             u'ipv4': None,
             u'ipv6': None,
@@ -199,8 +199,8 @@ class FastlyResponse(object):
             u'address': request_dict['address'],
             u'ssl_client_cert': None,
             u'name': request_dict['name'],
-            u'connect_timeout': request_dict['connect_timeout'],
-            u'between_bytes_timeout': request_dict['between_bytes_timeout'],
+            u'connect_timeout': 1000,
+            u'between_bytes_timeout': 10000,
             u'service_id': service_id}
 
         if 'origin_list' not in self.fastly_cache[service_id]:
