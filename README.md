@@ -129,6 +129,7 @@ https://github.com/rackerlabs/mimic/blob/master/mimic/rest/fastly_api.py
  9. PUT /service/{service_id}/version/{version_number}/activate
  10. DELETE /service/{service_id}
  11. GET /service/{service_id}/details
+ 12. GET / (health check)
 
 ## Mimic Control APIs ##
 

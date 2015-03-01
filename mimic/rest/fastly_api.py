@@ -29,6 +29,14 @@ class FastlyApi(object):
         self.services = {}
         self.fastly_response = fastly.FastlyResponse()
 
+    @app.route('/', methods=['GET'])
+    def get_health(self, request):
+        """
+        Returns response with 200 OK.
+        """
+        response = self.fastly_response.get_health()
+        return json.dumps(response)
+
     @app.route('/current_customer', methods=['GET'])
     def get_current_customer(self, request):
         """

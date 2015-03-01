@@ -269,3 +269,10 @@ class FastlyResponse(object):
         del(self.fastly_cache[service_name])
 
         return {'status': 'ok'}
+
+    def get_health(self):
+        """
+        Returns 200 with response json.
+
+        """
+        return {'status': 'ok'}
