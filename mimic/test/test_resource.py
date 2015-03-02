@@ -174,3 +174,15 @@ class RootAndPresetTests(SynchronousTestCase):
         }
         self.assertEqual(json_content, expected)
         self.assertEqual(do.done, True)
+
+    def test_fastly(self):
+        """
+        The /fastly pointing to the fastly endpoint
+        """
+        core = MimicCore(Clock(), [])
+        root = MimicRoot(core).app.resource()
+
+        (response, content) = self.successResultOf(request_with_content(
+            self, root, 'GET', '/fastly'))
+        self.assertEqual(200, response.code)
+        self.assertEqual(content, {'status': 'ok'})
