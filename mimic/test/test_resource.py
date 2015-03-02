@@ -182,7 +182,7 @@ class RootAndPresetTests(SynchronousTestCase):
         core = MimicCore(Clock(), [])
         root = MimicRoot(core).app.resource()
 
-        (response, content) = self.successResultOf(request_with_content(
+        (response, json_content) = self.successResultOf(json_request(
             self, root, 'GET', '/fastly'))
         self.assertEqual(200, response.code)
-        self.assertEqual(content, {'status': 'ok'})
+        self.assertEqual(json_content, {'status': 'ok'})
