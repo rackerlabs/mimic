@@ -13,7 +13,7 @@ class FastlyResponse(object):
 
     fastly_cache = {}
 
-    def get_current_customer(self, request):
+    def get_current_customer(self):
         """
         Returns the current customer with response code 200.
 

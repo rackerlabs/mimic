@@ -42,7 +42,7 @@ class FastlyApi(object):
         """
         Returns response with current customer details.
         """
-        response = self.fastly_response.get_current_customer(request)
+        response = self.fastly_response.get_current_customer()
         return json.dumps(response)
 
     @app.route('/service', methods=['POST'])
