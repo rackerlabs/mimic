@@ -1,10 +1,12 @@
 *.project
 *.pydev*
+.coverage
 .DS_Store
 *.pyc
 dropin.cache
 twistd.pid
 docs/_build
 _tmp
+_trial_temp
 .tox
 *.egg-info
