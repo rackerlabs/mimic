@@ -84,6 +84,66 @@ Alternately, you can use our ``tox`` job:
 
     $ tox -e docs
 
+Building a Mac application
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The officially supported method of building of the application depends on the
+system python, `pyobjc`_, and `py2app`_ libraries installed with Mac OS.
+`Travis-CI`_ is configured to build the mac application and run its tests.
+
+To build the application and run its tests locally use the following commands.
+
+.. code-block:: console
+
+   $ cd /dir/where/mimic/lives/
+   $ ./build-app.sh
+
+
+Once built, ``mimic.app`` can be found in the ``./dist`` directory.
+This application can be treated like any other mac application and moved into
+``~/Applications``.
+To start ``mimic``, use the open command with the path to ``mimic.app``
+, e.g. ``open ./dist/mimic.app``.
+
+When the application is running, the letter ``M`` will be visible in the
+menubar. To quit the application, simply click on the ``M`` and select
+``Quit``. You can view the application logs by opening
+``Applications/Utilities/Console.app``.
+
+To run ``mimic.app``'s tests use
+
+.. code-block:: console
+
+   $ /path/to/mimic.app/Contents/MacOS/run-tests
+
+The application can also built as a standalone application
+that does not depend on the system python.
+This is *not* the officially supported method of building the application and
+is *not* tested by `Travis-CI`_.
+
+To build a standalone application, ``py2app`` requires the installation of a
+non-system framework python.
+In my experience, it is easiest to install a brewed 2.7 python.
+To install a brew python, you'll need to have `homebrew`_ installed.
+
+The following commands will build the standalone application and run its
+tests.
+
+.. code-block:: console
+
+   $ brew install python
+   $ cd /dir/where/mimic/lives/
+
+   # build a virtualenv using the brewed python
+   $ virtualenv -p /usr/local/bin/python2.7 ./venv
+   $ source ./venv/bin/activate
+
+   # install mimic's dependencies including pyobjc and py2app
+   $ pip install -r requirements.txt
+   $ pip install -r py2app-requirements.txt
+   $ python setup.py py2app
+   $ ./dist/mimic.app/Contents/MacOS/run-tests
+
 
 .. _`homebrew`: http://brew.sh/
 .. _`pytest`: https://pypi.python.org/pypi/pytest
@@ -98,3 +158,6 @@ Alternately, you can use our ``tox`` job:
 .. _`coverage`: https://pypi.python.org/pypi/coverage
 .. _`pep8`: http://legacy.python.org/dev/peps/pep-0008/
 .. _`pyflakes`: https://pypi.python.org/pypi/coverage
+.. _`pyobjc`: https://pypi.python.org/pypi/pyobjc
+.. _`py2app`: https://pypi.python.org/pypi/py2app
+.. _`Travis-CI`: https://travis-ci.org/rackerlabs/mimic

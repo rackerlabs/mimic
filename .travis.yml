@@ -17,6 +17,7 @@ env:
      - TOX_ENV=docs
      - TOX_ENV=docs-spellcheck
      - TOX_ENV=docs-linkcheck
+     - MACAPP_ENV=system
 
 matrix:
   allow_failures:
@@ -26,6 +27,9 @@ matrix:
       compiler: gcc
     - os: linux
       compiler: clang
+    # don't build mac app on linux
+    - os: linux
+      env: MACAPP_ENV=system
 
 install:
   - travis_retry ./.travis/install.sh
