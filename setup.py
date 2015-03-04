@@ -24,22 +24,20 @@ def setup_options(name, version):
 
     :returns: a dictionary of setup options.
     """
+    info = dict(
+        install_requires=[
+            "characteristic==14.2.0",
+            "klein==0.2.1",
+            "twisted==14.0.0",
+            "jsonschema==2.0",
+            "treq==0.2.0",
+            "six==1.6.1"
+        ],
+        package_dir={"mimic": "mimic"},
+        packages=find_packages(exclude=[]) + ["twisted.plugins"],
+    )
     if not py2app_available:
-        return dict(
-            install_requires=[
-                "characteristic==14.2.0",
-                "klein==0.2.1",
-                "twisted==14.0.0",
-                "jsonschema==2.0",
-                "treq==0.2.0",
-                "six==1.6.1"
-            ],
-            package_dir={"mimic": "mimic"},
-            packages=find_packages(exclude=[]) + ["twisted.plugins"],
-        )
-
-    from twisted.plugin import getPlugins, IPlugin
-    from mimic import plugins
+        return info
 
     # py2app available, proceed.
     script="bundle/start-app.py"
@@ -59,27 +57,61 @@ def setup_options(name, version):
         extra_scripts=[test_script]
     )
 
-    class BuildWithCache(py2app):
+    class BuildWithCache(py2app, object):
         """
         Before building the application rebuild the `dropin.cache` files.
         """
 
-        def run(self):
+        def collect_recipedict(self):
             """
-            This generates `dropin.cache` files for mimic's plugins.
+            Implement a special Twisted plugins recipe so that dropin.cache
+            files are generated and included in site-packages.zip.
             """
-            list(getPlugins(IPlugin, package=plugins))
-            py2app.run(self)
+            result = super(BuildWithCache, self).collect_recipedict()
+            def check(cmd, mg):
+                from twisted.plugin import getPlugins, IPlugin
+                from twisted import plugins as twisted_plugins
+                from mimic import plugins as mimic_plugins
 
+                for plugin_package in [twisted_plugins, mimic_plugins]:
+                    import time
+                    list(getPlugins(IPlugin, package=plugin_package))
+
+                import os
+                def plugpath(what):
+                    path_in_zip = what + "/plugins"
+                    path_on_fs = (
+                        os.path.abspath(
+                            os.path.join(
+                                os.path.dirname(
+                                    __import__(what + ".plugins",
+                                               fromlist=["nonempty"])
+                                    .__file__),
+                                "dropin.cache")
+                        ))
+                    os.utime(path_on_fs, (time.time() + 86400,) * 2)
+                    return (path_in_zip, [path_on_fs])
+                data_files = [plugpath("mimic"), plugpath("twisted")]
+
+                return dict(loader_files=data_files)
+            result["bonus"] = check
+            return result
 
     return dict(
+        info,
         app=[app_data],
         cmdclass={
             "py2app": BuildWithCache
         },
         options={
             "py2app": {
-                "includes": ["syslog", "mimic.test.*", "twisted.plugin"],
+                "includes": [
+                    "syslog",
+                    "mimic.test.*",
+                    "mimic.plugins.*",
+                    "twisted.plugins.*",
+                    "twisted.plugin",
+                ],
             }
         }
     )
