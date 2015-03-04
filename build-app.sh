@@ -15,16 +15,16 @@ rm -fr ./dist ./build;
 
 # Travis seems to have an old setuptools that results in version conflict
 # exceptions.
-pip install --user --upgrade "setuptools==12.3";
+pip install --upgrade "setuptools==12.3";
 
 # install the dependencies for the main application
-pip install --user -r requirements.txt;
+pip install -r requirements.txt;
 
 # install the application itself
-pip install --user .;
+pip install .;
 
 # install dependencies that are needed to build and run the mac application
-pip install --user -r py2app-requirements.txt;
+pip install -r py2app-requirements.txt;
 
 # build the application using py2app
 python setup.py py2app;
