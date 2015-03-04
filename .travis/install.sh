@@ -48,7 +48,7 @@ else
         sudo add-apt-repository -y ppa:pypy/ppa
     fi
 
-    sudo apt-get -y update
+    sudo apt-get -y update || true;
 
     case "${TOX_ENV}" in
         py26)
