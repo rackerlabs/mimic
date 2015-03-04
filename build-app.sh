@@ -13,6 +13,10 @@ rm -fr ./dist ./build;
 # virtualenv-based py2app installations are presently failing.  So, for the
 # moment, we require --user installations of everything.
 
+# Travis seems to have an old setuptools that results in version conflict
+# exceptions.
+pip install --user --upgrade "setuptools==12.3";
+
 # install the dependencies for the main application
 pip install --user -r requirements.txt;
 
