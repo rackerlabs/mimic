@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 
 THIS_SCRIPT="$0";
 
