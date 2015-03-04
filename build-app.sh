@@ -10,13 +10,10 @@ rm -fr ./dist ./build;
 # We should really be using a virtualenv for this, but unfortunately due to
 # this bug:
 # https://bitbucket.org/ronaldoussoren/py2app/issue/156/virtualenvpy-recipe-calls-methods-renamed#comment-None
-# virtualenv-based py2app installations are presently failing.  So, for the
-# moment, we require --user installations of everything.
+# virtualenv-based py2app installations are presently failing.
 
-# Travis seems to have an old setuptools that results in version conflict
-# exceptions.
-pip install --upgrade pip==6.0.8;
-pip install --upgrade setuptools==12.3;
+# For the moment, on Travis, we just do everything in a homebrew Python
+# installation.  Everywhere else, you can run this with PIP_USER=yes.
 
 # install the dependencies for the main application
 pip install -r requirements.txt;
@@ -26,9 +23,6 @@ pip install .;
 
 # install dependencies that are needed to build and run the mac application
 pip install -r py2app-requirements.txt;
-
-# This _really_ should have been installed by now
-pip install six==1.6.1;
 
 # build the application using py2app
 python setup.py py2app;
