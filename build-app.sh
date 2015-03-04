@@ -27,6 +27,9 @@ pip install --user .;
 # install dependencies that are needed to build and run the mac application
 pip install --user -r py2app-requirements.txt;
 
+# This _really_ should have been installed by now
+pip install --user six==1.6.1;
+
 # build the application using py2app
 python setup.py py2app;
 
