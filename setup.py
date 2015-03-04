@@ -79,7 +79,9 @@ def setup_options(name, version):
         options={
             "py2app": {
                 "includes": ["syslog", "mimic.test.*", "twisted.plugin"],
-            }
+                "semi_standalone": True,
+                "site_packages": True
+            },
         }
     )
 
