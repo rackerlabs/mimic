@@ -88,7 +88,7 @@ class EventDescription(object):
 
         Use like so::
 
-            @event.decoare_default_behavior
+            @event.declare_default_behavior
             def do_something(args, to, behavior):
                 return result_expected_from_behavior
 
