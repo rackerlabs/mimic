@@ -71,7 +71,9 @@ fi
 
 sudo pip install virtualenv
 
-if [[ "${MACAPP_ENV}" != "system" ]]; then
+if [[ "${MACAPP_ENV}" == "system" ]]; then
+    brew install python
+else
     virtualenv ~/.venv
     source ~/.venv/bin/activate
     pip install tox coveralls
