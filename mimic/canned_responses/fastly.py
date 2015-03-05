@@ -15,12 +15,6 @@ class FastlyResponse(object):
 
     fastly_cache = {}
 
-    def _random_string():
-        random_string = u''.join(random.choice(
-            string.ascii_uppercase + string.ascii_uppercase)
-            for _ in range(20))
-        return random_string
-
     def get_current_customer(self):
         """
         Returns the current customer with response code 200.
@@ -29,8 +23,15 @@ class FastlyResponse(object):
                  response for fastly_client.get_current_customer()
                  ("/current_customer") request.
         """
-        id = self._random_string()
-        owner_id = self._random_string()
+
+        def _random_string():
+            random_string = u''.join(random.choice(
+                string.ascii_uppercase + string.ascii_uppercase)
+                for _ in range(20))
+            return random_string
+
+        id = _random_string()
+        owner_id = _random_string()
 
         current_customer = {
             u'can_edit_matches': u'0',
