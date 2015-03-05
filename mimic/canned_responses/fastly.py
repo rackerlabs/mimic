@@ -23,7 +23,6 @@ class FastlyResponse(object):
                  response for fastly_client.get_current_customer()
                  ("/current_customer") request.
         """
-
         def _random_string():
             random_string = u''.join(random.choice(
                 string.ascii_uppercase + string.ascii_uppercase)
