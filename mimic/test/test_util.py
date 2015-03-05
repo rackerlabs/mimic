@@ -97,3 +97,27 @@ class TestHelperTests(SynchronousTestCase):
         self.assertTrue(d.get("badRequest", None))
         self.assertEqual(d["badRequest"]["code"], 404)
         self.assertEqual(d["badRequest"]["message"], "The cake is a lie.")
+
+
+class TestRandomString(SynchronousTestCase):
+    """
+    Tests for random string generation.
+    """
+
+    def test_length(self):
+        """
+        The random string you generate should have the length you specify.
+        """
+        for l in range(100):
+            self.assertEqual(len(helper.random_string(l)), l)
+
+    def test_selectable(self):
+        """
+        When passing a custom selectable, the results should derive only from
+        the characters you provide.
+        """
+        desired_chars = "02468"
+        for iteration in xrange(100):
+            a_string = helper.random_string(1024, selectable=desired_chars)
+            for char in a_string:
+                self.assertTrue(char in desired_chars)

@@ -6,8 +6,11 @@ from characteristic import attributes, Attribute
 from random import randrange
 from json import loads, dumps
 
-from mimic.util.helper import seconds_to_timestamp
-from mimic.util.helper import invalid_resource
+from mimic.util.helper import (
+    seconds_to_timestamp,
+    invalid_resource,
+    random_string,
+)
 
 from twisted.web.http import ACCEPTED, NOT_FOUND
 
@@ -163,8 +166,7 @@ class Server(object):
             image_ref=server_json['imageRef'] or '',
             disk_config=disk_config,
             status="ACTIVE",
-            admin_password="testpassword",
-            # ^ TODO: https://github.com/rackerlabs/mimic/issues/164
+            admin_password=random_string(12),
         )
         collection.servers.append(self)
         return self
