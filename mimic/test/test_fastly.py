@@ -36,7 +36,8 @@ class FastlyAPITests(SynchronousTestCase):
 
     def test_get_customer(self):
         """
-        Test to verify : ``GET /current_customer``
+        ``GET /current_customer`` against the fastly API mock returns
+        JSON-serialized customer details.
         """
         (response, customer_json) = self.successResultOf(json_request(
             self, self.root, "GET", self.uri + '/current_customer'))
@@ -47,7 +48,8 @@ class FastlyAPITests(SynchronousTestCase):
 
     def test_create_service(self):
         """
-        Test to verify : ``POST /service``
+        ``POST /service`` against the fastly API mock stores the created
+        service and returns JSON-serialized service details.
         """
         service_details = self.fastly_response.create_service(
             [('customer_id', [self.customer_id]),
@@ -70,7 +72,9 @@ class FastlyAPITests(SynchronousTestCase):
 
     def test_create_version(self):
         """
-        Test to verify : ``POST /service/{service_id}/version)``
+        ``POST /service/{service_id}/version)`` creates a new version of the
+        service and returns JSON-serialized service details for the specific
+        version.
         """
         (response, version_json) = self.successResultOf(json_request(
             self, self.root, "POST",
@@ -84,7 +88,8 @@ class FastlyAPITests(SynchronousTestCase):
 
     def test_get_service_by_name(self):
         """
-        Test to verify : ``GET /service/search``
+        ``GET /service/search`` against the Fastly mock searches by service name
+        and returns JSON-serialized service details.
         """
         (response, json_body) = self.successResultOf(json_request(
             self, self.root, "GET",
@@ -97,8 +102,9 @@ class FastlyAPITests(SynchronousTestCase):
 
     def test_create_domain(self):
         """
-        Test to verify : ``POST
-                           /service/{service_id}/version/{version_id}/domain``
+        ``POST/service/{service_id}/version/{version_id}/domain`` against Fastly
+        mock associates a domain to the specific version of the Fastly service
+        and returns JSON-serialized service details.
         """
         uri = self.uri + '/service/{0}/version/{1}/domain' \
             '?name=llamallama&comment=redpajama'.format(
@@ -117,8 +123,9 @@ class FastlyAPITests(SynchronousTestCase):
 
     def test_check_domains(self):
         """
-        Test to verify : ``GET
-            /service/{service_id}/version/{version_id}/domain/check_all'
+        ``GET/service/{service_id}/version/{version_id}/domain/check_all' against
+        Fastly mock returns an array with the status of all domain DNS records
+        for a service version.
         """
         uri = self.uri + '/service/{0}/version/{1}/domain' \
             '?name=llamallama&comment=redpajama'.format(
@@ -142,8 +149,9 @@ class FastlyAPITests(SynchronousTestCase):
 
     def test_create_backend(self):
         """
-        Test to verify : ``POST
-            /service/{service_id}/version/{version_id}/backend'
+        ``POST /service/{service_id}/version/{version_id}/backend' against
+        Fastly mock creates a backend(origin) for a particular service and
+        version and returns JSON-serialized response.
         """
         uri = self.uri + '/service/{0}/version/{1}/backend' \
             '?name=winniepoo&address=honeytree&use_ssl=False&port=80'.format(
@@ -164,7 +172,9 @@ class FastlyAPITests(SynchronousTestCase):
 
     def test_list_versions(self):
         """
-        Test to verify : ``GET /service/{service_id}/version)``
+        ``GET /service/{service_id}/version)`` against Fastly mock returns all
+        versions associated with the service and returns a JSON-serialized
+        response.
         """
         (response, version_json) = self.successResultOf(json_request(
             self, self.root, "GET",
@@ -177,8 +187,9 @@ class FastlyAPITests(SynchronousTestCase):
 
     def test_activate_version(self):
         """
-        Test to verify : ``PUT /service/{service_id}/version/
-                           {version_number}/activate)``
+        ``PUT /service/{service_id}/version/{version_number}/activate)`` against
+        Fastly mock activates the specified version of the service and returns
+        a JSON-serialized response.
         """
         (response, version_json) = self.successResultOf(json_request(
             self, self.root, "PUT",
@@ -192,8 +203,9 @@ class FastlyAPITests(SynchronousTestCase):
 
     def test_deactivate_version(self):
         """
-        Test to verify : ``PUT /service/{service_id}/version/
-                           {version_number}/deactivate)``
+        ``PUT /service/{service_id}/version/{version_number}/deactivate)``
+        against Fastly mock deactivates the specified version of the service
+        and returns a JSON-serialized response.
         """
         (response, version_json) = self.successResultOf(json_request(
             self, self.root, "PUT",
@@ -207,7 +219,9 @@ class FastlyAPITests(SynchronousTestCase):
 
     def test_get_service_details(self):
         """
-        Test to verify : ``GET /service/{service_id}/details``
+        ``GET /service/{service_id}/details`` against Fastly mock list detailed
+        information on a specified service and returns a JSON-serialized
+        response.
         """
         (response, service_json) = self.successResultOf(json_request(
             self, self.root, "GET",
@@ -220,7 +234,8 @@ class FastlyAPITests(SynchronousTestCase):
 
     def test_delete_service(self):
         """
-        Test to verify : ``DELETE /service/{service_id}``
+        ``DELETE /service/{service_id}`` against Fastly mock deletes the
+        specified service and returns a JSON-serialized response.
         """
         (response, delete_json) = self.successResultOf(json_request(
             self, self.root, "DELETE",
@@ -231,7 +246,8 @@ class FastlyAPITests(SynchronousTestCase):
 
     def test_health(self):
         """
-        Test to verify : ``GET /``
+        ``GET /`` against Fastly mock checks if the server is up/down
+        and returns a JSON-serialized response.
         """
         (response, delete_json) = self.successResultOf(json_request(
             self, self.root, "GET", self.uri))

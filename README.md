@@ -115,8 +115,13 @@ node, for 20 seconds:
 
 ## Fastly CDN ##
 
+Fastly is one of the leading CDN providers with great API support.
+Fastly is also one of the CDN providers, supported by the Openstack Poppy
+project. Mimic supports all Fastly API calls needed by Openstack Poppy in its
+Fastly implementation. See below for the complete list.
+
 #### Calls supported: ####
-https://github.com/rackerlabs/mimic/blob/master/mimic/rest/fastly_api.py
+https://github.com/rackerlabs/m imic/blob/master/mimic/rest/fastly_api.py
 
  1. GET /current_customer
  2. POST /service

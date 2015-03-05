@@ -1,6 +1,8 @@
 """
 Canned response for fastly
 """
+import random
+import string
 import uuid
 
 
@@ -13,6 +15,12 @@ class FastlyResponse(object):
 
     fastly_cache = {}
 
+    def _random_string():
+        random_string = u''.join(random.choice(
+            string.ascii_uppercase + string.ascii_uppercase)
+            for _ in range(20))
+        return random_string
+
     def get_current_customer(self):
         """
         Returns the current customer with response code 200.
@@ -21,6 +29,9 @@ class FastlyResponse(object):
                  response for fastly_client.get_current_customer()
                  ("/current_customer") request.
         """
+        id = self._random_string()
+        owner_id = self._random_string()
+
         current_customer = {
             u'can_edit_matches': u'0',
             u'can_read_public_ip_list': u'0',
@@ -28,14 +39,14 @@ class FastlyResponse(object):
             u'updated_at': u'2014-11-03T23:37:44+00:00',
             u'has_config_panel': u'1',
             u'has_improved_ssl_config': False,
-            u'id': u'3bKRHISECARTtoUMxW6',
+            u'id': id,
             u'has_historical_stats': u'1',
             u'has_openstack_logging': u'0',
             u'can_configure_wordpress': u'0',
             u'has_improved_logging': u'1',
             u'readonly': '',
             u'ip_whitelist': u'0.0.0.0/0',
-            u'owner_id': u'asewQWEwdRnLnCKyMztZqkQvy',
+            u'owner_id': owner_id,
             u'phone_number': u'770-123-1749',
             u'postal_address': None,
             u'billing_ref': None,
@@ -105,7 +116,7 @@ class FastlyResponse(object):
         return create_service
 
     def get_service_by_name(self, service_name):
-        """Returns service details json.
+        """Returns the details of the CDN service.
 
         :return: a JSON-serializable dictionary matching the format of the JSON
                  response for fastly_client.get_service_by_name()
