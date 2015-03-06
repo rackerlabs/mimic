@@ -2,6 +2,8 @@
 Model objects for the Nova mimic.
 """
 
+import re
+
 from characteristic import attributes, Attribute
 from random import randrange
 from json import loads, dumps
@@ -12,6 +14,9 @@ from mimic.util.helper import (
     random_string,
 )
 
+from mimic.model.behaviors import (
+    BehaviorRegistry, EventDescription, Criterion, regexp_predicate
+)
 from twisted.web.http import ACCEPTED, NOT_FOUND
 
 
@@ -196,6 +201,36 @@ class IPv6Address(object):
         return {"addr": self.address, "version": 6}
 
 
+server_creation = EventDescription()
+
+
+@server_creation.declare_criterion("server_name")
+def server_name_criterion(value):
+    """
+    Return a Criterion which matches the given regular expression string
+    against the ``"server_name"`` attribute.
+    """
+    return Criterion(name='server_name', predicate=regexp_predicate(value))
+
+
+@server_creation.declare_criterion("metadata")
+def metadata_criterion(value):
+    """
+    Return a Criterion which matches against metadata.
+
+    :param value: a dictionary, mapping a regular expression of a metadata key
+        to a regular expression describing a metadata value.
+    :type value: dict mapping unicode to unicode
+    """
+    def predicate(attribute):
+        for k, v in value.items():
+            if not re.compile(v).match(attribute.get(k, "")):
+                return False
+        return True
+    return Criterion(name='metadata', predicate=predicate)
+
+
+@server_creation.declare_default_behavior
 def default_create_behavior(collection, http, json, absolutize_url,
                             ipsegment=lambda: randrange(255), hook=None):
     """
@@ -256,42 +291,91 @@ def default_with_hook(function):
     return hooked
 
 
+@server_creation.declare_behavior_creator("fail")
+def create_fail_behavior(parameters):
+    """
+    Create a failing behavior for server creation.
+
+    Takes two parameters:
+
+    ``"code"``, an integer describing the HTTP response code, and
+    ``"message"``, a string describing a textual message.
+
+    The response body will be a JSON object including ``code`` and ``message``
+    fields matching the parameters.
+    """
+    status_code = parameters.get("code", 500)
+    failure_message = parameters.get("message", "Server creation failed.")
+
+    def fail_without_creating(collection, http, json, absolutize_url):
+        # behavior for failing to even start to build
+        http.setResponseCode(status_code)
+        return dumps(invalid_resource(failure_message, status_code))
+    return fail_without_creating
+
+
+@server_creation.declare_behavior_creator("build")
+def create_building_behavior(parameters):
+    """
+    Create a "build" behavior for server creation.
+
+    Puts the server into the "BUILD" status immediately, transitioning it to
+    "ACTIVE" after a requested amount of time.
+
+    Takes one parameter:
+
+    ``"duration"`` which is a Number, the duration of the build process in
+    seconds.
+    """
+    duration = parameters["duration"]
+
+    @default_with_hook
+    def set_building(server):
+        server.status = u"BUILD"
+        server.collection.clock.callLater(
+            duration,
+            lambda: setattr(server, "status", u"ACTIVE"))
+    return set_building
+
+
+@server_creation.declare_behavior_creator("error")
+def create_error_status_behavior(parameters=None):
+    """
+    Create an "error" behavior for server creation.
+
+    The created server will go into the ``"ERROR"`` state immediately.
+
+    Takes no parameters.
+    """
+    @default_with_hook
+    def set_error(server):
+        server.status = u"ERROR"
+    return set_error
+
+
 def metadata_to_creation_behavior(metadata):
     """
     Examine the metadata given to a server creation request, and return a
     behavior based on the values present there.
     """
     if 'create_server_failure' in metadata:
-        failure = loads(metadata['create_server_failure'])
-
-        def fail_and_dont_do_anything(collection, http, json, absolutize_url):
-            # behavior for failing to even start to build
-            http.setResponseCode(failure['code'])
-            return dumps(invalid_resource(failure['message'], failure['code']))
-        return fail_and_dont_do_anything
+        return create_fail_behavior(loads(metadata['create_server_failure']))
     if 'server_building' in metadata:
-        @default_with_hook
-        def set_building(server):
-            server.status = u"BUILD"
-            server.collection.clock.callLater(
-                float(metadata['server_building']),
-                lambda: setattr(server, "status", u"ACTIVE"))
-        return set_building
+        return create_building_behavior(
+            {"duration": float(metadata['server_building'])}
+        )
     if 'server_error' in metadata:
-        @default_with_hook
-        def set_error(server):
-            server.status = u"ERROR"
-            server.collection.clock.callLater(
-                float(metadata['server_error']),
-                lambda: setattr(server, "status", u"ACTIVE"))
-        return set_error
+        return create_error_status_behavior()
     return None
 
 
-@attributes(["tenant_id", "region_name", "clock",
-             Attribute("servers", default_factory=list),
-             Attribute("creation_behaviors_and_criteria",
-                       default_factory=list)])
+@attributes(
+    ["tenant_id", "region_name", "clock",
+     Attribute("servers", default_factory=list),
+     Attribute(
+         "create_behavior_registry",
+         default_factory=lambda: BehaviorRegistry(event=server_creation))]
+)
 class RegionalServerCollection(object):
     """
     A collection of servers, in a given region, for a given tenant.
@@ -305,30 +389,6 @@ class RegionalServerCollection(object):
             if server.server_id == server_id:
                 return server
 
-    def register_creation_behavior_for_criteria(self, behavior, criteria):
-        """
-        Register the given behavior for server creation based on the given
-        criteria.
-        """
-        self.creation_behaviors_and_criteria.append((behavior, criteria))
-
-    def registered_creation_behavior(self, creation_http_request,
-                                     creation_json):
-        """
-        Retrieve a behavior that was previously registered via a control plane
-        request to inject an error in advance, based on whether it matches the
-        parameters in the given creation JSON and HTTP request properties.
-        """
-        creation_attributes = {
-            "tenant_id": self.tenant_id,
-            "server_name": creation_json["server"]["name"],
-            "metadata": creation_json["server"].get("metadata")
-        }
-        for behavior, criteria in self.creation_behaviors_and_criteria:
-            if criteria.evaluate(creation_attributes):
-                return behavior
-        return None
-
     def request_creation(self, creation_http_request, creation_json,
                          absolutize_url):
         """
@@ -337,10 +397,11 @@ class RegionalServerCollection(object):
         behavior = metadata_to_creation_behavior(
             creation_json.get('server', {}).get('metadata', {}))
         if behavior is None:
-            behavior = self.registered_creation_behavior(creation_http_request,
-                                                         creation_json)
-        if behavior is None:
-            behavior = default_create_behavior
+            behavior = self.create_behavior_registry.behavior_for_attributes({
+                "tenant_id": self.tenant_id,
+                "server_name": creation_json["server"]["name"],
+                "metadata": creation_json["server"].get("metadata")
+            })
         return behavior(self, creation_http_request, creation_json,
                         absolutize_url)
 

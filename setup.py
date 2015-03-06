@@ -26,12 +26,12 @@ def setup_options(name, version):
     """
     info = dict(
         install_requires=[
-            "characteristic==14.2.0",
-            "klein==0.2.1",
-            "twisted==14.0.0",
-            "jsonschema==2.0",
-            "treq==0.2.0",
-            "six==1.6.1"
+            "characteristic>=14.2.0",
+            "klein>=0.2.1",
+            "twisted>=14.0.2",
+            "jsonschema>=2.0",
+            "treq>=0.2.1",
+            "six>=1.6.0",
         ],
         package_dir={"mimic": "mimic"},
         packages=find_packages(exclude=[]) + ["twisted.plugins"],
