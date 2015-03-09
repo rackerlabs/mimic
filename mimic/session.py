@@ -62,6 +62,9 @@ class SessionStore(object):
         self._token_to_session = {
             # mapping of token (unicode) to session (Session)
         }
+        self._userid_to_session = {
+            # mapping of userid (ascii) to session (Session)
+        }
         self._tenant_to_token = {
             # mapping of tenant_id (unicode) to token (unicode)
         }
@@ -101,6 +104,7 @@ class SessionStore(object):
             username_key = session.username
         self._username_to_token[username_key] = session.token
         self._token_to_session[session.token] = session
+        self._userid_to_session[session.user_id] = session
         self._tenant_to_token[session.tenant_id] = session.token
         return session
 
