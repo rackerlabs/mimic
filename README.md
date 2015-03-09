@@ -121,7 +121,7 @@ project. Mimic supports all Fastly API calls needed by Openstack Poppy in its
 Fastly implementation. See below for the complete list.
 
 #### Calls supported: ####
-https://github.com/rackerlabs/m imic/blob/master/mimic/rest/fastly_api.py
+https://github.com/rackerlabs/mimic/blob/master/mimic/rest/fastly_api.py
 
  1. GET /current_customer
  2. POST /service
