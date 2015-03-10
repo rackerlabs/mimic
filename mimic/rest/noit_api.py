@@ -9,7 +9,6 @@ from mimic.rest.mimicapp import MimicApp
 from mimic.canned_responses.noit import (create_check, get_check,
                                          get_all_checks, delete_check,
                                          test_check)
-# from mimic.model.noit_objects import NoitChecksCollection
 
 
 # TO DO:
@@ -75,10 +74,6 @@ class NoitApi(object):
         TBD: Include error 400 and 500s. Module cannot be updated (test
             against noit service to see the response code expected)
         """
-        # ####### START HERE **************#####################################################
-        # noit = NoitChecksCollection(request, check_id)
-        # print "ehe"
-        # return noit.request_creation(request, check_id)
         try:
             UUID(check_id)
         except (ValueError, AttributeError):
