@@ -211,13 +211,13 @@ def createSuppression(params):
             params[k] = params[k].encode('ascii')
     params['id'] = 'sp' + random_hex_generator(4)
     if 'notification_plans' not in params:
-      params['notification_plans'] = []
+        params['notification_plans'] = []
     if 'entities' not in params:
-      params['entities'] = []
+        params['entities'] = []
     if 'checks' not in params:
-      params['checks'] = []
+        params['checks'] = []
     if 'alarms' not in params:
-      params['alarms'] = []
+        params['alarms'] = []
     return params
 
 
