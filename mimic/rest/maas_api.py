@@ -631,6 +631,17 @@ class MaasMock(object):
             "txnId": ".fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf"
         })
 
+    @app.route('/v1.0/<string:tenant_id>/agent_installers', methods=['POST'])
+    def agent_installer(self, request, tenant_id):
+        """
+        URL of agent install script
+        """
+        xsil = "https://monitoring.api.rackspacecloud.com/"
+        xsil += "v1.0/00000/agent_installers/c69b2ceafc0444506fb32255af3d9be3.sh"
+        request.setResponseCode(201)
+        request.setHeader('x-shell-installer-location', xsil)
+        return ''
+
     @app.route('/v1.0/<string:tenant_id>/notifications', methods=['POST'])
     def create_notification(self, request, tenant_id):
         """

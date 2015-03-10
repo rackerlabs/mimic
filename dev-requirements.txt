@@ -1,7 +1,18 @@
-doc8==0.3.4
-flake8==2.1.0
-pep257==0.3.2
+cffi==0.8.6
 coverage==3.7.1
+cryptography==0.7.2
+doc8==0.3.4
+docutils==0.12
+enum34==1.0.4
+flake8==2.1.0
+Jinja2==2.7.3
+MarkupSafe==0.23
+pbr==0.10.7
+mccabe==0.3
+pep257==0.3.2
+pep8==1.6.2
 unittest2==0.5.1
 Sphinx==1.2.2
+stevedore==1.2.0
+treq==15.0.0
 -e .

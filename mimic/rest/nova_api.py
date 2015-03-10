@@ -6,6 +6,7 @@ Defines create, delete, get, list servers and get images and flavors.
 from uuid import uuid4
 import json
 
+from characteristic import attributes
 from six import text_type
 
 from zope.interface import implementer
@@ -15,6 +16,7 @@ from twisted.web.server import Request
 from twisted.python.urlpath import URLPath
 
 from twisted.plugin import IPlugin
+from twisted.web.http import CREATED
 
 from mimic.canned_responses.nova import get_limit, get_image, get_flavor
 from mimic.rest.mimicapp import MimicApp
@@ -29,6 +31,7 @@ Request.defaultContentType = 'application/json'
 
 @implementer(IAPIMock, IPlugin)
 class NovaApi(object):
+
     """
     Rest endpoints for mocked Nova Api.
     """
@@ -62,8 +65,107 @@ class NovaApi(object):
         return (NovaRegion(self, uri_prefix, session_store, region)
                 .app.resource())
 
+    def _get_session(self, session_store, tenant_id):
+        """
+        Retrieve or create a new Nova session from a given tenant identifier
+        and :obj:`SessionStore`.
+
+        For use with ``data_for_api``.
+
+        Temporary hack; see this issue
+        https://github.com/rackerlabs/mimic/issues/158
+        """
+        return (
+            session_store.session_for_tenant_id(tenant_id)
+            .data_for_api(self, lambda: GlobalServerCollections(
+                tenant_id=tenant_id,
+                clock=session_store.clock
+            ))
+        )
+
+
+@implementer(IAPIMock, IPlugin)
+@attributes(["nova_api"])
+class NovaControlApi(object):
+
+    """
+    Rest endpoints for the Nova Control Api.
+    """
+
+    def catalog_entries(self, tenant_id):
+        """
+        List catalog entries for the Nova API.
+        """
+        return [
+            Entry(
+                tenant_id, "compute", "cloudServersBehavior",
+                [
+                    Endpoint(tenant_id, region, text_type(uuid4()),
+                             prefix="v2")
+                    for region in self.nova_api._regions
+                ]
+            )
+        ]
+
+    def resource_for_region(self, region, uri_prefix, session_store):
+        """
+        Get an :obj:`twisted.web.iweb.IResource` for the given URI prefix;
+        implement :obj:`IAPIMock`.
+        """
+        return (NovaControlApiRegion(api_mock=self, uri_prefix=uri_prefix,
+                                     session_store=session_store, region=region)
+                .app.resource())
+
+
+@attributes(["api_mock", "uri_prefix", "session_store", "region"])
+class NovaControlApiRegion(object):
+
+    """
+    Klien resources for the Nova Control plane API
+    """
+    app = MimicApp()
+
+    @app.route('/v2/<string:tenant_id>/behaviors/creation/', methods=['POST'])
+    def register_creation_behavior(self, request, tenant_id):
+        """
+        Register the specified behavior to cause a future server creation
+        operation to behave in the described way.
+
+        The request looks like this::
+
+            {
+                # list of criteria for which requests will behave in the
+                # described way
+                "criteria": [
+                    {"tenant_id": "maybe_fail_.*"},
+                    {"server_name": "failing_server_.*"},
+                    {"metadata": {"key_we_should_have": "fail",
+                                  "key_we_should_not_have": null}}
+                ],
+                # what kind of behavior: in this case, "fail the request"
+                "name": "fail",
+                # parameters for the behavior: in this case,
+                # "return a 404 with a message".
+                "parameters": {
+                    "code": 404,
+                    "message": "Stuff is broken, what"
+                }
+            }
+        """
+        global_collection = self.api_mock.nova_api._get_session(
+            self.session_store, tenant_id)
+        behavior_description = json.loads(request.content.read())
+        region_collection = global_collection.collection_for_region(
+            self.region)
+        region_collection.create_behavior_registry.register_from_json(
+            behavior_description
+        )
+        request.setResponseCode(CREATED)
+        return b''
+
 
 class NovaRegion(object):
+
     """
     Klein routes for the API within a Cloud Servers region.
 
@@ -94,17 +196,8 @@ class NovaRegion(object):
         Get the given server-cache object for the given tenant, creating one if
         there isn't one.
         """
-        return (
-            self._session_store.session_for_tenant_id(tenant_id)
-            .data_for_api(
-                self._api_mock,
-                lambda: GlobalServerCollections(
-                    tenant_id=tenant_id,
-                    clock=self._session_store.clock
-                )
-            )
-            .collection_for_region(self._name)
-        )
+        return (self._api_mock._get_session(self._session_store, tenant_id)
+                .collection_for_region(self._name))
 
     app = MimicApp()
 
