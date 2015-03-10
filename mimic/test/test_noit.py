@@ -49,7 +49,7 @@ class NoitAPITests(SynchronousTestCase):
             request_with_content(self, self.root, "GET", "noit/config/checks"))
         self.assertEqual(response.code, 200)
         json_response = xmltodict.parse(body)
-        self.assertGreater(len(json_response["checks"]["check"]), 0)
+        self.assertTrue(len(json_response["checks"]["check"]) > 0)
 
     def test_test_check(self):
         """
