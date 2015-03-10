@@ -35,6 +35,14 @@ class Session(object):
         return self._api_objects[api_mock]
 
 
+@attributes([Attribute('session', instance_of=Session),
+             'desired_tenant'])
+class NonMatchingTenantError(Exception):
+    """
+    A session's tenant ID does not match the desired tenant ID.
+    """
+
+
 class SessionStore(object):
     """
     A collection of sessions addressable by multiple different keys.
@@ -53,6 +61,9 @@ class SessionStore(object):
         self.clock = clock
         self._token_to_session = {
             # mapping of token (unicode) to session (Session)
+        }
+        self._userid_to_session = {
+            # mapping of userid (ascii) to session (Session)
         }
         self._tenant_to_token = {
             # mapping of tenant_id (unicode) to token (unicode)
@@ -93,6 +104,7 @@ class SessionStore(object):
             username_key = session.username
         self._username_to_token[username_key] = session.token
         self._token_to_session[session.token] = session
+        self._userid_to_session[session.user_id] = session
         self._tenant_to_token[session.tenant_id] = session.token
         return session
 
@@ -108,7 +120,12 @@ class SessionStore(object):
         :raise: :obj:`KeyError` if no such thing exists.
         """
         if token in self._token_to_session:
-            return self._token_to_session[token]
+            s = self._token_to_session[token]
+            if tenant_id is not None and s.tenant_id != tenant_id:
+                raise NonMatchingTenantError(session=s,
+                                             desired_tenant=tenant_id)
+            return s
+
         return self._new_session(token=token, tenant_id=tenant_id)
 
     def session_for_api_key(self, username, api_key, tenant_id=None):
@@ -130,7 +147,12 @@ class SessionStore(object):
         Create or return a :obj:`Session` based on a user's credentials.
         """
         if username in self._username_to_token:
-            return self._token_to_session[self._username_to_token[username]]
+            s = self._token_to_session[self._username_to_token[username]]
+            if tenant_id is not None and s.tenant_id != tenant_id:
+                raise NonMatchingTenantError(session=s,
+                                             desired_tenant=tenant_id)
+            return s
+
         return self._new_session(username=username,
                                  tenant_id=tenant_id)
 

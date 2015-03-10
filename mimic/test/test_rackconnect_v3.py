@@ -320,7 +320,7 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
                 "cloud_server": add_blob['cloud_server'],
                 "load_balancer_pool": add_blob['load_balancer_pool'],
                 "created": "1970-01-01T00:00:{0:02}Z".format(seconds),
-                "status": "ADDING",
+                "status": "ACTIVE",
                 "status_detail": None,
                 "updated": None
             }

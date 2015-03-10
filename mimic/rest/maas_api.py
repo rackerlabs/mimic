@@ -117,7 +117,7 @@ def createEntity(params):
     params = collections.defaultdict(lambda: '', params)
     newentity = {}
     newentity['label'] = params[u'label'].encode("ascii")
-    newentity['id'] = 'e' + random_hex_generator(4)
+    newentity['id'] = 'en' + random_hex_generator(4)
     newentity['agent_id'] = params['agent_id'] or random_hex_generator(12)
     newentity['created_at'] = time.time()
     newentity['updated_at'] = time.time()
@@ -135,7 +135,7 @@ def createCheck(params):
     for k in params.keys():
         if 'encode' in dir(params[k]):
             params[k] = params[k].encode('ascii')
-    params['id'] = 'c' + random_hex_generator(4)
+    params['id'] = 'ch' + random_hex_generator(4)
     params['collectors'] = []
     for q in range(3):
         params['collectors'].append('co' + random_hex_generator(3))
@@ -630,6 +630,17 @@ class MaasMock(object):
             "details": "Agent XYZ does not exist.",
             "txnId": ".fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf"
         })
+
+    @app.route('/v1.0/<string:tenant_id>/agent_installers', methods=['POST'])
+    def agent_installer(self, request, tenant_id):
+        """
+        URL of agent install script
+        """
+        xsil = "https://monitoring.api.rackspacecloud.com/"
+        xsil += "v1.0/00000/agent_installers/c69b2ceafc0444506fb32255af3d9be3.sh"
+        request.setResponseCode(201)
+        request.setHeader('x-shell-installer-location', xsil)
+        return ''
 
     @app.route('/v1.0/<string:tenant_id>/notifications', methods=['POST'])
     def create_notification(self, request, tenant_id):

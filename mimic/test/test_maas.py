@@ -152,24 +152,35 @@ class MaasAPITests(SynchronousTestCase):
         helper = APIMockHelper(self, [MaasApi(["ORD"])])
         self.root = helper.root
         self.uri = helper.uri
-        entity_id = None
-        check_id = None
-        alarm_id = None
-        nt_id = None
-        np_id = None
-        sp_id = None
-        entity_id = self.getXobjectIDfromResponse(self.createEntity('ItsAnEntity'))
-        check_id = self.getXobjectIDfromResponse(self.createCheck('ItsAcheck', entity_id))
-        alarm_id = self.getXobjectIDfromResponse(self.createAlarm('ItsAnAlarm', entity_id, check_id))
-        nt_id = self.getXobjectIDfromResponse(self.createNotification('ItsANotificationTarget'))
-        np_id = self.getXobjectIDfromResponse(self.createNotificationPlan('ItsANotificationPlan'))
-        sp_id = self.getXobjectIDfromResponse(self.createSuppression('ItsASuppression'))
-        self.assertNotEquals(None, entity_id)
-        self.assertNotEquals(None, check_id)
-        self.assertNotEquals(None, alarm_id)
-        self.assertNotEquals(None, nt_id)
-        self.assertNotEquals(None, np_id)
-        self.assertNotEquals(None, sp_id)
+        self.entity_id = self.getXobjectIDfromResponse(self.createEntity('ItsAnEntity'))
+        self.check_id = self.getXobjectIDfromResponse(self.createCheck('ItsAcheck',
+                                                                       self.entity_id))
+        self.alarm_id = self.getXobjectIDfromResponse(self.createAlarm('ItsAnAlarm',
+                                                                       self.entity_id,
+                                                                       self.check_id))
+        self.nt_id = self.getXobjectIDfromResponse(self.createNotification('ItsANotificationTarget'))
+        self.np_id = self.getXobjectIDfromResponse(self.createNotificationPlan('ItsANotificationPlan'))
+        self.sp_id = self.getXobjectIDfromResponse(self.createSuppression('ItsASuppression'))
+
+    def test_resource_ids(self):
+        """
+        MAAS sets IDs for resources it created by prefixing it with the
+        first two characters of the resource type.For example an entity
+        id is prefixed with 'en'. Test that the ids are not null and are
+        prefixed.
+        """
+        self.assertNotEquals(None, self.entity_id)
+        self.assertTrue(self.entity_id.startswith('en'))
+        self.assertNotEquals(None, self.check_id)
+        self.assertTrue(self.check_id.startswith('ch'))
+        self.assertNotEquals(None, self.alarm_id)
+        self.assertTrue(self.alarm_id.startswith('al'))
+        self.assertNotEquals(None, self.nt_id)
+        self.assertTrue(self.nt_id.startswith('nt'))
+        self.assertNotEquals(None, self.np_id)
+        self.assertTrue(self.np_id.startswith('np'))
+        self.assertNotEquals(None, self.sp_id)
+        self.assertTrue(self.sp_id.startswith('sp'))
 
     def test_list_entity(self):
         """
@@ -376,6 +387,17 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 400)
         data = self.get_responsebody(resp)
         self.assertEquals(True, 'Agent does not exist' in json.dumps(data))
+
+    def test_agentinstallers(self):
+        """
+        fetch agent installer
+        """
+        req = request(self, self.root, "POST", self.uri + '/agent_installers', '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 201)
+        xsil = resp.headers.getRawHeaders('x-shell-installer-location')
+        self.assertTrue(xsil is not None)
+        self.assertTrue('monitoring.api' in xsil[0])
 
     def test_metriclist(self):
         """

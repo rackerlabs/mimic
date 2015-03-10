@@ -9,7 +9,11 @@ from twisted.web.resource import NoResource
 from mimic.canned_responses.mimic_presets import get_presets
 from mimic.rest.mimicapp import MimicApp
 from mimic.rest.auth_api import AuthApi, base_uri_from_request
+<<<<<<< HEAD
 from mimic.rest.noit_api import NoitApi
+=======
+from mimic.rest import fastly_api
+>>>>>>> master
 from mimic.util.helper import seconds_to_timestamp
 
 
@@ -53,6 +57,13 @@ class MimicRoot(object):
         service catalog.
         """
         return NoitApi(self.core, self.clock).app.resource()
+
+    @app.route("/fastly", branch=True)
+    def get_fastly_api(self, request):
+        """
+        Get the Fastly API ...
+        """
+        return fastly_api.FastlyApi(self.core).app.resource()
 
     @app.route('/mimic/v1.0/presets', methods=['GET'])
     def get_mimic_presets(self, request):

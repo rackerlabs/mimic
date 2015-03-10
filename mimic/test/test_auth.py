@@ -291,6 +291,34 @@ class GetAuthTokenAPITests(SynchronousTestCase):
         self.assertEqual(200, response.code)
         self.assertEqual(json_body['access']['user']['roles'], HARD_CODED_ROLES)
 
+    def test_response_has_same_roles_despite_number_of_auths(self):
+        """
+        The JSON response for authenticate has only one `identity:user-admin`
+        role, no matter how many times the user authenticates.
+        """
+        core = MimicCore(Clock(), [])
+        root = MimicRoot(core).app.resource()
+
+        creds = {
+            "auth": {
+                "passwordCredentials": {
+                    "username": "demoauthor",
+                    "password": "theUsersPassword"
+                }
+
+            }
+        }
+
+        self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens", creds))
+        self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens", creds))
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens", creds))
+
+        self.assertEqual(200, response.code)
+        self.assertEqual(json_body['access']['user']['roles'], HARD_CODED_ROLES)
+
     def test_authentication_request_with_no_body_causes_http_bad_request(self):
         """
         The response for empty body request is bad_request.
@@ -558,6 +586,153 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         self.assertEqual(tenant_name, tenant_id)
         user_name = json_body["access"]["user"]["name"]
         self.assertTrue(user_name)
+
+    def test_token_and_catalog_for_password_credentials_wrong_tenant(self):
+        """
+        Tenant ID is validated when provided in username/password auth.
+
+        If authed once as one tenant ID, and a second time with a different
+        tenant ID, then the second auth will return with a 401 Unauthorized.
+        """
+        core = MimicCore(Clock(), [ExampleAPI()])
+        root = MimicRoot(core).app.resource()
+
+        creds = {
+            "auth": {
+                "passwordCredentials": {
+                    "username": "demoauthor",
+                    "password": "theUsersPassword"
+                },
+                "tenantId": "12345"
+            }
+        }
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens", creds))
+        self.assertEqual(response.code, 200)
+        username = json_body["access"]["user"]["id"]
+
+        creds['auth']['tenantId'] = "23456"
+
+        (response, fail_body) = self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens", creds))
+        self.assertEqual(response.code, 401)
+        self.assertEqual(fail_body, {
+            "unauthorized": {
+                "code": 401,
+                "message": ("Tenant with Name/Id: '23456' is not valid for "
+                            "User 'demoauthor' (id: '{0}')".format(username))
+            }
+        })
+
+    def test_rax_kskey_apikeycredentials(self):
+        """
+        Test apiKeyCredentials
+        """
+        core = MimicCore(Clock(), [ExampleAPI()])
+        root = MimicRoot(core).app.resource()
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "GET",
+            "/identity/v2.0/users/1/OS-KSADM/credentials/RAX-KSKEY:apiKeyCredentials"
+        ))
+        self.assertEqual(response.code, 404)
+        self.assertEqual(json_body['itemNotFound']['message'], 'User 1 not found')
+        creds = {
+            "auth": {
+                "passwordCredentials": {
+                    "username": "HedKandi",
+                    "password": "Ministry Of Sound UK"
+                },
+                "tenantId": "77777"
+            }
+        }
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens", creds))
+        self.assertEqual(response.code, 200)
+        user_id = json_body['access']['user']['id']
+        username = json_body['access']['user']['name']
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "GET",
+            "/identity/v2.0/users/" + user_id + "/OS-KSADM/credentials/RAX-KSKEY:apiKeyCredentials"
+        ))
+        self.assertEqual(response.code, 200)
+        self.assertEqual(json_body['RAX-KSKEY:apiKeyCredentials']['username'],
+                         username)
+        self.assertTrue(len(json_body['RAX-KSKEY:apiKeyCredentials']['apiKey']) == 32)
+
+    def test_token_and_catalog_for_api_credentials_wrong_tenant(self):
+        """
+        Tenant ID is validated when provided in api-key auth.
+
+        If authed once as one tenant ID, and a second time with a different
+        tenant ID, then the second auth will return with a 401 Unauthorized.
+        """
+        core = MimicCore(Clock(), [ExampleAPI()])
+        root = MimicRoot(core).app.resource()
+
+        creds = {
+            "auth": {
+                "RAX-KSKEY:apiKeyCredentials": {
+                    "username": "demoauthor",
+                    "apiKey": "jhgjhghg-nhghghgh-12222"
+                },
+                "tenantName": "12345"
+            }
+        }
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens", creds))
+        self.assertEqual(response.code, 200)
+        username = json_body["access"]["user"]["id"]
+
+        creds['auth']['tenantName'] = "23456"
+
+        (response, fail_body) = self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens", creds))
+        self.assertEqual(response.code, 401)
+        self.assertEqual(fail_body, {
+            "unauthorized": {
+                "code": 401,
+                "message": ("Tenant with Name/Id: '23456' is not valid for "
+                            "User 'demoauthor' (id: '{0}')".format(username))
+            }
+        })
+
+    def test_token_and_catalog_for_token_credentials_wrong_tenant(self):
+        """
+        Tenant ID is validated when provided in token auth.
+
+        If authed once as one tenant ID, and a second time with a different
+        tenant ID, then the second auth will return with a 401 Unauthorized.
+        """
+        core = MimicCore(Clock(), [ExampleAPI()])
+        root = MimicRoot(core).app.resource()
+
+        creds = {
+            "auth": {
+                "tenantId": "12345",
+                "token": {
+                    "id": "iuyiuyiuy-uyiuyiuy-1987878"
+                }
+            }
+        }
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens", creds))
+        self.assertEqual(response.code, 200)
+
+        creds['auth']['tenantId'] = "23456"
+
+        (response, fail_body) = self.successResultOf(json_request(
+            self, root, "POST", "/identity/v2.0/tokens", creds))
+        self.assertEqual(response.code, 401)
+        self.assertEqual(fail_body, {
+            "unauthorized": {
+                "code": 401,
+                "message": ("Token doesn't belong to Tenant with Id/Name: "
+                            "'23456'")
+            }
+        })
 
     def test_get_token_and_catalog_for_invalid_json_request_body(self):
         """

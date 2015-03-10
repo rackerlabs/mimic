@@ -13,11 +13,11 @@ setup(
     install_requires=[
         "characteristic==14.2.0",
         "klein==0.2.1",
-        "twisted>=13.2.0",
+        "twisted>=14.2.0",
         "jsonschema==2.0",
         "xmltodict==0.9.1",
-        "treq",
-        "six",
+        "treq>=0.2.1",
+        "six>=1.6.0",
     ],
     include_package_data=True,
     license="Apache License, Version 2.0"
