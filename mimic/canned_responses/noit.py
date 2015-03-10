@@ -1,5 +1,5 @@
 """
-Canned response for Nova
+Canned response for Noit
 """
 import time
 from mimic.canned_responses.noit_metrics_fixture import (metrics_common_template,

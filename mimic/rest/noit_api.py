@@ -21,6 +21,7 @@ from mimic.canned_responses.noit import (create_check, get_check,
 
 Request.defaultContentType = 'application/xml'
 
+
 class NoitApi(object):
 
     """

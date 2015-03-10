@@ -9,11 +9,8 @@ from twisted.web.resource import NoResource
 from mimic.canned_responses.mimic_presets import get_presets
 from mimic.rest.mimicapp import MimicApp
 from mimic.rest.auth_api import AuthApi, base_uri_from_request
-<<<<<<< HEAD
 from mimic.rest.noit_api import NoitApi
-=======
 from mimic.rest import fastly_api
->>>>>>> master
 from mimic.util.helper import seconds_to_timestamp
 
 
@@ -34,14 +31,14 @@ class MimicRoot(object):
         self.core = core
         self.clock = clock
 
-    # @app.route("/", methods=["GET"])
-    # def help(self, request):
-    #     """
-    #     A helpful greeting message.
-    #     """
-    #     request.responseHeaders.setRawHeaders("content-type", ["text/plain"])
-    #     return ("To get started with Mimic, POST an authentication request to:"
-    #             "\n\n/identity/v2.0/tokens\n")
+    @app.route("/", methods=["GET"])
+    def help(self, request):
+        """
+        A helpful greeting message.
+        """
+        request.responseHeaders.setRawHeaders("content-type", ["text/plain"])
+        return ("To get started with Mimic, POST an authentication request to:"
+                "\n\n/identity/v2.0/tokens\n")
 
     @app.route("/identity", branch=True)
     def get_auth_api(self, request):
@@ -50,7 +47,7 @@ class MimicRoot(object):
         """
         return AuthApi(self.core).app.resource()
 
-    @app.route("/", branch=True)
+    @app.route("/noit", branch=True)
     def get_noit_api(self, request):
         """
         Mock Noit api here ... until mimic allows services outside of the
