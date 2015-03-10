@@ -11,7 +11,8 @@ from datetime import datetime, timedelta
 from characteristic import attributes, Attribute
 
 
-@attributes(['username', 'token', 'tenant_id', 'expires', 'impersonated_token',
+@attributes(['username', 'token', 'tenant_id', 'expires',
+             Attribute('impersonator_session_list', default_factory=list),
              Attribute('_api_objects', default_factory=dict)])
 class Session(object):
     """
@@ -72,10 +73,6 @@ class SessionStore(object):
             # mapping of token (unicode) to username (unicode: key in
             # _token_to_session)
         }
-        self._impersonated_token_to_impersonator_session = {
-            # mapping of impersonated_token (unicode) to impersonator_session
-            # (Session)
-        }
 
     def _new_session(self, username_key=None, **attributes):
         """
@@ -91,7 +88,7 @@ class SessionStore(object):
                  with this :obj:`MimicCore`).
         :rtype: :obj:`Session`
         """
-        for key in ['username', 'token', 'tenant_id', 'impersonated_token']:
+        for key in ['username', 'token', 'tenant_id']:
             if attributes.get(key, None) is None:
                 attributes[key] = key + "_" + text_type(uuid4())
                 if key == 'tenant_id':
@@ -103,6 +100,7 @@ class SessionStore(object):
                 datetime.utcfromtimestamp(self.clock.seconds())
                 + timedelta(days=1)
             )
+
         session = Session(**attributes)
         if username_key is None:
             username_key = session.username
@@ -130,7 +128,7 @@ class SessionStore(object):
                                              desired_tenant=tenant_id)
         else:
             s = self._new_session(token=token, tenant_id=tenant_id)
-        return s, self._impersonated_token_to_impersonator_session.get(token)
+        return s
 
     def session_for_api_key(self, username, api_key, tenant_id=None):
         """
@@ -146,7 +144,8 @@ class SessionStore(object):
         return self.session_for_username_password(username, api_key, tenant_id)
 
     def session_for_username_password(self, username, password,
-                                      tenant_id=None):
+                                      tenant_id=None,
+                                      impersonator_session_list=None):
         """
         Create or return a :obj:`Session` based on a user's credentials.
         """
@@ -160,25 +159,28 @@ class SessionStore(object):
         return self._new_session(username=username,
                                  tenant_id=tenant_id)
 
-    def session_for_impersonation(self, username, expires_in, impersonator_token=None):
+    def session_for_impersonation(self, username, expires_in, impersonator_token=None,
+                                  impersonated_token=None):
         """
         Create or return a :obj:`Session` impersonating a given user; this
         session updates the expiration to be that indicated.
         """
         impersonator_session = self._token_to_session.get(impersonator_token)
         session = self.session_for_username_password(
-            username, "lucky we don't check passwords, isn't it",
+            username, "lucky we don't check passwords, isn't it"
         )
         session.expires = datetime.utcfromtimestamp(self.clock.seconds() + expires_in)
-        self._impersonated_token_to_impersonator_session[
-            session.impersonated_token] = impersonator_session
+        session.impersonator_session_list.append({impersonated_token: impersonator_session})
         return session
 
-    def session_for_tenant_id(self, tenant_id):
+    def session_for_tenant_id(self, tenant_id, token_id=None):
         """
+        Looks up a session based on the tenant_id.
         :param unicode tenant_id: The tenant_id of a previously-created
             session.
+        :param unicode token_id: Sets token in the session to the token_id provided,
+            else, creates one.
         """
         if tenant_id not in self._tenant_to_token:
-            return self._new_session(tenant_id=tenant_id)
-        return self.session_for_token(self._tenant_to_token[tenant_id])[0]
+            return self._new_session(tenant_id=tenant_id, token=token_id)
+        return self.session_for_token(self._tenant_to_token[tenant_id])
