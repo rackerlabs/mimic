@@ -12,7 +12,7 @@ from characteristic import attributes, Attribute
 
 
 @attributes(['username', 'token', 'tenant_id', 'expires',
-             Attribute('impersonator_session_list', default_factory=list),
+             Attribute('impersonator_session_map', default_factory=dict),
              Attribute('_api_objects', default_factory=dict)])
 class Session(object):
     """
@@ -26,6 +26,14 @@ class Session(object):
         Return a unique numeric ID based on the username.
         """
         return text_type(hash(self.username))
+
+    def impersonator_session_for_token(self, impersonated_token):
+        """
+        :param impersonated_token: impersonation token for a user.
+        Returns the impersonator session for the given impersonation
+        token.
+        """
+        return self.impersonator_session_map.get(impersonated_token)
 
     def data_for_api(self, api_mock, data_factory):
         """
@@ -144,8 +152,7 @@ class SessionStore(object):
         return self.session_for_username_password(username, api_key, tenant_id)
 
     def session_for_username_password(self, username, password,
-                                      tenant_id=None,
-                                      impersonator_session_list=None):
+                                      tenant_id=None):
         """
         Create or return a :obj:`Session` based on a user's credentials.
         """
@@ -170,7 +177,7 @@ class SessionStore(object):
             username, "lucky we don't check passwords, isn't it"
         )
         session.expires = datetime.utcfromtimestamp(self.clock.seconds() + expires_in)
-        session.impersonator_session_list.append({impersonated_token: impersonator_session})
+        session.impersonator_session_map[impersonated_token] = impersonator_session
         return session
 
     def session_for_tenant_id(self, tenant_id, token_id=None):

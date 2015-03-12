@@ -172,10 +172,11 @@ class AuthApi(object):
         """
         Creates a new session for the given tenant_id and token_id
         and always returns response code 200.
+        Docs: http://developer.openstack.org/api-ref-identity-v2.html#admin-tokens
         """
         request.setResponseCode(200)
         tenant_id = request.args.get('belongsTo')
-        if tenant_id:
+        if tenant_id is not None:
             tenant_id = tenant_id[0]
         session = self.core.sessions.session_for_tenant_id(tenant_id, token_id)
         response = get_token(
@@ -184,12 +185,11 @@ class AuthApi(object):
             response_user_id=session.user_id,
             response_user_name=session.username,
         )
-        for each_session in session.impersonator_session_list:
-            if each_session.get(token_id):
-                impersonator_session = each_session[token_id]
-                response["access"]["RAX-AUTH:impersonator"] = impersonator_user_role(
-                    impersonator_session.user_id,
-                    impersonator_session.username)
+        if session.impersonator_session_for_token(token_id) is not None:
+            impersonator_session = session.impersonator_session_for_token(token_id)
+            response["access"]["RAX-AUTH:impersonator"] = impersonator_user_role(
+                impersonator_session.user_id,
+                impersonator_session.username)
         return json.dumps(response)
 
     @app.route('/v2.0/tokens/<string:token_id>/endpoints', methods=['GET'])

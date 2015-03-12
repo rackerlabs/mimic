@@ -113,7 +113,7 @@ def get_token(tenant_id,
         }
     }
 
-    if (entry_generator and prefix_for_endpoint):
+    if entry_generator is not None and prefix_for_endpoint is not None:
         response["access"]["serviceCatalog"] = list(entry_json())
     return response
 
