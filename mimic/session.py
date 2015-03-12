@@ -12,6 +12,7 @@ from characteristic import attributes, Attribute
 
 
 @attributes(['username', 'token', 'tenant_id', 'expires',
+             Attribute('impersonator_session_map', default_factory=dict),
              Attribute('_api_objects', default_factory=dict)])
 class Session(object):
     """
@@ -25,6 +26,14 @@ class Session(object):
         Return a unique numeric ID based on the username.
         """
         return text_type(hash(self.username))
+
+    def impersonator_session_for_token(self, impersonated_token):
+        """
+        :param impersonated_token: impersonation token for a user.
+        Returns the impersonator session for the given impersonation
+        token.
+        """
+        return self.impersonator_session_map.get(impersonated_token)
 
     def data_for_api(self, api_mock, data_factory):
         """
@@ -99,6 +108,7 @@ class SessionStore(object):
                 datetime.utcfromtimestamp(self.clock.seconds())
                 + timedelta(days=1)
             )
+
         session = Session(**attributes)
         if username_key is None:
             username_key = session.username
@@ -124,9 +134,9 @@ class SessionStore(object):
             if tenant_id is not None and s.tenant_id != tenant_id:
                 raise NonMatchingTenantError(session=s,
                                              desired_tenant=tenant_id)
-            return s
-
-        return self._new_session(token=token, tenant_id=tenant_id)
+        else:
+            s = self._new_session(token=token, tenant_id=tenant_id)
+        return s
 
     def session_for_api_key(self, username, api_key, tenant_id=None):
         """
@@ -156,33 +166,28 @@ class SessionStore(object):
         return self._new_session(username=username,
                                  tenant_id=tenant_id)
 
-    def session_for_impersonation(self, username, expires_in):
+    def session_for_impersonation(self, username, expires_in, impersonator_token=None,
+                                  impersonated_token=None):
         """
         Create or return a :obj:`Session` impersonating a given user; this
-        session is distinct from the user's normal login session in that it
-        will have an independent token.
+        session updates the expiration to be that indicated.
         """
+        impersonator_session = self._token_to_session.get(impersonator_token)
         session = self.session_for_username_password(
-            username, "lucky we don't check passwords, isn't it",
+            username, "lucky we don't check passwords, isn't it"
         )
-        key = ('impersonation', session.username)
-        if key in self._username_to_token:
-            return self._token_to_session[self._username_to_token[key]]
-        subsession = self._new_session(
-            username=username,
-            expires=datetime.utcfromtimestamp(self.clock.seconds() +
-                                              expires_in),
-            tenant_id=session.tenant_id,
-            username_key=key,
-            api_objects=session._api_objects,
-        )
-        return subsession
+        session.expires = datetime.utcfromtimestamp(self.clock.seconds() + expires_in)
+        session.impersonator_session_map[impersonated_token] = impersonator_session
+        return session
 
-    def session_for_tenant_id(self, tenant_id):
+    def session_for_tenant_id(self, tenant_id, token_id=None):
         """
+        Looks up a session based on the tenant_id.
         :param unicode tenant_id: The tenant_id of a previously-created
             session.
+        :param unicode token_id: Sets token in the session to the token_id provided,
+            else, creates one.
         """
         if tenant_id not in self._tenant_to_token:
-            return self._new_session(tenant_id=tenant_id)
+            return self._new_session(tenant_id=tenant_id, token=token_id)
         return self.session_for_token(self._tenant_to_token[tenant_id])
