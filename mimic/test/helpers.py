@@ -179,7 +179,7 @@ def request_with_content(testCase, rootResource, method, uri, body=b"",
 
 
 def json_request(testCase, rootResource, method, uri, body=b"",
-                 baseURI='http://localhost:8900/'):
+                 baseURI='http://localhost:8900/', headers=None):
     """
     Issue a request with a JSON body (if there's a body at all) and return
     synchronously with a tuple of ``(response, JSON response body)``
@@ -187,7 +187,7 @@ def json_request(testCase, rootResource, method, uri, body=b"",
     if body != "":
         body = json.dumps(body)
 
-    d = request(testCase, rootResource, method, uri, body, baseURI)
+    d = request(testCase, rootResource, method, uri, body, baseURI, headers)
 
     def get_body(response):
         body_d = treq.json_content(response)
