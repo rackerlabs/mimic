@@ -1,21 +1,14 @@
-# -*- test-case-name: mimic.test.test_nova -*-
 """
-Defines list of images from glance
+Defines support calls
 """
 
 from uuid import uuid4
 import json
-
 from six import text_type
-
 from zope.interface import implementer
-
 from twisted.web.server import Request
-
 from twisted.python.urlpath import URLPath
-
 from twisted.plugin import IPlugin
-
 from mimic.canned_responses.support import get_support_info
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
@@ -28,12 +21,11 @@ Request.defaultContentType = 'application/json'
 @implementer(IAPIMock, IPlugin)
 class SupportApi(object):
     """
-    Rest endpoints for mocked Glance Api.
+    Rest endpoints for mocked Support Api.
     """
-
     def __init__(self, regions=[""]):
         """
-        Create a GlanceApi.
+        Create a support eApi.
         """
         self._regions = regions
 
@@ -63,25 +55,17 @@ class SupportApi(object):
 class SupportMock(object):
 
     """
-
+    Support Mock
     """
 
     def __init__(self, api_mock, uri_prefix, session_store, name):
         """
-        Create a nova region with a given URI prefix (used for generating URIs
-        to images).
+        Create a support with a given URI prefix
         """
         self.uri_prefix = uri_prefix
         self._api_mock = api_mock
         self._session_store = session_store
         self._name = name
-
-    def url(self, suffix):
-        """
-        Generate a URL to an object within the Nova URL hierarchy, given the
-        part of the URL that comes after.
-        """
-        return str(URLPath.fromString(self.uri_prefix).child(suffix))
 
     app = MimicApp()
 

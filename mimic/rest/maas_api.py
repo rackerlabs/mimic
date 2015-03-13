@@ -8,14 +8,10 @@ import time
 import random
 import re
 from uuid import uuid4
-
 from six import text_type
-
 from zope.interface import implementer
-
 from twisted.web.server import Request
 from twisted.plugin import IPlugin
-
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.rest.mimicapp import MimicApp
@@ -23,7 +19,6 @@ from mimic.imimic import IAPIMock
 from mimic.canned_responses.maas_json_home import json_home
 from mimic.canned_responses.maas_monitoring_zones import monitoring_zones
 from mimic.canned_responses.maas_alarm_examples import alarm_examples
-from mimic.canned_responses.maas import get_overview
 from mimic.util.helper import random_hex_generator
 
 
@@ -669,7 +664,7 @@ class MaasMock(object):
         """
         nlist = self._entity_cache_for_tenant(tenant_id).notifications_list
         metadata = {'count': len(nlist), 'limit': 100, 'marker': None, 'next_marker': None,
-                        'next_href': None}
+                    'next_href': None}
         request.setResponseCode(200)
         return json.dumps({'values': nlist, 'metadata': metadata})
 
