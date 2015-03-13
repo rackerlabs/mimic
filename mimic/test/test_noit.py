@@ -6,6 +6,7 @@ from twisted.internet.task import Clock
 from mimic.core import MimicCore
 from mimic.resource import MimicRoot
 from mimic.test.helpers import request_with_content
+from mimic.canned_responses.noit_metrics_fixture import metrics
 
 
 class NoitAPITests(SynchronousTestCase):
@@ -74,7 +75,8 @@ class NoitAPITests(SynchronousTestCase):
                                  body=xmltodict.unparse(self.create_check).encode('utf-8')))
         json_response = xmltodict.parse(body)
         self.assertEqual(response.code, 200)
-        self.assertEqual(json_response["check"]["state"]["metrics"][1]["metric"][0]["@name"], "version")
+        self.assertEqual(
+            json_response["check"]["state"]["metrics"][1]["metric"][0]["@name"], "version")
 
     def test_create_check(self):
         """
@@ -122,6 +124,16 @@ class NoitAPITests(SynchronousTestCase):
                                  "noit/checks/delete/{0}".format(self.check_id)))
         self.assertEqual(del_response.code, 200)
 
+    def test_delete_not_existant_check(self):
+        """
+        Test to verify :func:`delete_checks` on ``DELETE /checks/delete/<check_id>``
+        when the check_id was never created.
+        """
+        (del_response, body) = self.successResultOf(
+            request_with_content(self, self.root, "DELETE",
+                                 "noit/checks/delete/1234556"))
+        self.assertEqual(del_response.code, 404)
+
     def test_create_check_fails_with_500(self):
         """
         Test to verify :func:`set_check` results in error 500,
@@ -144,3 +156,48 @@ class NoitAPITests(SynchronousTestCase):
                                  "noit/checks/set/123444",
                                  body=self.create_check_xml_payload))
         self.assertEqual(response.code, 500)
+
+    def test_create_check_fails_with_404_for_invalid_check_payload(self):
+        """
+        Test to verify :func:`set_check` results in error 404,
+        when the request check body is invalid.
+        """
+        del self.create_check["check"]["attributes"]["target"]
+        invalid_check_xml_payload = xmltodict.unparse(self.create_check
+                                                      ).encode("utf-8")
+        (response, body) = self.successResultOf(
+            request_with_content(self, self.root, "PUT",
+                                 "noit/checks/set/{0}".format(self.check_id),
+                                 body=invalid_check_xml_payload))
+        self.assertEqual(response.code, 404)
+
+    def test_test_check_fails_with_404_for_invalid_check_payload(self):
+        """
+        Test to verify :func:`test_check` results in error 404,
+        when the request check body is invalid.
+        """
+        del self.create_check["check"]["attributes"]["target"]
+        invalid_check_xml_payload = xmltodict.unparse(self.create_check
+                                                      ).encode("utf-8")
+        (response, body) = self.successResultOf(
+            request_with_content(self, self.root, "POST",
+                                 "noit/checks/test".format(self.check_id),
+                                 body=invalid_check_xml_payload))
+        self.assertEqual(response.code, 404)
+
+    def test_test_check_for_given_module(self):
+        """
+        Test to verify :func:`test_check` results in response containing the metrics
+        for the given module.
+        """
+        self.create_check["check"]["attributes"]["module"] = "selfcheck"
+        check_xml_payload = xmltodict.unparse(self.create_check
+                                              ).encode("utf-8")
+        (response, body) = self.successResultOf(
+            request_with_content(self, self.root, "POST",
+                                 "noit/checks/test".format(self.check_id),
+                                 body=check_xml_payload))
+        json_response = xmltodict.parse(body)
+        self.assertEqual(response.code, 200)
+        self.assertEqual(json_response["check"]["state"]["metrics"][
+                         1]["metric"], metrics["selfcheck"]["metric"])

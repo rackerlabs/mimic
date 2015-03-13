@@ -73,8 +73,6 @@ def test_check(check_type):
     """
     Creates a response for test check
     """
-    if metrics_common_template["check"]["state"].get("metric"):
-        del metrics_common_template["check"]["state"]["metric"]
     metrics_common_template["check"]["state"]["metrics"][1].update(metrics.get(check_type, {}))
     return metrics_common_template
 
@@ -104,8 +102,6 @@ def get_all_checks():
             }
         }
     }
-    if get_all_check_common_template.get("check"):
-        del get_all_check_common_template["check"]
     check_list = []
     for key, value in noit_cache.items():
         each_check = value["check"]["attributes"]
