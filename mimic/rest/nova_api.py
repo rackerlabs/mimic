@@ -24,9 +24,6 @@ from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.imimic import IAPIMock
 from mimic.model.nova_objects import GlobalServerCollections
-from mimic.model.nova_behaviors import server_creation
-from mimic.model.nova_behaviors import criteria_collection_from_request_criteria
-from mimic.model.nova_behaviors import nova_criterion_factories
 from mimic.util.helper import bad_request
 
 Request.defaultContentType = 'application/json'
@@ -155,19 +152,15 @@ class NovaControlApiRegion(object):
                 }
             }
         """
-        request.setResponseCode(CREATED)
         global_collection = self.api_mock.nova_api._get_session(
             self.session_store, tenant_id)
         behavior_description = json.loads(request.content.read())
-        behavior = server_creation.create_behavior(
-            behavior_description['name'], behavior_description['parameters'])
-        criteria = criteria_collection_from_request_criteria(
-            behavior_description['criteria'], nova_criterion_factories)
         region_collection = global_collection.collection_for_region(
             self.region)
-        region_collection.register_creation_behavior_for_criteria(
-            behavior, criteria
+        region_collection.create_behavior_registry.register_from_json(
+            behavior_description
         )
+        request.setResponseCode(CREATED)
         return b''
 
 

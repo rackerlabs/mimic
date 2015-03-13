@@ -4,10 +4,12 @@ Defines get token, impersonation
 """
 
 import json
+from six import text_type
+from uuid import uuid4
 
 from twisted.web.server import Request
 from twisted.python.urlpath import URLPath
-from mimic.canned_responses.auth import get_token, get_endpoints
+from mimic.canned_responses.auth import get_token, get_endpoints, impersonator_user_role
 from mimic.rest.mimicapp import MimicApp
 from mimic.canned_responses.auth import format_timestamp
 from mimic.util.helper import invalid_resource
@@ -106,8 +108,8 @@ class AuthApi(object):
         elif content['auth'].get('token') and tenant_id:
             token = content['auth']['token']['id']
             return format_response(
-                lambda: self.core.sessions.session_for_token(token,
-                                                             tenant_id),
+                lambda: self.core.sessions.session_for_token(
+                    token, tenant_id),
                 lambda e: "Token doesn't belong to Tenant with Id/Name: "
                           "'{0}'".format(e.desired_tenant))
         else:
@@ -124,6 +126,22 @@ class AuthApi(object):
         session = self.core.sessions.session_for_tenant_id(tenant_id)
         return json.dumps(dict(user=dict(id=session.username)))
 
+    @app.route('/v2.0/users/<string:user_id>/OS-KSADM/credentials/RAX-KSKEY:apiKeyCredentials',
+               methods=['GET'])
+    def rax_kskey_apikeycredentials(self, request, user_id):
+        """
+        Support, such as it is, for the apiKeysCredentials call.
+        """
+        if user_id in self.core.sessions._userid_to_session:
+            username = self.core.sessions._userid_to_session[user_id].username.decode('ascii')
+            apikey = '7fc56270e7a70fa81a5935b72eacbe29'  # echo -n A | md5sum
+            return json.dumps({'RAX-KSKEY:apiKeyCredentials': {'username': username,
+                               'apiKey': apikey}})
+        else:
+            request.setResponseCode(404)
+            return json.dumps({'itemNotFound':
+                              {'code': 404, 'message': 'User ' + user_id + ' not found'}})
+
     @app.route('/v2.0/RAX-AUTH/impersonation-tokens', methods=['POST'])
     def get_impersonation_token(self, request):
         """
@@ -135,16 +153,44 @@ class AuthApi(object):
         except ValueError:
             request.setResponseCode(400)
             return json.dumps(invalid_resource("Invalid JSON request body"))
-
+        impersonator_token = request.getHeader("x-auth-token")
         expires_in = content['RAX-AUTH:impersonation']['expire-in-seconds']
         username = content['RAX-AUTH:impersonation']['user']['username']
-
+        impersonated_token = 'impersonated_token_' + text_type(uuid4())
         session = self.core.sessions.session_for_impersonation(username,
-                                                               expires_in)
+                                                               expires_in,
+                                                               impersonator_token,
+                                                               impersonated_token)
+
         return json.dumps({"access": {
-            "token": {"id": session.token,
+            "token": {"id": impersonated_token,
                       "expires": format_timestamp(session.expires)}
         }})
+
+    @app.route('/v2.0/tokens/<string:token_id>', methods=['GET'])
+    def validate_token(self, request, token_id):
+        """
+        Creates a new session for the given tenant_id and token_id
+        and always returns response code 200.
+        Docs: http://developer.openstack.org/api-ref-identity-v2.html#admin-tokens
+        """
+        request.setResponseCode(200)
+        tenant_id = request.args.get('belongsTo')
+        if tenant_id is not None:
+            tenant_id = tenant_id[0]
+        session = self.core.sessions.session_for_tenant_id(tenant_id, token_id)
+        response = get_token(
+            session.tenant_id,
+            response_token=session.token,
+            response_user_id=session.user_id,
+            response_user_name=session.username,
+        )
+        if session.impersonator_session_for_token(token_id) is not None:
+            impersonator_session = session.impersonator_session_for_token(token_id)
+            response["access"]["RAX-AUTH:impersonator"] = impersonator_user_role(
+                impersonator_session.user_id,
+                impersonator_session.username)
+        return json.dumps(response)
 
     @app.route('/v2.0/tokens/<string:token_id>/endpoints', methods=['GET'])
     def get_endpoints_for_token(self, request, token_id):

@@ -113,6 +113,29 @@ node, for 20 seconds:
 
 `{"loadBalancer": {"name": "a-new-loadbalancer2", "protocol": "HTTP", "virtualIps": [{"type": "PUBLIC"}], "metadata": [{"key": "lb_pending_update", "value": 20}], "nodes": []}}`
 
+## Fastly CDN ##
+
+Fastly is one of the leading CDN providers with great API support.
+Fastly is also one of the CDN providers, supported by the Openstack Poppy
+project. Mimic supports all Fastly API calls needed by Openstack Poppy in its
+Fastly implementation. See below for the complete list.
+
+#### Calls supported: ####
+https://github.com/rackerlabs/mimic/blob/master/mimic/rest/fastly_api.py
+
+ 1. GET /current_customer
+ 2. POST /service
+ 3. POST /service/{service_id}/version
+ 4. GET /service/search
+ 5. POST /service/{service_id}/version/{version_id}/domain
+ 6. GET /service/{service_id}/version/{version_id}/domain/check_all
+ 7. POST /service/{service_id}/version/{version_id}/backend
+ 8. GET /service/{service_id}/version
+ 9. PUT /service/{service_id}/version/{version_number}/activate
+ 10. DELETE /service/{service_id}
+ 11. GET /service/{service_id}/details
+ 12. GET / (health check)
+
 ## Mimic Control APIs ##
 
 When any of Mimic's included plugins schedule a timeout, you will need to cause

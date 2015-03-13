@@ -7,5 +7,9 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
     eval "$(pyenv init -)"
 fi
 
-source ~/.venv/bin/activate
-tox --develop -e $TOX_ENV -- $TOX_FLAGS
+if [[ "${MACAPP_ENV}" == "system" ]]; then
+    ./build-app.sh
+else
+    source ~/.venv/bin/activate
+    tox --develop -e $TOX_ENV -- $TOX_FLAGS
+fi
