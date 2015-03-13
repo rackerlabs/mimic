@@ -86,11 +86,19 @@ def not_found_response(resource='servers'):
 
 def invalid_resource(message, response_code=400):
     """
-    Returns the given message within in bad request body, and sets the response
-    code to given response code.  Defaults response code to 404, if not
-    provided.
+    Returns the given message, and sets the response code to given response
+    code.  Defaults response code to 400, if not provided.
     """
     return {"message": message, "code": response_code}
+
+
+def bad_request(message, response_code=400):
+    """
+    Returns the given message within in bad request body, and sets the response
+    code to given response code.  Defaults response code to 400, if not
+    provided.
+    """
+    return {"badRequest": invalid_resource(message, response_code)}
 
 
 def set_resource_status(updated_time, time_delta, status='ACTIVE',

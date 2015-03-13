@@ -39,6 +39,57 @@ class NovaAPITests(SynchronousTestCase):
         self.server_id = self.create_server_response_body['server']['id']
         self.nth_endpoint_public = helper.nth_endpoint_public
 
+    def test_create_server_with_manual_diskConfig(self):
+        """
+        Servers should respect the provided OS-DCF:diskConfig setting if
+        supplied.
+        """
+        create_server = request(
+            self, self.root, "POST", self.uri + '/servers',
+            json.dumps({
+                "server": {
+                    "name": self.server_name + "A",
+                    "imageRef": "test-image",
+                    "flavorRef": "test-flavor",
+                    "OS-DCF:diskConfig": "MANUAL",
+                }
+            }))
+        create_server_response = self.successResultOf(create_server)
+        response_body = self.successResultOf(
+            treq.json_content(create_server_response))
+        self.assertEqual(
+            response_body['server']['OS-DCF:diskConfig'], 'MANUAL')
+
+        # Make sure we report on proper state.
+        server_id = response_body['server']['id']
+        get_server = request(
+            self, self.root, "GET", self.uri + '/servers/' + server_id
+        )
+        get_server_response = self.successResultOf(get_server)
+        response_body = self.successResultOf(
+            treq.json_content(get_server_response))
+        self.assertEqual(
+            response_body['server']['OS-DCF:diskConfig'], 'MANUAL')
+
+    def test_create_server_with_bad_diskConfig(self):
+        """
+        When ``create_server`` is passed an invalid ``OS-DCF:diskImage``
+        (e.g., one which is neither AUTO nor MANUAL), it should return an HTTP
+        status code of 400.
+        """
+        create_server = request(
+            self, self.root, "POST", self.uri + '/servers',
+            json.dumps({
+                "server": {
+                    "name": self.server_name + "A",
+                    "imageRef": "test-image",
+                    "flavorRef": "test-flavor",
+                    "OS-DCF:diskConfig": "AUTO-MANUAL",
+                }
+            }))
+        create_server_response = self.successResultOf(create_server)
+        self.assertEqual(create_server_response.code, 400)
+
     def validate_server_detail_json(self, server_json):
         """
         Tests to validate the server JSON.

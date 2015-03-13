@@ -24,7 +24,7 @@ from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.imimic import IAPIMock
 from mimic.model.nova_objects import GlobalServerCollections
-from mimic.util.helper import invalid_resource
+from mimic.util.helper import bad_request
 
 Request.defaultContentType = 'application/json'
 
@@ -210,10 +210,18 @@ class NovaRegion(object):
             content = json.loads(request.content.read())
         except ValueError:
             request.setResponseCode(400)
-            return json.dumps(invalid_resource("Invalid JSON request body"))
+            return json.dumps(bad_request("Invalid JSON request body"))
 
-        return (self._region_collection_for_tenant(tenant_id)
-                .request_creation(request, content, self.url))
+        try:
+            creation = (self._region_collection_for_tenant(tenant_id)
+                        .request_creation(request, content, self.url))
+        except ValueError:
+            request.setResponseCode(400)
+            return json.dumps(
+                bad_request(
+                    "OS-DCF:diskConfig must be either 'MANUAL' or 'AUTO'."))
+
+        return creation
 
     @app.route('/v2/<string:tenant_id>/servers/<string:server_id>', methods=['GET'])
     def get_server(self, request, tenant_id, server_id):
