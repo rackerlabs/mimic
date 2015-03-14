@@ -75,5 +75,3 @@ class SupportMock(object):
         support info
         """
         return json.dumps(get_support_info(tenant_id))
-
-

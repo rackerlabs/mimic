@@ -26,7 +26,6 @@ class GlanceAPITests(SynchronousTestCase):
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
 
-
     def test_pending_images(self):
         """
         List any pending images

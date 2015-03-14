@@ -274,7 +274,7 @@ class NovaRegion(object):
         return json.dumps(get_image(image_id))
 
     @app.route('/v2/<string:tenant_id>/images/detail', methods=['GET'])
-    def get_image_details(self,  request, tenant_id):
+    def get_image_details(self, request, tenant_id):
         """
         Returns details
         """
@@ -288,7 +288,6 @@ class NovaRegion(object):
     #     """
     #     request.setResponseCode(200)
     #     return json.dumps(get_images())
-
 
     @app.route('/v2/<string:tenant_id>/flavors/<string:flavor_id>', methods=['GET'])
     def get_flavor(self, request, tenant_id, flavor_id):
@@ -326,7 +325,7 @@ class NovaRegion(object):
     @app.route('/v2/<string:tenant_id>/os-networksv2', methods=['GET'])
     def get_networks(self, request, tenant_id):
         """
-         Returns networks
+        Returns networks
         """
         return json.dumps(get_networks())
 

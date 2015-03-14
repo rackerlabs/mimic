@@ -4,7 +4,8 @@ Cannned responses for glance images
 import json
 import os
 
-# Pull this out and put in util/helper.py
+
+#  Pull this out and put in util/helper.py
 def _location():
     return os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
