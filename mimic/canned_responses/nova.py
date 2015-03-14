@@ -30,35 +30,35 @@ def get_key_pairs():
     """
     Canned responses for key pairs - just returns a static blob of json
     """
-    return _get_json("json/nova/key_pairs.json")
+    return _get_json("json/nova/key_pairs_json.py")
 
 
 def get_limit():
     """
     Canned response for limits for servers. Returns only the absolute limits
     """
-    return _get_json("json/nova/limits.json")
+    return _get_json("json/nova/limits_json.py")
 
 
 def get_flavor_details():
     """
     Return flavor details
     """
-    return _get_json("json/nova/flavor_details.json")
+    return _get_json("json/nova/flavor_details_json.py")
 
 
 def get_networks():
     """
     Return networks
     """
-    return _get_json("json/nova/networks.json")
+    return _get_json("json/nova/networks_json.py")
 
 
 def get_images():
     """
     Return images from servers endpoint
     """
-    return _get_json("json/nova/images.json")
+    return _get_json("json/nova/images_json.py")
 
 
 def get_os_volume_attachments():
@@ -79,7 +79,7 @@ def get_flavor(flavor_id):
     #                     'id': flavor_id,
     #                     'name': 'mimic-test-flavor'}},
     #         200)
-    flavors_data = _get_json("json/nova/flavor_details.json")['flavors']
+    flavors_data = _get_json("json/nova/flavor_details_json.py")['flavors']
     for flavor in flavors_data:
         if flavor['id'] == flavor_id:
             return {"flavor": flavor}
@@ -90,7 +90,7 @@ def get_image(image_id):
     Canned response for get image.  The image id provided is substituted in the
     response, if not one of the invalid image ids specified in mimic_presets.
     """
-    images_data = _get_json("json/nova/images.json")['images']
+    images_data = _get_json("json/nova/images_json.py")['images']
     for image in images_data:
         if image['id'] == image_id:
             return image

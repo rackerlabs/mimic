@@ -20,7 +20,7 @@ def get_images():
     """
     Canned response for glance images list call
     """
-    return _get_json("json/glance/glance_images.json")
+    return _get_json("json/glance/glance_images_json.py")
 
 
 def get_pending_images():
