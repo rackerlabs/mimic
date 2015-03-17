@@ -931,9 +931,12 @@ class AuthIntegrationTests(SynchronousTestCase):
         root = MimicRoot(core).app.resource()
         tenant_id = "111111"
 
-        # authenticate as that user
+        # authenticate as that user - this is not strictly necessary, since
+        # getting a user for a tenant should work regardless of whether a user
+        # was previously in the system, but this will ensure that we can check
+        # the username
         response, json_body = autheticate_with_username_password(
-            self, core, tenant_id=tenant_id)
+            self, core, username="my_user", tenant_id=tenant_id)
         self.assertEqual(200, response.code)
         self.assertEqual(tenant_id,
                          json_body['access']['token']['tenant']['id'])
@@ -943,6 +946,7 @@ class AuthIntegrationTests(SynchronousTestCase):
             self, root, "GET", "/identity/v1.1/mosso/111111"))
         self.assertEqual(301, response.code)
         user = json_body['user']['id']
+        self.assertEqual("my_user", user)
 
         # impersonate this user
         response, json_body = impersonate_user(self, core, username=user)
