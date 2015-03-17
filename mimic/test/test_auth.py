@@ -914,3 +914,51 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         self.assertTrue(json_body6["access"]["RAX-AUTH:impersonator"])
         self.assertEqual(json_body6["access"]["RAX-AUTH:impersonator"]["name"],
                          json_body1["access"]["user"]["name"])
+
+
+class AuthIntegrationTests(SynchronousTestCase):
+    """
+    Tests that combine multiple auth calls together and assure that they
+    return consistent data.
+    """
+    def test_user_for_tenant_then_impersonation(self):
+        """
+        After authenticating once as a particular tenant, get the user that
+        tenant, then attempt to impersonate that user.  The tenant IDs should
+        be the same.  This is an autoscale regression test.
+        """
+        core = MimicCore(Clock(), [ExampleAPI()])
+        root = MimicRoot(core).app.resource()
+        tenant_id = "111111"
+
+        # authenticate as that user
+        response, json_body = autheticate_with_username_password(
+            self, core, tenant_id=tenant_id)
+        self.assertEqual(200, response.code)
+        self.assertEqual(tenant_id,
+                         json_body['access']['token']['tenant']['id'])
+
+        # get user for tenant
+        response, json_body = self.successResultOf(json_request(
+            self, root, "GET", "/identity/v1.1/mosso/111111"))
+        self.assertEqual(301, response.code)
+        user = json_body['user']['id']
+
+        # impersonate this user
+        response, json_body = impersonate_user(self, core, username=user)
+        self.assertEqual(200, response.code)
+        token = json_body["access"]['token']["id"]
+
+        # get endpoints for this token, see what the tenant is
+        response, json_body = self.successResultOf(json_request(
+            self, root, "GET",
+            "/identity/v2.0/tokens/{0}/endpoints".format(token)))
+        self.assertEqual(200, response.code)
+        self.assertEqual(tenant_id,
+                         json_body["endpoints"][0]["tenantId"])
+
+        # authenticate with this token and see what the tenant is
+        response, json_body = autheticate_with_token(
+            self, core, token_id=token)
+        self.assertEqual(tenant_id,
+                         json_body['access']['token']['tenant']['id'])
