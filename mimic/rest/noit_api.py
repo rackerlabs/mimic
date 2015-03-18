@@ -12,10 +12,7 @@ from mimic.canned_responses.noit import (create_check, get_check,
 
 
 # TO DO:
-# Move away from using dict for the templates
-# Include all check type to the metrics in the fixtures
-# Metrics Fixture to populate as per test check request
-# Include more error cases based on ele's tests
+# https://github.com/rackerlabs/mimic/issues/203
 
 
 class NoitApi(object):
