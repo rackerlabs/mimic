@@ -178,6 +178,7 @@ class SessionStore(object):
         )
         session.expires = datetime.utcfromtimestamp(self.clock.seconds() + expires_in)
         session.impersonator_session_map[impersonated_token] = impersonator_session
+        self._token_to_session[impersonated_token] = session
         return session
 
     def session_for_tenant_id(self, tenant_id, token_id=None):
