@@ -963,6 +963,6 @@ class AuthIntegrationTests(SynchronousTestCase):
 
         # authenticate with this token and see what the tenant is
         response, json_body = autheticate_with_token(
-            self, core, token_id=token)
+            self, core, token_id=token, tenant_id=tenant_id)
         self.assertEqual(tenant_id,
                          json_body['access']['token']['tenant']['id'])
