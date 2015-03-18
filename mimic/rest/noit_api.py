@@ -18,9 +18,6 @@ from mimic.canned_responses.noit import (create_check, get_check,
 # Include more error cases based on ele's tests
 
 
-Request.defaultContentType = 'application/xml'
-
-
 class NoitApi(object):
 
     """
