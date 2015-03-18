@@ -4,7 +4,6 @@ Defines get token, impersonation
 """
 import xmltodict
 from uuid import UUID
-from twisted.web.server import Request
 from mimic.rest.mimicapp import MimicApp
 from mimic.canned_responses.noit import (create_check, get_check,
                                          get_all_checks, delete_check,
