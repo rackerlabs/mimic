@@ -565,6 +565,10 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
         self.assertEquals(data['id'], ecan['sp_id'])
+        self.assertEquals(data['notification_plans'], [])
+        self.assertEquals(data['entities'], [])
+        self.assertEquals(data['checks'], [])
+        self.assertEquals(data['alarms'], [])
 
     def test_get_all_suppressions(self):
         """
