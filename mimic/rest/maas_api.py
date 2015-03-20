@@ -65,7 +65,7 @@ class MaasApi(object):
         return MaasMock(self, uri_prefix, session_store, region).app.resource()
 
 
-class M_Cache(dict):
+class MCache(dict):
 
     """
     M(onitoring) Cache Object to hold dictionaries of all entities, checks and alarms.
@@ -110,7 +110,7 @@ class M_Cache(dict):
         self.suppressions_list = []
 
 
-def createEntity(params):
+def create_entity(params):
     """
     Returns a dictionary representing an entity
     """
@@ -121,13 +121,14 @@ def createEntity(params):
     newentity['agent_id'] = params['agent_id'] or random_hex_generator(12)
     newentity['created_at'] = time.time()
     newentity['updated_at'] = time.time()
-    newentity['managed'] = params['managed']
+    newentity['managed'] = params['managed'] or False
     newentity['metadata'] = params['metadata']
     newentity['ip_addresses'] = params['ip_addresses'] or {}
+    newentity['uri'] = params['uri'] or None
     return newentity
 
 
-def createCheck(params):
+def create_check(params):
     """
     Returns a dictionary representing a check
     """
@@ -153,7 +154,7 @@ def createCheck(params):
     return params
 
 
-def createAlarm(params):
+def create_alarm(params):
     """
     Returns a dictionary representing an alarm
     """
@@ -171,7 +172,7 @@ def createAlarm(params):
     return params
 
 
-def createNotificationPlan(params):
+def create_notification_plan(params):
     """
     Creates a notification plan
     """
@@ -188,7 +189,7 @@ def createNotificationPlan(params):
     return params
 
 
-def createNotification(params):
+def create_notification(params):
     """
     Creates a notificatoin target
     """
@@ -202,7 +203,7 @@ def createNotification(params):
     return params
 
 
-def createSuppression(params):
+def create_suppression(params):
     """
     Creates a suppression
     """
@@ -221,7 +222,7 @@ def createSuppression(params):
     return params
 
 
-def createMetriclistFromEntity(entity, allchecks):
+def create_metric_list_from_entity(entity, allchecks):
     """
     To respond to the metrics_list api call, we must have the entity and allchecks
     and assemble the structure to reply with.
@@ -246,7 +247,7 @@ def createMetriclistFromEntity(entity, allchecks):
     return v
 
 
-def createMultiplotFromMetric(metric, reqargs, allchecks):
+def create_multiplot_from_metric(metric, reqargs, allchecks):
     """
     Given a metric, this will produce fake datapoints to graph
     This is for the multiplot API call
@@ -302,7 +303,7 @@ class MaasMock(object):
         Retrieve the M_cache object containing all objects created so far
         """
         return (self._session_store.session_for_tenant_id(tenant_id)
-                .data_for_api(self._api_mock, lambda: collections.defaultdict(M_Cache))[self._name]
+                .data_for_api(self._api_mock, lambda: collections.defaultdict(MCache))[self._name]
                 )
 
     app = MimicApp()
@@ -337,7 +338,7 @@ class MaasMock(object):
         """
         postdata = json.loads(request.content.read())
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        newentity = createEntity({'label': postdata[u'label'].encode('ascii')})
+        newentity = create_entity(postdata)
         self._entity_cache_for_tenant(tenant_id).entities_list.append(newentity)
         request.setResponseCode(201)
         request.setHeader('location', myhostname_and_port + request.path + '/' + newentity['id'])
@@ -388,7 +389,7 @@ class MaasMock(object):
         Update entity. I really just delete it and then put a new one, but with the same id
         so I don't mess up relationships to checks & alarms
         """
-        newentity = createEntity(json.loads(request.content.read()))
+        newentity = create_entity(json.loads(request.content.read()))
         newentity['id'] = entity_id
         for k in newentity.keys():
             if 'encode' in dir(newentity[k]):  # because there are integers sometimes.
@@ -433,7 +434,7 @@ class MaasMock(object):
         """
         postdata = json.loads(request.content.read())
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        newcheck = createCheck(postdata)
+        newcheck = create_check(postdata)
         newcheck['entity_id'] = entity_id
         self._entity_cache_for_tenant(tenant_id).checks_list.append(newcheck)
         request.setResponseCode(201)
@@ -506,7 +507,7 @@ class MaasMock(object):
         """
         postdata = json.loads(request.content.read())
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        newalarm = createAlarm(postdata)
+        newalarm = create_alarm(postdata)
         newalarm['entity_id'] = entity_id
         self._entity_cache_for_tenant(tenant_id).alarms_list.append(newalarm)
         request.setResponseCode(201)
@@ -656,7 +657,7 @@ class MaasMock(object):
         Create notification target
         """
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        new_n = createNotification(json.loads(request.content.read()))
+        new_n = create_notification(json.loads(request.content.read()))
         self._entity_cache_for_tenant(tenant_id).notifications_list.append(new_n)
         request.setResponseCode(201)
         request.setHeader('content-type', 'text/plain')
@@ -713,7 +714,7 @@ class MaasMock(object):
         """
         postdata = json.loads(request.content.read())
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        newnp = createNotificationPlan({'label': postdata[u'label'].encode('ascii')})
+        newnp = create_notification_plan({'label': postdata[u'label'].encode('ascii')})
         self._entity_cache_for_tenant(tenant_id).notificationplans_list.append(newnp)
         request.setResponseCode(201)
         request.setHeader('content-type', 'text/plain')
@@ -833,7 +834,7 @@ class MaasMock(object):
         """
         postdata = json.loads(request.content.read())
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        newsp = createSuppression(postdata)
+        newsp = create_suppression(postdata)
         self._entity_cache_for_tenant(tenant_id).suppressions_list.append(newsp)
         request.setResponseCode(201)
         request.setHeader('location', myhostname_and_port + request.path + '/' + newsp['id'])
@@ -969,7 +970,7 @@ class MaasMock(object):
         values = []
         entities = self._entity_cache_for_tenant(tenant_id).entities_list
         for e in entities:
-            values.append(createMetriclistFromEntity(e, allchecks))
+            values.append(create_metric_list_from_entity(e, allchecks))
         metadata = {}
         metadata['count'] = len(values)
         metadata['marker'] = None
@@ -989,7 +990,7 @@ class MaasMock(object):
         metrics_requested = json.loads(request.content.read())
         metrics_replydata = []
         for m in metrics_requested['metrics']:
-            mp = createMultiplotFromMetric(m, request.args, allchecks)
+            mp = create_multiplot_from_metric(m, request.args, allchecks)
             if mp:
                 metrics_replydata.append(mp)
         request.setResponseCode(200)
