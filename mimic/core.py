@@ -37,8 +37,7 @@ class MimicCore(object):
         self.sessions = SessionStore(clock)
 
         for api in apis:
-            this_api_id = ((api.__class__.__name__) + '-' +
-                           random_hex_generator(3))
+            this_api_id = api.__class__.__name__ + '-' + 'cb675f'  # random_hex_generator(3))
             self._uuid_to_api[this_api_id] = api
 
     @classmethod

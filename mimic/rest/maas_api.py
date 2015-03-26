@@ -8,14 +8,10 @@ import time
 import random
 import re
 from uuid import uuid4
-
 from six import text_type
-
 from zope.interface import implementer
-
 from twisted.web.server import Request
 from twisted.plugin import IPlugin
-
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.rest.mimicapp import MimicApp
@@ -49,10 +45,9 @@ class MaasApi(object):
         """
         return [
             Entry(
-                tenant_id, "rax: monitor", "cloudMonitoring",
+                tenant_id, "rax:monitor", "cloudMonitoring",
                 [
-                    Endpoint(tenant_id, region, text_type(uuid4()),
-                             "v1.0")
+                    Endpoint(tenant_id, region, text_type(uuid4()), prefix="v1.0")
                     for region in self._regions
                 ]
             )
@@ -584,35 +579,41 @@ class MaasMock(object):
         """
         serves the overview api call,returns all entities,checks and alarms
         """
-        entities = self._entity_cache_for_tenant(tenant_id).entities_list
-        checks = self._entity_cache_for_tenant(tenant_id).checks_list
-        alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
-        metadata = {}
-        metadata['count'] = len(entities)
-        metadata['marker'] = None
-        metadata['next_marker'] = None
-        metadata['limit'] = 1000
-        metadata['next_href'] = None
-        values = []
-        for e in entities:
-            v = {}
-            v['alarms'] = []
-            for a in alarms:
-                if a['entity_id'] == e['id']:
-                    a = dict(a)
-                    del a['entity_id']
-                    v['alarms'].append(a)
-            v['checks'] = []
-            for c in checks:
-                if c['entity_id'] == e['id']:
-                    c = dict(c)
-                    del c['entity_id']
-                    v['checks'].append(c)
-            v['entity'] = e
-            v['latest_alarm_states'] = []
-            values.append(v)
-        request.setResponseCode(200)
-        return json.dumps({'metadata': metadata, 'values': values})
+        # This is a hack to make cloud control panel server details page finish loading the server
+        # details
+        if 'uri' in request.args:
+            request.setResponseCode(404)
+            return json.dumps({})
+        else:
+            entities = self._entity_cache_for_tenant(tenant_id).entities_list
+            checks = self._entity_cache_for_tenant(tenant_id).checks_list
+            alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
+            metadata = {}
+            metadata['count'] = len(entities)
+            metadata['marker'] = None
+            metadata['next_marker'] = None
+            metadata['limit'] = 1000
+            metadata['next_href'] = None
+            values = []
+            for e in entities:
+                v = {}
+                v['alarms'] = []
+                for a in alarms:
+                    if a['entity_id'] == e['id']:
+                        a = dict(a)
+                        del a['entity_id']
+                        v['alarms'].append(a)
+                v['checks'] = []
+                for c in checks:
+                    if c['entity_id'] == e['id']:
+                        c = dict(c)
+                        del c['entity_id']
+                        v['checks'].append(c)
+                v['entity'] = e
+                v['latest_alarm_states'] = []
+                values.append(v)
+            request.setResponseCode(200)
+            return json.dumps({'metadata': metadata, 'values': values})
 
     @app.route('/v1.0/<string:tenant_id>/__experiments/json_home', methods=['GET'])
     def service_json_home(self, request, tenant_id):
