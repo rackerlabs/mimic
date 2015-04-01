@@ -525,6 +525,18 @@ class NovaAPINegativeTests(SynchronousTestCase):
                             delay=5.0,
                             after=u"ACTIVE")
 
+    def test_server_active_then_error_behavior(self):
+        """
+        When a server is created with the :obj:`active-then-error` behavior, it
+        will go into the "error" state after the specified ``duration`` number
+        of seconds.
+        """
+        self.use_creation_behavior("active-then-error", {"duration": 7.0}, [])
+        self.do_timing_test(metadata={},
+                            before=u"ACTIVE",
+                            delay=8.0,
+                            after=u"ERROR")
+
     def do_timing_test(self, metadata, before, delay, after):
         """
         Do a test where a server starts in one status and then transitions to
