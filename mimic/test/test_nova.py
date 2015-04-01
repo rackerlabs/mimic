@@ -508,22 +508,47 @@ class NovaAPINegativeTests(SynchronousTestCase):
         Test to verify :func:`create_server` creates a server in BUILD
         status for the time specified in the metadata.
         """
-        metadata = {"server_building": "1"}
+        self.do_timing_test(metadata={"server_building": "1"},
+                            before=u"BUILD",
+                            delay=2.0,
+                            after=u"ACTIVE")
+
+    def test_server_building_behavior(self):
+        """
+        Like :obj:`test_server_in_building_state_for_specified_time`, but by
+        creating a behavior via the behaviors API ahead of time, rather than
+        passing metadata.
+        """
+        self.use_creation_behavior("build", {"duration": 4.0}, [])
+        self.do_timing_test(metadata={},
+                            before=u"BUILD",
+                            delay=5.0,
+                            after=u"ACTIVE")
+
+    def do_timing_test(self, metadata, before, delay, after):
+        """
+        Do a test where a server starts in one status and then transitions to
+        another after a period of time.
+        """
         # create server with metadata to keep the server in building state for
         # 3 seconds
         create_server_response = self.create_server(metadata=metadata)
         # verify the create server was successful
         self.assertEquals(create_server_response.code, 202)
-        create_server_response_body = self.successResultOf(
-            treq.json_content(create_server_response))
+        server_id = (self.successResultOf(
+            treq.json_content(create_server_response))["server"]["id"]
+        )
+        def get_server_status():
+            get_server = request(self, self.root, "GET",
+                                 self.uri + '/servers/' + server_id)
+            get_server_response = self.successResultOf(get_server)
+            get_server_response_body = self.successResultOf(
+                treq.json_content(get_server_response))
+            return get_server_response_body['server']['status']
+
         # get server and verify status is BUILD
-        get_server = request(self, self.root, "GET", self.uri + '/servers/' +
-                             create_server_response_body["server"]["id"])
-        get_server_response = self.successResultOf(get_server)
-        get_server_response_body = self.successResultOf(
-            treq.json_content(get_server_response))
-        self.assertEquals(
-            get_server_response_body['server']['status'], "BUILD")
+        self.assertEquals(get_server_status(), before)
+
         # List servers with details and verify the server is in BUILD status
         list_servers = request(
             self, self.root, "GET", self.uri + '/servers/detail')
@@ -533,17 +558,11 @@ class NovaAPINegativeTests(SynchronousTestCase):
             treq.json_content(list_servers_response))
         self.assertEquals(len(list_servers_response_body['servers']), 1)
         building_server = list_servers_response_body['servers'][0]
-        self.assertEquals(building_server['status'], "BUILD")
+        self.assertEquals(building_server['status'], before)
         # Time Passes...
-        self.helper.clock.advance(2.0)
+        self.helper.clock.advance(delay)
         # get server and verify status changed to active
-        get_server = request(self, self.root, "GET", self.uri + '/servers/' +
-                             create_server_response_body["server"]["id"])
-        get_server_response = self.successResultOf(get_server)
-        get_server_response_body = self.successResultOf(
-            treq.json_content(get_server_response))
-        self.assertEquals(
-            get_server_response_body['server']['status'], "ACTIVE")
+        self.assertEquals(get_server_status(), after)
 
     def test_server_in_error_state(self):
         """
@@ -621,21 +640,32 @@ class NovaAPINegativeTests(SynchronousTestCase):
         get_server_flavor_response = self.successResultOf(get_server_flavor)
         self.assertEqual(get_server_flavor_response.code, 404)
 
-    def test_create_server_failure_using_behaviors(self):
+
+    def use_creation_behavior(self, name, parameters, criteria):
         """
-        :func:`create_server` fails with given error message and response code
-        when a behavior is registered that matches its hostname.
+        Use the given behavior for server creation.
         """
-        serverfail = {"message": "Create server failure", "code": 500}
-        criterion = {"name": "fail",
-                     "parameters": serverfail,
-                     "criteria": [{"server_name": "failing_server_name"}]}
+        criterion = {"name": name,
+                     "parameters": parameters,
+                     "criteria": criteria}
         set_criteria = request(self, self.root, "POST",
                                self.nova_control_endpoint +
                                "/behaviors/creation/",
                                json.dumps(criterion))
         set_criteria_response = self.successResultOf(set_criteria)
         self.assertEqual(set_criteria_response.code, 201)
+
+
+    def test_create_server_failure_using_behaviors(self):
+        """
+        :func:`create_server` fails with given error message and response code
+        when a behavior is registered that matches its hostname.
+        """
+        self.use_creation_behavior(
+            "fail",
+            {"message": "Create server failure", "code": 500},
+            [{"server_name": "failing_server_name"}]
+        )
         create_server_response = self.create_server(name="failing_server_name")
         self.assertEquals(create_server_response.code, 500)
         create_server_response_body = self.successResultOf(
@@ -649,18 +679,12 @@ class NovaAPINegativeTests(SynchronousTestCase):
         :func:`create_server` fails with the given error message and response
         code when a behavior is registered that matches its metadata.
         """
-        serverfail = {"message": "Sample failure message", "code": 503}
-        criterion = {"name": "fail",
-                     "parameters": serverfail,
-                     "criteria": [{"metadata": {"field1": "value1",
-                                                "field2": "reg.*ex"}}]}
-        set_criteria = request(self, self.root, "POST",
-                               self.nova_control_endpoint +
-                               "/behaviors/creation/",
-                               json.dumps(criterion))
-        set_criteria_response = self.successResultOf(set_criteria)
-        self.assertEqual(set_criteria_response.code, 201)
-
+        self.use_creation_behavior(
+            "fail",
+            {"message": "Sample failure message", "code": 503},
+            [{"metadata": {"field1": "value1",
+                           "field2": "reg.*ex"}}]
+        )
         create_server_response = self.create_server(name="failing_server_name")
         self.assertEquals(create_server_response.code, 202)
         self.successResultOf(treq.json_content(create_server_response))
