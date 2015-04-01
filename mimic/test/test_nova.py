@@ -550,6 +550,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         server_id = (self.successResultOf(
             treq.json_content(create_server_response))["server"]["id"]
         )
+
         def get_server_status():
             get_server = request(self, self.root, "GET",
                                  self.uri + '/servers/' + server_id)
@@ -652,7 +653,6 @@ class NovaAPINegativeTests(SynchronousTestCase):
         get_server_flavor_response = self.successResultOf(get_server_flavor)
         self.assertEqual(get_server_flavor_response.code, 404)
 
-
     def use_creation_behavior(self, name, parameters, criteria):
         """
         Use the given behavior for server creation.
@@ -666,7 +666,6 @@ class NovaAPINegativeTests(SynchronousTestCase):
                                json.dumps(criterion))
         set_criteria_response = self.successResultOf(set_criteria)
         self.assertEqual(set_criteria_response.code, 201)
-
 
     def test_create_server_failure_using_behaviors(self):
         """
