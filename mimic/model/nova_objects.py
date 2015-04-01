@@ -355,6 +355,29 @@ def create_error_status_behavior(parameters=None):
     return set_error
 
 
+@server_creation.declare_behavior_creator("active-then-error")
+def active_then_error(parameters):
+    """
+    Sometimes, a server goes into "active", but later (for unknown reasons)
+    goes into "error"; presumably due to a hardware failure or similar
+    operational issue.
+
+    Takes one parameter:
+
+    ``"duration"`` which is a Number, the duration of the time spent in the
+    ``ACTIVE`` state.
+    """
+    duration = parameters["duration"]
+
+    @default_with_hook
+    def fail_later(server):
+        server.status = u"ACTIVE"
+        server.collection.clock.callLater(
+            duration,
+            lambda: setattr(server, "status", u"ERROR"))
+    return fail_later
+
+
 def metadata_to_creation_behavior(metadata):
     """
     Examine the metadata given to a server creation request, and return a
