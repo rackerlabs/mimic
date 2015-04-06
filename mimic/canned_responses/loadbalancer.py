@@ -192,7 +192,7 @@ def add_node(store, node_list, lb_id, current_timestamp):
             store.lbs[lb_id]["nodeCount"] = len(store.lbs[lb_id]["nodes"])
             _verify_and_update_lb_state(store, lb_id,
                                         current_timestamp=current_timestamp)
-        return {"nodes": nodes}, 200
+        return {"nodes": nodes}, 202
 
     return not_found_response("loadbalancer"), 404
 
