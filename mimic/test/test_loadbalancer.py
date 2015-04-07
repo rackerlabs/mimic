@@ -342,7 +342,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         """
         Test to verify :func: `add_node` create a node successfully.
         """
-        self.assertEqual(self.create_node_response.code, 200)
+        self.assertEqual(self.create_node_response.code, 202)
         self.assertEqual(len(self.create_node_response_body["nodes"]), 1)
         # verify that the node has all the attributes
         node1 = self.create_node_response_body["nodes"][0]
@@ -373,7 +373,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         create_node_response = self.successResultOf(create_multiple_nodes)
         create_node_response_body = self.successResultOf(treq.json_content(
                                                          create_node_response))
-        self.assertEqual(create_node_response.code, 200)
+        self.assertEqual(create_node_response.code, 202)
         self.assertEqual(len(create_node_response_body["nodes"]), 2)
 
     def test_add_duplicate_node(self):
@@ -613,7 +613,7 @@ class LoadbalancerAPINegativeTests(SynchronousTestCase):
         lb = create_lb_response_body["loadBalancer"]
         self.assertEqual(lb["status"], "ACTIVE")
         create_node_response = self._add_node_to_lb(lb["id"])
-        self.assertEqual(create_node_response.code, 200)
+        self.assertEqual(create_node_response.code, 202)
         # get loadbalncer after adding node and verify its in error state
         errored_lb = self._get_loadbalancer(lb["id"])
         self.assertEqual(errored_lb["loadBalancer"]["status"], "ERROR")
@@ -641,7 +641,7 @@ class LoadbalancerAPINegativeTests(SynchronousTestCase):
         lb = create_lb_response_body["loadBalancer"]
         self.assertEqual(lb["status"], "ACTIVE")
         create_node_response = self._add_node_to_lb(lb["id"])
-        self.assertEqual(create_node_response.code, 200)
+        self.assertEqual(create_node_response.code, 202)
         # get loadbalncer after adding node and verify its in PENDING-UPDATE state
         errored_lb = self._get_loadbalancer(lb["id"])
         self.assertEqual(errored_lb["loadBalancer"]["status"], "PENDING-UPDATE")
@@ -670,7 +670,7 @@ class LoadbalancerAPINegativeTests(SynchronousTestCase):
         lb = create_lb_response_body["loadBalancer"]
         self.assertEqual(lb["status"], "ACTIVE")
         create_node_response = self._add_node_to_lb(lb["id"])
-        self.assertEqual(create_node_response.code, 200)
+        self.assertEqual(create_node_response.code, 202)
         # get loadbalncer after adding node and verify its in PENDING-UPDATE state
         errored_lb = self._get_loadbalancer(lb["id"])
         self.assertEqual(errored_lb["loadBalancer"]["status"], "PENDING-UPDATE")
