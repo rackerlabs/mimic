@@ -52,6 +52,13 @@ class NonMatchingTenantError(Exception):
     """
 
 
+@attributes(["user_id"])
+class NoSuchUserIdError(Exception):
+    """
+    No such user with the given user ID exists.
+    """
+
+
 class SessionStore(object):
     """
     A collection of sessions addressable by multiple different keys.
@@ -80,6 +87,9 @@ class SessionStore(object):
         self._username_to_token = {
             # mapping of token (unicode) to username (unicode: key in
             # _token_to_session)
+        }
+        self._user_id_to_sesion = {
+            # mapping of user_id (unicode) to session (Session)
         }
 
     def _new_session(self, username_key=None, **attributes):
@@ -116,6 +126,7 @@ class SessionStore(object):
         self._token_to_session[session.token] = session
         self._userid_to_session[session.user_id] = session
         self._tenant_to_token[session.tenant_id] = session.token
+        self._user_id_to_sesion[session.user_id] = session
         return session
 
     def session_for_token(self, token, tenant_id=None):
@@ -192,3 +203,11 @@ class SessionStore(object):
         if tenant_id not in self._tenant_to_token:
             return self._new_session(tenant_id=tenant_id, token=token_id)
         return self.session_for_token(self._tenant_to_token[tenant_id])
+
+    def session_for_user_id(self, user_id):
+        """
+        :param unicode user_id: The user_id of a previously-created session.
+        """
+        if user_id not in self._user_id_to_sesion:
+            raise NoSuchUserIdError(user_id=user_id)
+        return self._user_id_to_sesion[user_id]

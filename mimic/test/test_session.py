@@ -7,7 +7,8 @@ from twisted.trial.unittest import SynchronousTestCase
 
 from twisted.internet.task import Clock
 
-from mimic.session import NonMatchingTenantError, SessionStore
+from mimic.session import (
+    NonMatchingTenantError, NoSuchUserIdError, SessionStore)
 
 
 class SessionCreationTests(SynchronousTestCase):
@@ -196,6 +197,28 @@ class SessionCreationTests(SynchronousTestCase):
         )
         session2 = sessions.session_for_tenant_id("sometenant")
         self.assertIdentical(session, session2)
+
+    def test_session_for_user_id_existing_session(self):
+        """
+        :class:`SessionStore.session_for_user_id` will return an existing
+        session with that given user ID if one already exists.
+        """
+        clock = Clock()
+        sessions = SessionStore(clock)
+        session = sessions.session_for_username_password(
+            "someuser", "testpass", "sometenant")
+        session2 = sessions.session_for_user_id(session.user_id)
+        self.assertIdentical(session, session2)
+
+    def test_session_for_user_id_raises_exception_if_no_session(self):
+        """
+        :class:`SessionStore.session_for_user_id` will raise a
+        :class:`NoSuchUserIdError` if the user ID does not already exist.
+        """
+        clock = Clock()
+        sessions = SessionStore(clock)
+        self.assertRaises(NoSuchUserIdError, sessions.session_for_user_id,
+                          "no_such_user_id")
 
     def test_sessions_created_all_have_integer_tenant_ids(self):
         """
