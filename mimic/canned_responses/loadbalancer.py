@@ -5,7 +5,8 @@ add/get/delete/list nodes
 """
 from random import randrange
 from copy import deepcopy
-from mimic.util.helper import (not_found_response, invalid_resource,
+from mimic.util.helper import (EMPTY_RESPONSE,
+                               not_found_response, invalid_resource,
                                set_resource_status, seconds_to_timestamp)
 from twisted.python import log
 
@@ -126,10 +127,10 @@ def del_load_balancer(store, lb_id, current_timestamp):
                 store.lbs[lb_id]["status"] == "ERROR",
                 store.lbs[lb_id]["status"] == "PENDING-UPDATE"]):
             del store.lbs[lb_id]
-            return b'', 202
+            return EMPTY_RESPONSE, 202
 
         if store.lbs[lb_id]["status"] == "PENDING-DELETE":
-            return b'', 202
+            return EMPTY_RESPONSE, 202
 
         if store.lbs[lb_id]["status"] == "DELETED":
             _verify_and_update_lb_state(store, lb_id,

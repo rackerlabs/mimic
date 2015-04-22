@@ -8,12 +8,27 @@ Helper methods
 import os
 import string
 from datetime import datetime, timedelta
+import json
 from random import choice, randint
 
 from six import text_type
 
 
 fmt = '%Y-%m-%dT%H:%M:%S.%fZ'
+
+
+EMPTY_RESPONSE = object()
+
+
+def json_dump(o):
+    """
+    Serialize an object to JSON, unless it is :obj:`EMPTY_RESPONSE`, in which
+    case the empty string will be returned.
+    """
+    if o is EMPTY_RESPONSE:
+        return b''
+    else:
+        return json.dumps(o)
 
 
 def random_string(length, selectable=None):
