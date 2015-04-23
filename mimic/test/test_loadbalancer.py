@@ -523,6 +523,27 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         delete_node_response = self.successResultOf(delete_nodes)
         self.assertEqual(delete_node_response.code, 202)
 
+    def test_delete_node_on_non_existant_loadbalancer(self):
+        """
+        Test to verify :func: `delete_node` does delete a nodes on a
+        non existant loadbalancer.
+        """
+        delete_nodes = request(
+            self, self.root, "DELETE", self.uri + '/loadbalancers/123' +
+            '/nodes/' + str(self.node[0]["id"]))
+        delete_node_response = self.successResultOf(delete_nodes)
+        self.assertEqual(delete_node_response.code, 404)
+
+    def test_delete_non_existant_node_on_loadbalancer(self):
+        """
+        Test to verify :func: `delete_node` does not delete a non existant node.
+        """
+        delete_nodes = request(
+            self, self.root, "DELETE", self.uri + '/loadbalancers/' +
+            str(self.lb_id) + '/nodes/123')
+        delete_node_response = self.successResultOf(delete_nodes)
+        self.assertEqual(delete_node_response.code, 404)
+
     def test_delete_multiple_nodes_on_loadbalancer(self):
         """
         Test to verify :func: `delete_nodes` deletes the nodes on the loadbalancer.
@@ -604,27 +625,6 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         # and the one valid node that we tried to delete is still there
         remaining = [node['id'] for node in self._get_nodes(self.lb_id)]
         self.assertEquals(remaining, [self.node[0]['id']])
-
-    def test_delete_node_on_non_existant_loadbalancer(self):
-        """
-        Test to verify :func: `delete_node` does delete a nodes on a
-        non existant loadbalancer.
-        """
-        delete_nodes = request(
-            self, self.root, "DELETE", self.uri + '/loadbalancers/123' +
-            '/nodes/' + str(self.node[0]["id"]))
-        delete_node_response = self.successResultOf(delete_nodes)
-        self.assertEqual(delete_node_response.code, 404)
-
-    def test_delete_non_existant_node_on_loadbalancer(self):
-        """
-        Test to verify :func: `delete_node` does not delete a non existant node.
-        """
-        delete_nodes = request(
-            self, self.root, "DELETE", self.uri + '/loadbalancers/' +
-            str(self.lb_id) + '/nodes/123')
-        delete_node_response = self.successResultOf(delete_nodes)
-        self.assertEqual(delete_node_response.code, 404)
 
 
 class LoadbalancerAPINegativeTests(SynchronousTestCase):
