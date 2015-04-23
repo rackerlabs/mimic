@@ -89,82 +89,6 @@ class NovaAPITests(SynchronousTestCase):
         create_server_response = self.successResultOf(create_server)
         self.assertEqual(create_server_response.code, 400)
 
-    def test_create_server_with_too_many_metadata_items(self):
-        """
-        When ``create_server`` is passed metadata with too many items, it
-        should return an HTTP status code of 403 and an error message saying
-        there are too many items.
-        """
-        response, body = self.successResultOf(json_request(
-            self, self.root, "POST", self.uri + '/servers',
-            {
-                "server": {
-                    "name": self.server_name + "A",
-                    "imageRef": "test-image",
-                    "flavorRef": "test-flavor",
-                    "OS-DCF:diskConfig": "MANUAL",
-                    "metadata": {
-                        "key{0}".format(i): "value{0}".format(i)
-                        for i in xrange(100)
-                    }
-                }
-            }))
-        self.assertEqual(response.code, 403)
-        self.assertEqual(body, {"forbidden": {
-            "message": "Maximum number of metadata items exceeds 40",
-            "code": 403
-        }})
-
-    def test_create_server_with_invalid_metadata_values(self):
-        """
-        When ``create_server`` is passed metadata with non-string-type values,
-        it should return an HTTP status code of 400 and an error message
-        saying that values must be strings or unicode.
-        """
-        response, body = self.successResultOf(json_request(
-            self, self.root, "POST", self.uri + '/servers',
-            {
-                "server": {
-                    "name": self.server_name + "A",
-                    "imageRef": "test-image",
-                    "flavorRef": "test-flavor",
-                    "OS-DCF:diskConfig": "MANUAL",
-                    "metadata": {"key": []}
-                }
-            }))
-
-        self.assertEqual(response.code, 400)
-        self.assertEqual(body, {"badRequest": {
-            "message": (
-                "Invalid metadata: The input is not a string or unicode"),
-            "code": 400
-        }})
-
-    def test_create_server_too_many_metadata_items_takes_precedence(self):
-        """
-        When ``create_server`` is passed metadata with too many items and
-        invalid metadata values, the too many items error takes precedence.
-        """
-        response, body = self.successResultOf(json_request(
-            self, self.root, "POST", self.uri + '/servers',
-            {
-                "server": {
-                    "name": self.server_name + "A",
-                    "imageRef": "test-image",
-                    "flavorRef": "test-flavor",
-                    "OS-DCF:diskConfig": "MANUAL",
-                    "metadata": {
-                        "key{0}".format(i): i
-                        for i in xrange(100)
-                    }
-                }
-            }))
-        self.assertEqual(response.code, 403)
-        self.assertEqual(body, {"forbidden": {
-            "message": "Maximum number of metadata items exceeds 40",
-            "code": 403
-        }})
-
     def validate_server_detail_json(self, server_json):
         """
         Tests to validate the server JSON.
@@ -787,3 +711,85 @@ class NovaAPINegativeTests(SynchronousTestCase):
         self.assertEquals(failing_create_response_body['message'],
                           "Sample failure message")
         self.assertEquals(failing_create_response_body['code'], 503)
+
+
+class NovaAPIMetadataTests(SynchronousTestCase):
+    """
+    Tests for the Nova Api plugin handling metadata.
+    """
+
+    def setUp(self):
+        """
+        Create a :obj:`MimicCore` with :obj:`NovaApi` as the only plugin,
+        and create a server
+        """
+        helper = APIMockHelper(self, [NovaApi(["ORD", "MIMIC"])])
+        self.root = helper.root
+        self.uri = helper.uri
+
+    def create_server(self, metadata):
+        """
+        Create a server with the given metadata.
+        """
+        return self.successResultOf(json_request(
+            self, self.root, "POST", self.uri + '/servers',
+            {
+                "server": {
+                    "name": "A",
+                    "imageRef": "test-image",
+                    "flavorRef": "test-flavor",
+                    "metadata": metadata
+                }
+            }))
+
+    def get_server_url(self, metadata):
+        """
+        Create a server with the given metadata, and return the URL of
+        the server.
+        """
+        response, body = self.create_server(metadata)
+        self.assertEqual(response.code, 201)
+        return [link['href'] for link in body['server']['links']
+                if link['rel'] == 'self'][0]
+
+    def test_create_server_with_too_many_metadata_items(self):
+        """
+        When ``create_server`` is passed metadata with too many items, it
+        should return an HTTP status code of 403 and an error message saying
+        there are too many items.
+        """
+        metadata = {"key{0}".format(i): "value{0}".format(i)
+                    for i in xrange(100)}
+        response, body = self.create_server(metadata)
+        self.assertEqual(response.code, 403)
+        self.assertEqual(body, {"forbidden": {
+            "message": "Maximum number of metadata items exceeds 40",
+            "code": 403
+        }})
+
+    def test_create_server_with_invalid_metadata_values(self):
+        """
+        When ``create_server`` is passed metadata with non-string-type values,
+        it should return an HTTP status code of 400 and an error message
+        saying that values must be strings or unicode.
+        """
+        response, body = self.create_server({"key": []})
+        self.assertEqual(response.code, 400)
+        self.assertEqual(body, {"badRequest": {
+            "message": (
+                "Invalid metadata: The input is not a string or unicode"),
+            "code": 400
+        }})
+
+    def test_create_server_too_many_metadata_items_takes_precedence(self):
+        """
+        When ``create_server`` is passed metadata with too many items and
+        invalid metadata values, the too many items error takes precedence.
+        """
+        metadata = {"key{0}".format(i): i for i in xrange(100)}
+        response, body = self.create_server(metadata)
+        self.assertEqual(response.code, 403)
+        self.assertEqual(body, {"forbidden": {
+            "message": "Maximum number of metadata items exceeds 40",
+            "code": 403
+        }})
