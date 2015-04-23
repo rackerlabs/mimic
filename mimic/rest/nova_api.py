@@ -23,7 +23,7 @@ from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.imimic import IAPIMock
-from mimic.model.nova_objects import GlobalServerCollections
+from mimic.model.nova_objects import GlobalServerCollections, LimitError
 from mimic.util.helper import bad_request
 
 Request.defaultContentType = 'application/json'
@@ -215,11 +215,17 @@ class NovaRegion(object):
         try:
             creation = (self._region_collection_for_tenant(tenant_id)
                         .request_creation(request, content, self.url))
-        except ValueError:
+        except ValueError as e:
             request.setResponseCode(400)
-            return json.dumps(
-                bad_request(
-                    "OS-DCF:diskConfig must be either 'MANUAL' or 'AUTO'."))
+            return json.dumps(bad_request(e.message))
+        except LimitError as e:
+            request.setResponseCode(403)
+            return json.dumps({
+                "forbidden": {
+                    "message": e.message,
+                    "code": 403
+                }
+            })
 
         return creation
 

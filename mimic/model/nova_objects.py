@@ -8,6 +8,8 @@ from characteristic import attributes, Attribute
 from random import randrange
 from json import loads, dumps
 
+from six import string_types
+
 from mimic.util.helper import (
     seconds_to_timestamp,
     invalid_resource,
@@ -20,10 +22,17 @@ from mimic.model.behaviors import (
 from twisted.web.http import ACCEPTED, NOT_FOUND
 
 
+class LimitError(Exception):
+    """
+    Error to be raised when a limit has been exceeded.
+    """
+
+
 @attributes(["collection", "server_id", "server_name", "metadata",
              "creation_time", "update_time", "public_ips", "private_ips",
              "status", "flavor_ref", "image_ref", "disk_config",
-             "admin_password", "creation_request_json"])
+             "admin_password", "creation_request_json",
+             Attribute('max_metadata', instance_of=int, default_value=40)])
 class Server(object):
     """
     A :obj:`Server` is a representation of all the state associated with a nova
@@ -140,7 +149,8 @@ class Server(object):
 
     @classmethod
     def from_creation_request_json(cls, collection, creation_json,
-                                   ipsegment=lambda: randrange(255)):
+                                   ipsegment=lambda: randrange(255),
+                                   max_metadata=40):
         """
         Create a :obj:`Server` from a JSON-serializable object that would be in
         the body of a create server request.
@@ -149,13 +159,22 @@ class Server(object):
         server_json = creation_json['server']
         disk_config = server_json.get('OS-DCF:diskConfig', None) or "AUTO"
         if disk_config not in ["AUTO", "MANUAL"]:
-            raise ValueError("OS-DCF:diskConfig not either AUTO or MANUAL")
+            raise ValueError(
+                "OS-DCF:diskConfig must be either 'MANUAL' or 'AUTO'.")
+
+        metadata = server_json.get("metadata") or {}
+        if len(metadata) > max_metadata:
+            raise LimitError("Maximum number of metadata items exceeds 40")
+        if not all(isinstance(v, string_types) for v in metadata.values()):
+            raise ValueError(
+                "Invalid metadata: The input is not a string or unicode")
+
         self = cls(
             collection=collection,
             server_name=server_json['name'],
             server_id=('test-server{0}-id-{0}'
                        .format(str(randrange(9999999999)))),
-            metadata=server_json.get("metadata") or {},
+            metadata=metadata,
             creation_time=now,
             update_time=now,
             private_ips=[
