@@ -606,11 +606,24 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
             {'code': 400,
              'message': "Must supply one or more id's to process this request."})
 
+    def test_bulk_delete_invalid_lb(self):
+        """
+        Bulk-deleting nodes from a non-existent LB returns a 404 and an appropriate
+        message.
+        """
+        lb_id = self.lb_id + 1
+        node_ids_to_delete = [self.node[0]['id']]
+        response, body = _bulk_delete(self, self.root, self.uri, lb_id, node_ids_to_delete)
+        self.assertEqual(response.code, 404)
+        self.assertEqual(
+            body,
+            {'code': 404,
+             'message': "Load balancer not found"})
+
     def test_bulk_delete_nonexistent_nodes(self):
         """
-        When trying to delete multiple nodes from a non-existent LB, if any of
-        the nodes don't exist, no nodes are deleted and a special error result
-        is returned.
+        When trying to delete multiple nodes, if any of the nodes don't exist, no
+        nodes are deleted and a special error result is returned.
         """
         node_ids_to_delete = [self.node[0]['id'], 1000000, 1000001]
         response, body = _bulk_delete(
