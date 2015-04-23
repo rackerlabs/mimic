@@ -814,6 +814,18 @@ class NovaAPIMetadataTests(SynchronousTestCase):
             "code": 400
         }})
 
+    def assert_no_such_server(self, response, body):
+        """
+        Assert that the response and body are 404:server does not exist.
+        """
+        self.assertEqual(response.code, 404)
+        self.assertEqual(body, {
+            'itemNotFound': {
+                'message': 'Server does not exist',
+                'code': 404
+            }
+        })
+
     def test_create_server_with_invalid_metadata_object(self):
         """
         When ``create_server`` is passed metadata with too many items, it
@@ -871,6 +883,25 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         self.assertEqual(
             body, {'metadata': self.get_created_server_metadata()})
 
+    def test_get_metadata_on_nonexistant_server_404(self):
+        """
+        Getting metadata on a non-existing server results in a 404.
+        """
+        response, body = self.successResultOf(json_request(
+            self, self.root, "GET",
+            self.uri + '/servers/1234/metadata'))
+        self.assert_no_such_server(response, body)
+
+    def test_set_metadata_on_nonexistant_server_404(self):
+        """
+        Setting metadata on a non-existing server results in a 404.
+        """
+        response, body = self.successResultOf(json_request(
+            self, self.root, "PUT",
+            self.uri + '/servers/1234/metadata',
+            {'metadata': {}}))
+        self.assert_no_such_server(response, body)
+
     def test_set_metadata_with_only_metadata_body_succeeds(self):
         """
         When setting metadata with a body that looks like
@@ -922,6 +953,15 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         self.assert_malformed_body(
             *self.set_metadata({"metadata": "not metadata"}))
 
+    def test_set_metadata_without_metadata_key(self):
+        """
+        When ``set_metadata`` is passed metadata with the wrong key, it
+        should return an HTTP status code of 403 and an error message saying
+        there are too many items.
+        """
+        self.assert_malformed_body(
+            *self.set_metadata({"meta": {"wrong": "metadata key"}}))
+
     def test_set_metadata_with_too_many_metadata_items(self):
         """
         When ``set_metadata`` is passed metadata with too many items, it
@@ -942,6 +982,17 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         self.assert_metadata_not_string(
             *self.set_metadata({"metadata": {"key": []}}))
 
+    def test_set_metadata_on_nonexistant_server_404_takes_precedence(self):
+        """
+        Setting metadata on a non-existing server results in a 404, no matter
+        how broken the metadata is.
+        """
+        response, body = self.successResultOf(json_request(
+            self, self.root, "PUT",
+            self.uri + '/servers/1234/metadata',
+            'meh'))
+        self.assert_no_such_server(response, body)
+
     def test_set_metadata_too_many_metadata_items_takes_precedence(self):
         """
         When ``set_metadata`` is passed metadata with too many items and
@@ -950,6 +1001,16 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         metadata = dict(("key{0}".format(i), []) for i in xrange(100))
         self.assert_maximum_metadata(
             *self.set_metadata({"metadata": metadata}))
+
+    def test_set_metadata_item_on_nonexistant_server_404(self):
+        """
+        Setting metadata item on a non-existing server results in a 404.
+        """
+        response, body = self.successResultOf(json_request(
+            self, self.root, "PUT",
+            self.uri + '/servers/1234/metadata/key',
+            {'meta': {'key': 'value'}}))
+        self.assert_no_such_server(response, body)
 
     def test_set_metadata_item_with_only_meta_body_succeeds(self):
         """
@@ -980,6 +1041,24 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         return an HTTP status code of 400:malformed request body
         """
         self.assert_malformed_body(*self.set_metadata_item({}, "meh", "meh"))
+
+    def test_set_metadata_item_with_wrong_key_fails(self):
+        """
+        When setting metadata item without a 'meta' key should
+        return an HTTP status code of 400:malformed request body
+        """
+        self.assert_malformed_body(
+            *self.set_metadata_item({}, "meh",
+                                    {"metadata": {"meh": "value"}}))
+
+    def test_set_metadata_item_with_wrong_meta_type_fails(self):
+        """
+        When setting metadata item without a 'meta' key mapped to not a
+        dictionary should return an HTTP status code of 400:malformed request
+        body
+        """
+        self.assert_malformed_body(
+            *self.set_metadata_item({}, "meh", {"meta": "wrong"}))
 
     def test_set_metadata_item_with_too_many_keys_and_values(self):
         """
@@ -1038,6 +1117,18 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         """
         self.assert_metadata_not_string(
             *self.set_metadata_item({}, 'key', {"meta": {"key": []}}))
+
+    def test_set_metadata_item_on_nonexistant_server_404_takes_precedence(
+            self):
+        """
+        Setting metadata item on a non-existing server results in a 404, and
+        takes precedence over other errors.
+        """
+        response, body = self.successResultOf(json_request(
+            self, self.root, "PUT",
+            self.uri + '/servers/1234/metadata/key',
+            'meh'))
+        self.assert_no_such_server(response, body)
 
     def test_set_metadata_item_too_many_metadata_items_takes_precedence(self):
         """

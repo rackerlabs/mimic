@@ -432,7 +432,7 @@ class ServerMetadata(object):
             return json.dumps(bad_request("Malformed request body"))
 
         # more than one key is ok, non-"meta" keys are just ignored
-        if 'meta' not in content:
+        if 'meta' not in content or not isinstance(content['meta'], dict):
             request.setResponseCode(400)
             return json.dumps(bad_request("Malformed request body"))
 
