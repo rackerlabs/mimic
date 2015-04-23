@@ -359,7 +359,6 @@ class ServerMetadata(object):
         """
         return json.dumps({'metadata': self._server.metadata})
 
-
     @app.route('/', methods=['PUT'])
     def set_metadata(self, request):
         """
