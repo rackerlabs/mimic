@@ -409,3 +409,56 @@ class ServerMetadata(object):
         self._server.metadata = content['metadata']
         return json.dumps({'metadata': content['metadata']})
 
+    @app.route('/<key>', methods=['PUT'])
+    def set_metadata_item(self, request, key):
+        """
+        Set a metadata item.  The body must look like:
+
+        ``{"meta": {<key>: value}}``
+
+        although
+
+        ``{"meta": {<key>: value}, "other": "garbage", "keys": "included"}``
+
+        is ok too.
+
+        All the response messages and codes have been verified as of
+        2015-04-23 against Rackspace Nova.
+        """
+        try:
+            content = json.loads(request.content.read())
+        except ValueError:
+            request.setResponseCode(400)
+            return json.dumps(bad_request("Malformed request body"))
+
+        # more than one key is ok, non-"meta" keys are just ignored
+        if 'meta' not in content:
+            request.setResponseCode(400)
+            return json.dumps(bad_request("Malformed request body"))
+
+        if len(content['meta']) > 1:
+            request.setResponseCode(400)
+            return json.dumps(bad_request(
+                "Request body contains too many items"))
+
+        if key not in content['meta']:
+            request.setResponseCode(400)
+            return json.dumps(bad_request("Request body and URI mismatch"))
+
+        try:
+            self._server.set_metadata_item(key, content['meta'][key])
+        except ValueError as e:
+            request.setResponseCode(400)
+            return json.dumps(bad_request(e.message))
+        except LimitError as e:
+            request.setResponseCode(403)
+            return json.dumps({
+                "forbidden": {
+                    "message": e.message,
+                    "code": 403
+                }
+            })
+
+        # no matter how many keys were passed in, only the meta key is
+        # returned
+        return json.dumps({'meta': content['meta']})
