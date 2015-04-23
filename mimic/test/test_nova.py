@@ -856,6 +856,21 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         response, body = self.create_server(None)
         self.assertEqual(response.code, 202)
 
+    def test_get_metadata(self):
+        """
+        Getting metadata gets whatever metadata the server has.
+        """
+        metadata = {'key': 'value', 'key2': 'anothervalue'}
+        response, body = self.successResultOf(json_request(
+            self, self.root, "GET",
+            self.get_server_url(metadata) + '/metadata'))
+        self.assertEqual(response.code, 200)
+        self.assertEqual(body, {'metadata': metadata})
+
+        # double check against server details
+        self.assertEqual(
+            body, {'metadata': self.get_created_server_metadata()})
+
     def test_set_metadata_with_only_metadata_body_succeeds(self):
         """
         When setting metadata with a body that looks like

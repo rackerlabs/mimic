@@ -357,7 +357,7 @@ class ServerMetadata(object):
         """
         List all metadata associated with a server.
         """
-        return json.dumps({'metadata': self.server.metadata})
+        return json.dumps({'metadata': self._server.metadata})
 
 
     @app.route('/', methods=['PUT'])
