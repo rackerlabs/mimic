@@ -40,7 +40,8 @@ class BadRequestError(Exception):
              "creation_time", "update_time", "public_ips", "private_ips",
              "status", "flavor_ref", "image_ref", "disk_config",
              "admin_password", "creation_request_json",
-             Attribute('max_metadata', instance_of=int, default_value=40)])
+             Attribute('max_metadata_items', instance_of=int,
+                       default_value=40)])
 class Server(object):
     """
     A :obj:`Server` is a representation of all the state associated with a nova
@@ -163,9 +164,10 @@ class Server(object):
         Rackspace Nova.
         """
         if key not in self.metadata:
-            if len(self.metadata) == self.max_metadata:
+            if len(self.metadata) == self.max_metadata_items:
                 raise LimitError(nova_message=(
-                    "Maximum number of metadata items exceeds 40"))
+                    "Maximum number of metadata items exceeds {0}"
+                    .format(self.max_metadata_items)))
 
         if not isinstance(value, string_types):
             raise BadRequestError(nova_message=(
@@ -189,7 +191,8 @@ class Server(object):
             raise BadRequestError(nova_message="Malformed request body")
         if len(metadata) > max_metadata_items:
             raise LimitError(nova_message=(
-                "Maximum number of metadata items exceeds 40"))
+                "Maximum number of metadata items exceeds {0}"
+                .format(max_metadata_items)))
         if not all(isinstance(v, string_types) for v in metadata.values()):
             raise BadRequestError(nova_message=(
                 "Invalid metadata: The input is not a string or unicode"))
@@ -234,6 +237,7 @@ class Server(object):
             disk_config=disk_config,
             status="ACTIVE",
             admin_password=random_string(12),
+            max_metadata_items=max_metadata_items
         )
         collection.servers.append(self)
         return self
