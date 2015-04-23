@@ -891,6 +891,13 @@ class NovaAPIMetadataTests(SynchronousTestCase):
             }
         })
 
+    def test_set_metadata_with_invalid_json_body_fails(self):
+        """
+        When setting metadata with an invalid request body, it should return
+        an HTTP status code of 400:malformed request body
+        """
+        self.assert_malformed_body(*self.set_metadata("meh"))
+
     def test_set_metadata_with_invalid_metadata_object(self):
         """
         When ``set_metadata`` is passed metadata with too many items, it
@@ -951,6 +958,13 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         self.assertEqual(response.code, 200)
         self.assertEqual(body, {'meta': {'key': 'value'}})
         self.assertEqual(self.get_created_server_metadata(), {'key': 'value'})
+
+    def test_set_metadata_item_with_invalid_json_body_fails(self):
+        """
+        When setting metadata item with an invalid request body, it should
+        return an HTTP status code of 400:malformed request body
+        """
+        self.assert_malformed_body(*self.set_metadata_item({}, "meh", "meh"))
 
     def test_set_metadata_item_with_too_many_keys_and_values(self):
         """
