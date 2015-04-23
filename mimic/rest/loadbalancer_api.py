@@ -12,7 +12,8 @@ from twisted.plugin import IPlugin
 from mimic.canned_responses.loadbalancer import (
     Region_Tenant_CLBs,
     add_load_balancer, del_load_balancer, list_load_balancers,
-    add_node, delete_node, list_nodes, get_load_balancers, get_nodes)
+    add_node, delete_node, delete_nodes, list_nodes, get_load_balancers,
+    get_nodes)
 from mimic.rest.mimicapp import MimicApp
 from mimic.imimic import IAPIMock
 from mimic.catalog import Entry
@@ -187,6 +188,19 @@ class LoadBalancerRegion(object):
         )
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
+
+    @app.route('/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/nodes',
+               methods=['DELETE'])
+    def delete_nodes_from_load_balancer(self, request, tenant_id, lb_id):
+        """
+        Deletes multiple nodes from a LB.
+        """
+        node_ids = map(int, request.args.get('id', []))
+        response_data = delete_nodes(
+            self.session(tenant_id), lb_id, node_ids,
+            self._session_store.clock.seconds())
+        request.setResponseCode(response_data[1])
+        return json_dump(response_data[0])
 
     @app.route('/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/nodes',
                methods=['GET'])

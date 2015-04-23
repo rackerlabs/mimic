@@ -220,10 +220,24 @@ def get_nodes(store, lb_id, node_id, current_timestamp):
     return not_found_response("loadbalancer"), 404
 
 
+def _delete_node(store, lb_id, node_id):
+    """Delete a node by ID."""
+    if store.lbs[lb_id].get("nodes"):
+        for each in store.lbs[lb_id]["nodes"]:
+            if each["id"] == node_id:
+                index = store.lbs[lb_id]["nodes"].index(each)
+                del store.lbs[lb_id]["nodes"][index]
+                if not store.lbs[lb_id]["nodes"]:
+                    del store.lbs[lb_id]["nodes"]
+                store.lbs[lb_id].update({"nodeCount": len(store.lbs[lb_id].get("nodes", []))})
+                return True
+    return False
+
+
 def delete_node(store, lb_id, node_id, current_timestamp):
     """
-    Determines whether the node to be deleted exists in mimic store and
-    returns the response code.
+    Determines whether the node to be deleted exists in mimic store, deletes
+    the node, and returns the response code.
     """
     if lb_id in store.lbs:
 
@@ -238,19 +252,40 @@ def delete_node(store, lb_id, node_id, current_timestamp):
         _verify_and_update_lb_state(store, lb_id,
                                     current_timestamp=current_timestamp)
 
-        if store.lbs[lb_id].get("nodes"):
-            for each in store.lbs[lb_id]["nodes"]:
-                if each["id"] == node_id:
-                    index = store.lbs[lb_id]["nodes"].index(each)
-                    del store.lbs[lb_id]["nodes"][index]
-                    if not store.lbs[lb_id]["nodes"]:
-                        del store.lbs[lb_id]["nodes"]
-                    store.lbs[lb_id].update({"nodeCount": len(store.lbs[lb_id].get("nodes", []))})
-                    return None, 202
-
-        return not_found_response("node"), 404
+        if _delete_node(store, lb_id, node_id):
+            return None, 202
+        else:
+            return not_found_response("node"), 404
 
     return not_found_response("loadbalancer"), 404
+
+
+def delete_nodes(store, lb_id, node_ids, current_timestamp):
+    """
+    Bulk-delete multiple LB nodes.
+    """
+    if not node_ids:
+        return must_supply_nodes_response(), 400
+
+    if lb_id not in store.lbs:
+        return not_found_response("loadbalancer"), 404
+
+    _verify_and_update_lb_state(store, lb_id, False, current_timestamp)
+
+    # We need to verify all the deletions up front, and only allow it through
+    # if all of them are valid.
+    all_ids = [node["id"] for node in store.lbs[lb_id].get("nodes", [])]
+    non_nodes = set(node_ids).difference(all_ids)
+    if non_nodes:
+        return validation_error_non_nodes_response(non_nodes), 400
+
+    _verify_and_update_lb_state(store, lb_id,
+                                current_timestamp=current_timestamp)
+    for node_id in node_ids:
+        # It should not be possible for this to fail, since we've already
+        # checked that they all exist.
+        assert _delete_node(store, lb_id, node_id) == True
+    return EMPTY_RESPONSE, 202
 
 
 def list_nodes(store, lb_id, current_timestamp):
@@ -379,3 +414,30 @@ def _verify_and_update_lb_state(store, lb_id, set_state=True,
         ) or "DELETED"
         if store.lbs[lb_id]["status"] == "DELETING-NOW":
             del store.lbs[lb_id]
+
+
+def must_supply_nodes_response():
+    """
+    Returns an error message indicating nodes must be passed, used in the
+    multi-node delete operation.
+    """
+    return {"message": "Must supply one or more id's to process this request.",
+            "code": 400}
+
+
+def validation_error_non_nodes_response(node_ids):
+    """
+    Returns a ``validationErrors`` error indicating that some nodes aren't a
+    part of a CLB, used in the multi-node delete operation.
+    """
+    nodes = ','.join(map(str, node_ids))
+    result = {
+        "validationErrors": {
+            "messages": [
+                "Node ids {0} are not a part of your loadbalancer".format(nodes)
+            ]
+        },
+        "message": "Validation Failure",
+        "code": 400,
+        "details": "The object is not valid"}
+    return result

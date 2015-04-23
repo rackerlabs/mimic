@@ -326,19 +326,33 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         create_lb_response = self.successResultOf(create_lb)
         self.create_lb_response_body = self.successResultOf(treq.json_content(
                                                             create_lb_response))
-        create_node = request(
-            self, self.root, "POST", self.uri + '/loadbalancers/' +
-            str(self.create_lb_response_body["loadBalancer"]["id"]) + '/nodes',
-            json.dumps({"nodes": [{"address": "127.0.0.1",
-                                   "port": 80,
-                                   "condition": "ENABLED",
-                                   "type": "PRIMARY",
-                                   "weight": 10}]})
-        )
-        self.create_node_response = self.successResultOf(create_node)
-        self.create_node_response_body = self.successResultOf(treq.json_content(
-                                                              self.create_node_response))
+        self.lb_id = self.create_lb_response_body["loadBalancer"]["id"]
+        create_node = self._create_nodes(["127.0.0.1"])
+        [(self.create_node_response, self.create_node_response_body)] = create_node
         self.node = self.create_node_response_body["nodes"]
+
+    def _create_nodes(self, addresses):
+        """
+        Create nodes based on the addresses passed.
+
+        :param list addresses: addresses to create nodes for.
+
+        :return: a list of two-tuples of (response, response_body).
+        """
+        responses = [
+            request(
+                self, self.root, "POST", self.uri + '/loadbalancers/' +
+                str(self.create_lb_response_body["loadBalancer"]["id"]) + '/nodes',
+                json.dumps({"nodes": [{"address": address,
+                                       "port": 80,
+                                       "condition": "ENABLED",
+                                       "type": "PRIMARY",
+                                       "weight": 10}]}))
+            for address in addresses]
+        responses = map(self.successResultOf, responses)
+        response_bodies = [self.successResultOf(treq.json_content(response))
+                           for response in responses]
+        return zip(responses, response_bodies)
 
     def test_add_node_to_loadbalancer(self):
         """
@@ -362,7 +376,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         """
         create_multiple_nodes = request(
             self, self.root, "POST", self.uri + '/loadbalancers/' +
-            str(self.create_lb_response_body["loadBalancer"]["id"]) + '/nodes',
+            str(self.lb_id) + '/nodes',
             json.dumps({"nodes": [{"address": "127.0.0.2",
                                    "port": 80,
                                    "condition": "ENABLED",
@@ -384,7 +398,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         """
         create_duplicate_nodes = request(
             self, self.root, "POST", self.uri + '/loadbalancers/' +
-            str(self.create_lb_response_body["loadBalancer"]["id"]) + '/nodes',
+            str(self.lb_id) + '/nodes',
             json.dumps({"nodes": [{"address": "127.0.0.1",
                                    "port": 80,
                                    "condition": "ENABLED",
@@ -399,7 +413,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         """
         create_duplicate_nodes = request(
             self, self.root, "POST", self.uri + '/loadbalancers/' +
-            str(self.create_lb_response_body["loadBalancer"]["id"]) + '/nodes', "")
+            str(self.lb_id) + '/nodes', "")
 
         create_node_response = self.successResultOf(create_duplicate_nodes)
         self.assertEqual(create_node_response.code, 400)
@@ -410,7 +424,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         """
         create_duplicate_nodes = request(
             self, self.root, "POST", self.uri + '/loadbalancers/' +
-            str(self.create_lb_response_body["loadBalancer"]["id"]) + '/nodes', "{ bad request: }")
+            str(self.lb_id) + '/nodes', "{ bad request: }")
 
         create_node_response = self.successResultOf(create_duplicate_nodes)
         self.assertEqual(create_node_response.code, 400)
@@ -436,7 +450,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         """
         list_nodes = request(
             self, self.root, "GET", self.uri + '/loadbalancers/' +
-            str(self.create_lb_response_body["loadBalancer"]["id"]) + '/nodes')
+            str(self.lb_id) + '/nodes')
         list_nodes_response = self.successResultOf(list_nodes)
         list_nodes_response_body = self.successResultOf(treq.json_content(
                                                         list_nodes_response))
@@ -458,7 +472,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         """
         get_nodes = request(
             self, self.root, "GET", self.uri + '/loadbalancers/' +
-            str(self.create_lb_response_body["loadBalancer"]["id"]) + '/nodes/'
+            str(self.lb_id) + '/nodes/'
             + str(self.node[0]["id"]))
         get_node_response = self.successResultOf(get_nodes)
         get_node_response_body = self.successResultOf(treq.json_content(
@@ -485,7 +499,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         """
         get_nodes = request(
             self, self.root, "GET", self.uri + '/loadbalancers/' +
-            str(self.create_lb_response_body["loadBalancer"]["id"]) + '/nodes/123')
+            str(self.lb_id) + '/nodes/123')
         get_node_response = self.successResultOf(get_nodes)
         self.assertEqual(get_node_response.code, 404)
 
@@ -495,10 +509,27 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         """
         delete_nodes = request(
             self, self.root, "DELETE", self.uri + '/loadbalancers/' +
-            str(self.create_lb_response_body["loadBalancer"]["id"]) + '/nodes/'
+            str(self.lb_id) + '/nodes/'
             + str(self.node[0]["id"]))
         delete_node_response = self.successResultOf(delete_nodes)
         self.assertEqual(delete_node_response.code, 202)
+
+    def test_delete_multiple_nodes_on_loadbalancer(self):
+        """
+        Test to verify :func: `delete_nodes` deletes the nodes on the loadbalancer.
+        """
+        node_results = self._create_nodes(['127.0.0.2', '127.0.0.3', '127.0.0.4'])
+        node_ids = [
+            node_result['id']
+            for (response, body) in node_results
+            for node_result in body['nodes']]
+        query = '?' + '&'.join('id=' + str(node_id) for node_id in node_ids)
+        endpoint = self.uri + '/loadbalancers/' + str(self.lb_id) + '/nodes' + query
+        d = request(self, self.root, "DELETE", endpoint)
+        response = self.successResultOf(d)
+        self.assertEqual(response.code, 202)
+        self.assertEqual(self.successResultOf(treq.content(response)),
+                         '')
 
     def test_delete_node_on_non_existant_loadbalancer(self):
         """
@@ -517,7 +548,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         """
         delete_nodes = request(
             self, self.root, "DELETE", self.uri + '/loadbalancers/' +
-            str(self.create_lb_response_body["loadBalancer"]["id"]) + '/nodes/123')
+            str(self.lb_id) + '/nodes/123')
         delete_node_response = self.successResultOf(delete_nodes)
         self.assertEqual(delete_node_response.code, 404)
 
