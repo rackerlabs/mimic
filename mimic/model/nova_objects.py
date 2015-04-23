@@ -183,10 +183,6 @@ class Server(object):
         All the response messages have been verified as of 2015-04-23 against
         Rackspace Nova.
         """
-        # When setting metadata, None is special for some reason
-        if metadata is None:
-            raise BadRequestError(nova_message=(
-                "Malformed request body. metadata must be object"))
         if not isinstance(metadata, dict):
             raise BadRequestError(nova_message="Malformed request body")
         if len(metadata) > max_metadata_items:

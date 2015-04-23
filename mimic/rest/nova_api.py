@@ -391,6 +391,12 @@ class ServerMetadata(object):
             request.setResponseCode(400)
             return json.dumps(bad_request("Malformed request body"))
 
+        # When setting metadata, None is special for some reason
+        if content['metadata'] is None:
+            request.setResponseCode(400)
+            return json.dumps(bad_request(
+                "Malformed request body. metadata must be object"))
+
         try:
             Server.validate_metadata(content['metadata'])
         except BadRequestError as e:
