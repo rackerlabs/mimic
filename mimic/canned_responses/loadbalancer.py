@@ -220,37 +220,93 @@ def get_nodes(store, lb_id, node_id, current_timestamp):
     return not_found_response("loadbalancer"), 404
 
 
+def _delete_node(store, lb_id, node_id):
+    """Delete a node by ID."""
+    if store.lbs[lb_id].get("nodes"):
+        for each in store.lbs[lb_id]["nodes"]:
+            if each["id"] == node_id:
+                index = store.lbs[lb_id]["nodes"].index(each)
+                del store.lbs[lb_id]["nodes"][index]
+                if not store.lbs[lb_id]["nodes"]:
+                    del store.lbs[lb_id]["nodes"]
+                store.lbs[lb_id].update({"nodeCount": len(store.lbs[lb_id].get("nodes", []))})
+                return True
+    return False
+
+
 def delete_node(store, lb_id, node_id, current_timestamp):
     """
-    Determines whether the node to be deleted exists in mimic store and
-    returns the response code.
+    Determines whether the node to be deleted exists in mimic store, deletes
+    the node, and returns the response code.
     """
     if lb_id in store.lbs:
 
         _verify_and_update_lb_state(store, lb_id, False, current_timestamp)
 
         if store.lbs[lb_id]["status"] != "ACTIVE":
+            # Error message verified as of 2015-04-22
             resource = invalid_resource(
-                "Load Balancer '{0}' has a status of {1} and is considered "
+                "Load Balancer '{0}' has a status of '{1}' and is considered "
                 "immutable.".format(lb_id, store.lbs[lb_id]["status"]), 422)
             return (resource, 422)
 
         _verify_and_update_lb_state(store, lb_id,
                                     current_timestamp=current_timestamp)
 
-        if store.lbs[lb_id].get("nodes"):
-            for each in store.lbs[lb_id]["nodes"]:
-                if each["id"] == node_id:
-                    index = store.lbs[lb_id]["nodes"].index(each)
-                    del store.lbs[lb_id]["nodes"][index]
-                    if not store.lbs[lb_id]["nodes"]:
-                        del store.lbs[lb_id]["nodes"]
-                    store.lbs[lb_id].update({"nodeCount": len(store.lbs[lb_id].get("nodes", []))})
-                    return None, 202
-
-        return not_found_response("node"), 404
+        if _delete_node(store, lb_id, node_id):
+            return None, 202
+        else:
+            return not_found_response("node"), 404
 
     return not_found_response("loadbalancer"), 404
+
+
+def delete_nodes(store, lb_id, node_ids, current_timestamp):
+    """
+    Bulk-delete multiple LB nodes.
+    """
+    if not node_ids:
+        resp = {
+            "message": "Must supply one or more id's to process this request.",
+            "code": 400}
+        return resp, 400
+
+    if lb_id not in store.lbs:
+        return not_found_response("loadbalancer"), 404
+
+    _verify_and_update_lb_state(store, lb_id, False, current_timestamp)
+
+    if store.lbs[lb_id]["status"] != "ACTIVE":
+        # Error message verified as of 2015-04-22
+        resp = {"message": "LoadBalancer is not ACTIVE",
+                "code": 422}
+        return resp, 422
+
+    # We need to verify all the deletions up front, and only allow it through
+    # if all of them are valid.
+    all_ids = [node["id"] for node in store.lbs[lb_id].get("nodes", [])]
+    non_nodes = set(node_ids).difference(all_ids)
+    if non_nodes:
+        nodes = ','.join(map(str, non_nodes))
+        resp = {
+            "validationErrors": {
+                "messages": [
+                    "Node ids {0} are not a part of your loadbalancer".format(nodes)
+                ]
+            },
+            "message": "Validation Failure",
+            "code": 400,
+            "details": "The object is not valid"}
+        return resp, 400
+
+    for node_id in node_ids:
+        # It should not be possible for this to fail, since we've already
+        # checked that they all exist.
+        assert _delete_node(store, lb_id, node_id) == True
+
+    _verify_and_update_lb_state(store, lb_id,
+                                current_timestamp=current_timestamp)
+    return EMPTY_RESPONSE, 202
 
 
 def list_nodes(store, lb_id, current_timestamp):
@@ -346,7 +402,6 @@ def _verify_and_update_lb_state(store, lb_id, set_state=True,
     elif store.lbs[lb_id]["status"] == "ACTIVE" and set_state:
         if "lb_pending_update" in store.meta[lb_id]:
             store.lbs[lb_id]["status"] = "PENDING-UPDATE"
-            log.msg("here")
             log.msg(store.lbs[lb_id]["status"])
         if "lb_pending_delete" in store.meta[lb_id]:
             store.lbs[lb_id]["status"] = "PENDING-DELETE"
