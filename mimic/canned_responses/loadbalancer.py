@@ -244,6 +244,7 @@ def delete_node(store, lb_id, node_id, current_timestamp):
         _verify_and_update_lb_state(store, lb_id, False, current_timestamp)
 
         if store.lbs[lb_id]["status"] != "ACTIVE":
+            # Error message verified as of 2015-04-22
             resource = invalid_resource(
                 "Load Balancer '{0}' has a status of '{1}' and is considered "
                 "immutable.".format(lb_id, store.lbs[lb_id]["status"]), 422)
@@ -276,6 +277,7 @@ def delete_nodes(store, lb_id, node_ids, current_timestamp):
     _verify_and_update_lb_state(store, lb_id, False, current_timestamp)
 
     if store.lbs[lb_id]["status"] != "ACTIVE":
+        # Error message verified as of 2015-04-22
         resp = {"message": "LoadBalancer is not ACTIVE",
                 "code": 422}
         return resp, 422
