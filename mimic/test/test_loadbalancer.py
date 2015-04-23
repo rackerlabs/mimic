@@ -354,6 +354,15 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
                            for response in responses]
         return zip(responses, response_bodies)
 
+    def _get_nodes(self, lb_id):
+        """Get all the nodes in a LB."""
+        list_nodes = request(
+            self, self.root, "GET", self.uri + '/loadbalancers/' +
+            str(lb_id) + '/nodes')
+        response = self.successResultOf(list_nodes)
+        body = self.successResultOf(treq.json_content(response))
+        return body['nodes']
+
     def test_add_node_to_loadbalancer(self):
         """
         Test to verify :func: `add_node` create a node successfully.
@@ -523,13 +532,78 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
             node_result['id']
             for (response, body) in node_results
             for node_result in body['nodes']]
-        query = '?' + '&'.join('id=' + str(node_id) for node_id in node_ids)
+        node_ids_to_delete = node_ids[:-1]
+        query = '?' + '&'.join('id=' + str(node_id) for node_id in node_ids_to_delete)
         endpoint = self.uri + '/loadbalancers/' + str(self.lb_id) + '/nodes' + query
         d = request(self, self.root, "DELETE", endpoint)
         response = self.successResultOf(d)
         self.assertEqual(response.code, 202)
         self.assertEqual(self.successResultOf(treq.content(response)),
                          '')
+        remaining_nodes = self._get_nodes(self.lb_id)
+        # The one in setUp and the extra one we created are remaining
+        self.assertEqual(
+            [node['id'] for node in remaining_nodes],
+            [self.node[0]['id'], node_ids[-1]])
+
+    def test_delete_multiple_empty(self):
+        """
+        When deleting multiple nodes but not giving any node IDs, a special
+        error is returned.
+        """
+        endpoint = self.uri + '/loadbalancers/' + str(self.lb_id) + '/nodes'
+        d = request(self, self.root, "DELETE", endpoint)
+        response = self.successResultOf(d)
+        self.assertEqual(response.code, 400)
+        self.assertEqual(
+            self.successResultOf(treq.json_content(response)),
+            {'code': 400,
+             'message': "Must supply one or more id's to process this request."})
+
+    def test_delete_multiple_empty_wrong_lb(self):
+        """
+        When trying to delete multiple nodes from a non-existent LB, the error
+        for an empty node list takes precedence over the error for a
+        non-existing LB.
+        """
+        lb_id = self.lb_id + 1
+        endpoint = self.uri + '/loadbalancers/' + str(lb_id) + '/nodes'
+        d = request(self, self.root, "DELETE", endpoint)
+        response = self.successResultOf(d)
+        self.assertEqual(response.code, 400)
+        self.assertEqual(
+            self.successResultOf(treq.json_content(response)),
+            {'code': 400,
+             'message': "Must supply one or more id's to process this request."})
+
+    def test_delete_multiple_nonexistent_nodes(self):
+        """
+        When trying to delete multiple nodes from a non-existent LB, if any of
+        the nodes don't exist, no nodes are deleted and a special error result
+        is returned.
+        """
+        node_ids_to_delete = [self.node[0]['id'], 1000000, 1000001]
+        query = '?' + '&'.join('id=' + str(node_id) for node_id in node_ids_to_delete)
+        endpoint = self.uri + '/loadbalancers/' + str(self.lb_id) + '/nodes' + query
+        d = request(self, self.root, "DELETE", endpoint)
+        response = self.successResultOf(d)
+        self.assertEqual(response.code, 400)
+        self.assertEqual(
+            self.successResultOf(treq.json_content(response)),
+            {
+                "validationErrors": {
+                    "messages": [
+                        "Node ids 1000000,1000001 are not a part of your loadbalancer"
+                    ]
+                },
+                "message": "Validation Failure",
+                "code": 400,
+                "details": "The object is not valid"
+            }
+        )
+        # and the one valid node that we tried to delete is still there
+        remaining = [node['id'] for node in self._get_nodes(self.lb_id)]
+        self.assertEquals(remaining, [self.node[0]['id']])
 
     def test_delete_node_on_non_existant_loadbalancer(self):
         """
