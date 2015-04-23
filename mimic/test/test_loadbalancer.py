@@ -214,6 +214,8 @@ class LoadbalancerAPITests(SynchronousTestCase):
         # This response code does not match the Rackspace documentation which specifies a 200 response
         # See comment: http://bit.ly/1AVHs3v
         self.assertEqual(del_lb_response.code, 202)
+        del_lb_response_body = self.successResultOf(treq.content(del_lb_response))
+        self.assertEqual(del_lb_response_body, '')
         # List lb to make sure the correct lb is gone and the other remains
         list_lb = request(self, self.root, "GET", self.uri + '/loadbalancers')
         list_lb_response = self.successResultOf(list_lb)
@@ -692,29 +694,39 @@ class LoadbalancerAPINegativeTests(SynchronousTestCase):
         create_lb_response_body = self.successResultOf(treq.json_content(create_response))
         lb = create_lb_response_body["loadBalancer"]
         self.assertEqual(lb["status"], "ACTIVE")
+
         # Verify the lb status goes into PENDING-DELETE
-        self.assertEqual(self._delete_loadbalancer(lb["id"]).code, 202)
+        del_lb_response = self._delete_loadbalancer(lb["id"])
+        self.assertEqual(del_lb_response.code, 202)
+        del_lb_content = self.successResultOf(treq.content(del_lb_response))
+        self.assertEqual(del_lb_content, '')
         deleted_lb = self._get_loadbalancer(lb["id"])
         self.assertEqual(deleted_lb["loadBalancer"]["status"], "PENDING-DELETE")
+
         # Trying to delete a lb in PENDING-DELETE status results in 400
         self.assertEqual(self._delete_loadbalancer(lb["id"]).code, 400)
         self.helper.clock.advance(1.0000001)
+
         # Lb goes into DELETED status after time specified in metadata
         deleted_lb = self._get_loadbalancer(lb["id"])
         self.assertEqual(deleted_lb["loadBalancer"]["status"], "DELETED")
+
         # Trying to delete a lb in DELETED status results in 400
         self.assertEqual(self._delete_loadbalancer(lb["id"]).code, 400)
+
         # GET node on load balancer in DELETED status results in 410
         get_node = request(
             self, self.root, "GET", self.uri + '/loadbalancers/' +
             str(lb["id"]) + '/nodes/123')
         get_node_response = self.successResultOf(get_node)
         self.assertEqual(get_node_response.code, 410)
+
         # List node on load balancer in DELETED status results in 410
         list_nodes = request(
             self, self.root, "GET", self.uri + '/loadbalancers/' + str(lb["id"])
             + '/nodes')
         self.assertEqual(self.successResultOf(list_nodes).code, 410)
+
         # Progress past "deleting now"
         self.helper.clock.advance(4000)
         list_nodes = request(

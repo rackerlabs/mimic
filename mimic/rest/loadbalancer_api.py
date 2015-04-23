@@ -18,7 +18,7 @@ from mimic.imimic import IAPIMock
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from random import randrange
-from mimic.util.helper import invalid_resource
+from mimic.util.helper import invalid_resource, json_dump
 
 
 Request.defaultContentType = 'application/json'
@@ -141,7 +141,7 @@ class LoadBalancerRegion(object):
             lb_id, self._session_store.clock.seconds()
         )
         request.setResponseCode(response_data[1])
-        return json.dumps(response_data[0])
+        return json_dump(response_data[0])
 
     @app.route('/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/nodes', methods=['POST'])
     def add_node_to_load_balancer(self, request, tenant_id, lb_id):
