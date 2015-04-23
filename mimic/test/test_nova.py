@@ -828,9 +828,8 @@ class NovaAPIMetadataTests(SynchronousTestCase):
 
     def test_create_server_with_invalid_metadata_object(self):
         """
-        When ``create_server`` is passed metadata with too many items, it
-        should return an HTTP status code of 403 and an error message saying
-        there are too many items.
+        When ``create_server`` with an invalid metadata object (a string), it
+        should return an HTTP status code of 400:malformed body.
         """
         self.assert_malformed_body(*self.create_server("not metadata"))
 
@@ -862,8 +861,8 @@ class NovaAPIMetadataTests(SynchronousTestCase):
 
     def test_create_server_null_metadata_succeeds(self):
         """
-        When ``create_server`` is passed metadata with too many items and
-        invalid metadata values, the too many items error takes precedence.
+        When ``create_server`` is passed null metadata, it successfully
+        creates a server.
         """
         response, body = self.create_server(None)
         self.assertEqual(response.code, 202)
@@ -905,7 +904,7 @@ class NovaAPIMetadataTests(SynchronousTestCase):
     def test_set_metadata_with_only_metadata_body_succeeds(self):
         """
         When setting metadata with a body that looks like
-        ``{'metadata': {<valid metadata}}``, a 200 is received with a valid
+        ``{'metadata': {<valid metadata>}}``, a 200 is received with a valid
         response body.
         """
         response, body = self.set_metadata({"metadata": {}})
@@ -939,16 +938,16 @@ class NovaAPIMetadataTests(SynchronousTestCase):
 
     def test_set_metadata_with_invalid_json_body_fails(self):
         """
-        When setting metadata with an invalid request body, it should return
-        an HTTP status code of 400:malformed request body
+        When setting metadata with an invalid request body (not a dict), it
+        should return an HTTP status code of 400:malformed request body
         """
         self.assert_malformed_body(*self.set_metadata("meh"))
 
     def test_set_metadata_with_invalid_metadata_object(self):
         """
-        When ``set_metadata`` is passed metadata with too many items, it
-        should return an HTTP status code of 403 and an error message saying
-        there are too many items.
+        When ``set_metadata`` is passed a dictionary with the metadata key,
+        but the metadata is not a dict, it should return an HTTP status code
+        of 400: malformed request body.
         """
         self.assert_malformed_body(
             *self.set_metadata({"metadata": "not metadata"}))
@@ -956,8 +955,7 @@ class NovaAPIMetadataTests(SynchronousTestCase):
     def test_set_metadata_without_metadata_key(self):
         """
         When ``set_metadata`` is passed metadata with the wrong key, it
-        should return an HTTP status code of 403 and an error message saying
-        there are too many items.
+        should return an HTTP status code of 400: malformed request body.
         """
         self.assert_malformed_body(
             *self.set_metadata({"meta": {"wrong": "metadata key"}}))
@@ -1090,7 +1088,7 @@ class NovaAPIMetadataTests(SynchronousTestCase):
             *self.set_metadata_item(metadata, 'newkey',
                                     {"meta": {"newkey": "newval"}}))
 
-    def test_set_metadata_item_repace_existing_metadata(self):
+    def test_set_metadata_item_replace_existing_metadata(self):
         """
         If there are already the maximum number of metadata items on the
         server, but ``set_metadata_item`` is called with an already existing
