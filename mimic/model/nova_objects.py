@@ -22,9 +22,17 @@ from mimic.model.behaviors import (
 from twisted.web.http import ACCEPTED, NOT_FOUND
 
 
+@attributes(['nova_message'])
 class LimitError(Exception):
     """
     Error to be raised when a limit has been exceeded.
+    """
+
+
+@attributes(['nova_message'])
+class BadRequestError(Exception):
+    """
+    Error to be raised when bad input has been received to Nova.
     """
 
 
@@ -156,12 +164,12 @@ class Server(object):
         """
         if key not in self.metadata:
             if len(self.metadata) == self.max_metadata:
-                raise LimitError(
-                    "Maximum number of metadata items exceeds 40")
+                raise LimitError(nova_message=(
+                    "Maximum number of metadata items exceeds 40"))
 
         if not isinstance(value, string_types):
-            raise ValueError(
-                "Invalid metadata: The input is not a string or unicode")
+            raise BadRequestError(nova_message=(
+                "Invalid metadata: The input is not a string or unicode"))
 
         self.metadata[key] = value
 
@@ -175,15 +183,16 @@ class Server(object):
         """
         # When setting metadata, None is special for some reason
         if metadata is None:
-            raise ValueError(
-                "Malformed request body. metadata must be object")
+            raise BadRequestError(nova_message=(
+                "Malformed request body. metadata must be object"))
         if not isinstance(metadata, dict):
-            raise ValueError("Malformed request body")
+            raise BadRequestError(nova_message="Malformed request body")
         if len(metadata) > max_metadata_items:
-            raise LimitError("Maximum number of metadata items exceeds 40")
+            raise LimitError(nova_message=(
+                "Maximum number of metadata items exceeds 40"))
         if not all(isinstance(v, string_types) for v in metadata.values()):
-            raise ValueError(
-                "Invalid metadata: The input is not a string or unicode")
+            raise BadRequestError(nova_message=(
+                "Invalid metadata: The input is not a string or unicode"))
 
     @classmethod
     def from_creation_request_json(cls, collection, creation_json,
@@ -197,8 +206,8 @@ class Server(object):
         server_json = creation_json['server']
         disk_config = server_json.get('OS-DCF:diskConfig', None) or "AUTO"
         if disk_config not in ["AUTO", "MANUAL"]:
-            raise ValueError(
-                "OS-DCF:diskConfig must be either 'MANUAL' or 'AUTO'.")
+            raise BadRequestError(nova_message=(
+                "OS-DCF:diskConfig must be either 'MANUAL' or 'AUTO'."))
 
         metadata = server_json.get("metadata") or {}
         cls.validate_metadata(metadata, max_metadata_items)

@@ -24,7 +24,7 @@ from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.imimic import IAPIMock
 from mimic.model.nova_objects import (
-    GlobalServerCollections, LimitError, Server)
+    BadRequestError, GlobalServerCollections, LimitError, Server)
 from mimic.util.helper import bad_request
 
 Request.defaultContentType = 'application/json'
@@ -216,14 +216,14 @@ class NovaRegion(object):
         try:
             creation = (self._region_collection_for_tenant(tenant_id)
                         .request_creation(request, content, self.url))
-        except ValueError as e:
+        except BadRequestError as e:
             request.setResponseCode(400)
-            return json.dumps(bad_request(e.message))
+            return json.dumps(bad_request(e.nova_message))
         except LimitError as e:
             request.setResponseCode(403)
             return json.dumps({
                 "forbidden": {
-                    "message": e.message,
+                    "message": e.nova_message,
                     "code": 403
                 }
             })
@@ -394,14 +394,14 @@ class ServerMetadata(object):
 
         try:
             Server.validate_metadata(content['metadata'])
-        except ValueError as e:
+        except BadRequestError as e:
             request.setResponseCode(400)
-            return json.dumps(bad_request(e.message))
+            return json.dumps(bad_request(e.nova_message))
         except LimitError as e:
             request.setResponseCode(403)
             return json.dumps({
                 "forbidden": {
-                    "message": e.message,
+                    "message": e.nova_message,
                     "code": 403
                 }
             })
@@ -447,14 +447,14 @@ class ServerMetadata(object):
 
         try:
             self._server.set_metadata_item(key, content['meta'][key])
-        except ValueError as e:
+        except BadRequestError as e:
             request.setResponseCode(400)
-            return json.dumps(bad_request(e.message))
+            return json.dumps(bad_request(e.nova_message))
         except LimitError as e:
             request.setResponseCode(403)
             return json.dumps({
                 "forbidden": {
-                    "message": e.message,
+                    "message": e.nova_message,
                     "code": 403
                 }
             })
