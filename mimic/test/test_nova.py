@@ -748,9 +748,57 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         the server.
         """
         response, body = self.create_server(metadata)
-        self.assertEqual(response.code, 201)
+        self.assertEqual(response.code, 202)
         return [link['href'] for link in body['server']['links']
                 if link['rel'] == 'self'][0]
+
+    def set_metadata(self, request_body):
+        """
+        Create a server with null metadata, then hit the set metadata endpoint
+        with the given request body.
+        """
+        return self.successResultOf(json_request(
+            self, self.root, "PUT", self.get_server_url(None) + '/metadata',
+            request_body))
+
+    def assert_malformed_body(self, response, body):
+        """
+        Assert that the response and body are 400:malformed request body.
+        """
+        self.assertEqual(response.code, 400)
+        self.assertEqual(body, {"badRequest": {
+            "message": "Malformed request body",
+            "code": 400
+        }})
+
+    def assert_maximum_metadata(self, response, body):
+        """
+        Assert that the response and body are 403:max metadata.
+        """
+        self.assertEqual(response.code, 403)
+        self.assertEqual(body, {"forbidden": {
+            "message": "Maximum number of metadata items exceeds 40",
+            "code": 403
+        }})
+
+    def assert_metadata_not_string(self, response, body):
+        """
+        Assert that the response and body are 400:metadata value not string.
+        """
+        self.assertEqual(response.code, 400)
+        self.assertEqual(body, {"badRequest": {
+            "message": (
+                "Invalid metadata: The input is not a string or unicode"),
+            "code": 400
+        }})
+
+    def test_create_server_with_invalid_metadata(self):
+        """
+        When ``create_server`` is passed metadata with too many items, it
+        should return an HTTP status code of 403 and an error message saying
+        there are too many items.
+        """
+        self.assert_malformed_body(*self.create_server("not metadata"))
 
     def test_create_server_with_too_many_metadata_items(self):
         """
@@ -760,12 +808,7 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         """
         metadata = {"key{0}".format(i): "value{0}".format(i)
                     for i in xrange(100)}
-        response, body = self.create_server(metadata)
-        self.assertEqual(response.code, 403)
-        self.assertEqual(body, {"forbidden": {
-            "message": "Maximum number of metadata items exceeds 40",
-            "code": 403
-        }})
+        self.assert_maximum_metadata(*self.create_server(metadata))
 
     def test_create_server_with_invalid_metadata_values(self):
         """
@@ -773,23 +816,91 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         it should return an HTTP status code of 400 and an error message
         saying that values must be strings or unicode.
         """
-        response, body = self.create_server({"key": []})
-        self.assertEqual(response.code, 400)
-        self.assertEqual(body, {"badRequest": {
-            "message": (
-                "Invalid metadata: The input is not a string or unicode"),
-            "code": 400
-        }})
+        self.assert_metadata_not_string(*self.create_server({"key": []}))
 
     def test_create_server_too_many_metadata_items_takes_precedence(self):
         """
         When ``create_server`` is passed metadata with too many items and
         invalid metadata values, the too many items error takes precedence.
         """
-        metadata = {"key{0}".format(i): i for i in xrange(100)}
-        response, body = self.create_server(metadata)
-        self.assertEqual(response.code, 403)
-        self.assertEqual(body, {"forbidden": {
-            "message": "Maximum number of metadata items exceeds 40",
-            "code": 403
-        }})
+        metadata = {"key{0}".format(i): [] for i in xrange(100)}
+        self.assert_maximum_metadata(*self.create_server(metadata))
+
+    def test_create_server_null_metadata_succeeds(self):
+        """
+        When ``create_server`` is passed metadata with too many items and
+        invalid metadata values, the too many items error takes precedence.
+        """
+        response, body = self.create_server(None)
+        self.assertEqual(response.code, 202)
+
+    def test_set_metadata_with_only_metadata_body_succeeds(self):
+        """
+        When setting metadata with a body that looks like
+        ``{'metadata': {<valid metadata}}``, a 200 is received with a valid
+        response body.
+        """
+        response, body = self.set_metadata({"metadata": {}})
+        self.assertEqual(response.code, 200)
+        self.assertEqual(body, {'metadata': {}})
+
+    def test_set_metadata_with_extra_keys_succeeds(self):
+        """
+        When setting metadata with a body that contains extra garbage keys,
+        a 200 is received with a valid response body.
+        """
+        response, body = self.set_metadata({"metadata": {}, "extra": "junk"})
+        self.assertEqual(response.code, 200)
+        self.assertEqual(body, {'metadata': {}})
+
+    def test_set_metadata_to_null_fails(self):
+        """
+        When setting metadata to null, a 400 with a specific message is
+        received.
+        """
+        response, body = self.set_metadata({"metadata": None})
+        self.assertEqual(response.code, 400)
+        self.assertEqual(body, {
+            "badRequest": {
+                "message": "Malformed request body. metadata must be object",
+                "code": 400
+            }
+        })
+
+    def test_set_metadata_with_invalid_metadata(self):
+        """
+        When ``set_server`` is passed metadata with too many items, it
+        should return an HTTP status code of 403 and an error message saying
+        there are too many items.
+        """
+        self.assert_malformed_body(
+            *self.set_metadata({"metadata": "not metadata"}))
+
+    def test_set_metadata_with_too_many_metadata_items(self):
+        """
+        When ``set_server`` is passed metadata with too many items, it
+        should return an HTTP status code of 403 and an error message saying
+        there are too many items.
+        """
+        metadata = {"key{0}".format(i): "value{0}".format(i)
+                    for i in xrange(100)}
+        self.assert_maximum_metadata(
+            *self.set_metadata({"metadata": metadata}))
+
+    def test_set_metadata_with_invalid_metadata_values(self):
+        """
+        When ``set_metadata`` is passed metadata with non-string-type values,
+        it should return an HTTP status code of 400 and an error message
+        saying that values must be strings or unicode.
+        """
+        self.assert_metadata_not_string(
+            *self.set_metadata({"metadata": {"key": []}}))
+
+    def test_set_metadata_too_many_metadata_items_takes_precedence(self):
+        """
+        When ``set_metadata`` is passed metadata with too many items and
+        invalid metadata values, the too many items error takes precedence.
+        """
+        metadata = {"key{0}".format(i): [] for i in xrange(100)}
+        self.assert_maximum_metadata(
+            *self.set_metadata({"metadata": metadata}))

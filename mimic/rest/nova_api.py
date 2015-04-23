@@ -23,7 +23,8 @@ from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.imimic import IAPIMock
-from mimic.model.nova_objects import GlobalServerCollections, LimitError
+from mimic.model.nova_objects import (
+    GlobalServerCollections, LimitError, Server)
 from mimic.util.helper import bad_request
 
 Request.defaultContentType = 'application/json'
@@ -314,3 +315,97 @@ class NovaRegion(object):
                 request, server_id
             )
         )
+
+    @app.route('/v2/<string:tenant_id>/servers/<string:server_id>/metadata',
+               branch=True)
+    def handle_server_metadata(self, request, tenant_id, server_id):
+        """
+        Handle metadata requests associated with a particular server.  Server
+        not found error message verified as of 2015-04-23 against Rackspace
+        Nova.
+        """
+        server = (self._region_collection_for_tenant(tenant_id)
+                  .server_by_id(server_id))
+        if server is None:
+            request.setResponseCode(404)
+            return json.dumps({
+                'itemNotFound': {
+                    'message': 'Server does not exist',
+                    'code': 404
+                }
+            })
+        return ServerMetadata(server).app.resource()
+
+
+class ServerMetadata(object):
+
+    """
+    Klein routes for a particular server's metadata.
+    """
+
+    def __init__(self, server):
+        """
+        Handle requests having to deal a server's metadata.  No URIs
+        are generated or used.
+        """
+        self._server = server
+
+    app = MimicApp()
+
+    @app.route('/', methods=['GET'])
+    def list_metadata(self, request):
+        """
+        List all metadata associated with a server.
+        """
+        return json.dumps({'metadata': self.server.metadata})
+
+
+    @app.route('/', methods=['PUT'])
+    def set_metadata(self, request):
+        """
+        Set the metadata for the specified server - this replaces whatever
+        metadata was there.  The resulting metadata is not a union of the
+        previous metadata and the new metadata - it is *just* the new
+        metadata.
+
+        The body must look like:
+
+        ``{"metadata": {...}}``
+
+        although
+
+        ``{"metadata": {...}, "other": "garbage", "keys": "included"}``
+
+        is ok too.
+
+        All the response messages and codes have been verified as of
+        2015-04-23 against Rackspace Nova.
+        """
+        try:
+            content = json.loads(request.content.read())
+        except ValueError:
+            request.setResponseCode(400)
+            return json.dumps(bad_request("Malformed request body"))
+
+        # more than one key is ok, non-"meta" keys are just ignored
+        if 'metadata' not in content:
+            request.setResponseCode(400)
+            return json.dumps(bad_request("Malformed request body"))
+
+        try:
+            Server.validate_metadata(content['metadata'])
+        except ValueError as e:
+            request.setResponseCode(400)
+            return json.dumps(bad_request(e.message))
+        except LimitError as e:
+            request.setResponseCode(403)
+            return json.dumps({
+                "forbidden": {
+                    "message": e.message,
+                    "code": 403
+                }
+            })
+
+        self._server.metadata = content['metadata']
+        return json.dumps({'metadata': content['metadata']})
+

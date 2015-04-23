@@ -147,10 +147,48 @@ class Server(object):
             }
         }
 
+    def set_metadata_item(self, key, value):
+        """
+        Set a metadata item on the server.
+
+        All the response messages have been verified as of 2015-04-23 against
+        Rackspace Nova.
+        """
+        if key not in self.metadata:
+            if len(self.metadata) == self.max_metadata:
+                raise LimitError(
+                    "Maximum number of metadata items exceeds 40")
+
+        if not isinstance(value, string_types):
+            raise ValueError(
+                "Invalid metadata: The input is not a string or unicode")
+
+        self.metadata[key] = value
+
+    @classmethod
+    def validate_metadata(cls, metadata, max_metadata_items=40):
+        """
+        Validate the given metadata - this is the complete metadata dict.
+
+        All the response messages have been verified as of 2015-04-23 against
+        Rackspace Nova.
+        """
+        # When setting metadata, None is special for some reason
+        if metadata is None:
+            raise ValueError(
+                "Malformed request body. metadata must be object")
+        if not isinstance(metadata, dict):
+            raise ValueError("Malformed request body")
+        if len(metadata) > max_metadata_items:
+            raise LimitError("Maximum number of metadata items exceeds 40")
+        if not all(isinstance(v, string_types) for v in metadata.values()):
+            raise ValueError(
+                "Invalid metadata: The input is not a string or unicode")
+
     @classmethod
     def from_creation_request_json(cls, collection, creation_json,
                                    ipsegment=lambda: randrange(255),
-                                   max_metadata=40):
+                                   max_metadata_items=40):
         """
         Create a :obj:`Server` from a JSON-serializable object that would be in
         the body of a create server request.
@@ -163,11 +201,7 @@ class Server(object):
                 "OS-DCF:diskConfig must be either 'MANUAL' or 'AUTO'.")
 
         metadata = server_json.get("metadata") or {}
-        if len(metadata) > max_metadata:
-            raise LimitError("Maximum number of metadata items exceeds 40")
-        if not all(isinstance(v, string_types) for v in metadata.values()):
-            raise ValueError(
-                "Invalid metadata: The input is not a string or unicode")
+        cls.validate_metadata(metadata, max_metadata_items)
 
         self = cls(
             collection=collection,
@@ -438,8 +472,8 @@ class RegionalServerCollection(object):
         """
         Request that a server be created.
         """
-        behavior = metadata_to_creation_behavior(
-            creation_json.get('server', {}).get('metadata', {}))
+        metadata = creation_json.get('server', {}).get('metadata') or {}
+        behavior = metadata_to_creation_behavior(metadata)
         if behavior is None:
             behavior = self.create_behavior_registry.behavior_for_attributes({
                 "tenant_id": self.tenant_id,
