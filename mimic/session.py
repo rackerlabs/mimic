@@ -74,8 +74,8 @@ class SessionStore(object):
         self._userid_to_session = {
             # mapping of userid (ascii) to session (Session)
         }
-        self._tenant_to_token = {
-            # mapping of tenant_id (unicode) to token (unicode)
+        self._tenant_to_session = {
+            # mapping of tenant_id (unicode) to session (Session)
         }
         self._username_to_token = {
             # mapping of token (unicode) to username (unicode: key in
@@ -115,8 +115,12 @@ class SessionStore(object):
         self._username_to_token[username_key] = session.token
         self._token_to_session[session.token] = session
         self._userid_to_session[session.user_id] = session
-        self._tenant_to_token[session.tenant_id] = session.token
+        self._tenant_to_session[session.tenant_id] = session
         return session
+
+    def _assert_tenant_matches(self, session, tenant_id):
+        if tenant_id is not None and session.tenant_id != tenant_id:
+            raise NonMatchingTenantError(session=session, desired_tenant=tenant_id)
 
     def session_for_token(self, token, tenant_id=None):
         """
@@ -131,9 +135,9 @@ class SessionStore(object):
         """
         if token in self._token_to_session:
             s = self._token_to_session[token]
-            if tenant_id is not None and s.tenant_id != tenant_id:
-                raise NonMatchingTenantError(session=s,
-                                             desired_tenant=tenant_id)
+            self._assert_tenant_matches(s, tenant_id)
+        elif tenant_id and tenant_id in self._tenant_to_session:
+            s = self._tenant_to_session[tenant_id]
         else:
             s = self._new_session(token=token, tenant_id=tenant_id)
         return s
@@ -158,10 +162,11 @@ class SessionStore(object):
         """
         if username in self._username_to_token:
             s = self._token_to_session[self._username_to_token[username]]
-            if tenant_id is not None and s.tenant_id != tenant_id:
-                raise NonMatchingTenantError(session=s,
-                                             desired_tenant=tenant_id)
+            self._assert_tenant_matches(s, tenant_id)
             return s
+
+        if tenant_id and tenant_id in self._tenant_to_session:
+            return self._tenant_to_session[tenant_id]
 
         return self._new_session(username=username,
                                  tenant_id=tenant_id)
@@ -189,6 +194,6 @@ class SessionStore(object):
         :param unicode token_id: Sets token in the session to the token_id provided,
             else, creates one.
         """
-        if tenant_id not in self._tenant_to_token:
+        if tenant_id not in self._tenant_to_session:
             return self._new_session(tenant_id=tenant_id, token=token_id)
-        return self.session_for_token(self._tenant_to_token[tenant_id])
+        return self._tenant_to_session[tenant_id]

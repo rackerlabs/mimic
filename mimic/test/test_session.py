@@ -242,3 +242,34 @@ class SessionCreationTests(SynchronousTestCase):
         ]
         for i, session in enumerate(sessions):
             self.assertEqual("tenant{0}".format(i + 1), session.tenant_id)
+
+    def test_token_after_api_key_specifying_tenant(self):
+        """
+        Sessions created by
+        :class:`SessionStore.session_for_api_key` and specifying
+        the tenant ID should be returned on requests to
+        :class:`SessionStore.session_for_token` that also specify
+        the same tenant ID.
+        """
+        clock = Clock()
+        sessions = SessionStore(clock)
+        session_by_api_key = sessions.session_for_api_key(
+            "user1", "f005ba11", tenant_id="559638")
+        session_by_token = sessions.session_for_token(
+            "token", tenant_id="559638")
+        self.assertIs(session_by_api_key, session_by_token)
+
+    def test_username_password_after_token_specifying_tenant(self):
+        """
+        Sessions created by
+        :class:`SessionStore.session_for_token` and specifying
+        the tenant ID should be returned on requests to
+        :class:`SessionStore.session_for_username_password` that
+        also specify the same tenant ID.
+        """
+        clock = Clock()
+        sessions = SessionStore(clock)
+        session_by_token = sessions.session_for_token("token", tenant_id="tenant1337")
+        session_by_username_password = sessions.session_for_username_password(
+            "user1", "pass", "tenant1337")
+        self.assertIs(session_by_token, session_by_username_password)
