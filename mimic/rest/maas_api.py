@@ -642,10 +642,21 @@ class MaasMock(object):
                                'details': 'You must specify an agentId, entityId, or an entity URI.',
                                'mimicNotes': 'But mimic will only accept entityId right now',
                                'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+
         entity_id = request.args['entityId'][0].strip()
         for e in self._entity_cache_for_tenant(tenant_id).entities_list:
             if e['id'] == entity_id:
                 agent_id = e['agent_id']
+                break
+        else:
+            request.setResponseCode(404)
+            return json.dumps({'type': 'notFoundError',
+                               'code': 404,
+                               'message': 'Object does not exist',
+                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
+                                   entity_id),
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+
         self._entity_cache_for_tenant(tenant_id).agenthostinfo_querycount[entity_id] += 1
         if self._entity_cache_for_tenant(tenant_id).agenthostinfo_querycount[entity_id] < 5:
             request.setResponseCode(400)

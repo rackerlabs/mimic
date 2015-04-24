@@ -350,6 +350,12 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 400)
         data = self.get_responsebody(resp)
         self.assertEquals(True, data['type'] == 'badRequest')
+        req = request(self, self.root, "GET",
+                      self.uri + '/views/agent_host_info?entityId=enDoesNotExist')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 404)
+        data = self.get_responsebody(resp)
+        self.assertEquals(data['type'], 'notFoundError')
 
     def test_agentinstallers(self):
         """
