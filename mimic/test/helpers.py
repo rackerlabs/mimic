@@ -6,6 +6,8 @@ from __future__ import print_function
 
 import json
 
+from six import string_types
+
 from zope.interface import implementer
 
 from twisted.test.proto_helpers import StringTransport, MemoryReactor
@@ -184,7 +186,7 @@ def json_request(testCase, rootResource, method, uri, body=b"",
     Issue a request with a JSON body (if there's a body at all) and return
     synchronously with a tuple of ``(response, JSON response body)``
     """
-    if body != "":
+    if not isinstance(body, string_types):
         body = json.dumps(body)
 
     d = request(testCase, rootResource, method, uri, body, baseURI, headers)

@@ -941,7 +941,7 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         When setting metadata with an invalid request body (not a dict), it
         should return an HTTP status code of 400:malformed request body
         """
-        self.assert_malformed_body(*self.set_metadata("meh"))
+        self.assert_malformed_body(*self.set_metadata('meh'))
 
     def test_set_metadata_with_invalid_metadata_object(self):
         """
@@ -1048,6 +1048,21 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         self.assert_malformed_body(
             *self.set_metadata_item({}, "meh",
                                     {"metadata": {"meh": "value"}}))
+
+    def test_set_metadata_item_with_mismatching_key_and_body(self):
+        """
+        When setting metadata item, the key in the 'meta' dictionary needs to
+        match the key in the URL, or a special 400 response is returned.
+        """
+        response, body = self.set_metadata_item(
+            {}, "key", {"meta": {"notkey": "value"}})
+        self.assertEqual(response.code, 400)
+        self.assertEqual(body, {
+            "badRequest": {
+                "message": "Request body and URI mismatch",
+                "code": 400
+            }
+        })
 
     def test_set_metadata_item_with_wrong_meta_type_fails(self):
         """
