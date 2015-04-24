@@ -1,4 +1,3 @@
-
 import json
 import treq
 
@@ -712,3 +711,444 @@ class NovaAPINegativeTests(SynchronousTestCase):
         self.assertEquals(failing_create_response_body['message'],
                           "Sample failure message")
         self.assertEquals(failing_create_response_body['code'], 503)
+
+
+class NovaAPIMetadataTests(SynchronousTestCase):
+    """
+    Tests for the Nova Api plugin handling metadata.
+    """
+
+    def setUp(self):
+        """
+        Create a :obj:`MimicCore` with :obj:`NovaApi` as the only plugin,
+        and create a server
+        """
+        helper = APIMockHelper(self, [NovaApi(["ORD", "MIMIC"])])
+        self.root = helper.root
+        self.uri = helper.uri
+
+    def create_server(self, metadata):
+        """
+        Create a server with the given metadata.
+        """
+        return self.successResultOf(json_request(
+            self, self.root, "POST", self.uri + '/servers',
+            {
+                "server": {
+                    "name": "A",
+                    "imageRef": "test-image",
+                    "flavorRef": "test-flavor",
+                    "metadata": metadata
+                }
+            }))
+
+    def get_server_url(self, metadata):
+        """
+        Create a server with the given metadata, and return the URL of
+        the server.
+        """
+        response, body = self.create_server(metadata)
+        self.assertEqual(response.code, 202)
+        return [
+            link['href'] for link in body['server']['links']
+            if link['rel'] == 'self'][0]
+
+    def set_metadata(self, request_body):
+        """
+        Create a server with null metadata, then hit the set metadata endpoint
+        with the given request body.
+        """
+        return self.successResultOf(json_request(
+            self, self.root, "PUT", self.get_server_url(None) + '/metadata',
+            request_body))
+
+    def set_metadata_item(self, create_metadata, key, request_body):
+        """
+        Create a server with given metadata, then hit the set metadata item
+        endpoint with the given request body.
+        """
+        return self.successResultOf(json_request(
+            self, self.root, "PUT",
+            self.get_server_url(create_metadata) + '/metadata/' + key,
+            request_body))
+
+    def get_created_server_metadata(self):
+        """
+        Ok, we've lost the link to the original server.  But there should
+        just be the one.  Get its metadata.
+        """
+        resp, body = self.successResultOf(json_request(
+            self, self.root, "GET", self.uri + '/servers/detail'))
+        self.assertEqual(resp.code, 200)
+
+        return body['servers'][0]['metadata']
+
+    def assert_malformed_body(self, response, body):
+        """
+        Assert that the response and body are 400:malformed request body.
+        """
+        self.assertEqual(response.code, 400)
+        self.assertEqual(body, {"badRequest": {
+            "message": "Malformed request body",
+            "code": 400
+        }})
+
+    def assert_maximum_metadata(self, response, body):
+        """
+        Assert that the response and body are 403:max metadata.
+        """
+        self.assertEqual(response.code, 403)
+        self.assertEqual(body, {"forbidden": {
+            "message": "Maximum number of metadata items exceeds 40",
+            "code": 403
+        }})
+
+    def assert_metadata_not_string(self, response, body):
+        """
+        Assert that the response and body are 400:metadata value not string.
+        """
+        self.assertEqual(response.code, 400)
+        self.assertEqual(body, {"badRequest": {
+            "message": (
+                "Invalid metadata: The input is not a string or unicode"),
+            "code": 400
+        }})
+
+    def assert_no_such_server(self, response, body):
+        """
+        Assert that the response and body are 404:server does not exist.
+        """
+        self.assertEqual(response.code, 404)
+        self.assertEqual(body, {
+            'itemNotFound': {
+                'message': 'Server does not exist',
+                'code': 404
+            }
+        })
+
+    def test_create_server_with_invalid_metadata_object(self):
+        """
+        When ``create_server`` with an invalid metadata object (a string), it
+        should return an HTTP status code of 400:malformed body.
+        """
+        self.assert_malformed_body(*self.create_server("not metadata"))
+
+    def test_create_server_with_too_many_metadata_items(self):
+        """
+        When ``create_server`` is passed metadata with too many items, it
+        should return an HTTP status code of 403 and an error message saying
+        there are too many items.
+        """
+        metadata = dict(("key{0}".format(i), "value{0}".format(i))
+                        for i in xrange(100))
+        self.assert_maximum_metadata(*self.create_server(metadata))
+
+    def test_create_server_with_invalid_metadata_values(self):
+        """
+        When ``create_server`` is passed metadata with non-string-type values,
+        it should return an HTTP status code of 400 and an error message
+        saying that values must be strings or unicode.
+        """
+        self.assert_metadata_not_string(*self.create_server({"key": []}))
+
+    def test_create_server_too_many_metadata_items_takes_precedence(self):
+        """
+        When ``create_server`` is passed metadata with too many items and
+        invalid metadata values, the too many items error takes precedence.
+        """
+        metadata = dict(("key{0}".format(i), []) for i in xrange(100))
+        self.assert_maximum_metadata(*self.create_server(metadata))
+
+    def test_create_server_null_metadata_succeeds(self):
+        """
+        When ``create_server`` is passed null metadata, it successfully
+        creates a server.
+        """
+        response, body = self.create_server(None)
+        self.assertEqual(response.code, 202)
+
+    def test_get_metadata(self):
+        """
+        Getting metadata gets whatever metadata the server has.
+        """
+        metadata = {'key': 'value', 'key2': 'anothervalue'}
+        response, body = self.successResultOf(json_request(
+            self, self.root, "GET",
+            self.get_server_url(metadata) + '/metadata'))
+        self.assertEqual(response.code, 200)
+        self.assertEqual(body, {'metadata': metadata})
+
+        # double check against server details
+        self.assertEqual(
+            body, {'metadata': self.get_created_server_metadata()})
+
+    def test_get_metadata_on_nonexistant_server_404(self):
+        """
+        Getting metadata on a non-existing server results in a 404.
+        """
+        response, body = self.successResultOf(json_request(
+            self, self.root, "GET",
+            self.uri + '/servers/1234/metadata'))
+        self.assert_no_such_server(response, body)
+
+    def test_set_metadata_on_nonexistant_server_404(self):
+        """
+        Setting metadata on a non-existing server results in a 404.
+        """
+        response, body = self.successResultOf(json_request(
+            self, self.root, "PUT",
+            self.uri + '/servers/1234/metadata',
+            {'metadata': {}}))
+        self.assert_no_such_server(response, body)
+
+    def test_set_metadata_with_only_metadata_body_succeeds(self):
+        """
+        When setting metadata with a body that looks like
+        ``{'metadata': {<valid metadata>}}``, a 200 is received with a valid
+        response body.
+        """
+        response, body = self.set_metadata({"metadata": {}})
+        self.assertEqual(response.code, 200)
+        self.assertEqual(body, {'metadata': {}})
+        self.assertEqual(self.get_created_server_metadata(), {})
+
+    def test_set_metadata_with_extra_keys_succeeds(self):
+        """
+        When setting metadata with a body that contains extra garbage keys,
+        a 200 is received with a valid response body.
+        """
+        response, body = self.set_metadata({"metadata": {}, "extra": "junk"})
+        self.assertEqual(response.code, 200)
+        self.assertEqual(body, {'metadata': {}})
+        self.assertEqual(self.get_created_server_metadata(), {})
+
+    def test_set_metadata_to_null_fails(self):
+        """
+        When setting metadata to null, a 400 with a specific message is
+        received.
+        """
+        response, body = self.set_metadata({"metadata": None})
+        self.assertEqual(response.code, 400)
+        self.assertEqual(body, {
+            "badRequest": {
+                "message": "Malformed request body. metadata must be object",
+                "code": 400
+            }
+        })
+
+    def test_set_metadata_with_invalid_json_body_fails(self):
+        """
+        When setting metadata with an invalid request body (not a dict), it
+        should return an HTTP status code of 400:malformed request body
+        """
+        self.assert_malformed_body(*self.set_metadata('meh'))
+
+    def test_set_metadata_with_invalid_metadata_object(self):
+        """
+        When ``set_metadata`` is passed a dictionary with the metadata key,
+        but the metadata is not a dict, it should return an HTTP status code
+        of 400: malformed request body.
+        """
+        self.assert_malformed_body(
+            *self.set_metadata({"metadata": "not metadata"}))
+
+    def test_set_metadata_without_metadata_key(self):
+        """
+        When ``set_metadata`` is passed metadata with the wrong key, it
+        should return an HTTP status code of 400: malformed request body.
+        """
+        self.assert_malformed_body(
+            *self.set_metadata({"meta": {"wrong": "metadata key"}}))
+
+    def test_set_metadata_with_too_many_metadata_items(self):
+        """
+        When ``set_metadata`` is passed metadata with too many items, it
+        should return an HTTP status code of 403 and an error message saying
+        there are too many items.
+        """
+        metadata = dict(("key{0}".format(i), "value{0}".format(i))
+                        for i in xrange(100))
+        self.assert_maximum_metadata(
+            *self.set_metadata({"metadata": metadata}))
+
+    def test_set_metadata_with_invalid_metadata_values(self):
+        """
+        When ``set_metadata`` is passed metadata with non-string-type values,
+        it should return an HTTP status code of 400 and an error message
+        saying that values must be strings or unicode.
+        """
+        self.assert_metadata_not_string(
+            *self.set_metadata({"metadata": {"key": []}}))
+
+    def test_set_metadata_on_nonexistant_server_404_takes_precedence(self):
+        """
+        Setting metadata on a non-existing server results in a 404, no matter
+        how broken the metadata is.
+        """
+        response, body = self.successResultOf(json_request(
+            self, self.root, "PUT",
+            self.uri + '/servers/1234/metadata',
+            'meh'))
+        self.assert_no_such_server(response, body)
+
+    def test_set_metadata_too_many_metadata_items_takes_precedence(self):
+        """
+        When ``set_metadata`` is passed metadata with too many items and
+        invalid metadata values, the too many items error takes precedence.
+        """
+        metadata = dict(("key{0}".format(i), []) for i in xrange(100))
+        self.assert_maximum_metadata(
+            *self.set_metadata({"metadata": metadata}))
+
+    def test_set_metadata_item_on_nonexistant_server_404(self):
+        """
+        Setting metadata item on a non-existing server results in a 404.
+        """
+        response, body = self.successResultOf(json_request(
+            self, self.root, "PUT",
+            self.uri + '/servers/1234/metadata/key',
+            {'meta': {'key': 'value'}}))
+        self.assert_no_such_server(response, body)
+
+    def test_set_metadata_item_with_only_meta_body_succeeds(self):
+        """
+        When setting a metadata item with a body that looks like
+        ``{'meta': {<valid key>: <valid value>}}``, a 200 is received with a
+        valid response body.
+        """
+        response, body = self.set_metadata_item(
+            {}, 'key', {"meta": {'key': 'value'}})
+        self.assertEqual(response.code, 200)
+        self.assertEqual(body, {'meta': {'key': 'value'}})
+        self.assertEqual(self.get_created_server_metadata(), {'key': 'value'})
+
+    def test_set_metadata_item_with_extra_keys_succeeds(self):
+        """
+        When setting metadata with a body that contains extra garbage keys,
+        a 200 is received with a valid response body.
+        """
+        response, body = self.set_metadata_item(
+            {}, 'key', {"meta": {'key': 'value'}, "extra": "junk"})
+        self.assertEqual(response.code, 200)
+        self.assertEqual(body, {'meta': {'key': 'value'}})
+        self.assertEqual(self.get_created_server_metadata(), {'key': 'value'})
+
+    def test_set_metadata_item_with_invalid_json_body_fails(self):
+        """
+        When setting metadata item with an invalid request body, it should
+        return an HTTP status code of 400:malformed request body
+        """
+        self.assert_malformed_body(*self.set_metadata_item({}, "meh", "meh"))
+
+    def test_set_metadata_item_with_wrong_key_fails(self):
+        """
+        When setting metadata item without a 'meta' key should
+        return an HTTP status code of 400:malformed request body
+        """
+        self.assert_malformed_body(
+            *self.set_metadata_item({}, "meh",
+                                    {"metadata": {"meh": "value"}}))
+
+    def test_set_metadata_item_with_mismatching_key_and_body(self):
+        """
+        When setting metadata item, the key in the 'meta' dictionary needs to
+        match the key in the URL, or a special 400 response is returned.
+        """
+        response, body = self.set_metadata_item(
+            {}, "key", {"meta": {"notkey": "value"}})
+        self.assertEqual(response.code, 400)
+        self.assertEqual(body, {
+            "badRequest": {
+                "message": "Request body and URI mismatch",
+                "code": 400
+            }
+        })
+
+    def test_set_metadata_item_with_wrong_meta_type_fails(self):
+        """
+        When setting metadata item without a 'meta' key mapped to not a
+        dictionary should return an HTTP status code of 400:malformed request
+        body
+        """
+        self.assert_malformed_body(
+            *self.set_metadata_item({}, "meh", {"meta": "wrong"}))
+
+    def test_set_metadata_item_with_too_many_keys_and_values(self):
+        """
+        When ``set_metadata_item`` is passed too many keys and values, it
+        should return an HTTP status code of 400 and a special
+        metadata-item-only error message saying there are too many items.
+        """
+        response, body = self.set_metadata_item(
+            {}, 'key',
+            {"meta": {"key": "value", "otherkey": "otherval"}})
+        self.assertEqual(response.code, 400)
+        self.assertEqual(body, {
+            "badRequest": {
+                "message": "Request body contains too many items",
+                "code": 400
+            }
+        })
+
+    def test_set_metadata_item_with_too_many_metadata_items_already(self):
+        """
+        When ``set_metadata_item`` is called with a new key and there are
+        already the maximum number of metadata items on the server already,
+        it should return an HTTP status code of 403 and an error message
+        saying there are too many items.
+        """
+        metadata = dict(("key{0}".format(i), "value{0}".format(i))
+                        for i in xrange(40))
+        self.assert_maximum_metadata(
+            *self.set_metadata_item(metadata, 'newkey',
+                                    {"meta": {"newkey": "newval"}}))
+
+    def test_set_metadata_item_replace_existing_metadata(self):
+        """
+        If there are already the maximum number of metadata items on the
+        server, but ``set_metadata_item`` is called with an already existing
+        key, it should succeed (because it replaces the original metadata
+        item).
+        """
+        metadata = dict(("key{0}".format(i), "value{0}".format(i))
+                        for i in xrange(40))
+        response, body = self.set_metadata_item(
+            metadata, 'key0', {"meta": {"key0": "newval"}})
+        self.assertEqual(response.code, 200)
+        self.assertEqual(body, {"meta": {"key0": "newval"}})
+
+        expected = dict(("key{0}".format(i), "value{0}".format(i))
+                        for i in xrange(1, 40))
+        expected['key0'] = 'newval'
+        self.assertEqual(self.get_created_server_metadata(), expected)
+
+    def test_set_metadata_item_with_invalid_metadata_values(self):
+        """
+        When ``set_metadata_item`` is passed metadata with non-string-type values,
+        it should return an HTTP status code of 400 and an error message
+        saying that values must be strings or unicode.
+        """
+        self.assert_metadata_not_string(
+            *self.set_metadata_item({}, 'key', {"meta": {"key": []}}))
+
+    def test_set_metadata_item_on_nonexistant_server_404_takes_precedence(
+            self):
+        """
+        Setting metadata item on a non-existing server results in a 404, and
+        takes precedence over other errors.
+        """
+        response, body = self.successResultOf(json_request(
+            self, self.root, "PUT",
+            self.uri + '/servers/1234/metadata/key',
+            'meh'))
+        self.assert_no_such_server(response, body)
+
+    def test_set_metadata_item_too_many_metadata_items_takes_precedence(self):
+        """
+        When ``set_metadata_item`` is passed metadata with too many items and
+        invalid metadata values, the too many items error takes precedence.
+        """
+        metadata = dict(("key{0}".format(i), "value{0}".format(i))
+                        for i in xrange(40))
+        self.assert_maximum_metadata(
+            *self.set_metadata_item(metadata, 'key', {"meta": {"key": []}}))

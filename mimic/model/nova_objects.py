@@ -8,6 +8,8 @@ from characteristic import attributes, Attribute
 from random import randrange
 from json import loads, dumps
 
+from six import string_types
+
 from mimic.util.helper import (
     seconds_to_timestamp,
     invalid_resource,
@@ -20,10 +22,26 @@ from mimic.model.behaviors import (
 from twisted.web.http import ACCEPTED, NOT_FOUND
 
 
+@attributes(['nova_message'])
+class LimitError(Exception):
+    """
+    Error to be raised when a limit has been exceeded.
+    """
+
+
+@attributes(['nova_message'])
+class BadRequestError(Exception):
+    """
+    Error to be raised when bad input has been received to Nova.
+    """
+
+
 @attributes(["collection", "server_id", "server_name", "metadata",
              "creation_time", "update_time", "public_ips", "private_ips",
              "status", "flavor_ref", "image_ref", "disk_config",
-             "admin_password", "creation_request_json"])
+             "admin_password", "creation_request_json",
+             Attribute('max_metadata_items', instance_of=int,
+                       default_value=40)])
 class Server(object):
     """
     A :obj:`Server` is a representation of all the state associated with a nova
@@ -138,9 +156,47 @@ class Server(object):
             }
         }
 
+    def set_metadata_item(self, key, value):
+        """
+        Set a metadata item on the server.
+
+        All the response messages have been verified as of 2015-04-23 against
+        Rackspace Nova.
+        """
+        if key not in self.metadata:
+            if len(self.metadata) == self.max_metadata_items:
+                raise LimitError(nova_message=(
+                    "Maximum number of metadata items exceeds {0}"
+                    .format(self.max_metadata_items)))
+
+        if not isinstance(value, string_types):
+            raise BadRequestError(nova_message=(
+                "Invalid metadata: The input is not a string or unicode"))
+
+        self.metadata[key] = value
+
+    @classmethod
+    def validate_metadata(cls, metadata, max_metadata_items=40):
+        """
+        Validate the given metadata - this is the complete metadata dict.
+
+        All the response messages have been verified as of 2015-04-23 against
+        Rackspace Nova.
+        """
+        if not isinstance(metadata, dict):
+            raise BadRequestError(nova_message="Malformed request body")
+        if len(metadata) > max_metadata_items:
+            raise LimitError(nova_message=(
+                "Maximum number of metadata items exceeds {0}"
+                .format(max_metadata_items)))
+        if not all(isinstance(v, string_types) for v in metadata.values()):
+            raise BadRequestError(nova_message=(
+                "Invalid metadata: The input is not a string or unicode"))
+
     @classmethod
     def from_creation_request_json(cls, collection, creation_json,
-                                   ipsegment=lambda: randrange(255)):
+                                   ipsegment=lambda: randrange(255),
+                                   max_metadata_items=40):
         """
         Create a :obj:`Server` from a JSON-serializable object that would be in
         the body of a create server request.
@@ -149,13 +205,18 @@ class Server(object):
         server_json = creation_json['server']
         disk_config = server_json.get('OS-DCF:diskConfig', None) or "AUTO"
         if disk_config not in ["AUTO", "MANUAL"]:
-            raise ValueError("OS-DCF:diskConfig not either AUTO or MANUAL")
+            raise BadRequestError(nova_message=(
+                "OS-DCF:diskConfig must be either 'MANUAL' or 'AUTO'."))
+
+        metadata = server_json.get("metadata") or {}
+        cls.validate_metadata(metadata, max_metadata_items)
+
         self = cls(
             collection=collection,
             server_name=server_json['name'],
             server_id=('test-server{0}-id-{0}'
                        .format(str(randrange(9999999999)))),
-            metadata=server_json.get("metadata") or {},
+            metadata=metadata,
             creation_time=now,
             update_time=now,
             private_ips=[
@@ -172,6 +233,7 @@ class Server(object):
             disk_config=disk_config,
             status="ACTIVE",
             admin_password=random_string(12),
+            max_metadata_items=max_metadata_items
         )
         collection.servers.append(self)
         return self
@@ -419,8 +481,8 @@ class RegionalServerCollection(object):
         """
         Request that a server be created.
         """
-        behavior = metadata_to_creation_behavior(
-            creation_json.get('server', {}).get('metadata', {}))
+        metadata = creation_json.get('server', {}).get('metadata') or {}
+        behavior = metadata_to_creation_behavior(metadata)
         if behavior is None:
             behavior = self.create_behavior_registry.behavior_for_attributes({
                 "tenant_id": self.tenant_id,
