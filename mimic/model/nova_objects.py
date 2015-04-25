@@ -13,6 +13,7 @@ from six import string_types
 from mimic.util.helper import (
     seconds_to_timestamp,
     invalid_resource,
+    not_found_response,
     random_string,
 )
 
@@ -499,7 +500,7 @@ class RegionalServerCollection(object):
         server = self.server_by_id(server_id)
         if server is None:
             http_get_request.setResponseCode(404)
-            return None
+            return dumps(not_found_response('servers'))
         return dumps({"server": server.detail_json(absolutize_url)})
 
     def request_ips(self, http_get_ips_request, server_id):
