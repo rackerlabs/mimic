@@ -17,10 +17,10 @@ class IdentityAdminAPI(object):
         """
         Creates an identity admin resource.
         """
-        return IdentityAdminImpl().app.resource()
+        return _IdentityAdminImpl().app.resource()
 
 
-class IdentityAdminImpl(object):
+class _IdentityAdminImpl(object):
     """
     Klein resources for the Identiy admin API.
 
