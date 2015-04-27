@@ -4,6 +4,7 @@ Tests for the identity admin API.
 
 from twisted.plugin import IPlugin
 from twisted.trial.unittest import SynchronousTestCase
+from twisted.web.resource import IResource
 
 from zope.interface.verify import verifyObject
 
@@ -28,3 +29,11 @@ class IdentityAdminAPITests(SynchronousTestCase):
         """
         verifyObject(IAPIMock, self.mock)
         verifyObject(IPlugin, self.mock)
+
+    def test_resource_for_region(self):
+        """
+        :meth:`resource_for_region` returns an identity admin resource.
+        """
+        store = None
+        resource = self.mock.resource_for_region("REG", "prefix", store)
+        verifyObject(IResource, resource)
