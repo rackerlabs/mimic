@@ -12,6 +12,9 @@ from mimic.rest.identity_admin_api import IdentityAdminAPI
 
 
 class IdentityAdminAPITests(SynchronousTestCase):
+    """
+    Tests for the identity admin API mock.
+    """
     def test_interface(self):
         """
         The identity admin implements the IPlugin and IAPIMock interfaces
