@@ -215,10 +215,15 @@ class NovaAPITests(SynchronousTestCase):
         Test to verify :func:`get_server` on ``GET /v2.0/<tenant_id>/servers/<server_id>``,
         when the server_id does not exist
         """
-        get_server = request(
-            self, self.root, "GET", self.uri + '/servers/test-server-id')
-        get_server_response = self.successResultOf(get_server)
-        self.assertEqual(get_server_response.code, 404)
+        response, body = self.successResultOf(json_request(
+            self, self.root, "GET", self.uri + '/servers/test-server-id'))
+        self.assertEqual(response.code, 404)
+        self.assertEqual(body, {
+            "itemNotFound": {
+                "message": "Instance could not be found",
+                "code": 404
+            }
+        })
 
     def test_list_servers_with_details(self):
         """
