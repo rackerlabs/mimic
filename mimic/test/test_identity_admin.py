@@ -15,11 +15,16 @@ class IdentityAdminAPITests(SynchronousTestCase):
     """
     Tests for the identity admin API mock.
     """
+    def setUp(self):
+        """
+        Create a identity API mock instance for testing.
+        """
+        self.mock = IdentityAdminAPI()
+
     def test_interface(self):
         """
         The identity admin implements the IPlugin and IAPIMock interfaces
         faithfully.
         """
-        mock = IdentityAdminAPI()
-        verifyObject(IAPIMock, mock)
-        verifyObject(IPlugin, mock)
+        verifyObject(IAPIMock, self.mock)
+        verifyObject(IPlugin, self.mock)
