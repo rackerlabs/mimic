@@ -27,3 +27,49 @@ class _IdentityAdminImpl(object):
     TODO: come up with a way better name than IdentityAdminImpl
     """
     app = MimicApp()
+
+create_endpoint_template_schema = {
+    "title": "Identity admin create endpoint template",
+    "type": "object",
+    "properties": {
+        "OS-KSCATALOG:endpointTemplate": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "publicURL": {
+                    "type": "string"
+                },
+                "internalURL": {
+                    "type": "string"
+                },
+                "adminURL": {
+                    "type": "string"
+                },
+                "tenantAlias": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "boolean"
+                },
+                "versioninfo": {
+                    "type": "string"
+                },
+                "versionlist": {
+                    "type": "string"
+                },
+            },
+            "required": ["region"]
+        }
+    }
+}
