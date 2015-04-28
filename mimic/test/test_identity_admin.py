@@ -31,12 +31,18 @@ class IdentityAdminAPITests(SynchronousTestCase):
         verifyObject(IAPIMock, self.mock)
         verifyObject(IPlugin, self.mock)
 
+    def _get_resource(self):
+        """
+        Gets the resource from the API mock.
+        """
+        store = None
+        return self.mock.resource_for_region("REG", "prefix", store)
+
     def test_resource_for_region(self):
         """
         :meth:`resource_for_region` returns an identity admin resource.
         """
-        store = None
-        resource = self.mock.resource_for_region("REG", "prefix", store)
+        resource = self._get_resource()
         verifyObject(IResource, resource)
 
 
