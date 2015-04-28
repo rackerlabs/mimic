@@ -59,13 +59,20 @@ create_endpoint_template_example = {
         "publicURL": "https://added-by-admin.mimic.public.com/v1",
         "internalURL": "https://added-by-admin.mimic.internal.com/v1",
         "adminURL": "https://added-by-admin.mimic.admin.com/v1",
-        "versionId": "1",
-        "versionInfo": "https://compute.north.public.com/v1/",
-        "versionList": "https://compute.north.public.com/",
-        "RAX-AUTH:tenantAlias": "{tenant}",
+        "RAX-AUTH:tenantAlias": "{tenant}"
     }
-}
+})
 
+version_info_example = freeze({
+    "versionId": "1",
+    "versionInfo": "https://compute.north.public.com/v1/",
+    "versionList": "https://compute.north.public.com/"
+})
+
+create_endpoint_template_example_with_version_info = (
+    create_endpoint_template_example.transform(
+        ["OS-KSCATALOG:endpointTemplate"],
+        version_info_example.update))
 
 class CreateEndpointTemplateSchemaTests(SynchronousTestCase):
     """
