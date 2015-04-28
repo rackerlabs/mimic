@@ -84,3 +84,5 @@ class CreateEndpointTemplateSchemaTests(SynchronousTestCase):
         """
         validate(create_endpoint_template_example,
                  api.create_endpoint_template_schema)
+        validate(create_endpoint_template_example_with_version_info,
+                 api.create_endpoint_template_schema)
