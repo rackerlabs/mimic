@@ -13,6 +13,12 @@ class IdentityAdminAPI(object):
     """
     A mock of the OpenStack Identity Admin API.
     """
+    def catalog_entries(self, tenant_id):
+        """
+        Return the catalog entries for this tenant.
+        """
+        return []
+
     def resource_for_region(self, region, uri_prefix, session_store):
         """
         Creates an identity admin resource.
