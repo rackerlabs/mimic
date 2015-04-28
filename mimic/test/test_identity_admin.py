@@ -42,7 +42,7 @@ class IdentityAdminAPITests(SynchronousTestCase):
         """
         By default, :meth:`catalog_entries` returns an empty list.
         """
-        self.assertEqual(self.mock.catalog_entries(), [])
+        self.assertEqual(self.mock.catalog_entries("1234"), [])
 
     def test_resource_for_region(self):
         """
