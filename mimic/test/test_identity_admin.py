@@ -53,12 +53,12 @@ class IdentityAdminAPITests(SynchronousTestCase):
 
 create_endpoint_template_example = {
     "OS-KSCATALOG:endpointTemplate": {
-        "region": "North",
-        "name": "Compute",
-        "type": "compute",
-        "publicURL": "https://compute.north.public.com/v1",
-        "internalURL": "https://compute.north.internal.com/v1",
-        "adminURL": "https://service-admin.com/v1",
+        "region": "MIMIC",
+        "name": "A thing added by the admin API",
+        "type": "mimic:added-by-admin-api",
+        "publicURL": "https://added-by-admin.mimic.public.com/v1",
+        "internalURL": "https://added-by-admin.mimic.internal.com/v1",
+        "adminURL": "https://added-by-admin.mimic.admin.com/v1",
         "versionId": "1",
         "versionInfo": "https://compute.north.public.com/v1/",
         "versionList": "https://compute.north.public.com/",
