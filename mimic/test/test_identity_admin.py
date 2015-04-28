@@ -45,6 +45,21 @@ class IdentityAdminAPITests(SynchronousTestCase):
         resource = self._get_resource()
         verifyObject(IResource, resource)
 
+create_endpoint_template_example = {
+    "OS-KSCATALOG:endpointTemplate": {
+        "region": "North",
+        "name": "Compute",
+        "type": "compute",
+        "publicURL": "https://compute.north.public.com/v1",
+        "internalURL": "https://compute.north.internal.com/v1",
+        "adminURL": "https://service-admin.com/v1",
+        "versionId": "1",
+        "versionInfo": "https://compute.north.public.com/v1/",
+        "versionList": "https://compute.north.public.com/",
+        "RAX-AUTH:tenantAlias": "{tenant}",
+    }
+}
+
 
 class CreateEndpointTemplateSchemaTests(SynchronousTestCase):
     """
@@ -54,18 +69,5 @@ class CreateEndpointTemplateSchemaTests(SynchronousTestCase):
         """
         Test simple schema validation.
         """
-        body = {
-            "OS-KSCATALOG:endpointTemplate": {
-                "region": "North",
-                "name": "Compute",
-                "type": "compute",
-                "publicURL": "https://compute.north.public.com/v1",
-                "internalURL": "https://compute.north.internal.com/v1",
-                "adminURL": "https://service-admin.com/v1",
-                "versionId": "1",
-                "versionInfo": "https://compute.north.public.com/v1/",
-                "versionList": "https://compute.north.public.com/",
-                "RAX-AUTH:tenantAlias": "{tenant}",
-            }
-        }
-        validate(body, api.create_endpoint_template_schema)
+        validate(create_endpoint_template_example,
+                 api.create_endpoint_template_schema)
