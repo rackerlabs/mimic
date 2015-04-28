@@ -62,7 +62,7 @@ create_endpoint_template_schema = {
                 "adminURL": {
                     "type": "string"
                 },
-                "tenantAlias": {
+                "RAX-AUTH:tenantAlias": {
                     "type": "string"
                 },
                 "version": {
