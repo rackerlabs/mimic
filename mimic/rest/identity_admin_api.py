@@ -24,6 +24,6 @@ class _IdentityAdminImpl(object):
     """
     Klein resources for the Identiy admin API.
 
-    TODO: come up with a way better name than identityadminimpl
+    TODO: come up with a way better name than IdentityAdminImpl
     """
     app = MimicApp()
