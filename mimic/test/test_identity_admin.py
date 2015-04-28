@@ -38,6 +38,12 @@ class IdentityAdminAPITests(SynchronousTestCase):
         store = None
         return self.mock.resource_for_region("REG", "prefix", store)
 
+    def test_catalog_entires(self):
+        """
+        By default, :meth:`catalog_entries` returns an empty list.
+        """
+        self.assertEqual(self.mock.catalog_entries, [])
+
     def test_resource_for_region(self):
         """
         :meth:`resource_for_region` returns an identity admin resource.
