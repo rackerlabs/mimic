@@ -5,3 +5,5 @@ treq==15.0.0
 characteristic==14.3.0
 six==1.6.1
 xmltodict==0.9.1
+pyrsistent==0.10.1
+toolz==0.7.1
