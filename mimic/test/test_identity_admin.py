@@ -3,6 +3,8 @@ Tests for the identity admin API.
 """
 from jsonschema import validate
 
+from pyrsistent import freeze
+
 from twisted.plugin import IPlugin
 from twisted.trial.unittest import SynchronousTestCase
 from twisted.web.resource import IResource
@@ -51,7 +53,8 @@ class IdentityAdminAPITests(SynchronousTestCase):
         resource = self._get_resource()
         verifyObject(IResource, resource)
 
-create_endpoint_template_example = {
+
+create_endpoint_template_example = freeze({
     "OS-KSCATALOG:endpointTemplate": {
         "region": "MIMIC",
         "name": "A thing added by the admin API",
