@@ -26,7 +26,7 @@ class GlanceAPITests(SynchronousTestCase):
 
     def test_list_images(self):
         """
-        List the images
+        List the images returned from glance
         """
         req = request(self, self.root, "GET", self.uri + '/images', '')
         resp = self.successResultOf(req)
