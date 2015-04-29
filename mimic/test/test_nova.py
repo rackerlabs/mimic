@@ -8,6 +8,18 @@ from mimic.rest.nova_api import NovaApi, NovaControlApi
 from mimic.test.fixtures import APIMockHelper, TenantAuthentication
 
 
+def status_of_server(test_case, server_id):
+    """
+    Retrieve the status of a server.
+    """
+    get_server = request(test_case, test_case.root, "GET",
+                         test_case.uri + '/servers/' + server_id)
+    get_server_response = test_case.successResultOf(get_server)
+    get_server_response_body = test_case.successResultOf(
+        treq.json_content(get_server_response))
+    return get_server_response_body['server']['status']
+
+
 class NovaAPITests(SynchronousTestCase):
 
     """
@@ -551,17 +563,12 @@ class NovaAPINegativeTests(SynchronousTestCase):
         create_server_response = self.create_server(metadata=metadata)
         # verify the create server was successful
         self.assertEquals(create_server_response.code, 202)
+        def get_server_status():
+            return status_of_server(self, server_id)
+
         server_id = (self.successResultOf(
             treq.json_content(create_server_response))["server"]["id"]
         )
-
-        def get_server_status():
-            get_server = request(self, self.root, "GET",
-                                 self.uri + '/servers/' + server_id)
-            get_server_response = self.successResultOf(get_server)
-            get_server_response_body = self.successResultOf(
-                treq.json_content(get_server_response))
-            return get_server_response_body['server']['status']
 
         # get server and verify status is BUILD
         self.assertEquals(get_server_status(), before)
