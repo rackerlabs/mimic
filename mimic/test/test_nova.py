@@ -491,7 +491,6 @@ class NovaAPITests(SynchronousTestCase):
 
 
 class NovaAPINegativeTests(SynchronousTestCase):
-
     """
     Tests for the Nova plugin api for error injections
     """
