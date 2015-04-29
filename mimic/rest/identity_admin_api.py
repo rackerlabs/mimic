@@ -47,6 +47,10 @@ create_endpoint_template_schema = {
                 "region": {
                     "type": "string"
                 },
+                "global": {
+                    "type": "boolean",
+                    "description": "Is this auto-enabled for all tenants?"
+                },
                 "type": {
                     "type": "string"
                 },
