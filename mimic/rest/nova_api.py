@@ -161,6 +161,31 @@ class NovaControlApiRegion(object):
         request.setResponseCode(CREATED)
         return b''
 
+    @app.route("/v2/<string:tenant_id>/attributes/", methods=['POST'])
+    def change_attributes(self, request, tenant_id):
+        """
+        Modify the specified attributes on existing servers.
+
+        The request looks like this::
+
+            {
+                "status": {
+                    "test_server_id_8482197407": "ERROR",
+                    "test_server_id_0743289146": "BUILD"
+                }
+            }
+
+        As more attributes are added, they should be additional top-level keys
+        where "status" goes in this request.
+        """
+        region_collection = self._collection_from_tenant(tenant_id)
+        attributes_description = json.loads(request.content.read())
+        for server_id, status in attributes_description["status"].items():
+            server = region_collection.server_by_id(server_id)
+            server.status = status
+        request.setResponseCode(CREATED)
+        return b''
+
     def _collection_from_tenant(self, tenant_id):
         """
         Retrieve the server collection for this region for the given tenant.
