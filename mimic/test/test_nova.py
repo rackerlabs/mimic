@@ -444,6 +444,43 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(status, "ERROR")
 
 
+    def test_modify_multiple_server_status(self):
+        """
+        An HTTP ``POST`` to ``.../<control-endpoint>/attributes/`` with a JSON
+        mapping of attribute type to several server IDs and each given server's
+        status will change each server's status.
+        """
+        nova_control_endpoint = self.helper.auth.get_service_endpoint(
+            "cloudServersBehavior", "ORD")
+        response = request(self, self.root, "POST", self.uri + "/servers", json.dumps(
+            {"server": {
+                "name": "test2", "imageRef": "w/e", "flavorRef": "lol"
+            }}
+        ))
+        second_server_id = self.successResultOf(
+            treq.json_content(self.successResultOf(response)))["server"]["id"]
+        server_id = self.create_server_response_body["server"]["id"]
+        status_modification = {
+            "status": {server_id: "ERROR",
+                       second_server_id: "BUILD"}
+        }
+        status = status_of_server(self, server_id)
+        second_status = status_of_server(self, second_server_id)
+        self.assertEqual(status, "ACTIVE")
+        self.assertEqual(second_status, "ACTIVE")
+        set_status = request(
+            self, self.root, "POST",
+            nova_control_endpoint + "/attributes/",
+            json.dumps(status_modification)
+        )
+        set_status_response = self.successResultOf(set_status)
+        self.assertEqual(set_status_response.code, 201)
+        status = status_of_server(self, server_id)
+        second_status = status_of_server(self, second_server_id)
+        self.assertEqual(status, "ERROR")
+        self.assertEqual(second_status, "BUILD")
+
+
 class NovaAPINegativeTests(SynchronousTestCase):
 
     """
