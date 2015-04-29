@@ -467,13 +467,7 @@ class NovaAPITests(SynchronousTestCase):
         """
         nova_control_endpoint = self.helper.auth.get_service_endpoint(
             "cloudServersBehavior", "ORD")
-        response = request(self, self.root, "POST", self.uri + "/servers", json.dumps(
-            {"server": {
-                "name": "test2", "imageRef": "w/e", "flavorRef": "lol"
-            }}
-        ))
-        second_server_id = self.successResultOf(
-            treq.json_content(self.successResultOf(response)))["server"]["id"]
+        second_server_id = quick_create_server(self.helper, "ORD")
         server_id = self.create_server_response_body["server"]["id"]
         status_modification = {
             "status": {server_id: "ERROR",
