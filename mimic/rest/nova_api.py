@@ -16,7 +16,7 @@ from twisted.web.server import Request
 from twisted.python.urlpath import URLPath
 
 from twisted.plugin import IPlugin
-from twisted.web.http import CREATED
+from twisted.web.http import CREATED, BAD_REQUEST
 
 from mimic.canned_responses.nova import get_limit, get_image, get_flavor
 from mimic.rest.mimicapp import MimicApp
@@ -180,9 +180,14 @@ class NovaControlApiRegion(object):
         """
         region_collection = self._collection_from_tenant(tenant_id)
         attributes_description = json.loads(request.content.read())
-        for server_id, status in attributes_description["status"].items():
-            server = region_collection.server_by_id(server_id)
-            server.status = status
+        statuses_description = attributes_description["status"]
+        servers = [region_collection.server_by_id(server_id)
+                   for server_id in statuses_description]
+        if None in servers:
+            request.setResponseCode(BAD_REQUEST)
+            return b''
+        for server in servers:
+            server.status = statuses_description[server.server_id]
         request.setResponseCode(CREATED)
         return b''
 
