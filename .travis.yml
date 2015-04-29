@@ -24,9 +24,9 @@ matrix:
     - env: TOX_ENV=docs-linkcheck
   exclude:
     - os: osx
-      env: CC=gcc
+      compiler: gcc
     - os: linux
-      env: CC=clang
+      compiler: clang
     # don't build mac app on linux
     - os: linux
       env: MACAPP_ENV=system
