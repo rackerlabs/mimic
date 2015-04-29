@@ -152,7 +152,6 @@ class NovaControlApiRegion(object):
                 }
             }
         """
-
         behavior_description = json.loads(request.content.read())
         region_collection = self._collection_from_tenant(tenant_id)
         region_collection.create_behavior_registry.register_from_json(
@@ -198,7 +197,6 @@ class NovaControlApiRegion(object):
         return (self.api_mock.nova_api
                 ._get_session(self.session_store, tenant_id)
                 .collection_for_region(self.region))
-
 
 
 class NovaRegion(object):
