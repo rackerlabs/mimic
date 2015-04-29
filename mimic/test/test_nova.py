@@ -439,6 +439,7 @@ class NovaAPITests(SynchronousTestCase):
         )
         set_status_response = self.successResultOf(set_status)
         self.assertEqual(set_status_response.code, 201)
+        status = status_of_server(self, server_id)
         self.assertEqual(status, "ERROR")
 
 
