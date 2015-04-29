@@ -443,7 +443,6 @@ class NovaAPITests(SynchronousTestCase):
         status = status_of_server(self, server_id)
         self.assertEqual(status, "ERROR")
 
-
     def test_modify_multiple_server_status(self):
         """
         An HTTP ``POST`` to ``.../<control-endpoint>/attributes/`` with a JSON
