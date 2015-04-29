@@ -2,10 +2,15 @@
 """
 Mocks for the identity admin API.
 """
+from json import dumps, loads
+
+from jsonschema import validate
+
 from zope.interface import implementer
 
 from mimic.imimic import IAPIMock
 from mimic.rest.mimicapp import MimicApp
+from mimic.util.helper import bad_request
 
 
 @implementer(IAPIMock)
@@ -33,6 +38,20 @@ class _IdentityAdminImpl(object):
     TODO: come up with a way better name than IdentityAdminImpl
     """
     app = MimicApp()
+
+    @app.route("/v2.0/OS-KSCATALOG/endpointTemplates", methods=("POST",))
+    def add_endpoint_template(self, request):
+        """
+        Adds an endpoint template.
+        """
+        try:
+            content = loads(request.content.read())
+            content = content["OS_KSCATALOG:endpointTemplate"]
+        except (ValueError, KeyError):
+            request.setResponseCode(400)
+            return dumps(bad_request("Invalid JSON request body"))
+
+
 
 create_endpoint_template_schema = {
     "title": "Identity admin create endpoint template",
