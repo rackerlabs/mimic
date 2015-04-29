@@ -20,6 +20,22 @@ def status_of_server(test_case, server_id):
     return get_server_response_body['server']['status']
 
 
+def quick_create_server(helper, region="ORD"):
+    """
+    Quickly create a server with a bunch of default parameters, retrieving its
+    server ID.
+    """
+    response = request(
+        helper.test_case, helper.root, "POST", helper.get_service_endpoint(
+            "cloudServersOpenStack", region) + "/servers",
+        json.dumps({"server": {
+            "name": "test2", "imageRef": "w/e", "flavorRef": "lol"
+        }}))
+    return helper.test_case.successResultOf(
+        treq.json_content(helper.test_case.successResultOf(response))
+    )["server"]["id"]
+
+
 class NovaAPITests(SynchronousTestCase):
 
     """
