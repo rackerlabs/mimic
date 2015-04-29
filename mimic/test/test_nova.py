@@ -31,7 +31,10 @@ class NovaAPITests(SynchronousTestCase):
         Create a :obj:`MimicCore` with :obj:`NovaApi` as the only plugin,
         and create a server
         """
-        helper = APIMockHelper(self, [NovaApi(["ORD", "MIMIC"])])
+        nova_api = NovaApi(["ORD", "MIMIC"])
+        helper = self.helper = APIMockHelper(
+            self, [nova_api, NovaControlApi(nova_api=nova_api)]
+        )
         self.root = helper.root
         self.uri = helper.uri
         self.server_name = 'test_server'
@@ -404,11 +407,13 @@ class NovaAPITests(SynchronousTestCase):
         create it for other tenants in the same region.
         """
         other_tenant = TenantAuthentication(self, self.root, "other", "other")
+        service_endpoint = other_tenant.get_service_endpoint(
+            "cloudServersOpenStack", "ORD")
 
         response, response_body = self.successResultOf(
             json_request(
                 self, self.root, "GET",
-                other_tenant.nth_endpoint_public(0) + '/servers'))
+                service_endpoint + '/servers'))
 
         self.assertEqual(response.code, 200)
         self.assertEqual(response_body, {'servers': []})
