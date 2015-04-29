@@ -967,3 +967,29 @@ class AuthIntegrationTests(SynchronousTestCase):
             self, core, token_id=token, tenant_id=tenant_id)
         self.assertEqual(tenant_id,
                          json_body['access']['token']['tenant']['id'])
+
+    def test_api_key_then_other_token_same_tenant(self):
+        """
+        After authenticating as a particular tenant with an API key,
+        authenticate as the same tenant with a token that is different
+        from the one returned by the API key response. Both tokens
+        should be accessing the same session.
+        """
+        core = MimicCore(Clock(), [ExampleAPI()])
+        tenant_id = "123456"
+
+        response, json_body = authenticate_with_api_key(self, core, tenant_id=tenant_id)
+        self.assertEqual(200, response.code)
+        username_from_api_key = json_body["access"]["user"]["name"]
+
+        response, json_body = authenticate_with_token(
+            self, core, token_id="fake_111111", tenant_id=tenant_id)
+        self.assertEqual(200, response.code)
+        username_from_token = json_body["access"]["user"]["name"]
+
+        # Since usernames are generated if not specified, and token
+        # authentication does not specify a username, it is sufficient
+        # to check that the usernames are equal. If the sessions are
+        # distinct, then the token would have generated a UUID for its
+        # username.
+        self.assertEqual(username_from_api_key, username_from_token)
