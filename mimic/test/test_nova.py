@@ -51,7 +51,6 @@ class NovaAPITests(SynchronousTestCase):
         self.create_server_response_body = self.successResultOf(
             treq.json_content(self.create_server_response))
         self.server_id = self.create_server_response_body['server']['id']
-        self.nth_endpoint_public = helper.nth_endpoint_public
 
     def test_create_server_with_manual_diskConfig(self):
         """
@@ -393,11 +392,13 @@ class NovaAPITests(SynchronousTestCase):
         Creating a server in one nova region should not create it in other nova
         regions.
         """
+        # NB: the setUp creates a server in ORD.
+        service_uri = self.helper.get_service_endpoint("cloudServersOpenStack",
+                                                       "MIMIC")
         other_region_servers = self.successResultOf(
             treq.json_content(
                 self.successResultOf(request(self, self.root, "GET",
-                                             self.nth_endpoint_public(1)
-                                             + "/servers/")))
+                                             service_uri + "/servers/")))
         )["servers"]
         self.assertEqual(other_region_servers, [])
 
