@@ -800,6 +800,37 @@ class NovaAPINegativeTests(SynchronousTestCase):
                           "Sample failure message")
         self.assertEquals(failing_create_response_body['code'], 503)
 
+    def test_modify_status_non_existent_server(self):
+        """
+        When using the ``.../attributes`` endpoint, if a non-existent server is
+        specified, the server will respond with a "bad request" status code and
+        not modify the status of any server.
+        """
+        nova_control_endpoint = self.helper.auth.get_service_endpoint(
+            "cloudServersBehavior", "ORD")
+        server_id_1 = quick_create_server(self.helper)
+        server_id_2 = quick_create_server(self.helper)
+        server_id_3 = quick_create_server(self.helper)
+
+        status_modification = {
+            "status": {
+                server_id_1: "ERROR",
+                server_id_2: "ERROR",
+                server_id_3: "ERROR",
+                "not_a_server_id": "BUILD",
+            }
+        }
+        set_status = request(
+            self, self.root, "POST",
+            nova_control_endpoint + "/attributes/",
+            json.dumps(status_modification)
+        )
+        set_status_response = self.successResultOf(set_status)
+        self.assertEqual(status_of_server(self, server_id_1), "ACTIVE")
+        self.assertEqual(status_of_server(self, server_id_2), "ACTIVE")
+        self.assertEqual(status_of_server(self, server_id_3), "ACTIVE")
+        self.assertEqual(set_status_response.code, 400)
+
 
 class NovaAPIMetadataTests(SynchronousTestCase):
     """
