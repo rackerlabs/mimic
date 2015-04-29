@@ -58,6 +58,7 @@ class TenantAuthentication(object):
                 for item in service['endpoints']:
                     if (item['region'] == region) or (region == ''):
                         return item['publicURL']
+        raise KeyError("No such service {}".format(service_name))
 
 
 class APIMockHelper(object):
