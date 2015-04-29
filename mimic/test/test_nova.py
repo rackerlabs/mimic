@@ -563,6 +563,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         create_server_response = self.create_server(metadata=metadata)
         # verify the create server was successful
         self.assertEquals(create_server_response.code, 202)
+
         def get_server_status():
             return status_of_server(self, server_id)
 
