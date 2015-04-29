@@ -13,6 +13,8 @@ from zope.interface.verify import verifyObject
 
 from mimic.imimic import IAPIMock
 from mimic.rest import identity_admin_api as api
+from mimic.test.fixtures import APIMockHelper, TenantAuthentication
+from mimic.test.helpers import json_request
 
 
 class IdentityAdminAPITests(SynchronousTestCase):
@@ -52,6 +54,26 @@ class IdentityAdminAPITests(SynchronousTestCase):
         """
         resource = self._get_resource()
         verifyObject(IResource, resource)
+
+
+class EndpointTemplateCreationTests(SynchronousTestCase):
+    """
+    Tests for endpoint template creation.
+    """
+    def setUp(self):
+        self.helper = APIMockHelper(self, [api.IdentityAdminAPI()])
+
+    def test_create_endpoint_template(self):
+        """
+        Creating an endpoint template adds it to the service catalog of
+        new users.
+        """
+        before = self.helper.service_catalog_json
+        entries = [e for e in before["access"]["serviceCatalog"]
+                   if e["type"] == "mimic:added-by-admin-api"]
+        self.assertEqual(len(entries), 0)
+
+        # TODO: figure out how to get the admin URI here, which means solving
 
 
 create_endpoint_template_example = freeze({
