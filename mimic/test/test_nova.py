@@ -418,6 +418,29 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(response.code, 200)
         self.assertEqual(response_body, {'servers': []})
 
+    def test_modify_existing_server_status(self):
+        """
+        An HTTP ``POST`` to ``.../<control-endpoint>/attributes/`` with a JSON
+        mapping of attribute type to the server ID and it's given
+        servers' status.
+        """
+        nova_control_endpoint = self.helper.auth.get_service_endpoint(
+            "cloudServersBehavior", "ORD")
+        server_id = self.create_server_response_body["server"]["id"]
+        status_modification = {
+            "status": {server_id: "ERROR"}
+        }
+        status = status_of_server(self, server_id)
+        self.assertEqual(status, "ACTIVE")
+        set_status = request(
+            self, self.root, "POST",
+            nova_control_endpoint + "/attributes/",
+            json.dumps(status_modification)
+        )
+        set_status_response = self.successResultOf(set_status)
+        self.assertEqual(set_status_response.code, 201)
+        self.assertEqual(status, "ERROR")
+
 
 class NovaAPINegativeTests(SynchronousTestCase):
 
