@@ -120,9 +120,8 @@ class NovaControlApi(object):
 
 @attributes(["api_mock", "uri_prefix", "session_store", "region"])
 class NovaControlApiRegion(object):
-
     """
-    Klien resources for the Nova Control plane API
+    Klein resources for the Nova Control plane API
     """
     app = MimicApp()
 
