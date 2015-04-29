@@ -152,16 +152,23 @@ class NovaControlApiRegion(object):
                 }
             }
         """
-        global_collection = self.api_mock.nova_api._get_session(
-            self.session_store, tenant_id)
+
         behavior_description = json.loads(request.content.read())
-        region_collection = global_collection.collection_for_region(
-            self.region)
+        region_collection = self._collection_from_tenant(tenant_id)
         region_collection.create_behavior_registry.register_from_json(
             behavior_description
         )
         request.setResponseCode(CREATED)
         return b''
+
+    def _collection_from_tenant(self, tenant_id):
+        """
+        Retrieve the server collection for this region for the given tenant.
+        """
+        return (self.api_mock.nova_api
+                ._get_session(self.session_store, tenant_id)
+                .collection_for_region(self.region))
+
 
 
 class NovaRegion(object):
