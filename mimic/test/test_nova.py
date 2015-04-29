@@ -422,8 +422,8 @@ class NovaAPITests(SynchronousTestCase):
     def test_modify_existing_server_status(self):
         """
         An HTTP ``POST`` to ``.../<control-endpoint>/attributes/`` with a JSON
-        mapping of attribute type to the server ID and it's given
-        servers' status.
+        mapping of attribute type to the server ID and its given server's
+        status will change that server's status.
         """
         nova_control_endpoint = self.helper.auth.get_service_endpoint(
             "cloudServersBehavior", "ORD")
