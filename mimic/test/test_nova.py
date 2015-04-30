@@ -1,6 +1,17 @@
+"""
+Tests for :mod:`nova_api` and :mod:`nova_objects`.
+"""
+
 import json
+from urllib import urlencode
+from urlparse import parse_qs
+
+from testtools.matchers import (
+    Equals, MatchesDict, MatchesListwise, StartsWith)
+
 import treq
 
+from twisted.internet.defer import gatherResults
 from twisted.trial.unittest import SynchronousTestCase
 
 from mimic.test.helpers import json_request, request, validate_link_json
@@ -400,6 +411,408 @@ class NovaAPITests(SynchronousTestCase):
 
         self.assertEqual(response.code, 200)
         self.assertEqual(response_body, {'servers': []})
+
+
+class NovaAPIListServerPaginationTests(SynchronousTestCase):
+    """
+    Tests for the Nova plugin API for paginating while listing servers,
+    both with and without details.
+    """
+    def make_nova_app(self):
+        """
+        Create a :obj:`MimicCore` with :obj:`NovaApi` as the only plugin,
+        and create a server
+        """
+        helper = APIMockHelper(self, [NovaApi(["ORD", "MIMIC"])])
+        self.root = helper.root
+        self.uri = helper.uri
+
+    def create_servers(self, n, name_generation=None):
+        """
+        Create ``n`` servers, returning a list of their server IDs.
+        """
+        if name_generation is None:
+            name_generation = lambda i: "{0}".format(i)
+
+        resps = self.successResultOf(gatherResults([
+            json_request(
+                self, self.root, "POST", self.uri + '/servers',
+                json.dumps({
+                    "server": {
+                        "name": name_generation(i),
+                        "imageRef": "test-image",
+                        "flavorRef": "test-flavor"
+                    }
+                }))
+            for i in range(n)
+        ]))
+        return [body['server']['id'] for resp, body in resps]
+
+    def list_servers(self, path, params=None, code=200):
+        """
+        List all servers using the given path and parameters.  Return the
+        entire response body.
+        """
+        url = self.uri + path
+        if params is not None:
+            url = "{0}?{1}".format(url, urlencode(params))
+
+        resp, body = self.successResultOf(
+            json_request(self, self.root, "GET", url))
+        self.assertEqual(resp.code, code)
+        return body
+
+    def match_body_with_links(self, result, expected_servers, expected_path,
+                              expected_query_params):
+        """
+        Given the result from listing servers, matches it against an expected
+        value that includes the next page links.
+        """
+        expected_matcher = MatchesDict({
+            'servers': Equals(expected_servers),
+            'servers_links': MatchesListwise([
+                MatchesDict({
+                    'rel': Equals('next'),
+                    'href': StartsWith(
+                        "{0}{1}?".format(self.uri, expected_path))
+                })
+            ])
+        })
+        mismatch = expected_matcher.match(result)
+        self.assertEqual(None, mismatch, mismatch.describe())
+        link = result['server_links'][0]['href']
+        query_string = link.split('?', 1)[0]
+        self.assertEqual(expected_query_params, parse_qs(query_string))
+
+    def test_with_invalid_marker(self):
+        """
+        If an invalid marker is passed, no matter what other parameters,
+        return with a 400 bad request.
+        """
+        self.make_nova_app()
+        self.create_servers(2)
+        combos = ({}, {'limit': 1}, {'name': '0'}, {'limit': 1, 'name': '0'})
+
+        for path in ('/servers', '/servers/detail'):
+            for combo in combos:
+                combo['marker'] = '9000'
+                error_body = self.list_servers(path, combo, code=400)
+                self.assertEqual(
+                    json.dumps({
+                        "badRequest": {
+                            "message": "marker [9000] not found",
+                            "code": 400
+                        }
+                    }),
+                    error_body)
+
+    def test_with_limit_as_0(self):
+        """
+        If a limit of 0 is passed, no matter what other parameters there are,
+        return no servers and do not include the next page link.
+        """
+        self.make_nova_app()
+        self.create_servers(2, lambda i: 'server')
+        servers = self.list_servers('/servers')['servers']
+
+        combos = ({}, {'marker': servers[0]['id']}, {'name': 'server'},
+                  {'marker': servers[0]['id'], 'name': 'server'})
+
+        for path in ('/servers', '/servers/detail'):
+            for combo in combos:
+                combo['limit'] = 0
+                with_params = self.list_servers(path, combo)
+                self.assertEqual({'servers': []}, with_params)
+
+    def test_with_valid_marker_only(self):
+        """
+        If just the marker is passed, and it's a valid marker, list all
+        servers after that marker without any kind of limit.
+        Do not return a next page link.
+        """
+        for path in ('/servers', '/servers/detail'):
+            self.make_nova_app()
+            self.create_servers(5)
+            servers = self.list_servers(path)['servers']
+
+            with_params = self.list_servers(path, {'marker': servers[0]['id']})
+            self.assertEqual({'servers': servers[1:]}, with_params)
+
+    def test_with_marker_and_name(self):
+        """
+        If just the marker and name are passed, list all servers after that
+        marker that have that particular name.  There is no number of servers
+        limit. Do not return a next page link.
+        """
+        for path in ('/servers', '/servers/detail'):
+            self.make_nova_app()
+            self.create_servers(5, lambda i: "{0}".format(0 if i == 1 else 1))
+            servers = self.list_servers(path)['servers']
+            self.assertEqual(['1', '0', '1', '1', '1'],
+                             [server['name'] for server in servers],
+                             "Assumption about server list ordering is wrong")
+            with_params = self.list_servers(
+                path, {'marker': servers[0]['id'], 'name': "server_1"})
+            self.assertEqual({'servers': servers[2:]}, with_params)
+
+    def test_with_limit_lt_servers_only(self):
+        """
+        If just the limit is passed, and the limit is less than the number of
+        servers, list only that number of servers in the limit, starting with
+        the first server in the list.  Include the next page link.
+        """
+        for path in ('/servers', '/servers/detail'):
+            self.make_nova_app()
+            self.create_servers(2)
+            servers = self.list_servers(path)['servers']
+            with_params = self.list_servers(path, {'limit': 1})
+            self.match_body_with_links(
+                with_params,
+                expected_servers=[servers[0]],
+                expected_path=path,
+                expected_query_params={
+                    'limit': 1, 'marker': servers[0]['id']
+                }
+            )
+
+    def test_with_limit_eq_servers_only(self):
+        """
+        If just the limit is passed, and the limit is equal to the number
+        of servers, list all the servers starting with the first server in
+        the list.  Include the next page link.
+        """
+        for path in ('/servers', '/servers/detail'):
+            self.make_nova_app()
+            self.create_servers(2)
+            servers = self.list_servers(path)['servers']
+            with_params = self.list_servers(path, {'limit': 5})
+            self.match_body_with_links(
+                with_params,
+                expected_servers=[servers[0]],
+                expected_path=path,
+                expected_query_params={
+                    'limit': 1, 'marker': servers[0]['id']
+                }
+            )
+
+    def test_with_limit_gt_servers_only(self):
+        """
+        If just the limit is passed, and the limit is greater than the number
+        of servers, list all the servers starting with the first server in
+        the list.  Do not include the next page link.
+        """
+        for path in ('/servers', '/servers/detail'):
+            self.make_nova_app()
+            self.create_servers(2)
+            servers = self.list_servers(path)['servers']
+            with_params = self.list_servers(path, {'limit': 5})
+            self.assertEqual({'servers': servers}, with_params)
+
+    def test_with_limit_lt_servers_with_name(self):
+        """
+        If the limit and name are passed, and the limit is less than the
+        number of servers that match that name, list only that number of
+        servers with that name in the limit, starting with
+        the first server with that name.  Include the next page link.
+        """
+        for path in ('/servers', '/servers/detail'):
+            self.make_nova_app()
+            self.create_servers(3, lambda i: "{0}".format(0 if i == 0 else 1))
+            servers = self.list_servers(path)['servers']
+            self.assertEqual(['0', '1', '1'],
+                             [server['name'] for server in servers],
+                             "Assumption about server list ordering is wrong")
+
+            with_params = self.list_servers(path, {'limit': 1, 'name': '1'})
+            self.match_body_with_links(
+                with_params,
+                expected_servers=[servers[1]],
+                expected_path=path,
+                expected_query_params={
+                    'limit': 1, 'marker': servers[1]['id']
+                }
+            )
+
+    def test_with_limit_eq_servers_with_name(self):
+        """
+        If the limit and name are passed, and the limit is equal to the
+        number of servers that match the name, list all the servers that match
+        that name starting with the first server that matches.  Include the
+        next page link.
+        """
+        for path in ('/servers', '/servers/detail'):
+            self.make_nova_app()
+            self.create_servers(3, lambda i: "{0}".format(0 if i == 0 else 1))
+            servers = self.list_servers(path)['servers']
+            self.assertEqual(['0', '1', '1'],
+                             [server['name'] for server in servers],
+                             "Assumption about server list ordering is wrong")
+            with_params = self.list_servers(path, {'limit': 2, 'name': '1'})
+            self.match_body_with_links(
+                with_params,
+                expected_servers=servers[1:],
+                expected_path=path,
+                expected_query_params={
+                    'limit': 2, 'marker': servers[2]['id'], 'name': '1'
+                }
+            )
+
+    def test_with_limit_gt_servers_with_name(self):
+        """
+        If the limit and name are passed, and the limit is greater than the
+        number of servers that match the name, list all the servers that match
+        that name starting with the first server that matches.  Do not
+        include the next page link.
+        """
+        for path in ('/servers', '/servers/detail'):
+            self.make_nova_app()
+            self.create_servers(3, lambda i: "{0}".format(0 if i == 0 else 1))
+            servers = self.list_servers(path)['servers']
+            self.assertEqual(['0', '1', '1'],
+                             [server['name'] for server in servers],
+                             "Assumption about server list ordering is wrong")
+            with_params = self.list_servers(path, {'limit': 5, 'name': '1'})
+            self.assertEqual({'servers': servers[1:]}, with_params)
+
+    def test_with_limit_lt_servers_with_marker(self):
+        """
+        If the limit and marker are passed, and the limit is less than the
+        number of servers, list only that number of servers after the one
+        with the marker ID.  Include the next page link.
+        """
+        for path in ('/servers', '/servers/detail'):
+            self.make_nova_app()
+            self.create_servers(3)
+            servers = self.list_servers(path)['servers']
+            with_params = self.list_servers(
+                path, {'limit': 1, 'marker': servers[0]['id']})
+            self.match_body_with_links(
+                with_params,
+                expected_servers=servers[1:],
+                expected_path=path,
+                expected_query_params={
+                    'limit': 1, 'marker': servers[1]['id']
+                }
+            )
+
+    def test_with_limit_eq_servers_with_marker(self):
+        """
+        If the limit and marker are passed, and the limit is equal to the
+        number of servers, list all the servers after the one with the marker
+        ID.  Include the next page link.
+        """
+        for path in ('/servers', '/servers/detail'):
+            self.make_nova_app()
+            self.create_servers(3)
+            servers = self.list_servers(path)['servers']
+            with_params = self.list_servers(
+                path, {'limit': 2, 'marker': servers[0]['id']})
+            self.match_body_with_links(
+                with_params,
+                expected_servers=servers[1:],
+                expected_path=path,
+                expected_query_params={
+                    'limit': 2, 'marker': servers[2]['id']
+                }
+            )
+
+    def test_with_limit_gt_servers_with_marker(self):
+        """
+        If the limit and marker are passed, and the limit is greater than the
+        number of servers, list all the servers after the one with the marker
+        ID.  Do not include the next page link.
+        """
+        for path in ('/servers', '/servers/detail'):
+            self.make_nova_app()
+            self.create_servers(3)
+            servers = self.list_servers(path)['servers']
+            with_params = self.list_servers(
+                path, {'limit': 5, 'marker': servers[0]['id']})
+            self.assertEqual({'servers': servers[1:]}, with_params)
+
+    def test_with_limit_lt_servers_with_marker_and_name(self):
+        """
+        If the limit, marker, and name are passed, and the limit is less than
+        the number of servers that match that name, list only that number of
+        servers with that name in the limit, after the one with the marker ID.
+
+        The marker ID does not even have to belong to a server that matches
+        the given name.
+
+        Include the next page link.
+        """
+        for path in ('/servers', '/servers/detail'):
+            self.make_nova_app()
+            self.create_servers(6, lambda i: "{0}".format(i % 2))
+            servers = self.list_servers(path)['servers']
+            self.assertEqual(['0', '1', '0', '1', '0', '1'],
+                             [server['name'] for server in servers],
+                             "Assumption about server list ordering is wrong")
+
+            with_params = self.list_servers(
+                path, {'limit': 1, 'name': '1', 'marker': servers[2]['id']})
+            self.match_body_with_links(
+                with_params,
+                expected_servers=[servers[3]],
+                expected_path=path,
+                expected_query_params={
+                    'limit': 1, 'marker': servers[3]['id']
+                }
+            )
+
+    def test_with_limit_eq_servers_with_marker_and_name(self):
+        """
+        If the limit, marker, and name are passed, and the limit is equal to
+        the number of servers that match the name, list all the servers that
+        match that name after the one with the marker ID.
+
+        The marker ID does not even have to belong to a server that matches
+        the given name.
+
+        Include the next page link.
+        """
+        for path in ('/servers', '/servers/detail'):
+            self.make_nova_app()
+            self.create_servers(6, lambda i: "{0}".format(i % 2))
+            servers = self.list_servers(path)['servers']
+            self.assertEqual(['0', '1', '0', '1', '0', '1'],
+                             [server['name'] for server in servers],
+                             "Assumption about server list ordering is wrong")
+
+            with_params = self.list_servers(
+                path, {'limit': 2, 'name': '1', 'marker': servers[2]['id']})
+            self.match_body_with_links(
+                with_params,
+                expected_servers=[servers[3], servers[5]],
+                expected_path=path,
+                expected_query_params={
+                    'limit': 2, 'marker': servers[5]['id'], 'name': '1'
+                }
+            )
+
+    def test_with_limit_gt_servers_with_marker_and_name(self):
+        """
+        If the limit, marker, and name are passed, and the limit is greater
+        than the number of servers that match the name, list all the servers
+        that match that name after the one with the marker ID.
+
+        The marker ID does not even have to belong to a server that matches
+        the given name.
+
+        Do not include the next page link.
+        """
+        for path in ('/servers', '/servers/detail'):
+            self.make_nova_app()
+            self.create_servers(6, lambda i: "{0}".format(i % 2))
+            servers = self.list_servers(path)['servers']
+            self.assertEqual(['0', '1', '0', '1', '0', '1'],
+                             [server['name'] for server in servers],
+                             "Assumption about server list ordering is wrong")
+
+            with_params = self.list_servers(
+                path, {'limit': 5, 'name': '1', 'marker': servers[2]['id']})
+            self.assertEqual({'servers': [servers[3], servers[5]]},
+                             with_params)
 
 
 class NovaAPINegativeTests(SynchronousTestCase):
