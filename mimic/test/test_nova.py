@@ -506,6 +506,31 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
                     }),
                     error_body)
 
+    def test_with_invalid_limit(self):
+        """
+        If a limit that can't be converted into an integer is passed, no
+        matter what other parameters there are, return with a 400 bad request.
+        """
+        self.make_nova_app()
+        self.create_servers(2, lambda i: 'server')
+        servers = self.list_servers('/servers')['servers']
+
+        combos = ({}, {'marker': servers[0]['id']}, {'name': 'server'},
+                  {'marker': servers[0]['id'], 'name': 'server'})
+
+        for path in ('/servers', '/servers/detail'):
+            for combo in combos:
+                combo['limit'] = 'a'
+                error_body = self.list_servers(path, combo, code=400)
+                self.assertEqual(
+                    json.dumps({
+                        "badRequest": {
+                            "message": "limit param must be an integer",
+                            "code": 400
+                        }
+                    }),
+                    error_body)
+
     def test_with_limit_as_0(self):
         """
         If a limit of 0 is passed, no matter what other parameters there are,
