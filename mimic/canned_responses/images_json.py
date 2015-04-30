@@ -4,7 +4,7 @@ Glance images
 
 images = {
     "images":
-        {
+        [{
             "com.rackspace__1__options": "0",
             "container_format": "ovf",
             "min_ram": 512,
@@ -45,7 +45,7 @@ images = {
             "com.rackspace__1__visible_rackconnect": "1",
             "os_type": "linux",
             "org.openstack__1__os_version": "14.04"
-        },
+        }],
     "schema": "/v2/schemas/images",
     "first": "/v2/images?limit=1000"
 }
