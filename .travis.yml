@@ -30,6 +30,16 @@ matrix:
     # don't build mac app on linux
     - os: linux
       env: MACAPP_ENV=system
+    - os: osx
+      env: TOX_ENV=lint
+    - os: osx
+      env: TOX_ENV=docs
+    - os: osx
+      env: TOX_ENV=docs-spellcheck
+    - os: osx
+      env: TOX_ENV=docs-linkcheck
+    - os: osx
+      env: TOX_ENV=py26
 
 install:
   - travis_retry ./.travis/install.sh
