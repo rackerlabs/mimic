@@ -16,7 +16,7 @@ from twisted.web.server import Request
 from twisted.python.urlpath import URLPath
 
 from twisted.plugin import IPlugin
-from twisted.web.http import CREATED
+from twisted.web.http import CREATED, BAD_REQUEST
 
 from mimic.canned_responses.nova import get_limit, get_image, get_flavor
 from mimic.rest.mimicapp import MimicApp
@@ -120,9 +120,8 @@ class NovaControlApi(object):
 
 @attributes(["api_mock", "uri_prefix", "session_store", "region"])
 class NovaControlApiRegion(object):
-
     """
-    Klien resources for the Nova Control plane API
+    Klein resources for the Nova Control plane API
     """
     app = MimicApp()
 
@@ -153,16 +152,51 @@ class NovaControlApiRegion(object):
                 }
             }
         """
-        global_collection = self.api_mock.nova_api._get_session(
-            self.session_store, tenant_id)
         behavior_description = json.loads(request.content.read())
-        region_collection = global_collection.collection_for_region(
-            self.region)
+        region_collection = self._collection_from_tenant(tenant_id)
         region_collection.create_behavior_registry.register_from_json(
             behavior_description
         )
         request.setResponseCode(CREATED)
         return b''
+
+    @app.route("/v2/<string:tenant_id>/attributes/", methods=['POST'])
+    def change_attributes(self, request, tenant_id):
+        """
+        Modify the specified attributes on existing servers.
+
+        The request looks like this::
+
+            {
+                "status": {
+                    "test_server_id_8482197407": "ERROR",
+                    "test_server_id_0743289146": "BUILD"
+                }
+            }
+
+        As more attributes are added, they should be additional top-level keys
+        where "status" goes in this request.
+        """
+        region_collection = self._collection_from_tenant(tenant_id)
+        attributes_description = json.loads(request.content.read())
+        statuses_description = attributes_description["status"]
+        servers = [region_collection.server_by_id(server_id)
+                   for server_id in statuses_description]
+        if None in servers:
+            request.setResponseCode(BAD_REQUEST)
+            return b''
+        for server in servers:
+            server.status = statuses_description[server.server_id]
+        request.setResponseCode(CREATED)
+        return b''
+
+    def _collection_from_tenant(self, tenant_id):
+        """
+        Retrieve the server collection for this region for the given tenant.
+        """
+        return (self.api_mock.nova_api
+                ._get_session(self.session_store, tenant_id)
+                .collection_for_region(self.region))
 
 
 class NovaRegion(object):

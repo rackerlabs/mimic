@@ -58,6 +58,7 @@ class TenantAuthentication(object):
                 for item in service['endpoints']:
                     if (item['region'] == region) or (region == ''):
                         return item['publicURL']
+        raise KeyError("No such service {}".format(service_name))
 
 
 class APIMockHelper(object):
@@ -70,6 +71,7 @@ class APIMockHelper(object):
         Initialize a mimic core and the specified :obj:`mimic.imimic.IAPIMock`s
         :param apis: A list of :obj:`mimic.imimic.IAPIMock` objects to be initialized
         """
+        self.test_case = test_case
         self.clock = Clock()
         self.core = MimicCore(self.clock, apis)
         self.root = MimicRoot(self.core).app.resource()

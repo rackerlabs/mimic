@@ -8,6 +8,34 @@ from mimic.rest.nova_api import NovaApi, NovaControlApi
 from mimic.test.fixtures import APIMockHelper, TenantAuthentication
 
 
+def status_of_server(test_case, server_id):
+    """
+    Retrieve the status of a server.
+    """
+    get_server = request(test_case, test_case.root, "GET",
+                         test_case.uri + '/servers/' + server_id)
+    get_server_response = test_case.successResultOf(get_server)
+    get_server_response_body = test_case.successResultOf(
+        treq.json_content(get_server_response))
+    return get_server_response_body['server']['status']
+
+
+def quick_create_server(helper, region="ORD"):
+    """
+    Quickly create a server with a bunch of default parameters, retrieving its
+    server ID.
+    """
+    response = request(
+        helper.test_case, helper.root, "POST", helper.get_service_endpoint(
+            "cloudServersOpenStack", region) + "/servers",
+        json.dumps({"server": {
+            "name": "test2", "imageRef": "w/e", "flavorRef": "lol"
+        }}))
+    return helper.test_case.successResultOf(
+        treq.json_content(helper.test_case.successResultOf(response))
+    )["server"]["id"]
+
+
 class NovaAPITests(SynchronousTestCase):
 
     """
@@ -19,7 +47,10 @@ class NovaAPITests(SynchronousTestCase):
         Create a :obj:`MimicCore` with :obj:`NovaApi` as the only plugin,
         and create a server
         """
-        helper = APIMockHelper(self, [NovaApi(["ORD", "MIMIC"])])
+        nova_api = NovaApi(["ORD", "MIMIC"])
+        helper = self.helper = APIMockHelper(
+            self, [nova_api, NovaControlApi(nova_api=nova_api)]
+        )
         self.root = helper.root
         self.uri = helper.uri
         self.server_name = 'test_server'
@@ -36,7 +67,6 @@ class NovaAPITests(SynchronousTestCase):
         self.create_server_response_body = self.successResultOf(
             treq.json_content(self.create_server_response))
         self.server_id = self.create_server_response_body['server']['id']
-        self.nth_endpoint_public = helper.nth_endpoint_public
 
     def test_create_server_with_manual_diskConfig(self):
         """
@@ -378,11 +408,13 @@ class NovaAPITests(SynchronousTestCase):
         Creating a server in one nova region should not create it in other nova
         regions.
         """
+        # NB: the setUp creates a server in ORD.
+        service_uri = self.helper.get_service_endpoint("cloudServersOpenStack",
+                                                       "MIMIC")
         other_region_servers = self.successResultOf(
             treq.json_content(
                 self.successResultOf(request(self, self.root, "GET",
-                                             self.nth_endpoint_public(1)
-                                             + "/servers/")))
+                                             service_uri + "/servers/")))
         )["servers"]
         self.assertEqual(other_region_servers, [])
 
@@ -392,18 +424,73 @@ class NovaAPITests(SynchronousTestCase):
         create it for other tenants in the same region.
         """
         other_tenant = TenantAuthentication(self, self.root, "other", "other")
+        service_endpoint = other_tenant.get_service_endpoint(
+            "cloudServersOpenStack", "ORD")
 
         response, response_body = self.successResultOf(
             json_request(
                 self, self.root, "GET",
-                other_tenant.nth_endpoint_public(0) + '/servers'))
+                service_endpoint + '/servers'))
 
         self.assertEqual(response.code, 200)
         self.assertEqual(response_body, {'servers': []})
 
+    def test_modify_existing_server_status(self):
+        """
+        An HTTP ``POST`` to ``.../<control-endpoint>/attributes/`` with a JSON
+        mapping of attribute type to the server ID and its given server's
+        status will change that server's status.
+        """
+        nova_control_endpoint = self.helper.auth.get_service_endpoint(
+            "cloudServersBehavior", "ORD")
+        server_id = self.create_server_response_body["server"]["id"]
+        status_modification = {
+            "status": {server_id: "ERROR"}
+        }
+        status = status_of_server(self, server_id)
+        self.assertEqual(status, "ACTIVE")
+        set_status = request(
+            self, self.root, "POST",
+            nova_control_endpoint + "/attributes/",
+            json.dumps(status_modification)
+        )
+        set_status_response = self.successResultOf(set_status)
+        self.assertEqual(set_status_response.code, 201)
+        status = status_of_server(self, server_id)
+        self.assertEqual(status, "ERROR")
+
+    def test_modify_multiple_server_status(self):
+        """
+        An HTTP ``POST`` to ``.../<control-endpoint>/attributes/`` with a JSON
+        mapping of attribute type to several server IDs and each given server's
+        status will change each server's status.
+        """
+        nova_control_endpoint = self.helper.auth.get_service_endpoint(
+            "cloudServersBehavior", "ORD")
+        second_server_id = quick_create_server(self.helper, "ORD")
+        server_id = self.create_server_response_body["server"]["id"]
+        status_modification = {
+            "status": {server_id: "ERROR",
+                       second_server_id: "BUILD"}
+        }
+        status = status_of_server(self, server_id)
+        second_status = status_of_server(self, second_server_id)
+        self.assertEqual(status, "ACTIVE")
+        self.assertEqual(second_status, "ACTIVE")
+        set_status = request(
+            self, self.root, "POST",
+            nova_control_endpoint + "/attributes/",
+            json.dumps(status_modification)
+        )
+        set_status_response = self.successResultOf(set_status)
+        self.assertEqual(set_status_response.code, 201)
+        status = status_of_server(self, server_id)
+        second_status = status_of_server(self, second_server_id)
+        self.assertEqual(status, "ERROR")
+        self.assertEqual(second_status, "BUILD")
+
 
 class NovaAPINegativeTests(SynchronousTestCase):
-
     """
     Tests for the Nova plugin api for error injections
     """
@@ -551,17 +638,13 @@ class NovaAPINegativeTests(SynchronousTestCase):
         create_server_response = self.create_server(metadata=metadata)
         # verify the create server was successful
         self.assertEquals(create_server_response.code, 202)
+
+        def get_server_status():
+            return status_of_server(self, server_id)
+
         server_id = (self.successResultOf(
             treq.json_content(create_server_response))["server"]["id"]
         )
-
-        def get_server_status():
-            get_server = request(self, self.root, "GET",
-                                 self.uri + '/servers/' + server_id)
-            get_server_response = self.successResultOf(get_server)
-            get_server_response_body = self.successResultOf(
-                treq.json_content(get_server_response))
-            return get_server_response_body['server']['status']
 
         # get server and verify status is BUILD
         self.assertEquals(get_server_status(), before)
@@ -716,6 +799,37 @@ class NovaAPINegativeTests(SynchronousTestCase):
         self.assertEquals(failing_create_response_body['message'],
                           "Sample failure message")
         self.assertEquals(failing_create_response_body['code'], 503)
+
+    def test_modify_status_non_existent_server(self):
+        """
+        When using the ``.../attributes`` endpoint, if a non-existent server is
+        specified, the server will respond with a "bad request" status code and
+        not modify the status of any server.
+        """
+        nova_control_endpoint = self.helper.auth.get_service_endpoint(
+            "cloudServersBehavior", "ORD")
+        server_id_1 = quick_create_server(self.helper)
+        server_id_2 = quick_create_server(self.helper)
+        server_id_3 = quick_create_server(self.helper)
+
+        status_modification = {
+            "status": {
+                server_id_1: "ERROR",
+                server_id_2: "ERROR",
+                server_id_3: "ERROR",
+                "not_a_server_id": "BUILD",
+            }
+        }
+        set_status = request(
+            self, self.root, "POST",
+            nova_control_endpoint + "/attributes/",
+            json.dumps(status_modification)
+        )
+        set_status_response = self.successResultOf(set_status)
+        self.assertEqual(status_of_server(self, server_id_1), "ACTIVE")
+        self.assertEqual(status_of_server(self, server_id_2), "ACTIVE")
+        self.assertEqual(status_of_server(self, server_id_3), "ACTIVE")
+        self.assertEqual(set_status_response.code, 400)
 
 
 class NovaAPIMetadataTests(SynchronousTestCase):
