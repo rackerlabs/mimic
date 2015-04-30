@@ -7,6 +7,7 @@ import re
 from characteristic import attributes, Attribute
 from random import randrange
 from json import loads, dumps
+from urllib import urlencode
 
 from six import string_types
 
@@ -550,21 +551,71 @@ class RegionalServerCollection(object):
         return dumps({"addresses": server.addresses_json()})
 
     def request_list(self, http_get_request, include_details, absolutize_url,
-                     name=u""):
+                     name=u"", limit=None, marker=None):
         """
         Request the list JSON for all servers.
 
         Note: only supports filtering by name right now, but will need to
         support more going forward.
+
+        Pagination behavior verified against Rackspace Nova as of 2015-04-29.
         """
-        return dumps(
-            {"servers": [
+        to_be_listed = [server for server in self.servers
+                        if name in server.server_name]
+
+        # marker can be passed without limit, in which case the whole server
+        # list, after the server that matches the marker, is returned
+        if marker is not None:
+            last_seen = [i for i, server in enumerate(to_be_listed)
+                         if server.server_id == marker]
+            if not last_seen:
+                # Error response and body verified against Rackspace Nova as
+                # of 2015-04-29
+                return dumps(bad_request(
+                    "marker [{0}] not found".format(marker),
+                    http_get_request))
+            else:
+                last_seen = last_seen[0]
+                to_be_listed = to_be_listed[last_seen + 1:]
+
+        if limit is not None:
+            try:
+                limit = int(limit)
+            except ValueError:
+                return dumps(bad_request("limit param must be an integer",
+                                         http_get_request))
+
+            to_be_listed = to_be_listed[:int(limit)]
+
+        result = {
+            "servers": [
                 server.brief_json(absolutize_url) if not include_details
                 else server.detail_json(absolutize_url)
-                for server in self.servers
-                if name in server.server_name
-            ]}
-        )
+                for server in to_be_listed
+            ]
+        }
+
+        # A server links blob is included only if limit is passed.  If
+        # only the marker was provided, no server links blob is included.
+        # Note that if limit=0, an empty server list is returned and no
+        # server link blob is returned.
+        if limit and len(to_be_listed) >= limit:
+            query_params = {'limit': limit}
+            if marker is not None:
+                query_params['marker'] = marker
+            if name:
+                query_params['name'] = name
+
+            path = "v2/{0}/servers{1}?{2}".format(
+                self.tenant_id,
+                "/detail" if include_details else "",
+                urlencode(query_params))
+            result["servers_links"] = [{
+                "href": absolutize_url(path),
+                "rel": "next"
+            }]
+
+        return dumps(result)
 
     def request_delete(self, http_delete_request, server_id):
         """
