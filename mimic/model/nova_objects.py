@@ -560,8 +560,7 @@ class RegionalServerCollection(object):
 
         Pagination behavior verified against Rackspace Nova as of 2015-04-29.
         """
-        to_be_listed = [server for server in self.servers
-                        if name in server.server_name]
+        to_be_listed = self.servers
 
         # marker can be passed without limit, in which case the whole server
         # list, after the server that matches the marker, is returned
@@ -577,6 +576,11 @@ class RegionalServerCollection(object):
             else:
                 last_seen = last_seen[0]
                 to_be_listed = to_be_listed[last_seen + 1:]
+
+        # A valid marker is an ID in the entire server list.  It does not
+        # have to be for a server that matches the given name.
+        to_be_listed = [server for server in to_be_listed
+                        if name in server.server_name]
 
         if limit is not None:
             try:

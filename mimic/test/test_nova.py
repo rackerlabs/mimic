@@ -459,6 +459,7 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
 
         resp, body = self.successResultOf(
             json_request(self, self.root, "GET", url))
+
         self.assertEqual(resp.code, code)
         return body
 
@@ -468,6 +469,7 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
         Given the result from listing servers, matches it against an expected
         value that includes the next page links.
         """
+        self.assertEqual(expected_servers, result['servers'])
         expected_matcher = MatchesDict({
             'servers': Equals(expected_servers),
             'servers_links': MatchesListwise([
@@ -479,8 +481,9 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
             ])
         })
         mismatch = expected_matcher.match(result)
-        self.assertEqual(None, mismatch,
-                         "Great" if mismatch is None else mismatch.describe())
+        if mismatch is not None:
+            self.fail(mismatch.describe())
+
         link = result['servers_links'][0]['href']
         query_string = link.split('?', 1)[-1]
         self.assertEqual(expected_query_params, parse_qs(query_string))
@@ -499,12 +502,12 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
                 combo['marker'] = '9000'
                 error_body = self.list_servers(path, combo, code=400)
                 self.assertEqual(
-                    json.dumps({
+                    {
                         "badRequest": {
                             "message": "marker [9000] not found",
                             "code": 400
                         }
-                    }),
+                    },
                     error_body)
 
     def test_with_invalid_limit(self):
@@ -524,12 +527,12 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
                 combo['limit'] = 'a'
                 error_body = self.list_servers(path, combo, code=400)
                 self.assertEqual(
-                    json.dumps({
+                    {
                         "badRequest": {
                             "message": "limit param must be an integer",
                             "code": 400
                         }
-                    }),
+                    },
                     error_body)
 
     def test_with_limit_as_0(self):
@@ -614,7 +617,7 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
             with_params = self.list_servers(path, {'limit': 5})
             self.match_body_with_links(
                 with_params,
-                expected_servers=[servers[0]],
+                expected_servers=servers,
                 expected_path=path,
                 expected_query_params={
                     'limit': ['1'], 'marker': [servers[0]['id']]
@@ -655,7 +658,9 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
                 expected_servers=[servers[1]],
                 expected_path=path,
                 expected_query_params={
-                    'limit': ['1'], 'marker': [servers[1]['id']]
+                    'limit': ['1'],
+                    'marker': [servers[1]['id']],
+                    'name': ['1']
                 }
             )
 
@@ -716,7 +721,7 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
                 path, {'limit': 1, 'marker': servers[0]['id']})
             self.match_body_with_links(
                 with_params,
-                expected_servers=servers[1:],
+                expected_servers=[servers[1]],
                 expected_path=path,
                 expected_query_params={
                     'limit': ['1'], 'marker': [servers[1]['id']]
@@ -784,7 +789,9 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
                 expected_servers=[servers[3]],
                 expected_path=path,
                 expected_query_params={
-                    'limit': ['1'], 'marker': [servers[3]['id']]
+                    'limit': ['1'],
+                    'marker': [servers[3]['id']],
+                    'name': ['1']
                 }
             )
 
