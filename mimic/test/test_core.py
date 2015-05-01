@@ -30,7 +30,8 @@ class CoreBuildingTests(SynchronousTestCase):
         core = MimicCore.fromPlugins(Clock())
         plugin_apis = set((nova_plugin.nova, loadbalancer_plugin.loadbalancer,
                            swift_plugin.swift, queue_plugin.queue,
-                           maas_plugin.maas, rackconnect_v3_plugin.rackconnect))
+                           maas_plugin.maas, rackconnect_v3_plugin.rackconnect,
+                           nova_plugin.nova_control_api))
         self.assertEqual(
             plugin_apis,
             set(core._uuid_to_api.values()))
