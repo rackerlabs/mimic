@@ -5,3 +5,4 @@ treq==15.0.0
 characteristic==14.3.0
 six==1.6.1
 xmltodict==0.9.1
+attrs==15.0.0
