@@ -1,7 +1,7 @@
 """
 Models relating to identity.
 """
-from attr import attributes, attr
+from attr import attributes, attr, validators
 
 
 @attributes
@@ -18,4 +18,5 @@ class IdentitySession(object):
                 .session_for_tenant_id(tenant_id)
                 .data_for_api(cls, cls))
 
-    identity_admin = attr(default=False)
+    identity_admin = attr(default=False,
+                          validator=validators.instance_of(bool))
