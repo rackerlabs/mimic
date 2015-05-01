@@ -284,7 +284,9 @@ class NovaRegion(object):
             self._region_collection_for_tenant(tenant_id)
             .request_list(
                 request, include_details=False, absolutize_url=self.url,
-                name=request.args.get('name', [u""])[0]
+                name=request.args.get('name', [u""])[0],
+                limit=request.args.get('limit', [None])[0],
+                marker=request.args.get('marker', [None])[0]
             )
         )
 
@@ -298,7 +300,9 @@ class NovaRegion(object):
             self._region_collection_for_tenant(tenant_id)
             .request_list(
                 request, include_details=True, absolutize_url=self.url,
-                name=request.args.get('name', [u""])[0]
+                name=request.args.get('name', [u""])[0],
+                limit=request.args.get('limit', [None])[0],
+                marker=request.args.get('marker', [None])[0]
             )
         )
 
