@@ -588,6 +588,9 @@ class RegionalServerCollection(object):
             except ValueError:
                 return dumps(bad_request("limit param must be an integer",
                                          http_get_request))
+            if limit < 0:
+                return dumps(bad_request("limit param must be positive",
+                                         http_get_request))
 
             to_be_listed = to_be_listed[:limit]
 
