@@ -431,15 +431,13 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
         """
         Create ``n`` servers, returning a list of their server IDs.
         """
-        if name_generation is None:
-            name_generation = lambda i: "{0}".format(i)
-
         resps = self.successResultOf(gatherResults([
             json_request(
                 self, self.root, "POST", self.uri + '/servers',
                 json.dumps({
                     "server": {
-                        "name": name_generation(i),
+                        "name": ("{0}".format(i)if name_generation is None
+                                 else name_generation(i)),
                         "imageRef": "test-image",
                         "flavorRef": "test-flavor"
                     }
