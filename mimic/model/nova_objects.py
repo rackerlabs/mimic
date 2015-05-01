@@ -585,7 +585,7 @@ class RegionalServerCollection(object):
                 return dumps(bad_request("limit param must be an integer",
                                          http_get_request))
 
-            to_be_listed = to_be_listed[:int(limit)]
+            to_be_listed = to_be_listed[:limit]
 
         result = {
             "servers": [
@@ -601,8 +601,7 @@ class RegionalServerCollection(object):
         # server link blob is returned.
         if limit and len(to_be_listed) >= limit:
             query_params = {'limit': limit}
-            if marker is not None:
-                query_params['marker'] = marker
+            query_params['marker'] = to_be_listed[-1].server_id
             if name:
                 query_params['name'] = name
 

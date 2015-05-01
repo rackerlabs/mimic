@@ -479,9 +479,10 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
             ])
         })
         mismatch = expected_matcher.match(result)
-        self.assertEqual(None, mismatch, mismatch.describe())
-        link = result['server_links'][0]['href']
-        query_string = link.split('?', 1)[0]
+        self.assertEqual(None, mismatch,
+                         "Great" if mismatch is None else mismatch.describe())
+        link = result['servers_links'][0]['href']
+        query_string = link.split('?', 1)[-1]
         self.assertEqual(expected_query_params, parse_qs(query_string))
 
     def test_with_invalid_marker(self):
@@ -577,7 +578,7 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
                              [server['name'] for server in servers],
                              "Assumption about server list ordering is wrong")
             with_params = self.list_servers(
-                path, {'marker': servers[0]['id'], 'name': "server_1"})
+                path, {'marker': servers[0]['id'], 'name': "1"})
             self.assertEqual({'servers': servers[2:]}, with_params)
 
     def test_with_limit_lt_servers_only(self):
@@ -596,7 +597,7 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
                 expected_servers=[servers[0]],
                 expected_path=path,
                 expected_query_params={
-                    'limit': 1, 'marker': servers[0]['id']
+                    'limit': ['1'], 'marker': [servers[0]['id']]
                 }
             )
 
@@ -616,7 +617,7 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
                 expected_servers=[servers[0]],
                 expected_path=path,
                 expected_query_params={
-                    'limit': 1, 'marker': servers[0]['id']
+                    'limit': ['1'], 'marker': [servers[0]['id']]
                 }
             )
 
@@ -654,7 +655,7 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
                 expected_servers=[servers[1]],
                 expected_path=path,
                 expected_query_params={
-                    'limit': 1, 'marker': servers[1]['id']
+                    'limit': ['1'], 'marker': [servers[1]['id']]
                 }
             )
 
@@ -678,7 +679,9 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
                 expected_servers=servers[1:],
                 expected_path=path,
                 expected_query_params={
-                    'limit': 2, 'marker': servers[2]['id'], 'name': '1'
+                    'limit': ['2'],
+                    'marker': [servers[2]['id']],
+                    'name': ['1']
                 }
             )
 
@@ -716,7 +719,7 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
                 expected_servers=servers[1:],
                 expected_path=path,
                 expected_query_params={
-                    'limit': 1, 'marker': servers[1]['id']
+                    'limit': ['1'], 'marker': [servers[1]['id']]
                 }
             )
 
@@ -737,7 +740,7 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
                 expected_servers=servers[1:],
                 expected_path=path,
                 expected_query_params={
-                    'limit': 2, 'marker': servers[2]['id']
+                    'limit': ['2'], 'marker': [servers[2]['id']]
                 }
             )
 
@@ -781,7 +784,7 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
                 expected_servers=[servers[3]],
                 expected_path=path,
                 expected_query_params={
-                    'limit': 1, 'marker': servers[3]['id']
+                    'limit': ['1'], 'marker': [servers[3]['id']]
                 }
             )
 
@@ -811,7 +814,9 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
                 expected_servers=[servers[3], servers[5]],
                 expected_path=path,
                 expected_query_params={
-                    'limit': 2, 'marker': servers[5]['id'], 'name': '1'
+                    'limit': ['2'],
+                    'marker': [servers[5]['id']],
+                    'name': ['1']
                 }
             )
 
