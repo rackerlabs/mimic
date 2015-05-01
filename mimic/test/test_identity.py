@@ -42,6 +42,4 @@ class IdentitySessionTests(SynchronousTestCase):
         self.assertFalse(identity_session.identity_admin)
         identity_session.identity_admin = True
         self.assertTrue(identity_session.identity_admin)
-        self.assertRaises(
-            TypeError,
-            setattr, identity_session, "identity_admin", 1)
+        self.assertRaises(TypeError, IdentitySession, identity_admin=1)
