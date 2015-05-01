@@ -614,13 +614,13 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
             self.make_nova_app()
             self.create_servers(2)
             servers = self.list_servers(path)['servers']
-            with_params = self.list_servers(path, {'limit': 5})
+            with_params = self.list_servers(path, {'limit': 2})
             self.match_body_with_links(
                 with_params,
                 expected_servers=servers,
                 expected_path=path,
                 expected_query_params={
-                    'limit': ['1'], 'marker': [servers[0]['id']]
+                    'limit': ['2'], 'marker': [servers[1]['id']]
                 }
             )
 
