@@ -5,7 +5,8 @@ from twisted.trial.unittest import SynchronousTestCase
 
 from mimic.core import MimicCore
 from mimic.plugins import (nova_plugin, loadbalancer_plugin, swift_plugin,
-                           queue_plugin, maas_plugin, rackconnect_v3_plugin)
+                           queue_plugin, maas_plugin, rackconnect_v3_plugin,
+                           glance_plugin)
 
 
 class CoreBuildingTests(SynchronousTestCase):
@@ -31,7 +32,7 @@ class CoreBuildingTests(SynchronousTestCase):
         plugin_apis = set((nova_plugin.nova, loadbalancer_plugin.loadbalancer,
                            swift_plugin.swift, queue_plugin.queue,
                            maas_plugin.maas, rackconnect_v3_plugin.rackconnect,
-                           nova_plugin.nova_control_api))
+                           nova_plugin.nova_control_api, glance_plugin.glance))
         self.assertEqual(
             plugin_apis,
             set(core._uuid_to_api.values()))
