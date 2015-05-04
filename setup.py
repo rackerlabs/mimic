@@ -32,7 +32,8 @@ def setup_options(name, version):
             "jsonschema>=2.0",
             "treq>=0.2.1",
             "six>=1.6.0",
-            "xmltodict>=0.9.1"
+            "xmltodict>=0.9.1",
+            "attrs>=15.0.0"
         ],
         package_dir={"mimic": "mimic"},
         packages=find_packages(exclude=[]) + ["twisted.plugins"],
