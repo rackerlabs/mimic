@@ -29,7 +29,7 @@ class IdentitySessionTests(SynchronousTestCase):
         self.assertIdentical(identity_session, same_identity_session)
 
         different_identity_session = IdentitySession.from_store(
-            self.session_store, "1234")
+            self.session_store, "5678")
         self.assertNotIdentical(identity_session, different_identity_session)
 
     def test_identity_admin(self):
