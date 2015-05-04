@@ -665,8 +665,6 @@ class RegionalServerCollection(object):
         if server is None:
             return dumps(not_found("Instance could not be found",
                                    http_delete_request))
-            http_delete_request.setResponseCode(404)
-            return b''
         if 'delete_server_failure' in server.metadata:
             srvfail = loads(server.metadata['delete_server_failure'])
             if srvfail['times']:
