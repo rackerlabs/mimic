@@ -15,4 +15,5 @@ unittest2==0.5.1
 Sphinx==1.2.2
 stevedore==1.2.0
 treq==15.0.0
+testtools==1.7.1
 -e .
