@@ -11,18 +11,6 @@ from mimic.util.helper import (EMPTY_RESPONSE,
 from twisted.python import log
 
 
-class Region_Tenant_CLBs(object):
-    """
-    Object that stores a store of CLB and CLB Metadata info
-    """
-    def __init__(self):
-        """
-        There are two stores - the lb info, and the metadata info
-        """
-        self.lbs = {}
-        self.meta = {}
-
-
 def load_balancer_example(lb_info, lb_id, status,
                           current_time):
     """
