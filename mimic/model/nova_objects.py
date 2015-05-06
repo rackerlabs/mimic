@@ -14,14 +14,13 @@ from six import string_types
 from mimic.util.helper import (
     seconds_to_timestamp,
     invalid_resource,
-    not_found_response,
     random_string,
 )
 
 from mimic.model.behaviors import (
     BehaviorRegistry, EventDescription, Criterion, regexp_predicate
 )
-from twisted.web.http import ACCEPTED, NOT_FOUND
+from twisted.web.http import ACCEPTED, BAD_REQUEST, FORBIDDEN, NOT_FOUND
 
 
 @attributes(['nova_message'])
@@ -70,7 +69,33 @@ def bad_request(message, request):
 
     :return: dictionary representing the error body.
     """
-    return _nova_error_message("badRequest", message, 400, request)
+    return _nova_error_message("badRequest", message, BAD_REQUEST, request)
+
+
+def not_found(message, request):
+    """
+    Return a 404 error body associated with a Nova not found error.
+    Also sets the response code on the request.
+
+    :param str message: The message to include in the bad request body.
+    :param request: The request on which to set the response code.
+
+    :return: dictionary representing the error body.
+    """
+    return _nova_error_message("itemNotFound", message, NOT_FOUND, request)
+
+
+def forbidden(message, request):
+    """
+    Return a 403 error body associated with a Nova forbidden error.
+    Also sets the response code on the request.
+
+    :param str message: The message to include in the bad request body.
+    :param request: The request on which to set the response code.
+
+    :return: dictionary representing the error body.
+    """
+    return _nova_error_message("forbidden", message, FORBIDDEN, request)
 
 
 @attributes(["collection", "server_id", "server_name", "metadata",
@@ -532,22 +557,28 @@ class RegionalServerCollection(object):
     def request_read(self, http_get_request, server_id, absolutize_url):
         """
         Request the information / details for an individual server.
+
+        Not found response verified against Rackspace Cloud Servers as of
+        2015-04-30.
         """
         server = self.server_by_id(server_id)
         if server is None:
-            http_get_request.setResponseCode(404)
-            return dumps(not_found_response('servers'))
+            return dumps(not_found("Instance could not be found",
+                                   http_get_request))
         return dumps({"server": server.detail_json(absolutize_url)})
 
     def request_ips(self, http_get_ips_request, server_id):
         """
         Request the addresses JSON for a specific server.
+
+        Not found response verified against Rackspace Cloud Servers as of
+        2015-04-30.
         """
         http_get_ips_request.setResponseCode(200)
         server = self.server_by_id(server_id)
         if server is None:
-            http_get_ips_request.setResponseCode(NOT_FOUND)
-            return None
+            return dumps(not_found("Instance does not exist",
+                                   http_get_ips_request))
         return dumps({"addresses": server.addresses_json()})
 
     def request_list(self, http_get_request, include_details, absolutize_url,
@@ -626,11 +657,14 @@ class RegionalServerCollection(object):
     def request_delete(self, http_delete_request, server_id):
         """
         Delete a server with the given ID.
+
+        Not found response verified against Rackspace Cloud Servers as of
+        2015-04-30.
         """
         server = self.server_by_id(server_id)
         if server is None:
-            http_delete_request.setResponseCode(404)
-            return b''
+            return dumps(not_found("Instance could not be found",
+                                   http_delete_request))
         if 'delete_server_failure' in server.metadata:
             srvfail = loads(server.metadata['delete_server_failure'])
             if srvfail['times']:

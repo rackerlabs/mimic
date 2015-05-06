@@ -75,14 +75,13 @@ def seconds_to_timestamp(seconds, format=fmt):
 
 def not_found_response(resource='servers'):
     """
-    Return a 404 response body for Nova, depending on the resource.  Expects
-    resource to be one of "servers", "images", or "flavors".
+    Return a 404 response body, depending on the resource.  Expects
+    resource to be one of "images", "flavors", "loadbalancer", or "node".
 
     If the resource is unrecognized, defaults to
     "The resource culd not be found."
     """
     message = {
-        'servers': "Instance could not be found",
         'images': "Image not found.",
         'flavors': "The resource could not be found.",
         'loadbalancer': "Load balancer not found",
@@ -105,15 +104,6 @@ def invalid_resource(message, response_code=400):
     code.  Defaults response code to 400, if not provided.
     """
     return {"message": message, "code": response_code}
-
-
-def bad_request(message, response_code=400):
-    """
-    Returns the given message within in bad request body, and sets the response
-    code to given response code.  Defaults response code to 400, if not
-    provided.
-    """
-    return {"badRequest": invalid_resource(message, response_code)}
 
 
 def set_resource_status(updated_time, time_delta, status='ACTIVE',
