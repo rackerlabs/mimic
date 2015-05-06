@@ -1265,6 +1265,39 @@ class NovaAPINegativeTests(SynchronousTestCase):
                           "Sample failure message")
         self.assertEquals(failing_create_response_body['code'], 503)
 
+    def test_create_false_negative_failure_using_behaviors(self):
+        """
+        :func:`create_server` fails with given error message and response
+        code, but creates the server anyway, when a behavior is registered
+        that matches its hostname.
+        """
+        # List servers with details and verify there are no servers
+        resp, list_body = self.successResultOf(json_request(
+            self, self.root, "GET", self.uri + '/servers'))
+        self.assertEqual(resp.code, 200)
+        self.assertEqual(len(list_body['servers']), 0)
+
+        # Get a 500 creating a server
+        self.use_creation_behavior(
+            "false-negative",
+            {"message": "Create server failure", "code": 500},
+            [{"server_name": "failing_server_name"}]
+        )
+        create_server_response = self.create_server(
+            name="failing_server_name")
+        self.assertEquals(create_server_response.code, 500)
+        create_server_response_body = self.successResultOf(
+            treq.json_content(create_server_response))
+        self.assertEquals(create_server_response_body['message'],
+                          "Create server failure")
+        self.assertEquals(create_server_response_body['code'], 500)
+
+        # List servers with details and verify there are no servers
+        resp, list_body = self.successResultOf(json_request(
+            self, self.root, "GET", self.uri + '/servers'))
+        self.assertEqual(resp.code, 200)
+        self.assertEqual(len(list_body['servers']), 1)
+
     def test_modify_status_non_existent_server(self):
         """
         When using the ``.../attributes`` endpoint, if a non-existent server is
