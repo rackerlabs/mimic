@@ -46,41 +46,6 @@ def load_balancer_example(lb_info, lb_id, status,
     return lb_example
 
 
-def add_load_balancer(tenant_id, store, lb_info, lb_id, current_timestamp):
-    """
-    Returns response of a newly created load balancer with
-    response code 202, and adds the new lb to the store's lbs.
-    Note: ``store.lbs`` has tenant_id added as an extra key in comparison
-    to the lb_example.
-    """
-    status = "ACTIVE"
-
-    # Loadbalancers metadata is a list object, creating a metadata store
-    # so we dont have to deal with the list
-    meta = {}
-    if "metadata" in lb_info:
-        for each in lb_info["metadata"]:
-            meta.update({each["key"]: each["value"]})
-    store.meta[lb_id] = meta
-    log.msg(store.meta)
-
-    if "lb_building" in store.meta[lb_id]:
-        status = "BUILD"
-
-    # Add tenant_id and nodeCount to store.lbs
-    current_timestring = seconds_to_timestamp(current_timestamp)
-    store.lbs[lb_id] = load_balancer_example(lb_info, lb_id, status,
-                                             current_timestring)
-    store.lbs[lb_id].update({"tenant_id": tenant_id})
-    store.lbs[lb_id].update(
-        {"nodeCount": len(store.lbs[lb_id].get("nodes", []))})
-
-    # and remove before returning response for add lb
-    new_lb = _lb_without_tenant(store, lb_id)
-
-    return {'loadBalancer': new_lb}, 202
-
-
 def get_load_balancers(store, lb_id, current_timestamp):
     """
     Returns the load balancers with the given lb id, with response

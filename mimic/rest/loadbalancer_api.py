@@ -9,7 +9,7 @@ from zope.interface import implementer
 from twisted.web.server import Request
 from twisted.plugin import IPlugin
 from mimic.canned_responses.loadbalancer import (
-    add_load_balancer, del_load_balancer, list_load_balancers,
+    del_load_balancer, list_load_balancers,
     add_node, delete_node, delete_nodes, list_nodes, get_load_balancers,
     get_nodes)
 from mimic.rest.mimicapp import MimicApp
@@ -107,9 +107,10 @@ class LoadBalancerRegion(object):
             return json.dumps(invalid_resource("Invalid JSON request body"))
 
         lb_id = randrange(99999)
-        response_data = add_load_balancer(tenant_id, self.session(tenant_id),
-                                          content['loadBalancer'], lb_id,
-                                          self._session_store.clock.seconds())
+        response_data = self.session(tenant_id).add_load_balancer(
+            tenant_id, content['loadBalancer'], lb_id,
+            self._session_store.clock.seconds()
+        )
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
