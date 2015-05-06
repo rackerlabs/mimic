@@ -440,6 +440,31 @@ def create_fail_behavior(parameters):
     return fail_without_creating
 
 
+@server_creation.declare_behavior_creator("false-negative")
+def create_success_report_failure_behavior(parameters):
+    """
+    Create a behavior that reports failure, but actually succeeds, for server
+    creation.
+
+    Takes two parameters:
+
+    ``"code"``, an integer describing the HTTP response code, and
+    ``"message"``, a string describing a textual message.
+
+    The response body will be a JSON object including ``code`` and ``message``
+    fields matching the parameters.
+    """
+    status_code = parameters.get("code", 500)
+    failure_message = parameters.get("message", "Server creation failed.")
+
+    def create_then_fail(collection, http, json, absolutize_url):
+        Server.from_creation_request_json(
+            collection, json, lambda: randrange(255))
+        http.setResponseCode(status_code)
+        return dumps(invalid_resource(failure_message, status_code))
+    return create_then_fail
+
+
 @server_creation.declare_behavior_creator("build")
 def create_building_behavior(parameters):
     """
