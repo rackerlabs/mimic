@@ -20,7 +20,7 @@ from mimic.util.helper import (
 from mimic.model.behaviors import (
     BehaviorRegistry, EventDescription, Criterion, regexp_predicate
 )
-from twisted.web.http import ACCEPTED
+from twisted.web.http import ACCEPTED, BAD_REQUEST, FORBIDDEN, NOT_FOUND
 
 
 @attributes(['nova_message'])
@@ -69,7 +69,7 @@ def bad_request(message, request):
 
     :return: dictionary representing the error body.
     """
-    return _nova_error_message("badRequest", message, 400, request)
+    return _nova_error_message("badRequest", message, BAD_REQUEST, request)
 
 
 def not_found(message, request):
@@ -82,7 +82,7 @@ def not_found(message, request):
 
     :return: dictionary representing the error body.
     """
-    return _nova_error_message("itemNotFound", message, 404, request)
+    return _nova_error_message("itemNotFound", message, NOT_FOUND, request)
 
 
 def forbidden(message, request):
@@ -95,7 +95,7 @@ def forbidden(message, request):
 
     :return: dictionary representing the error body.
     """
-    return _nova_error_message("forbidden", message, 403, request)
+    return _nova_error_message("forbidden", message, FORBIDDEN, request)
 
 
 @attributes(["collection", "server_id", "server_name", "metadata",
