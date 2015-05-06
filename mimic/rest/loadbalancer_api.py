@@ -2,7 +2,6 @@
 """
 Defines add node and delete node from load balancers
 """
-from collections import defaultdict
 import json
 from uuid import uuid4
 from six import text_type
@@ -10,15 +9,17 @@ from zope.interface import implementer
 from twisted.web.server import Request
 from twisted.plugin import IPlugin
 from mimic.canned_responses.loadbalancer import (
-    Region_Tenant_CLBs,
-    add_load_balancer, del_load_balancer, list_load_balancers,
+    del_load_balancer, list_load_balancers,
     add_node, delete_node, delete_nodes, list_nodes, get_load_balancers,
     get_nodes)
 from mimic.rest.mimicapp import MimicApp
 from mimic.imimic import IAPIMock
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
+
+from mimic.model.clb_objects import GlobalCLBCollections
 from random import randrange
+
 from mimic.util.helper import invalid_resource, json_dump
 
 
@@ -83,10 +84,15 @@ class LoadBalancerRegion(object):
         Gets a session for a particular tenant, creating one if there isn't
         one.
         """
-        return (self._session_store.session_for_tenant_id(tenant_id)
-                .data_for_api(self._api_mock,
-                              lambda: defaultdict(Region_Tenant_CLBs))
-                [self.region_name])
+        tenant_session = self._session_store.session_for_tenant_id(tenant_id)
+        clb_global_collection = tenant_session.data_for_api(
+            self._api_mock,
+            lambda: GlobalCLBCollections(
+                tenant_id=tenant_id,
+                clock=self._session_store.clock))
+        clb_region_collection = clb_global_collection.collection_for_region(
+            self.region_name)
+        return clb_region_collection
 
     @app.route('/v2/<string:tenant_id>/loadbalancers', methods=['POST'])
     def add_load_balancer(self, request, tenant_id):
@@ -101,9 +107,10 @@ class LoadBalancerRegion(object):
             return json.dumps(invalid_resource("Invalid JSON request body"))
 
         lb_id = randrange(99999)
-        response_data = add_load_balancer(tenant_id, self.session(tenant_id),
-                                          content['loadBalancer'], lb_id,
-                                          self._session_store.clock.seconds())
+        response_data = self.session(tenant_id).add_load_balancer(
+            tenant_id, content['loadBalancer'], lb_id,
+            self._session_store.clock.seconds()
+        )
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
