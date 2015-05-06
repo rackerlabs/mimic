@@ -56,3 +56,8 @@ notifications:
      template:
        - "%{repository}@%{branch} - %{author}: %{message} (%{build_url})"
      use_notice: true
+
+branches:
+  only:
+    - master
+    - gh-pages
