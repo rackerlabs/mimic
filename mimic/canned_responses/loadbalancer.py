@@ -46,19 +46,6 @@ def load_balancer_example(lb_info, lb_id, status,
     return lb_example
 
 
-def get_load_balancers(store, lb_id, current_timestamp):
-    """
-    Returns the load balancers with the given lb id, with response
-    code 200. If no load balancers are found returns 404.
-    """
-    if lb_id in store.lbs:
-        _verify_and_update_lb_state(store, lb_id, False, current_timestamp)
-        log.msg(store.lbs[lb_id]["status"])
-        new_lb = _lb_without_tenant(store, lb_id)
-        return {'loadBalancer': new_lb}, 200
-    return not_found_response("loadbalancer"), 404
-
-
 def del_load_balancer(store, lb_id, current_timestamp):
     """
     Returns response for a load balancer that is in building status for 20
