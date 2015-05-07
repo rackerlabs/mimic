@@ -2,8 +2,7 @@
 Model objects for the CLB mimic.
 """
 
-from mimic.util.helper import (EMPTY_RESPONSE, invalid_resource,
-                               not_found_response, seconds_to_timestamp,)
+from mimic.util.helper import (not_found_response, seconds_to_timestamp)
 from twisted.python import log
 from characteristic import attributes, Attribute
 from mimic.canned_responses.loadbalancer import (load_balancer_example,
@@ -74,7 +73,6 @@ class RegionalCLBCollection(object):
             new_lb = _lb_without_tenant(self, lb_id)
             return {'loadBalancer': new_lb}, 200
         return not_found_response("loadbalancer"), 404
-
 
 
 @attributes(["tenant_id", "clock",
