@@ -2,12 +2,13 @@
 Model objects for the CLB mimic.
 """
 
-from copy import deepcopy
-from mimic.util.helper import (seconds_to_timestamp, not_found_response,
-                               set_resource_status)
+from mimic.util.helper import (EMPTY_RESPONSE, invalid_resource,
+                               not_found_response, seconds_to_timestamp,)
 from twisted.python import log
 from characteristic import attributes, Attribute
-from mimic.canned_responses.loadbalancer import load_balancer_example
+from mimic.canned_responses.loadbalancer import (load_balancer_example,
+                                                 _verify_and_update_lb_state,
+                                                 _lb_without_tenant)
 
 
 class RegionalCLBCollection(object):
@@ -74,68 +75,43 @@ class RegionalCLBCollection(object):
             return {'loadBalancer': new_lb}, 200
         return not_found_response("loadbalancer"), 404
 
+    def del_load_balancer(store, lb_id, current_timestamp):
+        """
+        Returns response for a load balancer that is in building status for 20
+        seconds and response code 202, and adds the new lb to ``store.lbs``.
+        A loadbalancer, on delete, goes into PENDING-DELETE and remains in
+        DELETED status until a nightly job(maybe?)
+        """
+        if lb_id in store.lbs:
 
-def _lb_without_tenant(store, lb_id):
-    """Returns a copy of the store for the given lb_id, without
-    tenant_id
-    """
-    new_lb = deepcopy(store.lbs[lb_id])
-    del new_lb["tenant_id"]
-    del new_lb["nodeCount"]
-    return new_lb
+            if store.lbs[lb_id]["status"] == "PENDING-DELETE":
+                msg = ("Must provide valid load balancers: {0} are "
+                       "immutable and could not be processed.".format(lb_id))
+                # Dont doubt this to be 422, it is 400!
+                return invalid_resource(msg, 400), 400
 
+            _verify_and_update_lb_state(store, lb_id, True, current_timestamp)
 
-def _verify_and_update_lb_state(store, lb_id, set_state=True,
-                                current_timestamp=None):
-    """
-    Based on the current state, the metadata on the lb and the time since the LB has
-    been in that state, set the appropriate state in store.lbs
-    Note: Reconsider if update metadata is implemented
-    """
-    current_timestring = seconds_to_timestamp(current_timestamp)
-    if store.lbs[lb_id]["status"] == "BUILD":
-        store.meta[lb_id]["lb_building"] = store.meta[lb_id]["lb_building"] or 10
-        store.lbs[lb_id]["status"] = set_resource_status(
-            store.lbs[lb_id]["updated"]["time"],
-            store.meta[lb_id]["lb_building"],
-            current_timestamp=current_timestamp
-        ) or "BUILD"
+            if any([store.lbs[lb_id]["status"] == "ACTIVE",
+                    store.lbs[lb_id]["status"] == "ERROR",
+                    store.lbs[lb_id]["status"] == "PENDING-UPDATE"]):
+                del store.lbs[lb_id]
+                return EMPTY_RESPONSE, 202
 
-    elif store.lbs[lb_id]["status"] == "ACTIVE" and set_state:
-        if "lb_pending_update" in store.meta[lb_id]:
-            store.lbs[lb_id]["status"] = "PENDING-UPDATE"
-            log.msg(store.lbs[lb_id]["status"])
-        if "lb_pending_delete" in store.meta[lb_id]:
-            store.lbs[lb_id]["status"] = "PENDING-DELETE"
-        if "lb_error_state" in store.meta[lb_id]:
-            store.lbs[lb_id]["status"] = "ERROR"
-        store.lbs[lb_id]["updated"]["time"] = current_timestring
+            if store.lbs[lb_id]["status"] == "PENDING-DELETE":
+                return EMPTY_RESPONSE, 202
 
-    elif store.lbs[lb_id]["status"] == "PENDING-UPDATE":
-        if "lb_pending_update" in store.meta[lb_id]:
-            store.lbs[lb_id]["status"] = set_resource_status(
-                store.lbs[lb_id]["updated"]["time"],
-                store.meta[lb_id]["lb_pending_update"],
-                current_timestamp=current_timestamp
-            ) or "PENDING-UPDATE"
+            if store.lbs[lb_id]["status"] == "DELETED":
+                _verify_and_update_lb_state(
+                    store,
+                    lb_id,
+                    current_timestamp=current_timestamp)
+                msg = ("Must provide valid load balancers: {0} "
+                       "could not be found.".format(lb_id))
+                # Dont doubt this to be 422, it is 400!
+                return invalid_resource(msg, 400), 400
 
-    elif store.lbs[lb_id]["status"] == "PENDING-DELETE":
-        store.meta[lb_id]["lb_pending_delete"] = store.meta[lb_id]["lb_pending_delete"] or 10
-        store.lbs[lb_id]["status"] = set_resource_status(
-            store.lbs[lb_id]["updated"]["time"],
-            store.meta[lb_id]["lb_pending_delete"], "DELETED",
-            current_timestamp=current_timestamp
-        ) or "PENDING-DELETE"
-        store.lbs[lb_id]["updated"]["time"] = current_timestring
-
-    elif store.lbs[lb_id]["status"] == "DELETED":
-        # see del_load_balancer above for an explanation of this state change.
-        store.lbs[lb_id]["status"] = set_resource_status(
-            store.lbs[lb_id]["updated"]["time"], 3600, "DELETING-NOW",
-            current_timestamp=current_timestamp
-        ) or "DELETED"
-        if store.lbs[lb_id]["status"] == "DELETING-NOW":
-            del store.lbs[lb_id]
+        return not_found_response("loadbalancer"), 404
 
 
 @attributes(["tenant_id", "clock",
