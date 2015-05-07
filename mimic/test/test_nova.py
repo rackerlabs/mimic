@@ -1347,12 +1347,11 @@ class NovaAPINegativeTests(SynchronousTestCase):
             name="sequenced_server_name")
         self.assertEqual(create_server_response_1.code, 500)
         self.assertEqual(create_server_response_2.code, 404)
-        self.assertEqual(create_server_response_3.code, 201)
+        self.assertEqual(create_server_response_3.code, 202)
         self.assertEqual(create_server_response_4.code, 500)
 
         # We should have created 1 server from the above actions.
         self.assertEqual(server_count(), 1)
-
 
     def test_modify_status_non_existent_server(self):
         """
