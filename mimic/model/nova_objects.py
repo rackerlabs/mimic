@@ -527,6 +527,35 @@ def active_then_error(parameters):
     return fail_later
 
 
+@server_creation.declare_behavior_creator("sequence")
+def sequence(parameters):
+    """
+    Sometimes a sequence of behaviors occur when you try to create a server in
+    a predictable pattern.
+
+    Takes one parameter, ``behaviors``, which is a list of specifications of
+    other behaviors.
+    """
+    behavior_specification = parameters["behaviors"]
+    behavior_objects = [
+        (
+            server_creation.create_behavior(behavior["name"],
+                                            behavior["parameters"])
+            if behavior["name"] != "default"
+            else server_creation.default_behavior
+        )
+        for behavior in behavior_specification
+    ]
+
+    def rotating_behavior(collection, http, json, absolutize_url):
+        current = behavior_objects[rotating_behavior.index]
+        rotating_behavior.index += 1
+        rotating_behavior.index %= len(behavior_objects)
+        return current(collection, http, json, absolutize_url)
+    rotating_behavior.index = 0
+    return rotating_behavior
+
+
 def metadata_to_creation_behavior(metadata):
     """
     Examine the metadata given to a server creation request, and return a
