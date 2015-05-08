@@ -10,6 +10,19 @@ from mimic.canned_responses.loadbalancer import (load_balancer_example,
                                                  _lb_without_tenant)
 
 
+def _prep_for_list(lb_list):
+    """
+    Removes tenant id and changes the nodes list to 'nodeCount' set to the
+    number of node on the LB
+    """
+    entries_to_keep = ('name', 'protocol', 'id', 'port', 'algorithm', 'status', 'timeout',
+                       'created', 'virtualIps', 'updated', 'nodeCount')
+    filtered_lb_list = []
+    for each in lb_list:
+        filtered_lb_list.append(dict((entry, each[entry]) for entry in entries_to_keep))
+    return filtered_lb_list
+
+
 class RegionalCLBCollection(object):
     """
     A collection of CloudLoadBalancers, in a given region, for a given tenant.
@@ -20,6 +33,80 @@ class RegionalCLBCollection(object):
         """
         self.lbs = {}
         self.meta = {}
+
+    def _verify_and_update_lb_state(self, lb_id, set_state=True,
+                                    current_timestamp=None):
+        """
+        Based on the current state, the metadata on the lb and the time since the LB has
+        been in that state, set the appropriate state in self.lbs
+        Note: Reconsider if update metadata is implemented
+        """
+        current_timestring = seconds_to_timestamp(current_timestamp)
+        if self.lbs[lb_id]["status"] == "BUILD":
+            self.meta[lb_id]["lb_building"] = self.meta[lb_id]["lb_building"] or 10
+            self.lbs[lb_id]["status"] = set_resource_status(
+                self.lbs[lb_id]["updated"]["time"],
+                self.meta[lb_id]["lb_building"],
+                current_timestamp=current_timestamp
+            ) or "BUILD"
+
+        elif self.lbs[lb_id]["status"] == "ACTIVE" and set_state:
+            if "lb_pending_update" in self.meta[lb_id]:
+                self.lbs[lb_id]["status"] = "PENDING-UPDATE"
+                log.msg(self.lbs[lb_id]["status"])
+            if "lb_pending_delete" in self.meta[lb_id]:
+                self.lbs[lb_id]["status"] = "PENDING-DELETE"
+            if "lb_error_state" in self.meta[lb_id]:
+                self.lbs[lb_id]["status"] = "ERROR"
+            self.lbs[lb_id]["updated"]["time"] = current_timestring
+
+        elif self.lbs[lb_id]["status"] == "PENDING-UPDATE":
+            if "lb_pending_update" in self.meta[lb_id]:
+                self.lbs[lb_id]["status"] = set_resource_status(
+                    self.lbs[lb_id]["updated"]["time"],
+                    self.meta[lb_id]["lb_pending_update"],
+                    current_timestamp=current_timestamp
+                ) or "PENDING-UPDATE"
+
+        elif self.lbs[lb_id]["status"] == "PENDING-DELETE":
+            self.meta[lb_id]["lb_pending_delete"] = self.meta[lb_id]["lb_pending_delete"] or 10
+            self.lbs[lb_id]["status"] = set_resource_status(
+                self.lbs[lb_id]["updated"]["time"],
+                self.meta[lb_id]["lb_pending_delete"], "DELETED",
+                current_timestamp=current_timestamp
+            ) or "PENDING-DELETE"
+            self.lbs[lb_id]["updated"]["time"] = current_timestring
+
+        elif self.lbs[lb_id]["status"] == "DELETED":
+            # see del_load_balancer above for an explanation of this state change.
+            self.lbs[lb_id]["status"] = set_resource_status(
+                self.lbs[lb_id]["updated"]["time"], 3600, "DELETING-NOW",
+                current_timestamp=current_timestamp
+            ) or "DELETED"
+            if self.lbs[lb_id]["status"] == "DELETING-NOW":
+                del self.lbs[lb_id]
+
+    def list_load_balancers(self, tenant_id, current_timestamp):
+        """
+        Returns the list of load balancers with the given tenant id with response
+        code 200. If no load balancers are found returns empty list.
+        :param string tenant_id: The tenant which owns the load balancers.
+        :param float current_timestamp: The current time, in seconds since epoch.
+
+        :return: A 2-tuple, containing the HTTP response and code, in that order.
+        """
+        response = dict(
+            (k, v) for (k, v) in self.lbs.items()
+            if tenant_id == v['tenant_id']
+        )
+        for each in response:
+            self._verify_and_update_lb_state(each, False, current_timestamp)
+            log.msg(self.lbs[each]["status"])
+        updated_resp = dict(
+            (k, v) for (k, v) in self.lbs.items()
+            if tenant_id == v['tenant_id']
+        )
+        return {'loadBalancers': _prep_for_list(updated_resp.values()) or []}, 200
 
     def add_load_balancer(self, tenant_id, lb_info, lb_id, current_timestamp):
         """
