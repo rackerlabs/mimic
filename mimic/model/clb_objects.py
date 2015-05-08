@@ -2,7 +2,10 @@
 Model objects for the CLB mimic.
 """
 
-from mimic.util.helper import (not_found_response, seconds_to_timestamp)
+from mimic.util.helper import (
+    EMPTY_RESPONSE, not_found_response, seconds_to_timestamp,
+    invalid_resource
+)
 from twisted.python import log
 from characteristic import attributes, Attribute
 from mimic.canned_responses.loadbalancer import (load_balancer_example,
@@ -20,6 +23,40 @@ class RegionalCLBCollection(object):
         """
         self.lbs = {}
         self.meta = {}
+
+    def del_load_balancer(self, lb_id, current_timestamp):
+        """
+        Returns response for a load balancer that is in building status for 20
+        seconds and response code 202, and adds the new lb to ``self.lbs``.
+        A loadbalancer, on delete, goes into PENDING-DELETE and remains in DELETED
+        status until a nightly job(maybe?)
+        """
+        if lb_id in self.lbs:
+            if self.lbs[lb_id]["status"] == "PENDING-DELETE":
+                msg = ("Must provide valid load balancers: {0} are immutable and "
+                       "could not be processed.".format(lb_id))
+                # Dont doubt this to be 422, it is 400!
+                return invalid_resource(msg, 400), 400
+
+            _verify_and_update_lb_state(self, lb_id, True, current_timestamp)
+
+            if any([self.lbs[lb_id]["status"] == "ACTIVE",
+                    self.lbs[lb_id]["status"] == "ERROR",
+                    self.lbs[lb_id]["status"] == "PENDING-UPDATE"]):
+                del self.lbs[lb_id]
+                return EMPTY_RESPONSE, 202
+
+            if self.lbs[lb_id]["status"] == "PENDING-DELETE":
+                return EMPTY_RESPONSE, 202
+
+            if self.lbs[lb_id]["status"] == "DELETED":
+                _verify_and_update_lb_state(self, lb_id,
+                                            current_timestamp=current_timestamp)
+                msg = "Must provide valid load balancers: {0} could not be found.".format(lb_id)
+                # Dont doubt this to be 422, it is 400!
+                return invalid_resource(msg, 400), 400
+
+        return not_found_response("loadbalancer"), 404
 
     def add_load_balancer(self, tenant_id, lb_info, lb_id, current_timestamp):
         """
