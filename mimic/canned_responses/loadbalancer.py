@@ -82,25 +82,6 @@ def del_load_balancer(store, lb_id, current_timestamp):
     return not_found_response("loadbalancer"), 404
 
 
-def list_load_balancers(tenant_id, store, current_timestamp):
-    """
-    Returns the list of load balancers with the given tenant id with response
-    code 200. If no load balancers are found returns empty list.
-    """
-    response = dict(
-        (k, v) for (k, v) in store.lbs.items()
-        if tenant_id == v['tenant_id']
-    )
-    for each in response:
-        _verify_and_update_lb_state(store, each, False, current_timestamp)
-        log.msg(store.lbs[each]["status"])
-    updated_resp = dict(
-        (k, v) for (k, v) in store.lbs.items()
-        if tenant_id == v['tenant_id']
-    )
-    return {'loadBalancers': _prep_for_list(updated_resp.values()) or []}, 200
-
-
 def add_node(store, node_list, lb_id, current_timestamp):
     """
     Returns the canned response for add nodes
