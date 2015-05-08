@@ -2,7 +2,8 @@
 Model objects for the CLB mimic.
 """
 
-from mimic.util.helper import (not_found_response, seconds_to_timestamp)
+from mimic.util.helper import (not_found_response, seconds_to_timestamp,
+                               invalid_resource)
 from twisted.python import log
 from characteristic import attributes, Attribute
 from mimic.canned_responses.loadbalancer import (load_balancer_example,
@@ -72,6 +73,27 @@ class RegionalCLBCollection(object):
             log.msg(self.lbs[lb_id]["status"])
             new_lb = _lb_without_tenant(self, lb_id)
             return {'loadBalancer': new_lb}, 200
+        return not_found_response("loadbalancer"), 404
+
+    def get_nodes(self, lb_id, node_id, current_timestamp):
+        """
+        Returns the node on the load balancer
+        """
+        if lb_id in self.lbs:
+            _verify_and_update_lb_state(self, lb_id, False, current_timestamp)
+
+            if self.lbs[lb_id]["status"] == "DELETED":
+                return (
+                    invalid_resource(
+                        "The loadbalancer is marked as deleted.", 410),
+                    410)
+
+            if self.lbs[lb_id].get("nodes"):
+                for each in self.lbs[lb_id]["nodes"]:
+                    if node_id == each["id"]:
+                        return {"node": each}, 200
+            return not_found_response("node"), 404
+
         return not_found_response("loadbalancer"), 404
 
 
