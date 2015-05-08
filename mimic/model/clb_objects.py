@@ -2,12 +2,14 @@
 Model objects for the CLB mimic.
 """
 
-from mimic.util.helper import (not_found_response, seconds_to_timestamp)
+from mimic.util.helper import (not_found_response, seconds_to_timestamp,
+                               invalid_resource)
 from twisted.python import log
 from characteristic import attributes, Attribute
 from mimic.canned_responses.loadbalancer import (load_balancer_example,
                                                  _verify_and_update_lb_state,
-                                                 _lb_without_tenant)
+                                                 _lb_without_tenant,
+                                                 _delete_node)
 
 
 class RegionalCLBCollection(object):
@@ -72,6 +74,32 @@ class RegionalCLBCollection(object):
             log.msg(self.lbs[lb_id]["status"])
             new_lb = _lb_without_tenant(self, lb_id)
             return {'loadBalancer': new_lb}, 200
+        return not_found_response("loadbalancer"), 404
+
+    def delete_node(self, lb_id, node_id, current_timestamp):
+        """
+        Determines whether the node to be deleted exists in the session store,
+        deletes the node, and returns the response code.
+        """
+        if lb_id in self.lbs:
+
+            _verify_and_update_lb_state(self, lb_id, False, current_timestamp)
+
+            if self.lbs[lb_id]["status"] != "ACTIVE":
+                # Error message verified as of 2015-04-22
+                resource = invalid_resource(
+                    "Load Balancer '{0}' has a status of '{1}' and is considered "
+                    "immutable.".format(lb_id, self.lbs[lb_id]["status"]), 422)
+                return (resource, 422)
+
+            _verify_and_update_lb_state(self, lb_id,
+                                        current_timestamp=current_timestamp)
+
+            if _delete_node(self, lb_id, node_id):
+                return None, 202
+            else:
+                return not_found_response("node"), 404
+
         return not_found_response("loadbalancer"), 404
 
 
