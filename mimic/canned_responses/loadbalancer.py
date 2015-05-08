@@ -182,54 +182,6 @@ def delete_node(store, lb_id, node_id, current_timestamp):
     return not_found_response("loadbalancer"), 404
 
 
-def delete_nodes(store, lb_id, node_ids, current_timestamp):
-    """
-    Bulk-delete multiple LB nodes.
-    """
-    if not node_ids:
-        resp = {
-            "message": "Must supply one or more id's to process this request.",
-            "code": 400}
-        return resp, 400
-
-    if lb_id not in store.lbs:
-        return not_found_response("loadbalancer"), 404
-
-    _verify_and_update_lb_state(store, lb_id, False, current_timestamp)
-
-    if store.lbs[lb_id]["status"] != "ACTIVE":
-        # Error message verified as of 2015-04-22
-        resp = {"message": "LoadBalancer is not ACTIVE",
-                "code": 422}
-        return resp, 422
-
-    # We need to verify all the deletions up front, and only allow it through
-    # if all of them are valid.
-    all_ids = [node["id"] for node in store.lbs[lb_id].get("nodes", [])]
-    non_nodes = set(node_ids).difference(all_ids)
-    if non_nodes:
-        nodes = ','.join(map(str, non_nodes))
-        resp = {
-            "validationErrors": {
-                "messages": [
-                    "Node ids {0} are not a part of your loadbalancer".format(nodes)
-                ]
-            },
-            "message": "Validation Failure",
-            "code": 400,
-            "details": "The object is not valid"}
-        return resp, 400
-
-    for node_id in node_ids:
-        # It should not be possible for this to fail, since we've already
-        # checked that they all exist.
-        assert _delete_node(store, lb_id, node_id) == True
-
-    _verify_and_update_lb_state(store, lb_id,
-                                current_timestamp=current_timestamp)
-    return EMPTY_RESPONSE, 202
-
-
 def list_nodes(store, lb_id, current_timestamp):
     """
     Returns the list of nodes remaining on the load balancer
