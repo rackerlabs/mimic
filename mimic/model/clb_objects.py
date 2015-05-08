@@ -4,7 +4,7 @@ Model objects for the CLB mimic.
 
 from mimic.util.helper import (
     EMPTY_RESPONSE, not_found_response, seconds_to_timestamp,
-    set_resource_status, invalid_resource
+    invalid_resource
 )
 from twisted.python import log
 from characteristic import attributes, Attribute
@@ -24,58 +24,6 @@ class RegionalCLBCollection(object):
         self.lbs = {}
         self.meta = {}
 
-    def _verify_and_update_lb_state(self, lb_id, set_state=True,
-                                    current_timestamp=None):
-        """
-        Based on the current state, the metadata on the lb and the time since the LB has
-        been in that state, set the appropriate state in self.lbs
-        Note: Reconsider if update metadata is implemented
-        """
-        current_timestring = seconds_to_timestamp(current_timestamp)
-        if self.lbs[lb_id]["status"] == "BUILD":
-            self.meta[lb_id]["lb_building"] = self.meta[lb_id]["lb_building"] or 10
-            self.lbs[lb_id]["status"] = set_resource_status(
-                self.lbs[lb_id]["updated"]["time"],
-                self.meta[lb_id]["lb_building"],
-                current_timestamp=current_timestamp
-            ) or "BUILD"
-
-        elif self.lbs[lb_id]["status"] == "ACTIVE" and set_state:
-            if "lb_pending_update" in self.meta[lb_id]:
-                self.lbs[lb_id]["status"] = "PENDING-UPDATE"
-                log.msg(self.lbs[lb_id]["status"])
-            if "lb_pending_delete" in self.meta[lb_id]:
-                self.lbs[lb_id]["status"] = "PENDING-DELETE"
-            if "lb_error_state" in self.meta[lb_id]:
-                self.lbs[lb_id]["status"] = "ERROR"
-            self.lbs[lb_id]["updated"]["time"] = current_timestring
-
-        elif self.lbs[lb_id]["status"] == "PENDING-UPDATE":
-            if "lb_pending_update" in self.meta[lb_id]:
-                self.lbs[lb_id]["status"] = set_resource_status(
-                    self.lbs[lb_id]["updated"]["time"],
-                    self.meta[lb_id]["lb_pending_update"],
-                    current_timestamp=current_timestamp
-                ) or "PENDING-UPDATE"
-
-        elif self.lbs[lb_id]["status"] == "PENDING-DELETE":
-            self.meta[lb_id]["lb_pending_delete"] = self.meta[lb_id]["lb_pending_delete"] or 10
-            self.lbs[lb_id]["status"] = set_resource_status(
-                self.lbs[lb_id]["updated"]["time"],
-                self.meta[lb_id]["lb_pending_delete"], "DELETED",
-                current_timestamp=current_timestamp
-            ) or "PENDING-DELETE"
-            self.lbs[lb_id]["updated"]["time"] = current_timestring
-
-        elif self.lbs[lb_id]["status"] == "DELETED":
-            # see del_load_balancer above for an explanation of this state change.
-            self.lbs[lb_id]["status"] = set_resource_status(
-                self.lbs[lb_id]["updated"]["time"], 3600, "DELETING-NOW",
-                current_timestamp=current_timestamp
-            ) or "DELETED"
-            if self.lbs[lb_id]["status"] == "DELETING-NOW":
-                del self.lbs[lb_id]
-
     def del_load_balancer(self, lb_id, current_timestamp):
         """
         Returns response for a load balancer that is in building status for 20
@@ -90,7 +38,7 @@ class RegionalCLBCollection(object):
                 # Dont doubt this to be 422, it is 400!
                 return invalid_resource(msg, 400), 400
 
-            self._verify_and_update_lb_state(lb_id, True, current_timestamp)
+            _verify_and_update_lb_state(self, lb_id, True, current_timestamp)
 
             if any([self.lbs[lb_id]["status"] == "ACTIVE",
                     self.lbs[lb_id]["status"] == "ERROR",
