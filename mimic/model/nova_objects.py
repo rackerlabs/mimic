@@ -4,6 +4,7 @@ Model objects for the Nova mimic.
 
 import re
 
+from itertools import cycle
 from characteristic import attributes, Attribute
 from random import randrange
 from json import loads, dumps
@@ -537,7 +538,7 @@ def sequence(parameters):
     other behaviors.
     """
     behavior_specification = parameters["behaviors"]
-    behavior_objects = [
+    behavior_objects = cycle([
         (
             server_creation.create_behavior(behavior["name"],
                                             behavior["parameters"])
@@ -545,14 +546,11 @@ def sequence(parameters):
             else server_creation.default_behavior
         )
         for behavior in behavior_specification
-    ]
+    ])
 
     def rotating_behavior(collection, http, json, absolutize_url):
-        current = behavior_objects[rotating_behavior.index]
-        rotating_behavior.index += 1
-        rotating_behavior.index %= len(behavior_objects)
+        current = next(behavior_objects)
         return current(collection, http, json, absolutize_url)
-    rotating_behavior.index = 0
     return rotating_behavior
 
 
