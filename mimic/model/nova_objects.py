@@ -534,19 +534,21 @@ def sequence(parameters):
     Sometimes a sequence of behaviors occur when you try to create a server in
     a predictable pattern.
 
-    Each time the criterion for the behavior is matched, the next behavior.
-
     Takes one parameter, ``behaviors``, which is a list of specifications of
     other behaviors, similar to those specified in the request to create a
     behavior, with the addition of a behavior with a name of "default" that
     means default success.
 
+    Each time the criterion for this behavior is matched, the next behavior is
+    executed, looping back to the beginning when the list of behaviors is
+    exhausted.  In other words, this creation behavior is stateful.
+
     Note that the behavior specifications here do not need a criterion, since
     the criterion is specified for the behavior overall, and each behavior is
     unconditionally executed in sequence.
 
-    For example, to specify an alternating sequence of success and then
-    failure::
+    For example, to specify an alternating sequence of success and then failure
+    when the criterion for the ``sequence`` behavior is matched::
 
         {
             "behaviors": [
