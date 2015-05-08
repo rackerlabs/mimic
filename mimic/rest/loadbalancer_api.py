@@ -10,7 +10,7 @@ from twisted.web.server import Request
 from twisted.plugin import IPlugin
 from mimic.canned_responses.loadbalancer import (
     del_load_balancer, list_load_balancers,
-    add_node, delete_node, delete_nodes, list_nodes,
+    delete_node, delete_nodes, list_nodes,
     get_nodes)
 from mimic.rest.mimicapp import MimicApp
 from mimic.imimic import IAPIMock
@@ -163,8 +163,8 @@ class LoadBalancerRegion(object):
             return json.dumps(invalid_resource("Invalid JSON request body"))
 
         node_list = content['nodes']
-        response_data = add_node(
-            self.session(tenant_id), node_list, lb_id,
+        response_data = self.session(tenant_id).add_node(
+            node_list, lb_id,
             self._session_store.clock.seconds()
         )
         request.setResponseCode(response_data[1])

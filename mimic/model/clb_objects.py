@@ -2,12 +2,14 @@
 Model objects for the CLB mimic.
 """
 
-from mimic.util.helper import (not_found_response, seconds_to_timestamp)
+from mimic.util.helper import (not_found_response, seconds_to_timestamp,
+                               invalid_resource)
 from twisted.python import log
 from characteristic import attributes, Attribute
 from mimic.canned_responses.loadbalancer import (load_balancer_example,
                                                  _verify_and_update_lb_state,
-                                                 _lb_without_tenant)
+                                                 _lb_without_tenant,
+                                                 _format_nodes_on_lb)
 
 
 class RegionalCLBCollection(object):
@@ -72,6 +74,42 @@ class RegionalCLBCollection(object):
             log.msg(self.lbs[lb_id]["status"])
             new_lb = _lb_without_tenant(self, lb_id)
             return {'loadBalancer': new_lb}, 200
+        return not_found_response("loadbalancer"), 404
+
+    def add_node(self, node_list, lb_id, current_timestamp):
+        """
+        Returns the canned response for add nodes
+        """
+        if lb_id in self.lbs:
+
+            _verify_and_update_lb_state(self, lb_id, False, current_timestamp)
+
+            if self.lbs[lb_id]["status"] != "ACTIVE":
+                resource = invalid_resource(
+                    "Load Balancer '{0}' has a status of {1} and is considered "
+                    "immutable.".format(lb_id, self.lbs[lb_id]["status"]), 422)
+                return (resource, 422)
+
+            nodes = _format_nodes_on_lb(node_list)
+
+            if self.lbs[lb_id].get("nodes"):
+                for existing_node in self.lbs[lb_id]["nodes"]:
+                    for new_node in node_list:
+                        if (existing_node["address"] == new_node["address"] and
+                                existing_node["port"] == new_node["port"]):
+                            resource = invalid_resource(
+                                "Duplicate nodes detected. One or more nodes "
+                                "already configured on load balancer.", 413)
+                            return (resource, 413)
+
+                self.lbs[lb_id]["nodes"] = self.lbs[lb_id]["nodes"] + nodes
+            else:
+                self.lbs[lb_id]["nodes"] = nodes
+                self.lbs[lb_id]["nodeCount"] = len(self.lbs[lb_id]["nodes"])
+                _verify_and_update_lb_state(self, lb_id,
+                                            current_timestamp=current_timestamp)
+            return {"nodes": nodes}, 202
+
         return not_found_response("loadbalancer"), 404
 
 
