@@ -82,43 +82,6 @@ def del_load_balancer(store, lb_id, current_timestamp):
     return not_found_response("loadbalancer"), 404
 
 
-def add_node(store, node_list, lb_id, current_timestamp):
-    """
-    Returns the canned response for add nodes
-    """
-    if lb_id in store.lbs:
-
-        _verify_and_update_lb_state(store, lb_id, False, current_timestamp)
-
-        if store.lbs[lb_id]["status"] != "ACTIVE":
-            resource = invalid_resource(
-                "Load Balancer '{0}' has a status of {1} and is considered "
-                "immutable.".format(lb_id, store.lbs[lb_id]["status"]), 422)
-            return (resource, 422)
-
-        nodes = _format_nodes_on_lb(node_list)
-
-        if store.lbs[lb_id].get("nodes"):
-            for existing_node in store.lbs[lb_id]["nodes"]:
-                for new_node in node_list:
-                    if (existing_node["address"] == new_node["address"] and
-                            existing_node["port"] == new_node["port"]):
-                        resource = invalid_resource(
-                            "Duplicate nodes detected. One or more nodes "
-                            "already configured on load balancer.", 413)
-                        return (resource, 413)
-
-            store.lbs[lb_id]["nodes"] = store.lbs[lb_id]["nodes"] + nodes
-        else:
-            store.lbs[lb_id]["nodes"] = nodes
-            store.lbs[lb_id]["nodeCount"] = len(store.lbs[lb_id]["nodes"])
-            _verify_and_update_lb_state(store, lb_id,
-                                        current_timestamp=current_timestamp)
-        return {"nodes": nodes}, 202
-
-    return not_found_response("loadbalancer"), 404
-
-
 def _delete_node(store, lb_id, node_id):
     """Delete a node by ID."""
     if store.lbs[lb_id].get("nodes"):
