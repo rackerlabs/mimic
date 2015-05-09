@@ -10,8 +10,7 @@ from twisted.web.server import Request
 from twisted.plugin import IPlugin
 from mimic.canned_responses.loadbalancer import (
     del_load_balancer,
-    delete_node, delete_nodes, list_nodes,
-    get_nodes)
+    delete_node, list_nodes)
 from mimic.rest.mimicapp import MimicApp
 from mimic.imimic import IAPIMock
 from mimic.catalog import Entry
@@ -176,8 +175,8 @@ class LoadBalancerRegion(object):
         """
         Returns a 200 response code and list of nodes on the load balancer
         """
-        response_data = get_nodes(
-            self.session(tenant_id), lb_id, node_id,
+        response_data = self.session(tenant_id).get_nodes(
+            lb_id, node_id,
             self._session_store.clock.seconds()
         )
         request.setResponseCode(response_data[1])
@@ -203,8 +202,8 @@ class LoadBalancerRegion(object):
         Deletes multiple nodes from a LB.
         """
         node_ids = map(int, request.args.get('id', []))
-        response_data = delete_nodes(
-            self.session(tenant_id), lb_id, node_ids,
+        response_data = self.session(tenant_id).delete_nodes(
+            lb_id, node_ids,
             self._session_store.clock.seconds())
         request.setResponseCode(response_data[1])
         return json_dump(response_data[0])

@@ -1298,6 +1298,61 @@ class NovaAPINegativeTests(SynchronousTestCase):
         self.assertEqual(resp.code, 200)
         self.assertEqual(len(list_body['servers']), 1)
 
+    def test_create_sequence_behavior(self):
+        """
+        :func:`create_server` responds with each behavior in sequence,
+        repeatedly, as specified to the "sequence" behavior.
+        """
+        def server_count():
+            resp, list_body = self.successResultOf(json_request(
+                self, self.root, "GET", self.uri + '/servers'))
+            self.assertEqual(resp.code, 200)
+            return len(list_body['servers'])
+
+        # Just to make sure, we have no servers to start with.
+        self.assertEqual(server_count(), 0)
+        self.use_creation_behavior(
+            "sequence",
+            {
+                "behaviors": [
+                    {
+                        "name": "fail",
+                        "parameters": {
+                            "code": 500,
+                            "message": "lol"
+                        }
+                    },
+                    {
+                        "name": "fail",
+                        "parameters": {
+                            "code": 404,
+                            "message": "wut"
+                        }
+                    },
+                    {
+                        "name": "default",
+                        "parameters": {}
+                    }
+                ]
+            },
+            [{"server_name": "sequenced_server_name"}]
+        )
+        create_server_response_1 = self.create_server(
+            name="sequenced_server_name")
+        create_server_response_2 = self.create_server(
+            name="sequenced_server_name")
+        create_server_response_3 = self.create_server(
+            name="sequenced_server_name")
+        create_server_response_4 = self.create_server(
+            name="sequenced_server_name")
+        self.assertEqual(create_server_response_1.code, 500)
+        self.assertEqual(create_server_response_2.code, 404)
+        self.assertEqual(create_server_response_3.code, 202)
+        self.assertEqual(create_server_response_4.code, 500)
+
+        # We should have created 1 server from the above actions.
+        self.assertEqual(server_count(), 1)
+
     def test_modify_status_non_existent_server(self):
         """
         When using the ``.../attributes`` endpoint, if a non-existent server is
