@@ -9,7 +9,8 @@ from characteristic import attributes, Attribute
 from mimic.canned_responses.loadbalancer import (load_balancer_example,
                                                  _verify_and_update_lb_state,
                                                  _lb_without_tenant,
-                                                 _delete_node)
+                                                 _delete_node,
+                                                 _prep_for_list)
 
 
 class RegionalCLBCollection(object):
@@ -75,6 +76,24 @@ class RegionalCLBCollection(object):
             new_lb = _lb_without_tenant(self, lb_id)
             return {'loadBalancer': new_lb}, 200
         return not_found_response("loadbalancer"), 404
+
+    def list_load_balancers(self, tenant_id, current_timestamp):
+        """
+        Returns the list of load balancers with the given tenant id with response
+        code 200. If no load balancers are found returns empty list.
+        """
+        response = dict(
+            (k, v) for (k, v) in self.lbs.items()
+            if tenant_id == v['tenant_id']
+        )
+        for each in response:
+            _verify_and_update_lb_state(self, each, False, current_timestamp)
+            log.msg(self.lbs[each]["status"])
+        updated_resp = dict(
+            (k, v) for (k, v) in self.lbs.items()
+            if tenant_id == v['tenant_id']
+        )
+        return {'loadBalancers': _prep_for_list(updated_resp.values()) or []}, 200
 
     def delete_node(self, lb_id, node_id, current_timestamp):
         """

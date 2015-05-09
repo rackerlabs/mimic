@@ -82,25 +82,6 @@ def del_load_balancer(store, lb_id, current_timestamp):
     return not_found_response("loadbalancer"), 404
 
 
-def list_load_balancers(tenant_id, store, current_timestamp):
-    """
-    Returns the list of load balancers with the given tenant id with response
-    code 200. If no load balancers are found returns empty list.
-    """
-    response = dict(
-        (k, v) for (k, v) in store.lbs.items()
-        if tenant_id == v['tenant_id']
-    )
-    for each in response:
-        _verify_and_update_lb_state(store, each, False, current_timestamp)
-        log.msg(store.lbs[each]["status"])
-    updated_resp = dict(
-        (k, v) for (k, v) in store.lbs.items()
-        if tenant_id == v['tenant_id']
-    )
-    return {'loadBalancers': _prep_for_list(updated_resp.values()) or []}, 200
-
-
 def add_node(store, node_list, lb_id, current_timestamp):
     """
     Returns the canned response for add nodes
@@ -172,33 +153,6 @@ def _delete_node(store, lb_id, node_id):
                 store.lbs[lb_id].update({"nodeCount": len(store.lbs[lb_id].get("nodes", []))})
                 return True
     return False
-
-
-def delete_node(store, lb_id, node_id, current_timestamp):
-    """
-    Determines whether the node to be deleted exists in mimic store, deletes
-    the node, and returns the response code.
-    """
-    if lb_id in store.lbs:
-
-        _verify_and_update_lb_state(store, lb_id, False, current_timestamp)
-
-        if store.lbs[lb_id]["status"] != "ACTIVE":
-            # Error message verified as of 2015-04-22
-            resource = invalid_resource(
-                "Load Balancer '{0}' has a status of '{1}' and is considered "
-                "immutable.".format(lb_id, store.lbs[lb_id]["status"]), 422)
-            return (resource, 422)
-
-        _verify_and_update_lb_state(store, lb_id,
-                                    current_timestamp=current_timestamp)
-
-        if _delete_node(store, lb_id, node_id):
-            return None, 202
-        else:
-            return not_found_response("node"), 404
-
-    return not_found_response("loadbalancer"), 404
 
 
 def delete_nodes(store, lb_id, node_ids, current_timestamp):
