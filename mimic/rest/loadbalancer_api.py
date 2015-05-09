@@ -9,13 +9,8 @@ from zope.interface import implementer
 from twisted.web.server import Request
 from twisted.plugin import IPlugin
 from mimic.canned_responses.loadbalancer import (
-<<<<<<< HEAD
-    del_load_balancer, list_load_balancers,
-    add_node, delete_nodes, list_nodes,
-=======
     del_load_balancer,
-    add_node, delete_node, delete_nodes, list_nodes,
->>>>>>> master
+    add_node, delete_nodes, list_nodes,
     get_nodes)
 from mimic.rest.mimicapp import MimicApp
 from mimic.imimic import IAPIMock
