@@ -96,33 +96,6 @@ def _delete_node(store, lb_id, node_id):
     return False
 
 
-def delete_node(store, lb_id, node_id, current_timestamp):
-    """
-    Determines whether the node to be deleted exists in mimic store, deletes
-    the node, and returns the response code.
-    """
-    if lb_id in store.lbs:
-
-        _verify_and_update_lb_state(store, lb_id, False, current_timestamp)
-
-        if store.lbs[lb_id]["status"] != "ACTIVE":
-            # Error message verified as of 2015-04-22
-            resource = invalid_resource(
-                "Load Balancer '{0}' has a status of '{1}' and is considered "
-                "immutable.".format(lb_id, store.lbs[lb_id]["status"]), 422)
-            return (resource, 422)
-
-        _verify_and_update_lb_state(store, lb_id,
-                                    current_timestamp=current_timestamp)
-
-        if _delete_node(store, lb_id, node_id):
-            return None, 202
-        else:
-            return not_found_response("node"), 404
-
-    return not_found_response("loadbalancer"), 404
-
-
 def list_nodes(store, lb_id, current_timestamp):
     """
     Returns the list of nodes remaining on the load balancer
