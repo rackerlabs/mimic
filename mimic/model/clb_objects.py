@@ -117,6 +117,24 @@ class RegionalCLBCollection(object):
         )
         return {'loadBalancers': _prep_for_list(updated_resp.values()) or []}, 200
 
+    def list_nodes(self, lb_id, current_timestamp):
+        """
+        Returns the list of nodes remaining on the load balancer
+        """
+        if lb_id in self.lbs:
+            _verify_and_update_lb_state(self, lb_id, False, current_timestamp)
+            if lb_id not in self.lbs:
+                return not_found_response("loadbalancer"), 404
+
+            if self.lbs[lb_id]["status"] == "DELETED":
+                return invalid_resource("The loadbalancer is marked as deleted.", 410), 410
+            node_list = []
+            if self.lbs[lb_id].get("nodes"):
+                node_list = self.lbs[lb_id]["nodes"]
+            return {"nodes": node_list}, 200
+        else:
+            return not_found_response("loadbalancer"), 404
+
     def delete_node(self, lb_id, node_id, current_timestamp):
         """
         Determines whether the node to be deleted exists in the session store,

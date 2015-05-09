@@ -96,25 +96,6 @@ def _delete_node(store, lb_id, node_id):
     return False
 
 
-def list_nodes(store, lb_id, current_timestamp):
-    """
-    Returns the list of nodes remaining on the load balancer
-    """
-    if lb_id in store.lbs:
-        _verify_and_update_lb_state(store, lb_id, False, current_timestamp)
-        if lb_id not in store.lbs:
-            return not_found_response("loadbalancer"), 404
-
-        if store.lbs[lb_id]["status"] == "DELETED":
-            return invalid_resource("The loadbalancer is marked as deleted.", 410), 410
-        node_list = []
-        if store.lbs[lb_id].get("nodes"):
-            node_list = store.lbs[lb_id]["nodes"]
-        return {"nodes": node_list}, 200
-    else:
-        return not_found_response("loadbalancer"), 404
-
-
 def _format_nodes_on_lb(node_list):
     """
     create a dict of nodes given the list of nodes
