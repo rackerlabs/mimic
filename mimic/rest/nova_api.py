@@ -26,6 +26,7 @@ from mimic.imimic import IAPIMock
 from mimic.model.nova_objects import (
     BadRequestError, GlobalServerCollections, LimitError, Server,
     bad_request, forbidden, not_found)
+from mimic.util.helper import generic_json_request_reader
 
 Request.defaultContentType = 'application/json'
 
@@ -237,16 +238,12 @@ class NovaRegion(object):
     app = MimicApp()
 
     @app.route('/v2/<string:tenant_id>/servers', methods=['POST'])
-    def create_server(self, request, tenant_id):
+    @generic_json_request_reader(
+        lambda request: json.dumps(bad_request("Invalid JSON request body", request)))
+    def create_server(self, request, tenant_id, content=None):
         """
         Returns a generic create server response, with status 'ACTIVE'.
         """
-        try:
-            content = json.loads(request.content.read())
-        except ValueError:
-            return json.dumps(
-                bad_request("Invalid JSON request body", request))
-
         try:
             creation = (self._region_collection_for_tenant(tenant_id)
                         .request_creation(request, content, self.url))
