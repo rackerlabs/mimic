@@ -119,28 +119,6 @@ def add_node(store, node_list, lb_id, current_timestamp):
     return not_found_response("loadbalancer"), 404
 
 
-def get_nodes(store, lb_id, node_id, current_timestamp):
-    """
-    Returns the node on the load balancer
-    """
-    if lb_id in store.lbs:
-        _verify_and_update_lb_state(store, lb_id, False, current_timestamp)
-
-        if store.lbs[lb_id]["status"] == "DELETED":
-            return (
-                invalid_resource(
-                    "The loadbalancer is marked as deleted.", 410),
-                410)
-
-        if store.lbs[lb_id].get("nodes"):
-            for each in store.lbs[lb_id]["nodes"]:
-                if node_id == each["id"]:
-                    return {"node": each}, 200
-        return not_found_response("node"), 404
-
-    return not_found_response("loadbalancer"), 404
-
-
 def _delete_node(store, lb_id, node_id):
     """Delete a node by ID."""
     if store.lbs[lb_id].get("nodes"):
