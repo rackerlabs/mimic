@@ -14,6 +14,7 @@ from mimic.rest.mimicapp import MimicApp
 from mimic.canned_responses.auth import format_timestamp
 from mimic.util.helper import invalid_resource
 from mimic.session import NonMatchingTenantError
+from mimic.canned_responses.mimic_presets import get_presets
 
 Request.defaultContentType = 'application/json'
 
@@ -190,6 +191,46 @@ class AuthApi(object):
             response["access"]["RAX-AUTH:impersonator"] = impersonator_user_role(
                 impersonator_session.user_id,
                 impersonator_session.username)
+
+        if token_id in get_presets["identity"]["token_fail_to_auth"]:
+            request.setResponseCode(401)
+            return json.dumps({'itemNotFound':
+                              {'code': 401, 'message': 'Invalid auth token'}})
+
+        imp_token = get_presets["identity"]["maas_admin_roles"]
+        racker_token = get_presets["identity"]["racker_token"]
+        if token_id in imp_token:
+            response["access"]["RAX-AUTH:impersonator"] = {
+                "id": imp_token[token_id][1],
+                "name": imp_token[token_id][0],
+                "roles": [{"id": "123",
+                           "name": "monitoring:service-admin"},
+                          {"id": "234",
+                           "name": "object-store:admin"}]}
+        if token_id in racker_token:
+            response["access"]["RAX-AUTH:impersonator"] = {
+                "id": racker_token[token_id][1],
+                "name": racker_token[token_id][0],
+                "roles": [{"id": "9",
+                           "name": "Racker"}]}
+        if tenant_id in get_presets["identity"]["observer_role"]:
+            response["access"]["user"]["roles"] = [
+                {"id": "observer",
+                 "description": "Global Observer Role.",
+                 "name": "observer"}]
+        if tenant_id in get_presets["identity"]["creator_role"]:
+            response["access"]["user"]["roles"] = [
+                {"id": "creator",
+                 "description": "Global Creator Role.",
+                 "name": "creator"}]
+        if tenant_id in get_presets["identity"]["admin_role"]:
+            response["access"]["user"]["roles"] = [
+                {"id": "admin",
+                 "description": "Global Admin Role.",
+                 "name": "admin"},
+                {"id": "observer",
+                 "description": "Global Observer Role.",
+                 "name": "observer"}]
         return json.dumps(response)
 
     @app.route('/v2.0/tokens/<string:token_id>/endpoints', methods=['GET'])
