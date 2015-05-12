@@ -11,6 +11,7 @@ from mimic.canned_responses.auth import (
 from mimic.test.dummy import ExampleAPI
 from mimic.test.helpers import request, json_request
 from mimic.catalog import Entry, Endpoint
+from mimic.canned_responses.mimic_presets import get_presets
 
 
 class ExampleCatalogEndpoint(object):
@@ -914,6 +915,114 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         self.assertTrue(json_body6["access"]["RAX-AUTH:impersonator"])
         self.assertEqual(json_body6["access"]["RAX-AUTH:impersonator"]["name"],
                          json_body1["access"]["user"]["name"])
+
+    def test_response_for_validate_token_with_maas_admin_role(self):
+        """
+        Test to verify :func: `validate_token` when the token_id provided
+        is of an maas admin user specified in `mimic_presets`.
+        """
+        core = MimicCore(Clock(), [ExampleAPI()])
+        root = MimicRoot(core).app.resource()
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "GET",
+            "http://mybase/identity/v2.0/tokens/this_is_an_impersonator_token"
+        ))
+        self.assertEqual(200, response.code)
+        self.assertEqual(json_body["access"]["RAX-AUTH:impersonator"]["roles"][0]["name"],
+                         "monitoring:service-admin")
+
+    def test_response_for_validate_token_with_racker_role(self):
+        """
+        Test to verify :func: `validate_token` when the token_id provided
+        is of a racker specified in `mimic_presets`.
+        """
+        core = MimicCore(Clock(), [ExampleAPI()])
+        root = MimicRoot(core).app.resource()
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "GET",
+            "http://mybase/identity/v2.0/tokens/this_is_a_racker_token"
+        ))
+        self.assertEqual(200, response.code)
+        self.assertEqual(json_body["access"]["RAX-AUTH:impersonator"]["roles"][0]["name"],
+                         "Racker")
+
+    def test_response_for_validate_token_when_invalid(self):
+        """
+        Test to verify :func: `validate_token` when the token_id provided
+        is invalid, as specified in `mimic_presets`.
+        """
+        core = MimicCore(Clock(), [ExampleAPI()])
+        root = MimicRoot(core).app.resource()
+        token = get_presets["identity"]["token_fail_to_auth"][0]
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "GET",
+            "http://mybase/identity/v2.0/tokens/{0}".format(token)
+        ))
+        self.assertEqual(401, response.code)
+
+    def test_response_for_validate_token_with_observer_role(self):
+        """
+        Test to verify :func: `validate_token` when the tenant_id provided
+        is of an observer role, as specified in `mimic_presets`.
+        """
+        core = MimicCore(Clock(), [ExampleAPI()])
+        root = MimicRoot(core).app.resource()
+        token = get_presets["identity"]["observer_role"][0]
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "GET",
+            "http://mybase/identity/v2.0/tokens/any_token?belongsTo={0}".format(token)
+        ))
+        self.assertEqual(200, response.code)
+        self.assertEqual(json_body["access"]["user"]["roles"][0]["name"],
+                         "observer")
+        self.assertEqual(json_body["access"]["user"]["roles"][0]["description"],
+                         "Global Observer Role.")
+
+    def test_response_for_validate_token_with_creator_role(self):
+        """
+        Test to verify :func: `validate_token` when the tenant_id provided
+        is of an creator role, as specified in `mimic_presets`.
+        """
+        core = MimicCore(Clock(), [ExampleAPI()])
+        root = MimicRoot(core).app.resource()
+        token = get_presets["identity"]["creator_role"][0]
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "GET",
+            "http://mybase/identity/v2.0/tokens/any_token?belongsTo={0}".format(token)
+        ))
+        self.assertEqual(200, response.code)
+        self.assertEqual(json_body["access"]["user"]["roles"][0]["name"],
+                         "creator")
+        self.assertEqual(json_body["access"]["user"]["roles"][0]["description"],
+                         "Global Creator Role.")
+
+    def test_response_for_validate_token_with_admin_and_observer_role(self):
+        """
+        Test to verify :func: `validate_token` when the tenant_id provided
+        is of an admin role, as specified in `mimic_presets`.
+        """
+        core = MimicCore(Clock(), [ExampleAPI()])
+        root = MimicRoot(core).app.resource()
+        token = get_presets["identity"]["admin_role"][0]
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "GET",
+            "http://mybase/identity/v2.0/tokens/any_token?belongsTo={0}".format(token)
+        ))
+        self.assertEqual(200, response.code)
+        self.assertEqual(json_body["access"]["user"]["roles"][0]["name"],
+                         "admin")
+        self.assertEqual(json_body["access"]["user"]["roles"][0]["description"],
+                         "Global Admin Role.")
+        self.assertEqual(json_body["access"]["user"]["roles"][1]["name"],
+                         "observer")
+        self.assertEqual(json_body["access"]["user"]["roles"][1]["description"],
+                         "Global Observer Role.")
 
 
 class AuthIntegrationTests(SynchronousTestCase):
