@@ -19,5 +19,19 @@ get_presets = {"loadbalancers": {"lb_building": "On create load balancer, keeps 
                            "invalid_flavor_ref": ["INVALID-FLAVOR-ID", "8888", "-4", "1"],
                            "server_error": "sets server state to error on create",
                            "server_building": "sets the server to be in building state for given time"
-                                              " in seconds"}
-               }
+                                              " in seconds"},
+               "identity": {
+                   "maas_admin_roles": {
+                       "this_is_an_impersonator_token": ["impersonator.joe", "12345"],
+                       "this_is_an_impersonator_token_also": ["impersonator.eve", "12453"],
+                       "impersonate_watson": ["impersonator.watson", "09876"],
+                       "impersonate_creator": ["impersonator.freeman", "09090"],
+                       "this_is_an_impersonator_token_also_2": ["impersonator.foonatical", "91169"],
+                       "impersonate_foo_token": ["impersonate_foo", "91111"]},
+               "racker_token": {"this_is_a_racker_token": ["racker.support", "12345"]},
+               "observer_role": ["09876"],
+               "creator_role": ["09090"],
+               "admin_role": ["9999"],
+               "token_fail_to_auth": ["never-cache-this-and-fail-to-auth"]
+}
+}
