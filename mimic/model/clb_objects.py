@@ -39,28 +39,6 @@ class RegionalCLBCollection(object):
         self.lbs = {}
         self.meta = {}
 
-    def list_load_balancers(self, tenant_id, current_timestamp):
-        """
-        Returns the list of load balancers with the given tenant id with response
-        code 200. If no load balancers are found returns empty list.
-        :param string tenant_id: The tenant which owns the load balancers.
-        :param float current_timestamp: The current time, in seconds since epoch.
-
-        :return: A 2-tuple, containing the HTTP response and code, in that order.
-        """
-        response = dict(
-            (k, v) for (k, v) in self.lbs.items()
-            if tenant_id == v['tenant_id']
-        )
-        for each in response:
-            _verify_and_update_lb_state(self, each, False, current_timestamp)
-            log.msg(self.lbs[each]["status"])
-        updated_resp = dict(
-            (k, v) for (k, v) in self.lbs.items()
-            if tenant_id == v['tenant_id']
-        )
-        return {'loadBalancers': _prep_for_list(updated_resp.values()) or []}, 200
-
     def add_load_balancer(self, tenant_id, lb_info, lb_id, current_timestamp):
         """
         Returns response of a newly created load balancer with
@@ -138,6 +116,10 @@ class RegionalCLBCollection(object):
         """
         Returns the list of load balancers with the given tenant id with response
         code 200. If no load balancers are found returns empty list.
+        :param string tenant_id: The tenant which owns the load balancers.
+        :param float current_timestamp: The current time, in seconds since epoch.
+
+        :return: A 2-tuple, containing the HTTP response and code, in that order.
         """
         response = dict(
             (k, v) for (k, v) in self.lbs.items()
