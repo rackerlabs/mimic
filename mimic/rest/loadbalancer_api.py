@@ -8,9 +8,7 @@ from six import text_type
 from zope.interface import implementer
 from twisted.web.server import Request
 from twisted.plugin import IPlugin
-from mimic.canned_responses.loadbalancer import (
-    del_load_balancer, add_node, delete_node, delete_nodes, list_nodes,
-    get_nodes)
+from mimic.canned_responses.loadbalancer import del_load_balancer
 from mimic.rest.mimicapp import MimicApp
 from mimic.imimic import IAPIMock
 from mimic.catalog import Entry
@@ -131,7 +129,8 @@ class LoadBalancerRegion(object):
         Returns a list of all load balancers created using mimic with response code 200
         """
         response_data = self.session(tenant_id).list_load_balancers(
-            tenant_id, self._session_store.clock.seconds()
+            tenant_id,
+            self._session_store.clock.seconds()
         )
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
@@ -161,8 +160,8 @@ class LoadBalancerRegion(object):
             return json.dumps(invalid_resource("Invalid JSON request body"))
 
         node_list = content['nodes']
-        response_data = add_node(
-            self.session(tenant_id), node_list, lb_id,
+        response_data = self.session(tenant_id).add_node(
+            node_list, lb_id,
             self._session_store.clock.seconds()
         )
         request.setResponseCode(response_data[1])
@@ -174,8 +173,8 @@ class LoadBalancerRegion(object):
         """
         Returns a 200 response code and list of nodes on the load balancer
         """
-        response_data = get_nodes(
-            self.session(tenant_id), lb_id, node_id,
+        response_data = self.session(tenant_id).get_nodes(
+            lb_id, node_id,
             self._session_store.clock.seconds()
         )
         request.setResponseCode(response_data[1])
@@ -187,8 +186,8 @@ class LoadBalancerRegion(object):
         """
         Returns a 204 response code, for any load balancer created using the mocks
         """
-        response_data = delete_node(
-            self.session(tenant_id), lb_id, node_id,
+        response_data = self.session(tenant_id).delete_node(
+            lb_id, node_id,
             self._session_store.clock.seconds()
         )
         request.setResponseCode(response_data[1])
@@ -201,8 +200,8 @@ class LoadBalancerRegion(object):
         Deletes multiple nodes from a LB.
         """
         node_ids = map(int, request.args.get('id', []))
-        response_data = delete_nodes(
-            self.session(tenant_id), lb_id, node_ids,
+        response_data = self.session(tenant_id).delete_nodes(
+            lb_id, node_ids,
             self._session_store.clock.seconds())
         request.setResponseCode(response_data[1])
         return json_dump(response_data[0])
@@ -213,7 +212,8 @@ class LoadBalancerRegion(object):
         """
         Returns a 200 response code and list of nodes on the load balancer
         """
-        response_data = list_nodes(self.session(tenant_id), lb_id,
-                                   self._session_store.clock.seconds())
+        response_data = self.session(tenant_id).list_nodes(
+            lb_id,
+            self._session_store.clock.seconds())
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
