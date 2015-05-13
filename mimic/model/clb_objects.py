@@ -10,7 +10,6 @@ from characteristic import attributes, Attribute
 from mimic.canned_responses.loadbalancer import (load_balancer_example,
                                                  _verify_and_update_lb_state,
                                                  _lb_without_tenant,
-                                                 _prep_for_list,
                                                  _format_nodes_on_lb,
                                                  _delete_node)
 
