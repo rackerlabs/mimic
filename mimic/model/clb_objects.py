@@ -6,9 +6,21 @@ from mimic.util.helper import (not_found_response, seconds_to_timestamp)
 from twisted.python import log
 from characteristic import attributes, Attribute
 from mimic.canned_responses.loadbalancer import (load_balancer_example,
-                                                 _prep_for_list,
                                                  _verify_and_update_lb_state,
                                                  _lb_without_tenant)
+
+
+def _prep_for_list(lb_list):
+    """
+    Removes tenant id and changes the nodes list to 'nodeCount' set to the
+    number of node on the LB
+    """
+    entries_to_keep = ('name', 'protocol', 'id', 'port', 'algorithm', 'status', 'timeout',
+                       'created', 'virtualIps', 'updated', 'nodeCount')
+    filtered_lb_list = []
+    for each in lb_list:
+        filtered_lb_list.append(dict((entry, each[entry]) for entry in entries_to_keep))
+    return filtered_lb_list
 
 
 class RegionalCLBCollection(object):

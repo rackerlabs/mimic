@@ -223,7 +223,7 @@ def delete_nodes(store, lb_id, node_ids, current_timestamp):
     for node_id in node_ids:
         # It should not be possible for this to fail, since we've already
         # checked that they all exist.
-        assert _delete_node(store, lb_id, node_id) == True
+        assert _delete_node(store, lb_id, node_id) is True
 
     _verify_and_update_lb_state(store, lb_id,
                                 current_timestamp=current_timestamp)
