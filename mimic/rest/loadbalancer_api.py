@@ -8,8 +8,7 @@ from six import text_type
 from zope.interface import implementer
 from twisted.web.server import Request
 from twisted.plugin import IPlugin
-from mimic.canned_responses.loadbalancer import (
-    del_load_balancer)
+from mimic.canned_responses.loadbalancer import del_load_balancer
 from mimic.rest.mimicapp import MimicApp
 from mimic.imimic import IAPIMock
 from mimic.catalog import Entry
