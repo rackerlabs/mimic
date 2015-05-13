@@ -21,14 +21,14 @@ get_presets = {"loadbalancers": {"lb_building": "On create load balancer, keeps 
                            "server_building": "sets the server to be in building state for given time"
                                               " in seconds"},
                "identity": {
-                   "maas_admin_roles": {
-                       "this_is_an_impersonator_token": ["impersonator.joe", "12345"],
-                       "this_is_an_impersonator_token_also": ["impersonator.eve", "12453"],
-                       "impersonate_watson": ["impersonator.watson", "09876"],
-                       "impersonate_creator": ["impersonator.freeman", "09090"],
-                       "this_is_an_impersonator_token_also_2": ["impersonator.foonatical", "91169"],
-                       "impersonate_foo_token": ["impersonate_foo", "91111"]},
-               "racker_token": {"this_is_a_racker_token": ["racker.support", "12345"]},
+                   "maas_admin_roles": [
+                       "this_is_an_impersonator_token",
+                       "this_is_an_impersonator_token_also",
+                       "impersonate_watson",
+                       "impersonate_creator",
+                       "this_is_an_impersonator_token_also_2",
+                       "impersonate_foo_token"],
+               "racker_token": ["this_is_a_racker_token"],
                "observer_role": ["09876"],
                "creator_role": ["09090"],
                "admin_role": ["9999"],

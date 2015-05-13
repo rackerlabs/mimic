@@ -201,16 +201,16 @@ class AuthApi(object):
         racker_token = get_presets["identity"]["racker_token"]
         if token_id in imp_token:
             response["access"]["RAX-AUTH:impersonator"] = {
-                "id": imp_token[token_id][1],
-                "name": imp_token[token_id][0],
+                "id": response["access"]["user"]["id"],
+                "name": response["access"]["user"]["name"],
                 "roles": [{"id": "123",
                            "name": "monitoring:service-admin"},
                           {"id": "234",
                            "name": "object-store:admin"}]}
         if token_id in racker_token:
             response["access"]["RAX-AUTH:impersonator"] = {
-                "id": racker_token[token_id][1],
-                "name": racker_token[token_id][0],
+                "id": response["access"]["user"]["id"],
+                "name": response["access"]["user"]["name"],
                 "roles": [{"id": "9",
                            "name": "Racker"}]}
         if tenant_id in get_presets["identity"]["observer_role"]:
