@@ -59,6 +59,70 @@ class LoadBalancerApi(object):
         return lb_region.app.resource()
 
 
+@implementer(IAPIMock, IPlugin)
+class LoadBalancerControlApi(object):
+    """
+    Rest endpoints for mocked Load Balancer controller api.
+    """
+    def __init__(self, regions=["ORD"]):
+        """
+        Create an API with the specified regions.
+        """
+        self._regions = regions
+
+    def catalog_entries(self, tenant_id):
+        """
+        Cloud load balancer controller endpoints.
+        """
+        return [
+            Entry(
+                tenant_id, "rax:load-balancer", "cloudLoadBalancerControl",
+                [
+                    Endpoint(tenant_id, region, text_type(uuid4()), prefix="v2")
+                    for region in self._regions
+                ]
+            )
+        ]
+
+    def resource_for_region(self, region, uri_prefix, session_store):
+        """
+        Get an :obj:`twisted.web.iweb.IResource` for the given URI prefix;
+        implement :obj:`IAPIMock`.
+        """
+        lbc_region = LoadBalancerControlRegion(self, uri_prefix,
+                                               session_store, region)
+        return lbc_region.app.resource()
+
+
+class LoadBalancerControlRegion(object):
+    """
+    Klein routes for load balancer's control API within a particular region.
+    """
+
+    app = MimicApp()
+
+    def __init__(self, api_mock, uri_prefix, session_store, region_name):
+        self.uri_prefix = uri_prefix
+        self.region_name = region_name
+        self._api_mock = api_mock
+        self._session_store = session_store
+
+    def session(self, tenant_id):
+        """
+        Gets a session for a particular tenant, creating one if there isn't
+        one.
+        """
+        tenant_session = self._session_store.session_for_tenant_id(tenant_id)
+        clb_global_collection = tenant_session.data_for_api(
+            self._api_mock,
+            lambda: GlobalCLBCollections(
+                tenant_id=tenant_id,
+                clock=self._session_store.clock))
+        clb_region_collection = clb_global_collection.collection_for_region(
+            self.region_name)
+        return clb_region_collection
+
+
 class LoadBalancerRegion(object):
     """
     Klein routes for load balancer API methods within a particular region.
