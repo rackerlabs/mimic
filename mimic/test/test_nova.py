@@ -1025,17 +1025,35 @@ class NovaAPINegativeTests(SynchronousTestCase):
     def test_create_server_failure(self):
         """
         Test to verify :func:`create_server` fails with given error message
-        and response code in the metadata.
+        and response code in the metadata, and the given failure type.
         """
-        serverfail = {"message": "Create server failure", "code": 500}
+        serverfail = {"message": "Create server failure", "code": 500,
+                      "type": "specialType"}
         metadata = {"create_server_failure": json.dumps(serverfail)}
         create_server_response = self.create_server(metadata=metadata)
         self.assertEquals(create_server_response.code, 500)
         create_server_response_body = self.successResultOf(
             treq.json_content(create_server_response))
-        self.assertEquals(create_server_response_body['message'],
+        self.assertEquals(
+            create_server_response_body['specialType']['message'],
+            "Create server failure")
+        self.assertEquals(
+            create_server_response_body['specialType']['code'], 500)
+
+    def test_create_server_failure_string_type(self):
+        """
+        Test to verify :func:`create_server` fails with string body
+        and response code in the metadata, if the failure type is "string".
+        """
+        serverfail = {"message": "Create server failure", "code": 500,
+                      "type": "string"}
+        metadata = {"create_server_failure": json.dumps(serverfail)}
+        create_server_response = self.create_server(metadata=metadata)
+        self.assertEquals(create_server_response.code, 500)
+        create_server_response_body = self.successResultOf(
+            treq.content(create_server_response))
+        self.assertEquals(create_server_response_body,
                           "Create server failure")
-        self.assertEquals(create_server_response_body['code'], 500)
 
     def test_create_server_failure_and_list_servers(self):
         """
@@ -1048,9 +1066,11 @@ class NovaAPINegativeTests(SynchronousTestCase):
         self.assertEquals(create_server_response.code, 500)
         create_server_response_body = self.successResultOf(
             treq.json_content(create_server_response))
-        self.assertEquals(create_server_response_body['message'],
-                          "Create server failure")
-        self.assertEquals(create_server_response_body['code'], 500)
+        self.assertEquals(
+            create_server_response_body['computeFault']['message'],
+            "Create server failure")
+        self.assertEquals(
+            create_server_response_body['computeFault']['code'], 500)
         # List servers
         list_servers = request(self, self.root, "GET", self.uri + '/servers')
         list_servers_response = self.successResultOf(list_servers)
@@ -1233,9 +1253,11 @@ class NovaAPINegativeTests(SynchronousTestCase):
         self.assertEquals(create_server_response.code, 500)
         create_server_response_body = self.successResultOf(
             treq.json_content(create_server_response))
-        self.assertEquals(create_server_response_body['message'],
-                          "Create server failure")
-        self.assertEquals(create_server_response_body['code'], 500)
+        self.assertEquals(
+            create_server_response_body['computeFault']['message'],
+            "Create server failure")
+        self.assertEquals(
+            create_server_response_body['computeFault']['code'], 500)
 
     def test_create_server_failure_based_on_metadata(self):
         """
@@ -1244,7 +1266,8 @@ class NovaAPINegativeTests(SynchronousTestCase):
         """
         self.use_creation_behavior(
             "fail",
-            {"message": "Sample failure message", "code": 503},
+            {"message": "Sample failure message",
+             "type": "specialType", "code": 503},
             [{"metadata": {"field1": "value1",
                            "field2": "reg.*ex"}}]
         )
@@ -1261,15 +1284,17 @@ class NovaAPINegativeTests(SynchronousTestCase):
             treq.json_content(failing_create_response)
         )
 
-        self.assertEquals(failing_create_response_body['message'],
-                          "Sample failure message")
-        self.assertEquals(failing_create_response_body['code'], 503)
+        self.assertEquals(
+            failing_create_response_body['specialType']['message'],
+            "Sample failure message")
+        self.assertEquals(
+            failing_create_response_body['specialType']['code'], 503)
 
-    def test_create_false_negative_failure_using_behaviors(self):
+    def _try_false_negative_failure(self, failure_type=None):
         """
-        :func:`create_server` fails with given error message and response
-        code, but creates the server anyway, when a behavior is registered
-        that matches its hostname.
+        Helper function to list servers and verify that there are no servers,
+        then trigger a false-negative create and verify that it created a
+        server.  Returns the failure response so it can be further verified.
         """
         # List servers with details and verify there are no servers
         resp, list_body = self.successResultOf(json_request(
@@ -1277,26 +1302,62 @@ class NovaAPINegativeTests(SynchronousTestCase):
         self.assertEqual(resp.code, 200)
         self.assertEqual(len(list_body['servers']), 0)
 
+        params = {"message": "Create server failure", "code": 500}
+        if failure_type is not None:
+            params["type"] = failure_type
+
         # Get a 500 creating a server
         self.use_creation_behavior(
-            "false-negative",
-            {"message": "Create server failure", "code": 500},
-            [{"server_name": "failing_server_name"}]
+            "false-negative", params, [{"server_name": "failing_server_name"}]
         )
+
         create_server_response = self.create_server(
             name="failing_server_name")
         self.assertEquals(create_server_response.code, 500)
-        create_server_response_body = self.successResultOf(
-            treq.json_content(create_server_response))
-        self.assertEquals(create_server_response_body['message'],
-                          "Create server failure")
-        self.assertEquals(create_server_response_body['code'], 500)
 
         # List servers with details and verify there are no servers
         resp, list_body = self.successResultOf(json_request(
             self, self.root, "GET", self.uri + '/servers'))
         self.assertEqual(resp.code, 200)
         self.assertEqual(len(list_body['servers']), 1)
+        return create_server_response
+
+    def test_create_false_negative_failure_using_behaviors(self):
+        """
+        :func:`create_server` fails with given error message, type, and
+        response code, but creates the server anyway, when a behavior is
+        registered that matches its hostname.  The type is 'computeFault'
+        by default.
+        """
+        response = self._try_false_negative_failure()
+        body = self.successResultOf(treq.json_content(response))
+        self.assertEquals(body['computeFault']['message'],
+                          "Create server failure")
+        self.assertEquals(body['computeFault']['code'], 500)
+
+    def test_create_false_negative_failure_with_specific_type(self):
+        """
+        :func:`create_server` fails with given error message, type, and
+        response code, but creates the server anyway, when a behavior is
+        registered that matches its hostname.  The type is whatever is
+        specified if it's not "string".
+        """
+        response = self._try_false_negative_failure('specialType')
+        body = self.successResultOf(treq.json_content(response))
+        self.assertEquals(body['specialType']['message'],
+                          "Create server failure")
+        self.assertEquals(body['specialType']['code'], 500)
+
+    def test_create_false_negative_failure_with_string_type(self):
+        """
+        :func:`create_server` fails with given error body and
+        response code, but creates the server anyway, when a behavior is
+        registered that matches its hostname.  The body is just a string
+        when the type is "string".
+        """
+        response = self._try_false_negative_failure("string")
+        body = self.successResultOf(treq.content(response))
+        self.assertEquals(body, "Create server failure")
 
     def test_create_sequence_behavior(self):
         """
