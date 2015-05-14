@@ -21,6 +21,8 @@ get_presets = {"loadbalancers": {"lb_building": "On create load balancer, keeps 
                            "server_building": "sets the server to be in building state for given time"
                                               " in seconds"},
                "identity": {
+                   # On ``validate_token`` the tokens listed below
+                   # result in 'monitoring-service-admin' impersonator role.
                    "maas_admin_roles": [
                        "this_is_an_impersonator_token",
                        "this_is_an_impersonator_token_also",
@@ -28,10 +30,16 @@ get_presets = {"loadbalancers": {"lb_building": "On create load balancer, keeps 
                        "impersonate_creator",
                        "this_is_an_impersonator_token_also_2",
                        "impersonate_foo_token"],
-               "racker_token": ["this_is_a_racker_token"],
-               "observer_role": ["09876"],
-               "creator_role": ["09090"],
-               "admin_role": ["9999"],
-               "token_fail_to_auth": ["never-cache-this-and-fail-to-auth"]
+                   # On ``validate_token`` the tokens listed below
+                   # result in 'racker' impersonator role.
+                   "racker_token": ["this_is_a_racker_token"],
+                   # Tenants with user observer role
+                   "observer_role": ["09876"],
+                   # Tenants with user creator role
+                   "creator_role": ["09090"],
+                   # Tenants with user admin role
+                   "admin_role": ["9999"],
+                   # Tenants with this token result in a 401 when validating the token
+                   "token_fail_to_auth": ["never-cache-this-and-fail-to-auth"]
 }
 }
