@@ -5,8 +5,27 @@ from __future__ import print_function
 
 from setuptools import setup, find_packages
 
+
+def modify_import_hook():
+    """
+    Monkey-patch modulegraph to work around
+    https://bitbucket.org/ronaldoussoren/modulegraph/issue/25/
+    """
+    from modulegraph import modulegraph
+    original = modulegraph.ModuleGraph.__dict__["import_hook"]
+    def modified_import_hook(self, name, *args, **kw):
+        """
+        This is the modified version of ModuleGraph.import_hook.
+        """
+        if 'idnadata' in kw.get("fromlist", []):
+            import idna, inspect
+            return [self._find_module(name, inspect.getsourcefile(idna.idnadata))]
+        return original(self, name, *args, **kw)
+    modulegraph.ModuleGraph.import_hook = modified_import_hook
+
 try:
     from py2app.build_app import py2app
+    modify_import_hook()
     py2app_available = True
 except ImportError:
     py2app_available = False
