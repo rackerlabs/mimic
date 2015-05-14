@@ -24,8 +24,8 @@ from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.imimic import IAPIMock
 from mimic.model.nova_objects import (
-    BadRequestError, GlobalServerCollections, LimitError, Server)
-from mimic.util.helper import bad_request
+    BadRequestError, GlobalServerCollections, LimitError, Server,
+    bad_request, forbidden, not_found)
 
 Request.defaultContentType = 'application/json'
 
@@ -244,23 +244,16 @@ class NovaRegion(object):
         try:
             content = json.loads(request.content.read())
         except ValueError:
-            request.setResponseCode(400)
-            return json.dumps(bad_request("Invalid JSON request body"))
+            return json.dumps(
+                bad_request("Invalid JSON request body", request))
 
         try:
             creation = (self._region_collection_for_tenant(tenant_id)
                         .request_creation(request, content, self.url))
         except BadRequestError as e:
-            request.setResponseCode(400)
-            return json.dumps(bad_request(e.nova_message))
+            return json.dumps(bad_request(e.nova_message, request))
         except LimitError as e:
-            request.setResponseCode(403)
-            return json.dumps({
-                "forbidden": {
-                    "message": e.nova_message,
-                    "code": 403
-                }
-            })
+            return json.dumps(forbidden(e.nova_message, request))
 
         return creation
 
@@ -365,13 +358,8 @@ class NovaRegion(object):
         server = (self._region_collection_for_tenant(tenant_id)
                   .server_by_id(server_id))
         if server is None:
-            request.setResponseCode(404)
-            return json.dumps({
-                'itemNotFound': {
-                    'message': 'Server does not exist',
-                    'code': 404
-                }
-            })
+            return json.dumps(not_found('Server does not exist', request))
+
         return ServerMetadata(server).app.resource()
 
 
@@ -421,33 +409,23 @@ class ServerMetadata(object):
         try:
             content = json.loads(request.content.read())
         except ValueError:
-            request.setResponseCode(400)
-            return json.dumps(bad_request("Malformed request body"))
+            return json.dumps(bad_request("Malformed request body", request))
 
         # more than one key is ok, non-"meta" keys are just ignored
         if 'metadata' not in content:
-            request.setResponseCode(400)
-            return json.dumps(bad_request("Malformed request body"))
+            return json.dumps(bad_request("Malformed request body", request))
 
         # When setting metadata, None is special for some reason
         if content['metadata'] is None:
-            request.setResponseCode(400)
             return json.dumps(bad_request(
-                "Malformed request body. metadata must be object"))
+                "Malformed request body. metadata must be object", request))
 
         try:
             Server.validate_metadata(content['metadata'])
         except BadRequestError as e:
-            request.setResponseCode(400)
-            return json.dumps(bad_request(e.nova_message))
+            return json.dumps(bad_request(e.nova_message, request))
         except LimitError as e:
-            request.setResponseCode(403)
-            return json.dumps({
-                "forbidden": {
-                    "message": e.nova_message,
-                    "code": 403
-                }
-            })
+            return json.dumps(forbidden(e.nova_message, request))
 
         self._server.metadata = content['metadata']
         return json.dumps({'metadata': content['metadata']})
@@ -472,35 +450,26 @@ class ServerMetadata(object):
             content = json.loads(request.content.read())
         except ValueError:
             request.setResponseCode(400)
-            return json.dumps(bad_request("Malformed request body"))
+            return json.dumps(bad_request("Malformed request body", request))
 
         # more than one key is ok, non-"meta" keys are just ignored
         if 'meta' not in content or not isinstance(content['meta'], dict):
-            request.setResponseCode(400)
-            return json.dumps(bad_request("Malformed request body"))
+            return json.dumps(bad_request("Malformed request body", request))
 
         if len(content['meta']) > 1:
-            request.setResponseCode(400)
             return json.dumps(bad_request(
-                "Request body contains too many items"))
+                "Request body contains too many items", request))
 
         if key not in content['meta']:
-            request.setResponseCode(400)
-            return json.dumps(bad_request("Request body and URI mismatch"))
+            return json.dumps(bad_request(
+                "Request body and URI mismatch", request))
 
         try:
             self._server.set_metadata_item(key, content['meta'][key])
         except BadRequestError as e:
-            request.setResponseCode(400)
-            return json.dumps(bad_request(e.nova_message))
+            return json.dumps(bad_request(e.nova_message, request))
         except LimitError as e:
-            request.setResponseCode(403)
-            return json.dumps({
-                "forbidden": {
-                    "message": e.nova_message,
-                    "code": 403
-                }
-            })
+            return json.dumps(forbidden(e.nova_message, request))
 
         # no matter how many keys were passed in, only the meta key is
         # returned
