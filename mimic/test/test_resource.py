@@ -186,3 +186,25 @@ class RootAndPresetTests(SynchronousTestCase):
             self, root, 'GET', '/fastly'))
         self.assertEqual(200, response.code)
         self.assertEqual(json_content, {'status': 'ok'})
+
+    def test_send_grid(self):
+        """
+        ``/sendgrid/mail.send.json`` returns response code 200.
+        """
+        core = MimicCore(Clock(), [])
+        root = MimicRoot(core).app.resource()
+
+        response = self.successResultOf(request(
+            self, root, "POST", "/sendgrid/mail.send.json"))
+        self.assertEqual(200, response.code)
+
+    def test_mailgun(self):
+        """
+        ``/cloudmonitoring.rackspace.com/messages`` returns response code 200.
+        """
+        core = MimicCore(Clock(), [])
+        root = MimicRoot(core).app.resource()
+
+        (response, content) = self.successResultOf(json_request(
+            self, root, "POST", "/cloudmonitoring.rackspace.com/messages"))
+        self.assertEqual(200, response.code)
