@@ -55,6 +55,24 @@ class MimicRoot(object):
         """
         return NoitApi(self.core, self.clock).app.resource()
 
+    @app.route("/sendgrid/mail.send.json", methods=['POST'])
+    def send_grid_api(self, request):
+        """
+        Mock SendGrid api responds with a 200.
+        """
+        request.setResponseCode(200)
+        return b''
+
+    @app.route("/cloudmonitoring.rackspace.com/messages", methods=['POST'])
+    def mailgun_api(self, request):
+        """
+        Mock Mailgun api responds with a 200 with a statis response.
+        """
+        request.setResponseCode(200)
+        return json.dumps({
+            "message": "Queued. Thank you.",
+            "id": "<20120315083536.28675.36480@samples.mailgun.org>"})
+
     @app.route("/fastly", branch=True)
     def get_fastly_api(self, request):
         """
