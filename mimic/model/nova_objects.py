@@ -14,7 +14,6 @@ from six import string_types
 
 from mimic.util.helper import (
     seconds_to_timestamp,
-    invalid_resource,
     random_string,
 )
 
@@ -418,27 +417,88 @@ def default_with_hook(function):
     return hooked
 
 
+def _get_failure_behavior(parameters, create=False):
+    """
+    Helper function to produce a failure to create function.  Either creating
+    the server or not.
+
+    Takes three parameters:
+
+    ``"code"``, an integer describing the HTTP response code, and
+    ``"message"``, a string describing a textual message.
+    ``"type"``, a string representing what type of error message it is
+
+    If ``type`` is "string", the message is just returned as the string body.
+    Otherwise, the following JSON body will be synthesized (as per the
+    canonical Nova error format):
+
+    ```
+    {
+        <type>: {
+            "message": <message>,
+            "code": <code>
+        }
+    }
+
+    The default type is computeFault, the default code is 500, and the default
+    message is "The server has either erred or is incapable of performing the
+    requested operation".
+    """
+    status_code = parameters.get("code", 500)
+    failure_type = parameters.get("type", "computeFault")
+    failure_message = parameters.get(
+        "message",
+        ("The server has either erred or is incapable of performing the "
+         "requested operation"))
+
+    if failure_type == "string":
+        fail_body = failure_message
+    else:
+        fail_body = dumps({
+            failure_type: {
+                "message": failure_message,
+                "code": status_code
+            }
+        })
+
+    def _fail(collection, http, json, absolutize_url):
+        if create:
+            Server.from_creation_request_json(
+                collection, json, lambda: randrange(255))
+
+        http.setResponseCode(status_code)
+        return fail_body
+    return _fail
+
+
 @server_creation.declare_behavior_creator("fail")
 def create_fail_behavior(parameters):
     """
     Create a failing behavior for server creation.
 
-    Takes two parameters:
+    Takes three parameters:
 
     ``"code"``, an integer describing the HTTP response code, and
     ``"message"``, a string describing a textual message.
+    ``"type"``, a string representing what type of error message it is
 
-    The response body will be a JSON object including ``code`` and ``message``
-    fields matching the parameters.
+    If ``type`` is "string", the message is just returned as the string body.
+    Otherwise, the following JSON body will be synthesized (as per the
+    canonical Nova error format):
+
+    ```
+    {
+        <type>: {
+            "message": <message>,
+            "code": <code>
+        }
+    }
+
+    The default type is computeFault, the default code is 500, and the default
+    message is "The server has either erred or is incapable of performing the
+    requested operation".
     """
-    status_code = parameters.get("code", 500)
-    failure_message = parameters.get("message", "Server creation failed.")
-
-    def fail_without_creating(collection, http, json, absolutize_url):
-        # behavior for failing to even start to build
-        http.setResponseCode(status_code)
-        return dumps(invalid_resource(failure_message, status_code))
-    return fail_without_creating
+    return _get_failure_behavior(parameters)
 
 
 @server_creation.declare_behavior_creator("false-negative")
@@ -447,23 +507,29 @@ def create_success_report_failure_behavior(parameters):
     Create a behavior that reports failure, but actually succeeds, for server
     creation.
 
-    Takes two parameters:
+    Takes three parameters:
 
     ``"code"``, an integer describing the HTTP response code, and
     ``"message"``, a string describing a textual message.
+    ``"type"``, a string representing what type of error message it is
 
-    The response body will be a JSON object including ``code`` and ``message``
-    fields matching the parameters.
+    If ``type`` is "string", the message is just returned as the string body.
+    Otherwise, the following JSON body will be synthesized (as per the
+    canonical Nova error format):
+
+    ```
+    {
+        <type>: {
+            "message": <message>,
+            "code": <code>
+        }
+    }
+
+    The default type is computeFault, the default code is 500, and the default
+    message is "The server has either erred or is incapable of performing the
+    requested operation".
     """
-    status_code = parameters.get("code", 500)
-    failure_message = parameters.get("message", "Server creation failed.")
-
-    def create_then_fail(collection, http, json, absolutize_url):
-        Server.from_creation_request_json(
-            collection, json, lambda: randrange(255))
-        http.setResponseCode(status_code)
-        return dumps(invalid_resource(failure_message, status_code))
-    return create_then_fail
+    return _get_failure_behavior(parameters, create=True)
 
 
 @server_creation.declare_behavior_creator("build")

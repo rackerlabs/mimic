@@ -8,8 +8,6 @@ from six import text_type
 from zope.interface import implementer
 from twisted.web.server import Request
 from twisted.plugin import IPlugin
-from mimic.canned_responses.loadbalancer import (
-    del_load_balancer)
 from mimic.rest.mimicapp import MimicApp
 from mimic.imimic import IAPIMock
 from mimic.catalog import Entry
@@ -142,8 +140,7 @@ class LoadBalancerRegion(object):
         Creates a load balancer and adds it to the load balancer store.
         Returns the newly created load balancer with response code 200
         """
-        response_data = del_load_balancer(
-            self.session(tenant_id),
+        response_data = self.session(tenant_id).del_load_balancer(
             lb_id, self._session_store.clock.seconds()
         )
         request.setResponseCode(response_data[1])

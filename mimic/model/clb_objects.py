@@ -10,9 +10,21 @@ from characteristic import attributes, Attribute
 from mimic.canned_responses.loadbalancer import (load_balancer_example,
                                                  _verify_and_update_lb_state,
                                                  _lb_without_tenant,
-                                                 _prep_for_list,
                                                  _format_nodes_on_lb,
                                                  _delete_node)
+
+
+def _prep_for_list(lb_list):
+    """
+    Removes tenant id and changes the nodes list to 'nodeCount' set to the
+    number of node on the LB
+    """
+    entries_to_keep = ('name', 'protocol', 'id', 'port', 'algorithm', 'status', 'timeout',
+                       'created', 'virtualIps', 'updated', 'nodeCount')
+    filtered_lb_list = []
+    for each in lb_list:
+        filtered_lb_list.append(dict((entry, each[entry]) for entry in entries_to_keep))
+    return filtered_lb_list
 
 
 class RegionalCLBCollection(object):
@@ -103,6 +115,10 @@ class RegionalCLBCollection(object):
         """
         Returns the list of load balancers with the given tenant id with response
         code 200. If no load balancers are found returns empty list.
+        :param string tenant_id: The tenant which owns the load balancers.
+        :param float current_timestamp: The current time, in seconds since epoch.
+
+        :return: A 2-tuple, containing the HTTP response and code, in that order.
         """
         response = dict(
             (k, v) for (k, v) in self.lbs.items()
@@ -241,6 +257,42 @@ class RegionalCLBCollection(object):
                 _verify_and_update_lb_state(self, lb_id,
                                             current_timestamp=current_timestamp)
             return {"nodes": nodes}, 202
+
+        return not_found_response("loadbalancer"), 404
+
+    def del_load_balancer(self, lb_id, current_timestamp):
+        """
+        Returns response for a load balancer
+         is in building status for 20
+        seconds and response code 202, and adds the new lb to ``self.lbs``.
+        A loadbalancer, on delete, goes into PENDING-DELETE and remains in DELETED
+        status until a nightly job(maybe?)
+        """
+        if lb_id in self.lbs:
+
+            if self.lbs[lb_id]["status"] == "PENDING-DELETE":
+                msg = ("Must provide valid load balancers: {0} are immutable and "
+                       "could not be processed.".format(lb_id))
+                # Dont doubt this to be 422, it is 400!
+                return invalid_resource(msg, 400), 400
+
+            _verify_and_update_lb_state(self, lb_id, True, current_timestamp)
+
+            if any([self.lbs[lb_id]["status"] == "ACTIVE",
+                    self.lbs[lb_id]["status"] == "ERROR",
+                    self.lbs[lb_id]["status"] == "PENDING-UPDATE"]):
+                del self.lbs[lb_id]
+                return EMPTY_RESPONSE, 202
+
+            if self.lbs[lb_id]["status"] == "PENDING-DELETE":
+                return EMPTY_RESPONSE, 202
+
+            if self.lbs[lb_id]["status"] == "DELETED":
+                _verify_and_update_lb_state(self, lb_id,
+                                            current_timestamp=current_timestamp)
+                msg = "Must provide valid load balancers: {0} could not be found.".format(lb_id)
+                # Dont doubt this to be 422, it is 400!
+                return invalid_resource(msg, 400), 400
 
         return not_found_response("loadbalancer"), 404
 
