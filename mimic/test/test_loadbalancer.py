@@ -109,6 +109,16 @@ class LoadbalancerAPITests(SynchronousTestCase):
         create_lb_response_body = self.successResultOf(treq.json_content(create_lb_response))
         return create_lb_response_body['loadBalancer']['id']
 
+    def test_return_override(self):
+        """
+        Perhaps a bit mislabeled, this test exercises the endpoint that causes a load balancer to return a specific response code for all
+        requests.
+        """
+        input_lb_id = 13579  # taken from above
+        return_override_req = request(self, self.root, "POST", "{}/loadbalancer/{}/returnOverride/{}".format(self.uri, input_lb_id, 422))
+        return_override_resp = self.successResultOf(return_override_req)
+        self.assertEqual(return_override_resp.code, 204)
+
     def test_multiple_regions_multiple_endpoints(self):
         """
         API object created with multiple regions has multiple entries

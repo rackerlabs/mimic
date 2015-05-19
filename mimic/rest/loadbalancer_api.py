@@ -64,6 +64,8 @@ class LoadBalancerControlApi(object):
     """
     Rest endpoints for mocked Load Balancer controller api.
     """
+    app = MimicApp()
+
     def __init__(self, regions=["ORD"]):
         """
         Create an API with the specified regions.
@@ -92,6 +94,16 @@ class LoadBalancerControlApi(object):
         lbc_region = LoadBalancerControlRegion(self, uri_prefix,
                                                session_store, region)
         return lbc_region.app.resource()
+
+    @app.route('/v2/<string:unused_tenant_id>/loadbalancer/<string:clb_id>/returnOverride/<int:statusCode>', methods=['POST'])
+    def returnOverride(self, request, clb_id, statusCode):
+        """
+        Configures the indicated cloud load balancer to always return the given status code,
+        regardless of operation invoked.  To return back to normal behavior, use 0 for the
+        status code.
+        """
+        request.setResponseCode(422)
+        return "You are NOT a teapot."
 
 
 class LoadBalancerControlRegion(object):
