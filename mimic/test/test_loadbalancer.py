@@ -8,7 +8,7 @@ import treq
 from twisted.trial.unittest import SynchronousTestCase
 from mimic.canned_responses.loadbalancer import load_balancer_example
 from mimic.test.fixtures import APIMockHelper, TenantAuthentication
-from mimic.rest.loadbalancer_api import LoadBalancerApi
+from mimic.rest.loadbalancer_api import LoadBalancerApi, LoadBalancerControlApi
 from mimic.test.helpers import request_with_content, request
 from mimic.util.helper import EMPTY_RESPONSE
 
@@ -85,7 +85,8 @@ class LoadbalancerAPITests(SynchronousTestCase):
         """
         Create a :obj:`MimicCore` with :obj:`LoadBalancerApi` as the only plugin
         """
-        self.helper = APIMockHelper(self, [LoadBalancerApi()])
+        lb = LoadBalancerApi()
+        self.helper = APIMockHelper(self, [lb, LoadBalancerControlApi(lb_api=lb)])
         self.root = self.helper.root
         self.uri = self.helper.uri
 
@@ -114,10 +115,18 @@ class LoadbalancerAPITests(SynchronousTestCase):
         Perhaps a bit mislabeled, this test exercises the endpoint that causes a load balancer to return a specific response code for all
         requests.
         """
-        input_lb_id = 13579  # taken from above
-        return_override_req = request(self, self.root, "POST", "{}/loadbalancer/{}/returnOverride/{}".format(self.uri, input_lb_id, 422))
+        api_uri = self.uri
+        ctl_uri = self.helper.auth.get_service_endpoint("cloudLoadBalancerControl", "ORD")
+        lb_id = self._create_loadbalancer('test_lb')
+        return_override_req = request(
+            self, self.root, "POST", "{}/loadbalancer/{}/returnOverride/{}".format(ctl_uri, lb_id, 422)
+        )
         return_override_resp = self.successResultOf(return_override_req)
         self.assertEqual(return_override_resp.code, 204)
+        get_lb = request(self, self.root, "GET", self.uri + '/loadbalancers/' + str(lb_id))
+        get_lb_response = self.successResultOf(get_lb)
+        get_lb_response_body = self.successResultOf(treq.json_content(get_lb_response))
+        self.assertEqual(get_lb_response.code, 422)
 
     def test_multiple_regions_multiple_endpoints(self):
         """

@@ -37,6 +37,7 @@ class RegionalCLBCollection(object):
         """
         self.lbs = {}
         self.meta = {}
+        self.returnOverrides = {}
 
     def add_load_balancer(self, tenant_id, lb_info, lb_id, current_timestamp):
         """
@@ -78,11 +79,22 @@ class RegionalCLBCollection(object):
 
         return {'loadBalancer': new_lb}, 202
 
+    def set_return_override(self, lb_id, statusCode):
+        """
+        Sets the return override for a load balancer (statusCode != 0)
+        or removes it (statusCode == 0).
+        """
+        self.returnOverrides[lb_id] = statusCode
+
     def get_load_balancers(self, lb_id, current_timestamp):
         """
         Returns the load balancers with the given lb id, with response
         code 200. If no load balancers are found returns 404.
         """
+        print("RegionalCLBCollection({})".format(self))
+        if lb_id in self.returnOverrides:
+            return "Response overridden", self.returnOverrides[lb_id]
+
         if lb_id in self.lbs:
             _verify_and_update_lb_state(self, lb_id, False, current_timestamp)
             log.msg(self.lbs[lb_id]["status"])

@@ -18,6 +18,7 @@ from mimic.model.clb_objects import GlobalCLBCollections
 from random import randrange
 
 from mimic.util.helper import invalid_resource, json_dump
+from characteristic import attributes
 
 
 Request.defaultContentType = 'application/json'
@@ -60,18 +61,11 @@ class LoadBalancerApi(object):
 
 
 @implementer(IAPIMock, IPlugin)
+@attributes(["lb_api"])
 class LoadBalancerControlApi(object):
     """
     Rest endpoints for mocked Load Balancer controller api.
     """
-    app = MimicApp()
-
-    def __init__(self, regions=["ORD"]):
-        """
-        Create an API with the specified regions.
-        """
-        self._regions = regions
-
     def catalog_entries(self, tenant_id):
         """
         Cloud load balancer controller endpoints.
@@ -81,7 +75,7 @@ class LoadBalancerControlApi(object):
                 tenant_id, "rax:load-balancer", "cloudLoadBalancerControl",
                 [
                     Endpoint(tenant_id, region, text_type(uuid4()), prefix="v2")
-                    for region in self._regions
+                    for region in self.lb_api._regions
                 ]
             )
         ]
@@ -94,16 +88,6 @@ class LoadBalancerControlApi(object):
         lbc_region = LoadBalancerControlRegion(self, uri_prefix,
                                                session_store, region)
         return lbc_region.app.resource()
-
-    @app.route('/v2/<string:unused_tenant_id>/loadbalancer/<string:clb_id>/returnOverride/<int:statusCode>', methods=['POST'])
-    def returnOverride(self, request, clb_id, statusCode):
-        """
-        Configures the indicated cloud load balancer to always return the given status code,
-        regardless of operation invoked.  To return back to normal behavior, use 0 for the
-        status code.
-        """
-        request.setResponseCode(422)
-        return "You are NOT a teapot."
 
 
 class LoadBalancerControlRegion(object):
@@ -133,6 +117,27 @@ class LoadBalancerControlRegion(object):
         clb_region_collection = clb_global_collection.collection_for_region(
             self.region_name)
         return clb_region_collection
+
+    def _collection_from_tenant(self, tenant_id):
+        """
+        Retrieve the server collection for this region for the given tenant.
+        """
+        return (self.api_mock.nova_api
+                ._get_session(self.session_store, tenant_id)
+                .collection_for_region(self.region))
+
+    @app.route('/v2/<string:tenant_id>/loadbalancer/<string:clb_id>/returnOverride/<int:statusCode>', methods=['POST'])
+    def returnOverride(self, request, tenant_id, clb_id, statusCode):
+        """
+        Configures the indicated cloud load balancer to always return the given status code,
+        regardless of operation invoked.  To return back to normal behavior, use 0 for the
+        status code.
+        """
+        regional_lbs = self._collection_from_tenant(tenant_id)
+        regional_lbs.set_return_override(clb_id, statusCode)
+        print("BEFORE({})".format(regional_lbs))
+        request.setResponseCode(204)
+        return b''
 
 
 class LoadBalancerRegion(object):
