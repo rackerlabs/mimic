@@ -27,13 +27,15 @@ Request.defaultContentType = 'application/json'
 @implementer(IAPIMock, IPlugin)
 class LoadBalancerApi(object):
     """
-    Rest endpoints for mocked Load balancer api.
+    This class registers the load balancer API in the service catalog.
+    It does NOT implement individual endpoints.
     """
     def __init__(self, regions=["ORD"]):
         """
         Create an API with the specified regions.
         """
         self._regions = regions
+        self.session_store = None
 
     def catalog_entries(self, tenant_id):
         """
@@ -55,16 +57,36 @@ class LoadBalancerApi(object):
         Get an :obj:`twisted.web.iweb.IResource` for the given URI prefix;
         implement :obj:`IAPIMock`.
         """
+        self.session_store = session_store
         lb_region = LoadBalancerRegion(self, uri_prefix, session_store,
                                        region)
         return lb_region.app.resource()
+
+    def _get_session(self, session_store, tenant_id):
+        """
+        Retrieve or create a new LoadBalancer session from a given tenant identifier
+        and :obj:`SessionStore`.
+
+        For use with ``data_for_api``.
+
+        Temporary hack; see this issue
+        https://github.com/rackerlabs/mimic/issues/158
+        """
+        return (
+            session_store.session_for_tenant_id(tenant_id)
+            .data_for_api(self, lambda: GlobalServerCollections(
+                tenant_id=tenant_id,
+                clock=session_store.clock
+            ))
+        )
 
 
 @implementer(IAPIMock, IPlugin)
 @attributes(["lb_api"])
 class LoadBalancerControlApi(object):
     """
-    Rest endpoints for mocked Load Balancer controller api.
+    This class registers the load balancer controller API in the service
+    catalog.  It does NOT implement individual endpoints.
     """
     def catalog_entries(self, tenant_id):
         """
@@ -85,23 +107,18 @@ class LoadBalancerControlApi(object):
         Get an :obj:`twisted.web.iweb.IResource` for the given URI prefix;
         implement :obj:`IAPIMock`.
         """
-        lbc_region = LoadBalancerControlRegion(self, uri_prefix,
-                                               session_store, region)
+        lbc_region = LoadBalancerControlRegion(api_mock=self, uri_prefix=uri_prefix,
+                                               session_store=self.lb_api.session_store, region=region)
         return lbc_region.app.resource()
 
 
+@attributes(["api_mock", "uri_prefix", "session_store", "region"])
 class LoadBalancerControlRegion(object):
     """
     Klein routes for load balancer's control API within a particular region.
     """
 
     app = MimicApp()
-
-    def __init__(self, api_mock, uri_prefix, session_store, region_name):
-        self.uri_prefix = uri_prefix
-        self.region_name = region_name
-        self._api_mock = api_mock
-        self._session_store = session_store
 
     def session(self, tenant_id):
         """
@@ -122,8 +139,7 @@ class LoadBalancerControlRegion(object):
         """
         Retrieve the server collection for this region for the given tenant.
         """
-        return (self.api_mock.nova_api
-                ._get_session(self.session_store, tenant_id)
+        return (self.api_mock.lb_api._get_session(self.session_store, tenant_id)
                 .collection_for_region(self.region))
 
     @app.route('/v2/<string:tenant_id>/loadbalancer/<string:clb_id>/returnOverride/<int:statusCode>', methods=['POST'])
