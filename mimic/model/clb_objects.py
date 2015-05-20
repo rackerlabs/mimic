@@ -91,7 +91,6 @@ class RegionalCLBCollection(object):
         Returns the load balancers with the given lb id, with response
         code 200. If no load balancers are found returns 404.
         """
-        print("RegionalCLBCollection({})".format(self))
         if lb_id in self.returnOverrides:
             return "Response overridden", self.returnOverrides[lb_id]
 
