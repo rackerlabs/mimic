@@ -110,23 +110,28 @@ class LoadbalancerAPITests(SynchronousTestCase):
         create_lb_response_body = self.successResultOf(treq.json_content(create_lb_response))
         return create_lb_response_body['loadBalancer']['id']
 
-    def test_return_override(self):
+    def test_lb_status_changes_as_requested(self):
         """
-        Perhaps a bit mislabeled, this test exercises the endpoint that causes a load balancer to return a specific response code for all
-        requests.
+        Perhaps a bit mislabeled, this test exercises the endpoint that causes
+        a load balancer to return a specific status.
         """
         api_uri = self.uri
         ctl_uri = self.helper.auth.get_service_endpoint("cloudLoadBalancerControl", "ORD")
         lb_id = self._create_loadbalancer('test_lb')
         return_override_req = request(
-            self, self.root, "POST", "{}/loadbalancer/{}/returnOverride/{}".format(ctl_uri, lb_id, 422)
+            self, self.root, "POST", "{}/loadbalancer/{}/setAttr".format(
+                ctl_uri, lb_id
+            ),
+            '{"status": "PENDING_DELETE"}'
         )
         return_override_resp = self.successResultOf(return_override_req)
         self.assertEqual(return_override_resp.code, 204)
+
         get_lb = request(self, self.root, "GET", self.uri + '/loadbalancers/' + str(lb_id))
         get_lb_response = self.successResultOf(get_lb)
         get_lb_response_body = self.successResultOf(treq.json_content(get_lb_response))
-        self.assertEqual(get_lb_response.code, 422)
+        self.assertEqual(get_lb_response.code, 200)
+        self.assertEqual(get_lb_response_body["status"], "PENDING_DELETE")
 
     def test_multiple_regions_multiple_endpoints(self):
         """

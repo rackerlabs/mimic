@@ -140,16 +140,41 @@ class LoadBalancerControlRegion(object):
         return (self.api_mock.lb_api._get_session(self.session_store, tenant_id)
                 .collection_for_region(self.region))
 
-    @app.route('/v2/<string:tenant_id>/loadbalancer/<int:clb_id>/returnOverride/<int:statusCode>', methods=['POST'])
-    def returnOverride(self, request, tenant_id, clb_id, statusCode):
+    @app.route('/v2/<string:tenant_id>/loadbalancer/<int:clb_id>/setAttr', methods=['POST'])
+    def set_attributes(self, request, tenant_id, clb_id):
         """
-        Configures the indicated cloud load balancer to always return the given status code,
-        regardless of operation invoked.  To return back to normal behavior, use 0 for the
-        status code.
+        Alters the supported attributes of the CLB to supported values.  To
+        return things back to normal, you'll first need to list the CLB to get
+        any original values yourself.
         """
         regional_lbs = self._collection_from_tenant(tenant_id)
-        regional_lbs.set_return_override(clb_id, statusCode)
-        print("BEFORE({})".format(regional_lbs))
+        print("Looking for CLB {}".format(clb_id))
+        if clb_id not in regional_lbs:
+            request.setResponseCode(404)
+            return json.dumps({
+                "message": "Tenant {} doesn't own load balancer {}".format(
+                    tenant_id, clb_id
+                ),
+                "code": 404,
+            })
+
+        try:
+            content = json.loads(request.content.read())
+        except ValueError:
+            request.setResponseCode(400)
+            return json.dumps(invalid_resource("Invalid JSON request body"))
+
+        if "status" in content:
+            if content["status"] not in [
+                "ACTIVE", "ERROR", "PENDING_DELETE", "PENDING_UPDATE"
+            ]:
+                request.setResponseCode(400)
+                return json.dumps({
+                    "message": "Invalid status.",
+                    "code": 400,
+                })
+
+        regional_lbs[clb_id].set_attributes(clb_id, content)
         request.setResponseCode(204)
         return b''
 

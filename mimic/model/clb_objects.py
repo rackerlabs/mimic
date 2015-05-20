@@ -19,11 +19,15 @@ def _prep_for_list(lb_list):
     Removes tenant id and changes the nodes list to 'nodeCount' set to the
     number of node on the LB
     """
-    entries_to_keep = ('name', 'protocol', 'id', 'port', 'algorithm', 'status', 'timeout',
-                       'created', 'virtualIps', 'updated', 'nodeCount')
+    entries_to_keep = (
+        'name', 'protocol', 'id', 'port', 'algorithm', 'status', 'timeout',
+        'created', 'virtualIps', 'updated', 'nodeCount'
+    )
     filtered_lb_list = []
     for each in lb_list:
-        filtered_lb_list.append(dict((entry, each[entry]) for entry in entries_to_keep))
+        filtered_lb_list.append(
+            dict((entry, each[entry]) for entry in entries_to_keep)
+        )
     return filtered_lb_list
 
 
@@ -37,7 +41,21 @@ class RegionalCLBCollection(object):
         """
         self.lbs = {}
         self.meta = {}
-        self.returnOverrides = {}
+
+    def __len__(self):
+        """
+        The number of cloud load balancers in this collection.
+        """
+        return len(self.lbs)
+
+    def __getitem__(self, clb_id):
+        """
+        Returns the cloud load balancer identified by clb_id.
+        """
+        for i in self.lbs:
+            if i == clb_id:
+                return self.lbs[i]
+        raise KeyError(clb_id)
 
     def add_load_balancer(self, tenant_id, lb_info, lb_id, current_timestamp):
         """
@@ -79,21 +97,19 @@ class RegionalCLBCollection(object):
 
         return {'loadBalancer': new_lb}, 202
 
-    def set_return_override(self, lb_id, statusCode):
+    def set_attributes(self, lb_id, kvpairs):
         """
-        Sets the return override for a load balancer (statusCode != 0)
-        or removes it (statusCode == 0).
+        Sets zero or more attributes on the load balancer object.
+        Currently supported attributes include: status.
         """
-        self.returnOverrides[lb_id] = statusCode
+        if "status" in kvpairs:
+            self.lbs[lb_id]["status"] = kvpairs["status"]
 
     def get_load_balancers(self, lb_id, current_timestamp):
         """
         Returns the load balancers with the given lb id, with response
         code 200. If no load balancers are found returns 404.
         """
-        if lb_id in self.returnOverrides:
-            return "Response overridden", self.returnOverrides[lb_id]
-
         if lb_id in self.lbs:
             _verify_and_update_lb_state(self, lb_id, False, current_timestamp)
             log.msg(self.lbs[lb_id]["status"])
