@@ -72,7 +72,7 @@ class LoadBalancerApi(object):
         """
         return (
             session_store.session_for_tenant_id(tenant_id)
-            .data_for_api(self, lambda: GlobalServerCollections(
+            .data_for_api(self, lambda: GlobalCLBCollections(
                 tenant_id=tenant_id,
                 clock=session_store.clock
             ))
