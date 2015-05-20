@@ -118,18 +118,20 @@ class LoadbalancerAPITests(SynchronousTestCase):
         api_uri = self.uri
         ctl_uri = self.helper.auth.get_service_endpoint("cloudLoadBalancerControl", "ORD")
         lb_id = self._create_loadbalancer('test_lb')
-        return_override_req = request(
+        set_attributes_req = request(
             self, self.root, "POST", "{}/loadbalancer/{}/setAttr".format(
                 ctl_uri, lb_id
             ),
             '{"status": "PENDING_DELETE"}'
         )
-        return_override_resp = self.successResultOf(return_override_req)
-        self.assertEqual(return_override_resp.code, 204)
+        set_attributes_resp = self.successResultOf(set_attributes_req)
+        self.assertEqual(set_attributes_resp.code, 204)
 
         get_lb = request(self, self.root, "GET", self.uri + '/loadbalancers/' + str(lb_id))
         get_lb_response = self.successResultOf(get_lb)
-        get_lb_response_body = self.successResultOf(treq.json_content(get_lb_response))
+        get_lb_response_body = self.successResultOf(
+            treq.json_content(get_lb_response)
+        )["loadBalancer"]
         self.assertEqual(get_lb_response.code, 200)
         self.assertEqual(get_lb_response_body["status"], "PENDING_DELETE")
 

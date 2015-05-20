@@ -52,10 +52,17 @@ class RegionalCLBCollection(object):
         """
         Returns the cloud load balancer identified by clb_id.
         """
+        return self.lbs[clb_id]
+
+    def __contains__(self, clb_id):
+        """
+        Returns true if the CLB ID is registered with our list of load
+        balancers.
+        """
         for i in self.lbs:
             if i == clb_id:
-                return self.lbs[i]
-        raise KeyError(clb_id)
+                return True
+        return False
 
     def add_load_balancer(self, tenant_id, lb_info, lb_id, current_timestamp):
         """

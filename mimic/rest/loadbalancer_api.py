@@ -148,7 +148,6 @@ class LoadBalancerControlRegion(object):
         any original values yourself.
         """
         regional_lbs = self._collection_from_tenant(tenant_id)
-        print("Looking for CLB {}".format(clb_id))
         if clb_id not in regional_lbs:
             request.setResponseCode(404)
             return json.dumps({
@@ -174,7 +173,7 @@ class LoadBalancerControlRegion(object):
                     "code": 400,
                 })
 
-        regional_lbs[clb_id].set_attributes(clb_id, content)
+        regional_lbs.set_attributes(clb_id, content)
         request.setResponseCode(204)
         return b''
 
