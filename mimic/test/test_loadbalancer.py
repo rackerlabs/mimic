@@ -294,7 +294,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
         list_lb_response, list_lb_response_body = self.successResultOf(
             request_with_content(
                 self, helper.root, "GET",
-                helper.get_service_endpoint("cloudLoadBalancers")
+                helper.get_service_endpoint("cloudLoadBalancers", "DFW")
                 + "/loadbalancers"))
 
         self.assertEqual(list_lb_response.code, 200)
