@@ -66,17 +66,15 @@ class PasswordCredentials(object):
         """
         Given an authentication JSON blob, which should look like:
 
-        ```
-        {
-            "auth": {
-                "passwordCredentials": {
-                    "username": "user",
-                    "password": "pass"
-                },
-                "tenantId": "111111"
+            {
+                "auth": {
+                    "passwordCredentials": {
+                        "username": "user",
+                        "password": "pass"
+                    },
+                    "tenantId": "111111"
+                }
             }
-        }
-        ```
 
         ``"tenantId"`` is interchanable with ``"tenantName"``, and is
         optional.
@@ -115,17 +113,15 @@ class APIKeyCredentials(object):
         """
         Given an authentication JSON blob, which should look like:
 
-        ```
-        {
-            "auth": {
-                "RAX-KSKEY:apiKeyCredentials": {
-                    "username": "user",
-                    "apiKey": "key"
-                },
-                "tenantId": "111111"
+            {
+                "auth": {
+                    "RAX-KSKEY:apiKeyCredentials": {
+                        "username": "user",
+                        "apiKey": "key"
+                    },
+                    "tenantId": "111111"
+                }
             }
-        }
-        ```
 
         ``"tenantId"`` is interchanable with ``"tenantName"``, and is
         optional.
@@ -163,16 +159,14 @@ class TokenCredentials(object):
         """
         Given an authentication JSON blob, which should look like:
 
-        ```
-        {
-            "auth": {
-                "token": {
-                    "id": "my_token"
-                },
-                "tenantId": "111111"
+            {
+                "auth": {
+                    "token": {
+                        "id": "my_token"
+                    },
+                    "tenantId": "111111"
+                }
             }
-        }
-        ```
 
         ``"tenantId"`` is interchanable with ``"tenantName"``, and is
         optional.
@@ -216,16 +210,14 @@ class ImpersonationCredentials(object):
         """
         Given an impersonation JSON blob, which should look like:
 
-        ```
-        {
-            "RAX-AUTH:impersonation": {
-                "expire-in-seconds": 1000,
-                "user": {
-                    "username": "my_user"
+            {
+                "RAX-AUTH:impersonation": {
+                    "expire-in-seconds": 1000,
+                    "user": {
+                        "username": "my_user"
+                    }
                 }
             }
-        }
-        ```
 
         Along with a header "X-Auth-Token" with the impersonator's token,
 
