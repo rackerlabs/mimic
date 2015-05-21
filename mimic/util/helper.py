@@ -10,6 +10,7 @@ import string
 from datetime import datetime, timedelta
 import json
 from random import choice, randint
+from functools import wraps
 
 from six import text_type
 
@@ -131,3 +132,33 @@ def set_resource_status(updated_time, time_delta, status='ACTIVE',
 
     if current_datetime >= expiration_datetime:
         return status
+
+
+def generic_json_request_reader(err_function):
+    """
+    Take in a function that handles a bad request and return a
+    decorator that will be used to decorate a handler function
+
+    err_function must take a request and return a string
+    It is responsible for setting its own error code
+    """
+
+    def nova_json_request_body(function):
+        """
+        If unable to read in the json request body, call bad_request
+        otherwise continue. Requires that the first parameter of the function is
+        self and the second is request.
+        """
+        @wraps(function)
+        def wrapper(instance, request, *args, **kwargs):
+            """
+            Wrap a handler to validate the json body
+            """
+            try:
+                content = json.loads(request.content.read())
+                print content
+            except ValueError:
+                return err_function(request)
+            return function(instance, request, *args, content=content, **kwargs)
+        return wrapper
+    return nova_json_request_body
