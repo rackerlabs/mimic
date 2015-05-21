@@ -52,10 +52,9 @@ class AuthApi(object):
             request.setResponseCode(400)
             return json.dumps(invalid_resource("Invalid JSON request body"))
 
-        def format_response(callable_returning_session,
-                            nonmatching_tenant_message_generator):
+        def format_response(cred, nonmatching_tenant_message_generator):
             try:
-                session = callable_returning_session()
+                session = cred.get_session(self.core.sessions)
             except NonMatchingTenantError as e:
                 request.setResponseCode(401)
                 return json.dumps({
@@ -92,29 +91,29 @@ class AuthApi(object):
                                   exception.session.username,
                                   exception.session.user_id))
 
-        if content['auth'].get('passwordCredentials'):
-            cred_type = PasswordCredentials
-            error_handler = username_generator
+        cred_mappings = {
+            'passwordCredentials':
+                (PasswordCredentials, username_generator),
+            'RAX-KSKEY:apiKeyCredentials':
+                (APIKeyCredentials, username_generator),
+            'token':
+                (TokenCredentials,
+                 lambda e: (
+                     "Token doesn't belong to Tenant with Id/Name: "
+                     "'{0}'".format(e.desired_tenant)))
+        }
 
-        elif content['auth'].get('RAX-KSKEY:apiKeyCredentials'):
-            cred_type = APIKeyCredentials
-            error_handler = username_generator
+        relevant_cred_keys = set(cred_mappings).intersection(
+            set(content['auth']))
 
-        elif content['auth'].get('token'):
-            cred_type = TokenCredentials
-
-            def error_handler(e):
-                return ("Token doesn't belong to Tenant with Id/Name: "
-                        "'{0}'".format(e.desired_tenant))
-
-        try:
-            creds = cred_type.from_json(content)
-        except Exception:
-            pass
-        else:
-            return format_response(
-                lambda: creds.get_session(self.core.sessions),
-                error_handler)
+        if relevant_cred_keys:
+            cred_type, error_handler = cred_mappings[relevant_cred_keys.pop()]
+            try:
+                cred = cred_type.from_json(content)
+            except Exception:
+                pass
+            else:
+                return format_response(cred, error_handler)
 
         request.setResponseCode(400)
         return json.dumps(
