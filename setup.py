@@ -13,7 +13,7 @@ except ImportError:
 
 
 _NAME = "mimic"
-_VERSION = "1.3.0"
+_VERSION = "1.4.0"
 
 
 def setup_options(name, version):
