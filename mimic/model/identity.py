@@ -28,9 +28,9 @@ class IdentitySession(object):
                           validator=validators.instance_of(bool))
 
 
-class ICredentials(Interface):
+class ICredential(Interface):
     """
-    An :obj:`ICredentials` provides identity authentication credentials.
+    An :obj:`ICredential` provides identity authentication credentials.
     """
     def get_session(session_store):  # pragma:nocover
         """
@@ -41,7 +41,7 @@ class ICredentials(Interface):
         """
 
 
-@implementer(ICredentials)
+@implementer(ICredential)
 @attributes
 class PasswordCredentials(object):
     """
@@ -90,7 +90,7 @@ class PasswordCredentials(object):
         return cls(username=username, password=password, tenant_id=tenant_id)
 
 
-@implementer(ICredentials)
+@implementer(ICredential)
 @attributes
 class APIKeyCredentials(object):
     """
@@ -140,7 +140,7 @@ class APIKeyCredentials(object):
         return cls(username=username, api_key=api_key, tenant_id=tenant_id)
 
 
-@implementer(ICredentials)
+@implementer(ICredential)
 @attributes
 class TokenCredentials(object):
     """
@@ -185,7 +185,7 @@ class TokenCredentials(object):
         return cls(token=token, tenant_id=tenant_id)
 
 
-@implementer(ICredentials)
+@implementer(ICredential)
 @attributes
 class ImpersonationCredentials(object):
     """
