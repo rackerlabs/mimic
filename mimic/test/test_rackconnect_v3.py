@@ -148,8 +148,9 @@ class RackConnectTestMixin(object):
         _, resp_jsons = zip(*[
             self.successResultOf(json_request(
                 self, self.helper.root, "GET",
-                self.helper.nth_endpoint_public(i) + "/load_balancer_pools"))
-            for i in range(len(self.rcv3.regions))])
+                self.helper.get_service_endpoint("rackconnect", region)
+                + "/load_balancer_pools"))
+            for region in self.rcv3.regions])
 
         lb_ids = [[lb['id'] for lb in lbs] for lbs in resp_jsons]
         return lb_ids
