@@ -1,7 +1,11 @@
 """
 Models relating to identity.
 """
-from attr import attributes, attr, validators
+from uuid import uuid4
+
+from attr import Factory, attributes, attr, validators
+
+from six import string_types, text_type
 
 from zope.interface import Interface, implementer
 
@@ -36,12 +40,6 @@ class ICredentials(Interface):
         :param session_store: a :class:`mimic.session.SessionStore`
         """
 
-    def from_json(json_blob):  # pragma:nocover
-        """
-        Given a JSON dictionary containing credentials, creates a ICrednetials
-        object.
-        """
-
 
 @implementer(ICredentials)
 @attributes
@@ -49,8 +47,8 @@ class PasswordCredentials(object):
     """
     An object representing username/password + optional tenant credentials
     """
-    username = attr()
-    password = attr()
+    username = attr(validator=validators.instance_of(string_types))
+    password = attr(validator=validators.instance_of(string_types))
     tenant_id = attr(default=None)
 
     def get_session(self, session_store):
@@ -98,8 +96,8 @@ class APIKeyCredentials(object):
     """
     An object representing username/api-key + optional tenant credentials
     """
-    username = attr()
-    api_key = attr()
+    username = attr(validator=validators.instance_of(string_types))
+    api_key = attr(validator=validators.instance_of(string_types))
     tenant_id = attr(default=None)
 
     def get_session(self, session_store):
@@ -148,8 +146,8 @@ class TokenCredentials(object):
     """
     An object representing token + optional tenant credentials
     """
-    token = attr()
-    tenant_id = attr(validator=validators.instance_of(basestring))
+    token = attr(validator=validators.instance_of(string_types))
+    tenant_id = attr(validator=validators.instance_of(string_types))
 
     def get_session(self, session_store):
         """
@@ -179,9 +177,62 @@ class TokenCredentials(object):
         ``"tenantId"`` is interchanable with ``"tenantName"``, and is
         optional.
 
-        :return: a class:`APIKeyCredentials` object
+        :return: a class:`TokenCredentials` object
         """
         tenant_id = (json_blob['auth'].get('tenantName', None) or
                      json_blob['auth'].get('tenantId', None))
         token = json_blob['auth']['token']['id']
         return cls(token=token, tenant_id=tenant_id)
+
+
+@implementer(ICredentials)
+@attributes
+class ImpersonationCredentials(object):
+    """
+    An object representing an auth-token + username to impersonate credentials
+    """
+    impersonator_token = attr()
+    username = attr(validator=validators.instance_of(string_types))
+    expires_in = attr(validator=validators.instance_of(int))
+    impersonated_token = attr(
+        default=Factory(lambda: 'impersonated_token_' + text_type(uuid4())),
+        validator=validators.instance_of(string_types))
+
+    def get_session(self, session_store):
+        """
+        Get a session corresponding to the user and tenant from the given
+        session store.
+
+        :param session_store: a :class:`mimic.session.SessionStore`
+        """
+        return session_store.session_for_impersonation(
+            self.username,
+            self.expires_in,
+            self.impersonator_token,
+            self.impersonated_token)
+
+    @classmethod
+    def from_json(cls, json_blob, auth_token):
+        """
+        Given an impersonation JSON blob, which should look like:
+
+        ```
+        {
+            "RAX-AUTH:impersonation": {
+                "expire-in-seconds": 1000,
+                "user": {
+                    "username": "my_user"
+                }
+            }
+        }
+        ```
+
+        Along with a header "X-Auth-Token" with the impersonator's token,
+
+        :return: a class:`ImpersonationCredentials` object
+        """
+        expires_in = json_blob['RAX-AUTH:impersonation']['expire-in-seconds']
+        username = json_blob['RAX-AUTH:impersonation']['user']['username']
+        return cls(impersonator_token=auth_token,
+                   username=username,
+                   expires_in=int(expires_in))

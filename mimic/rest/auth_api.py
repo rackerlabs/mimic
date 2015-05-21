@@ -3,8 +3,6 @@
 Defines get token, impersonation
 """
 import json
-from six import text_type
-from uuid import uuid4
 
 from twisted.web.server import Request
 from twisted.python.urlpath import URLPath
@@ -16,6 +14,7 @@ from mimic.canned_responses.auth import (
 from mimic.canned_responses.mimic_presets import get_presets
 from mimic.model.identity import (
     APIKeyCredentials,
+    ImpersonationCredentials,
     PasswordCredentials,
     TokenCredentials)
 from mimic.rest.mimicapp import MimicApp
@@ -155,17 +154,12 @@ class AuthApi(object):
         except ValueError:
             request.setResponseCode(400)
             return json.dumps(invalid_resource("Invalid JSON request body"))
-        impersonator_token = request.getHeader("x-auth-token")
-        expires_in = content['RAX-AUTH:impersonation']['expire-in-seconds']
-        username = content['RAX-AUTH:impersonation']['user']['username']
-        impersonated_token = 'impersonated_token_' + text_type(uuid4())
-        session = self.core.sessions.session_for_impersonation(username,
-                                                               expires_in,
-                                                               impersonator_token,
-                                                               impersonated_token)
 
+        cred = ImpersonationCredentials.from_json(
+            content, request.getHeader("x-auth-token"))
+        session = cred.get_session(self.core.sessions)
         return json.dumps({"access": {
-            "token": {"id": impersonated_token,
+            "token": {"id": cred.impersonated_token,
                       "expires": format_timestamp(session.expires)}
         }})
 
