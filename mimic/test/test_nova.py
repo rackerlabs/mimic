@@ -71,7 +71,7 @@ def update_metdata_item(helper, server_id, key, value):
     helper.test_case.assertEqual(resp.code, 200)
 
 
-def update_metdata(helper, metadata):
+def update_metdata(helper, server_id, metadata):
     """
     Update metadata
     """
