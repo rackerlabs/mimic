@@ -15,6 +15,7 @@ from six import string_types
 from mimic.util.helper import (
     seconds_to_timestamp,
     random_string,
+    timestamp_to_seconds
 )
 
 from mimic.model.behaviors import (
@@ -218,6 +219,13 @@ class Server(object):
             }
         }
 
+    def set_metadata(self, metadata):
+        """
+        Replace all metadata with given metadata
+        """
+        self.metadata = metadata
+        self.update_time = self.collection.clock.seconds()
+
     def set_metadata_item(self, key, value):
         """
         Set a metadata item on the server.
@@ -236,6 +244,15 @@ class Server(object):
                 "Invalid metadata: The input is not a string or unicode"))
 
         self.metadata[key] = value
+        self.update_time = self.collection.clock.seconds()
+
+    def update_status(self, status):
+        """
+        Update status on the server. This will also update the `update_time`
+        of the server
+        """
+        self.status = status
+        self.update_time = self.collection.clock.seconds()
 
     @classmethod
     def validate_metadata(cls, metadata, max_metadata_items=40):
@@ -549,10 +566,11 @@ def create_building_behavior(parameters):
 
     @default_with_hook
     def set_building(server):
-        server.status = u"BUILD"
+        server.update_status(u"BUILD")
         server.collection.clock.callLater(
             duration,
-            lambda: setattr(server, "status", u"ACTIVE"))
+            server.update_status,
+            u"ACTIVE")
     return set_building
 
 
@@ -567,7 +585,7 @@ def create_error_status_behavior(parameters=None):
     """
     @default_with_hook
     def set_error(server):
-        server.status = u"ERROR"
+        server.update_status(u"ERROR")
     return set_error
 
 
@@ -587,10 +605,11 @@ def active_then_error(parameters):
 
     @default_with_hook
     def fail_later(server):
-        server.status = u"ACTIVE"
+        server.update_status(u"ACTIVE")
         server.collection.clock.callLater(
             duration,
-            lambda: setattr(server, "status", u"ERROR"))
+            server.update_status,
+            u"ERROR")
     return fail_later
 
 
@@ -681,7 +700,7 @@ class RegionalServerCollection(object):
         Retrieve a :obj:`Server` object by its ID.
         """
         for server in self.servers:
-            if server.server_id == server_id:
+            if server.server_id == server_id and server.status != u"DELETED":
                 return server
 
     def request_creation(self, creation_http_request, creation_json,
@@ -728,9 +747,12 @@ class RegionalServerCollection(object):
         return dumps({"addresses": server.addresses_json()})
 
     def request_list(self, http_get_request, include_details, absolutize_url,
-                     name=u"", limit=None, marker=None):
+                     name=u"", limit=None, marker=None, changes_since=None):
         """
         Request the list JSON for all servers.
+
+        :param str changes_since: ISO8601 formatted datetime. Based on
+            http://docs.rackspace.com/servers/api/v2/cs-devguide/content/ChangesSince.html
 
         Note: only supports filtering by name right now, but will need to
         support more going forward.
@@ -738,6 +760,10 @@ class RegionalServerCollection(object):
         Pagination behavior verified against Rackspace Nova as of 2015-04-29.
         """
         to_be_listed = self.servers
+
+        if changes_since is not None:
+            since = timestamp_to_seconds(changes_since)
+            to_be_listed = filter(lambda s: s.update_time >= since, to_be_listed)
 
         # marker can be passed without limit, in which case the whole server
         # list, after the server that matches the marker, is returned
@@ -770,6 +796,9 @@ class RegionalServerCollection(object):
                                          http_get_request))
 
             to_be_listed = to_be_listed[:limit]
+
+        if changes_since is None:
+            to_be_listed = filter(lambda s: s.status != u"DELETED", to_be_listed)
 
         result = {
             "servers": [
@@ -819,7 +848,7 @@ class RegionalServerCollection(object):
                 http_delete_request.setResponseCode(500)
                 return b''
         http_delete_request.setResponseCode(204)
-        self.servers.remove(server)
+        server.update_status(u"DELETED")
         return b''
 
 

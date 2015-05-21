@@ -186,7 +186,7 @@ class NovaControlApiRegion(object):
             request.setResponseCode(BAD_REQUEST)
             return b''
         for server in servers:
-            server.status = statuses_description[server.server_id]
+            server.update_status(statuses_description[server.server_id])
         request.setResponseCode(CREATED)
         return b''
 
@@ -295,7 +295,8 @@ class NovaRegion(object):
                 request, include_details=True, absolutize_url=self.url,
                 name=request.args.get('name', [u""])[0],
                 limit=request.args.get('limit', [None])[0],
-                marker=request.args.get('marker', [None])[0]
+                marker=request.args.get('marker', [None])[0],
+                changes_since=request.args.get('changes-since', [None])[0]
             )
         )
 
@@ -427,7 +428,7 @@ class ServerMetadata(object):
         except LimitError as e:
             return json.dumps(forbidden(e.nova_message, request))
 
-        self._server.metadata = content['metadata']
+        self._server.set_metadata(content['metadata'])
         return json.dumps({'metadata': content['metadata']})
 
     @app.route('/<key>', methods=['PUT'])
