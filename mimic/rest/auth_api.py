@@ -13,6 +13,7 @@ from mimic.canned_responses.auth import (
     format_timestamp,
     impersonator_user_role)
 from mimic.canned_responses.mimic_presets import get_presets
+from mimic.model.behaviors import BehaviorRegistry, EventDescription
 from mimic.model.identity import (
     APIKeyCredentials,
     ImpersonationCredentials,
@@ -23,9 +24,6 @@ from mimic.session import NonMatchingTenantError
 from mimic.util.helper import invalid_resource
 
 Request.defaultContentType = 'application/json'
-
-
-from mimic.model.behaviors import BehaviorRegistry, EventDescription
 
 
 authentication = EventDescription()
