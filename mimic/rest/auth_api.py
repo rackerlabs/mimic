@@ -2,19 +2,25 @@
 """
 Defines get token, impersonation
 """
-
 import json
 from six import text_type
 from uuid import uuid4
 
 from twisted.web.server import Request
 from twisted.python.urlpath import URLPath
-from mimic.canned_responses.auth import get_token, get_endpoints, impersonator_user_role
-from mimic.rest.mimicapp import MimicApp
-from mimic.canned_responses.auth import format_timestamp
-from mimic.util.helper import invalid_resource
-from mimic.session import NonMatchingTenantError
+from mimic.canned_responses.auth import (
+    get_token,
+    get_endpoints,
+    format_timestamp,
+    impersonator_user_role)
 from mimic.canned_responses.mimic_presets import get_presets
+from mimic.model.identity import (
+    APIKeyCredentials,
+    PasswordCredentials,
+    TokenCredentials)
+from mimic.rest.mimicapp import MimicApp
+from mimic.session import NonMatchingTenantError
+from mimic.util.helper import invalid_resource
 
 Request.defaultContentType = 'application/json'
 
@@ -46,9 +52,6 @@ class AuthApi(object):
             request.setResponseCode(400)
             return json.dumps(invalid_resource("Invalid JSON request body"))
 
-        tenant_id = (content['auth'].get('tenantName', None) or
-                     content['auth'].get('tenantId', None))
-
         def format_response(callable_returning_session,
                             nonmatching_tenant_message_generator):
             try:
@@ -73,7 +76,8 @@ class AuthApi(object):
                     session.tenant_id,
                     entry_generator=lambda tenant_id:
                     list(self.core.entries_for_tenant(
-                         tenant_id, prefix_map, base_uri_from_request(request))),
+                         session.tenant_id,
+                         prefix_map, base_uri_from_request(request))),
                     prefix_for_endpoint=lookup,
                     response_token=session.token,
                     response_user_id=session.user_id,
@@ -89,34 +93,32 @@ class AuthApi(object):
                                   exception.session.user_id))
 
         if content['auth'].get('passwordCredentials'):
-            username = content['auth']['passwordCredentials']['username']
-            password = content['auth']['passwordCredentials']['password']
-            return format_response(
-                lambda: self.core.sessions.session_for_username_password(
-                    username, password, tenant_id),
-                username_generator)
+            cred_type = PasswordCredentials
+            error_handler = username_generator
 
         elif content['auth'].get('RAX-KSKEY:apiKeyCredentials'):
-            username = content['auth']['RAX-KSKEY:apiKeyCredentials'][
-                'username']
-            api_key = content['auth']['RAX-KSKEY:apiKeyCredentials'][
-                'apiKey']
-            return format_response(
-                lambda: self.core.sessions.session_for_api_key(
-                    username, api_key, tenant_id),
-                username_generator)
+            cred_type = APIKeyCredentials
+            error_handler = username_generator
 
-        elif content['auth'].get('token') and tenant_id:
-            token = content['auth']['token']['id']
-            return format_response(
-                lambda: self.core.sessions.session_for_token(
-                    token, tenant_id),
-                lambda e: "Token doesn't belong to Tenant with Id/Name: "
-                          "'{0}'".format(e.desired_tenant))
+        elif content['auth'].get('token'):
+            cred_type = TokenCredentials
+
+            def error_handler(e):
+                return ("Token doesn't belong to Tenant with Id/Name: "
+                        "'{0}'".format(e.desired_tenant))
+
+        try:
+            creds = cred_type.from_json(content)
+        except Exception:
+            pass
         else:
-            request.setResponseCode(400)
-            return json.dumps(
-                invalid_resource("Invalid JSON request body"))
+            return format_response(
+                lambda: creds.get_session(self.core.sessions),
+                error_handler)
+
+        request.setResponseCode(400)
+        return json.dumps(
+            invalid_resource("Invalid JSON request body"))
 
     @app.route('/v1.1/mosso/<string:tenant_id>', methods=['GET'])
     def get_username(self, request, tenant_id):
