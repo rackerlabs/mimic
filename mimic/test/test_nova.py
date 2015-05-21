@@ -604,6 +604,7 @@ class NovaAPIChangesSinceTests(SynchronousTestCase):
         Returns servers created after given time
         """
         self.assertEqual(self.list_servers(0.5), [self.server2])
+        self.assertEqual(self.list_servers(1.0), [self.server2])
 
     def test_returns_deleted_servers(self):
         """
