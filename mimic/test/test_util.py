@@ -75,7 +75,10 @@ class HelperTests(SynchronousTestCase):
         :func:`helper.timestamp_to_seconds` returns a seconds since EPOCH
         matching the corresponding timestamp given in ISO8601 format
         """
-        for seconds, timestamp in self.matches:
+
+        local_matches = [(0, "1970-01-01"), (0, "1970-01-01T00"),
+                         (0, "1970-01-01T00:00"), (1800, "1970-01-01T00-00:30")]
+        for seconds, timestamp in self.matches + local_matches:
             self.assertEqual(seconds, helper.timestamp_to_seconds(timestamp))
 
 
