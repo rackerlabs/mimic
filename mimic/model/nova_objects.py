@@ -751,7 +751,8 @@ class RegionalServerCollection(object):
         """
         Request the list JSON for all servers.
 
-        :param str changes_since: ISO8601 formatted datetime
+        :param str changes_since: ISO8601 formatted datetime. Based on
+            http://docs.rackspace.com/servers/api/v2/cs-devguide/content/ChangesSince.html
 
         Note: only supports filtering by name right now, but will need to
         support more going forward.
