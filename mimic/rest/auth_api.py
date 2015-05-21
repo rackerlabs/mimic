@@ -3,9 +3,6 @@
 Defines get token, impersonation
 """
 import json
-from six import text_type
-from uuid import uuid4
-
 import attr
 
 from twisted.web.server import Request
@@ -18,6 +15,7 @@ from mimic.canned_responses.auth import (
 from mimic.canned_responses.mimic_presets import get_presets
 from mimic.model.identity import (
     APIKeyCredentials,
+    ImpersonationCredentials,
     PasswordCredentials,
     TokenCredentials)
 from mimic.rest.mimicapp import MimicApp
@@ -145,6 +143,12 @@ def default_authentication_behavior(core, http_request, credentials):
                 response_user_name=session.username,
             )
             return json.dumps(result)
+    else:
+        session = credentials.get_session(core.sessions)
+        return json.dumps({"access": {
+            "token": {"id": credentials.impersonated_token,
+                      "expires": format_timestamp(session.expires)}
+        }})
 
 
 @attr.s(hash=False)
@@ -167,24 +171,23 @@ class AuthApi(object):
         try:
             content = json.loads(request.content.read())
         except ValueError:
-            request.setResponseCode(400)
-            return json.dumps(invalid_resource("Invalid JSON request body"))
-
-        if "auth" in content and 0 < len(content['auth']) <= 2:
-            for key, cred_type in (
-                    ('passwordCredentials', PasswordCredentials),
-                    ('RAX-KSKEY:apiKeyCredentials', APIKeyCredentials),
-                    ("token", TokenCredentials)):
-                if key in content['auth']:
-                    try:
-                        creds = cred_type.from_json(content)
-                    except Exception:
-                        pass
-                    else:
-                        behavior = (self.auth_behavior_registry
-                                    .behavior_for_attributes(
-                                        attr.asdict(creds)))
-                        return behavior(self.core, request, creds)
+            pass
+        else:
+            if "auth" in content and 0 < len(content['auth']) <= 2:
+                for key, cred_type in (
+                        ('passwordCredentials', PasswordCredentials),
+                        ('RAX-KSKEY:apiKeyCredentials', APIKeyCredentials),
+                        ("token", TokenCredentials)):
+                    if key in content['auth']:
+                        try:
+                            creds = cred_type.from_json(content)
+                        except Exception:
+                            pass
+                        else:
+                            behavior = (self.auth_behavior_registry
+                                        .behavior_for_attributes(
+                                            attr.asdict(creds)))
+                            return behavior(self.core, request, creds)
 
         request.setResponseCode(400)
         return json.dumps(
@@ -223,22 +226,18 @@ class AuthApi(object):
         request.setResponseCode(200)
         try:
             content = json.loads(request.content.read())
-        except ValueError:
-            request.setResponseCode(400)
-            return json.dumps(invalid_resource("Invalid JSON request body"))
-        impersonator_token = request.getHeader("x-auth-token")
-        expires_in = content['RAX-AUTH:impersonation']['expire-in-seconds']
-        username = content['RAX-AUTH:impersonation']['user']['username']
-        impersonated_token = 'impersonated_token_' + text_type(uuid4())
-        session = self.core.sessions.session_for_impersonation(username,
-                                                               expires_in,
-                                                               impersonator_token,
-                                                               impersonated_token)
+            creds = ImpersonationCredentials.from_json(
+                content, request.getHeader("x-auth-token"))
+        except Exception:
+            pass
+        else:
+            behavior = self.auth_behavior_registry.behavior_for_attributes(
+                attr.asdict(creds))
+            return behavior(self.core, request, creds)
 
-        return json.dumps({"access": {
-            "token": {"id": impersonated_token,
-                      "expires": format_timestamp(session.expires)}
-        }})
+        request.setResponseCode(400)
+        return json.dumps(
+            invalid_resource("Invalid JSON request body"))
 
     @app.route('/v2.0/tokens/<string:token_id>', methods=['GET'])
     def validate_token(self, request, token_id):
