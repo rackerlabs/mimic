@@ -274,7 +274,8 @@ class LoadbalancerAPITests(SynchronousTestCase):
         list_lb_response, list_lb_response_body = self.successResultOf(
             request_with_content(
                 self, self.root, "GET",
-                other_tenant.nth_endpoint_public(0) + "/loadbalancers"))
+                other_tenant.get_service_endpoint("cloudLoadBalancers")
+                + "/loadbalancers"))
 
         self.assertEqual(list_lb_response.code, 200)
 
