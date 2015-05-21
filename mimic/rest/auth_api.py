@@ -25,9 +25,7 @@ from mimic.util.helper import invalid_resource
 Request.defaultContentType = 'application/json'
 
 
-from mimic.model.behaviors import (
-    BehaviorRegistry, EventDescription, Criterion, regexp_predicate
-)
+from mimic.model.behaviors import BehaviorRegistry, EventDescription
 
 
 authentication = EventDescription()
@@ -35,61 +33,6 @@ authentication = EventDescription()
 Event refers to authenticating against Identity using a username/password,
 username/api-key, token, or getting an impersonation token.
 """
-
-
-# These Could be automated, but the docstrings are not all the same
-
-@authentication.declare_criterion("tenant_id")
-def tenant_id_criterion(value):
-    """
-    Return a Criterion which matches the given regular expression string
-    against the ``"tenant_id"`` attribute.  Used for username/password,
-    username/api_key, or token authentication requests.  This would match
-    against authentication parameter ``"tenantName"`` or ``"tenantId"``, since
-    both are conceptually the "tenant ID".
-    """
-    return Criterion(name='tenant_id', predicate=regexp_predicate(value))
-
-
-@authentication.declare_criterion("username")
-def username_criterion(value):
-    """
-    Return a Criterion which matches the given regular expression string
-    against the ``"username"`` attribute.  Used for username/password,
-    username/api_key, or impersonation authentication requests.
-    """
-    return Criterion(name='username', predicate=regexp_predicate(value))
-
-
-@authentication.declare_criterion("password")
-def password_criterion(value):
-    """
-    Return a Criterion which matches the given regular expression string
-    against the ``"password"`` attribute.  Used for username/password
-    authentication requests.
-    """
-    return Criterion(name='password', predicate=regexp_predicate(value))
-
-
-@authentication.declare_criterion("api_key")
-def api_key_criterion(value):
-    """
-    Return a Criterion which matches the given regular expression string
-    against the ``"api_key"`` attribute.  Used for username/api_key
-    authentication requests.
-    """
-    return Criterion(name='api_key', predicate=regexp_predicate(value))
-
-
-@authentication.declare_criterion("token")
-def token_criterion(value):
-    """
-    Return a Criterion which matches the given regular expression string
-    against the ``"token"`` attribute.  Used for token or
-    impersonation (in the form of the x-auth-token header) authentication
-    requests.
-    """
-    return Criterion(name='token', predicate=regexp_predicate(value))
 
 
 @authentication.declare_default_behavior
