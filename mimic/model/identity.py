@@ -7,7 +7,9 @@ from attr import Factory, attributes, attr, validators
 
 from six import string_types, text_type
 
-from zope.interface import Interface, implementer
+from zope.interface import implementer
+
+from mimic.imimic import ICredential
 
 
 @attributes
@@ -26,25 +28,6 @@ class IdentitySession(object):
 
     identity_admin = attr(default=False,
                           validator=validators.instance_of(bool))
-
-
-class ICredential(Interface):
-    """
-    An :obj:`ICredential` provides identity authentication credentials.
-    """
-    def get_session(session_store):  # pragma:nocover
-        """
-        Get a session corresponding to the user and tenant from the given
-        session store.
-
-        :param session_store: The store of all sessions for all tenants for
-            all plugins across all regions.
-        :type session_store: :class:`mimic.session.SessionStore`
-
-        :return: A session corresponding to the user and plugin data for a
-            single tenant for all plugins across all regions.
-        :rtype: :class:`mimic.session.SessionStore`
-        """
 
 
 @implementer(ICredential)
