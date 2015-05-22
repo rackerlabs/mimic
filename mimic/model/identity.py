@@ -37,7 +37,13 @@ class ICredential(Interface):
         Get a session corresponding to the user and tenant from the given
         session store.
 
-        :param session_store: a :class:`mimic.session.SessionStore`
+        :param session_store: The store of all sessions for all tenants for
+            all plugins across all regions.
+        :type session_store: :class:`mimic.session.SessionStore`
+
+        :return: A session corresponding to the user and plugin data for a
+            single tenant for all plugins across all regions.
+        :rtype: :class:`mimic.session.SessionStore`
         """
 
 
@@ -45,7 +51,12 @@ class ICredential(Interface):
 @attributes
 class PasswordCredentials(object):
     """
-    An object representing username/password + optional tenant credentials
+    An object representing the required username/password credentials plus
+    an optional tenant identifier.
+
+    :ivar username: The username of the user to authenticate.
+    :ivar password: The password used to authenticate the user.
+    :ivar tenant_id: Optional - the tenant ID of the user.
     """
     username = attr(validator=validators.instance_of(string_types))
     password = attr(validator=validators.instance_of(string_types))
@@ -53,10 +64,7 @@ class PasswordCredentials(object):
 
     def get_session(self, session_store):
         """
-        Get a session corresponding to the user and tenant from the given
-        session store.
-
-        :param session_store: a :class:`mimic.session.SessionStore`
+        :see: :class:`ICredential.get_session`
         """
         return session_store.session_for_username_password(
             self.username, self.password, self.tenant_id)
@@ -64,19 +72,17 @@ class PasswordCredentials(object):
     @classmethod
     def from_json(cls, json_blob):
         """
-        Given an authentication JSON blob, which should look like:
+        Given an authentication JSON blob, which should look like::
 
-        ```
-        {
-            "auth": {
-                "passwordCredentials": {
-                    "username": "user",
-                    "password": "pass"
-                },
-                "tenantId": "111111"
+            {
+                "auth": {
+                    "passwordCredentials": {
+                        "username": "user",
+                        "password": "pass"
+                    },
+                    "tenantId": "111111"
+                }
             }
-        }
-        ```
 
         ``"tenantId"`` is interchanable with ``"tenantName"``, and is
         optional.
@@ -94,7 +100,12 @@ class PasswordCredentials(object):
 @attributes
 class APIKeyCredentials(object):
     """
-    An object representing username/api-key + optional tenant credentials
+    An object representing the required username/api-key credentials plus an
+    optional tenant identifier.
+
+    :ivar username: The username of the user to authenticate.
+    :ivar api_key: The API key used to authenticate the user.
+    :ivar tenant_id: Optional - the tenant ID of the user.
     """
     username = attr(validator=validators.instance_of(string_types))
     api_key = attr(validator=validators.instance_of(string_types))
@@ -102,10 +113,7 @@ class APIKeyCredentials(object):
 
     def get_session(self, session_store):
         """
-        Get a session corresponding to the user and tenant from the given
-        session store.
-
-        :param session_store: a :class:`mimic.session.SessionStore`
+        :see: :class:`ICredential.get_session`
         """
         return session_store.session_for_api_key(
             self.username, self.api_key, self.tenant_id)
@@ -113,19 +121,17 @@ class APIKeyCredentials(object):
     @classmethod
     def from_json(cls, json_blob):
         """
-        Given an authentication JSON blob, which should look like:
+        Given an authentication JSON blob, which should look like::
 
-        ```
-        {
-            "auth": {
-                "RAX-KSKEY:apiKeyCredentials": {
-                    "username": "user",
-                    "apiKey": "key"
-                },
-                "tenantId": "111111"
+            {
+                "auth": {
+                    "RAX-KSKEY:apiKeyCredentials": {
+                        "username": "user",
+                        "apiKey": "key"
+                    },
+                    "tenantId": "111111"
+                }
             }
-        }
-        ```
 
         ``"tenantId"`` is interchanable with ``"tenantName"``, and is
         optional.
@@ -144,35 +150,33 @@ class APIKeyCredentials(object):
 @attributes
 class TokenCredentials(object):
     """
-    An object representing token + optional tenant credentials
+    An object representing the required token/tenant credentials.
+
+    :ivar token: The auth token to be authenticated
+    :ivar tenant_id: The tenant ID the token belongs to.
     """
     token = attr(validator=validators.instance_of(string_types))
     tenant_id = attr(validator=validators.instance_of(string_types))
 
     def get_session(self, session_store):
         """
-        Get a session corresponding to the user and tenant from the given
-        session store.
-
-        :param session_store: a :class:`mimic.session.SessionStore`
+        :see: :class:`ICredential.get_session`
         """
         return session_store.session_for_token(self.token, self.tenant_id)
 
     @classmethod
     def from_json(cls, json_blob):
         """
-        Given an authentication JSON blob, which should look like:
+        Given an authentication JSON blob, which should look like::
 
-        ```
-        {
-            "auth": {
-                "token": {
-                    "id": "my_token"
-                },
-                "tenantId": "111111"
+            {
+                "auth": {
+                    "token": {
+                        "id": "my_token"
+                    },
+                    "tenantId": "111111"
+                }
             }
-        }
-        ```
 
         ``"tenantId"`` is interchanable with ``"tenantName"``, and is
         optional.
@@ -189,10 +193,20 @@ class TokenCredentials(object):
 @attributes
 class ImpersonationCredentials(object):
     """
-    An object representing an auth-token + username to impersonate credentials
+    An object representing the required
+    impersonator-token/impersonated-username credentials.
+
+    :ivar impersonator_token: The auth token of the user requesting an
+        impersonation token.
+    :ivar impersonated_username: The username of the user to be impersonated.
+    :ivar impersonated_token: The impersonation token that can be used to
+        authenticate as impersonated user.
+    :ivar int expires_in: The number of seconds the impersonation token will
+        last.
     """
     impersonator_token = attr()
-    username = attr(validator=validators.instance_of(string_types))
+    impersonated_username = attr(
+        validator=validators.instance_of(string_types))
     expires_in = attr(validator=validators.instance_of(int))
     impersonated_token = attr(
         default=Factory(lambda: 'impersonated_token_' + text_type(uuid4())),
@@ -200,13 +214,10 @@ class ImpersonationCredentials(object):
 
     def get_session(self, session_store):
         """
-        Get a session corresponding to the user and tenant from the given
-        session store.
-
-        :param session_store: a :class:`mimic.session.SessionStore`
+        :see: :class:`ICredential.get_session`
         """
         return session_store.session_for_impersonation(
-            self.username,
+            self.impersonated_username,
             self.expires_in,
             self.impersonator_token,
             self.impersonated_token)
@@ -214,18 +225,16 @@ class ImpersonationCredentials(object):
     @classmethod
     def from_json(cls, json_blob, auth_token):
         """
-        Given an impersonation JSON blob, which should look like:
+        Given an impersonation JSON blob, which should look like::
 
-        ```
-        {
-            "RAX-AUTH:impersonation": {
-                "expire-in-seconds": 1000,
-                "user": {
-                    "username": "my_user"
+            {
+                "RAX-AUTH:impersonation": {
+                    "expire-in-seconds": 1000,
+                    "user": {
+                        "username": "my_user"
+                    }
                 }
             }
-        }
-        ```
 
         Along with a header "X-Auth-Token" with the impersonator's token,
 
@@ -234,5 +243,5 @@ class ImpersonationCredentials(object):
         expires_in = json_blob['RAX-AUTH:impersonation']['expire-in-seconds']
         username = json_blob['RAX-AUTH:impersonation']['user']['username']
         return cls(impersonator_token=auth_token,
-                   username=username,
+                   impersonated_username=username,
                    expires_in=int(expires_in))
