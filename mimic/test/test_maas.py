@@ -405,7 +405,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         metrics = []
         squarewave_check_id = self.getXobjectIDfromResponse(self.createCheck('squarewave',
-                                                                       self.entity_id))
+                                                                             self.entity_id))
         req = request(self, self.root, "GET", self.uri + '/views/metric_list', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
