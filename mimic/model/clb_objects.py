@@ -19,10 +19,8 @@ def _prep_for_list(lb_list):
     Removes tenant id and changes the nodes list to 'nodeCount' set to the
     number of node on the LB
     """
-    entries_to_keep = (
-        'name', 'protocol', 'id', 'port', 'algorithm', 'status', 'timeout',
-        'created', 'virtualIps', 'updated', 'nodeCount'
-    )
+    entries_to_keep = ('name', 'protocol', 'id', 'port', 'algorithm', 'status', 'timeout',
+                       'created', 'virtualIps', 'updated', 'nodeCount')
     filtered_lb_list = []
     for each in lb_list:
         filtered_lb_list.append(
@@ -42,27 +40,12 @@ class RegionalCLBCollection(object):
         self.lbs = {}
         self.meta = {}
 
-    def __len__(self):
-        """
-        The number of cloud load balancers in this collection.
-        """
-        return len(self.lbs)
-
-    def __getitem__(self, clb_id):
-        """
-        Returns the cloud load balancer identified by clb_id.
-        """
-        return self.lbs[clb_id]
-
-    def __contains__(self, clb_id):
+    def lb_in_region(self, clb_id):
         """
         Returns true if the CLB ID is registered with our list of load
         balancers.
         """
-        for i in self.lbs:
-            if i == clb_id:
-                return True
-        return False
+        return clb_id in self.lbs
 
     def add_load_balancer(self, tenant_id, lb_info, lb_id, current_timestamp):
         """

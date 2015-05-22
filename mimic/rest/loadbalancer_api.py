@@ -148,7 +148,7 @@ class LoadBalancerControlRegion(object):
         any original values yourself.
         """
         regional_lbs = self._collection_from_tenant(tenant_id)
-        if clb_id not in regional_lbs:
+        if not regional_lbs.lb_in_region(clb_id):
             request.setResponseCode(404)
             return json.dumps({
                 "message": "Tenant {} doesn't own load balancer {}".format(
