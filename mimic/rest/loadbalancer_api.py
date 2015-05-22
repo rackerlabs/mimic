@@ -163,19 +163,17 @@ class LoadBalancerControlRegion(object):
             request.setResponseCode(400)
             return json.dumps(invalid_resource("Invalid JSON request body"))
 
-        if "status" in content:
-            if content["status"] not in [
-                "ACTIVE", "ERROR", "PENDING_DELETE", "PENDING_UPDATE"
-            ]:
-                request.setResponseCode(400)
-                return json.dumps({
-                    "message": "Invalid status.",
-                    "code": 400,
-                })
-
-        regional_lbs.set_attributes(clb_id, content)
-        request.setResponseCode(204)
-        return b''
+        try:
+            regional_lbs.set_attributes(clb_id, content)
+        except BadKeysError, bke:
+            request.setResponseCode(400)
+            return json.dumps({
+                "message": str(bke),
+                "code": 400,
+            })
+        else:
+            request.setResponseCode(204)
+            return b''
 
 
 class LoadBalancerRegion(object):

@@ -14,6 +14,17 @@ from mimic.canned_responses.loadbalancer import (load_balancer_example,
                                                  _delete_node)
 
 
+class BadKeysError(Exception):
+    """
+    When trying to alter the settings of a load balancer, this exception will
+    be raised if you misspell or otherwise attempt to alter an attribute which
+    doesn't exist.
+    """
+    def __init__(self, msg, keys):
+        super(BadKeysError, self).__init__(msg)
+        self.keys = keys
+
+
 def _prep_for_list(lb_list):
     """
     Removes tenant id and changes the nodes list to 'nodeCount' set to the
@@ -92,8 +103,27 @@ class RegionalCLBCollection(object):
         Sets zero or more attributes on the load balancer object.
         Currently supported attributes include: status.
         """
+        supported_keys = ["status"]
+        badKeys = []
+        for k in kvpairs:
+            if k not in supported_keys:
+                badKeys.append(k)
+        if len(badKeys) > 0:
+            raise BadKeysError("Attempt to alter a bad attribute", badKeys)
+
         if "status" in kvpairs:
-            self.lbs[lb_id]["status"] = kvpairs["status"]
+            supported_statuses = [
+                "ACTIVE", "ERROR", "PENDING_DELETE", "PENDING_UPDATE"
+            ]
+            s = kvpairs["status"]
+            if s not in supported_statuses:
+                raise ValueError(
+                    "Unsupported status {} not one of {}".format(
+                        s, supported_statuses
+                    )
+                )
+
+        self.lbs[lb_id].update(kvpairs)
 
     def get_load_balancers(self, lb_id, current_timestamp):
         """
