@@ -7,16 +7,17 @@ from urllib import urlencode
 from urlparse import parse_qs
 
 from testtools.matchers import (
-    Equals, MatchesDict, MatchesListwise, StartsWith)
+    ContainsDict, Equals, MatchesDict, MatchesListwise, StartsWith)
 
 import treq
 
 from twisted.internet.defer import gatherResults
 from twisted.trial.unittest import SynchronousTestCase
 
-from mimic.test.helpers import json_request, request, validate_link_json
+from mimic.test.helpers import json_request, request, request_with_content, validate_link_json
 from mimic.rest.nova_api import NovaApi, NovaControlApi
 from mimic.test.fixtures import APIMockHelper, TenantAuthentication
+from mimic.util.helper import seconds_to_timestamp
 
 
 def status_of_server(test_case, server_id):
@@ -45,6 +46,53 @@ def quick_create_server(helper, region="ORD"):
     return helper.test_case.successResultOf(
         treq.json_content(helper.test_case.successResultOf(response))
     )["server"]["id"]
+
+
+def delete_server(helper, server_id):
+    """
+    Delete server
+    """
+    d = request_with_content(
+        helper.test_case, helper.root, "DELETE",
+        '{}/servers/{}'.format(helper.uri, server_id))
+    resp, body = helper.test_case.successResultOf(d)
+    helper.test_case.assertEqual(resp.code, 204)
+
+
+def update_metdata_item(helper, server_id, key, value):
+    """
+    Update metadata item
+    """
+    d = request_with_content(
+        helper.test_case, helper.root, "PUT",
+        '{}/servers/{}/metadata/{}'.format(helper.uri, server_id, key),
+        json.dumps({'meta': {key: value}}))
+    resp, body = helper.test_case.successResultOf(d)
+    helper.test_case.assertEqual(resp.code, 200)
+
+
+def update_metdata(helper, server_id, metadata):
+    """
+    Update metadata
+    """
+    d = request_with_content(
+        helper.test_case, helper.root, "PUT",
+        '{}/servers/{}/metadata'.format(helper.uri, server_id),
+        json.dumps({'metadata': metadata}))
+    resp, body = helper.test_case.successResultOf(d)
+    helper.test_case.assertEqual(resp.code, 200)
+
+
+def update_status(helper, control_endpoint, server_id, status):
+    """
+    Update server status
+    """
+    d = request_with_content(
+        helper.test_case, helper.root, "POST",
+        control_endpoint + "/attributes/",
+        json.dumps({"status": {server_id: status}}))
+    resp, body = helper.test_case.successResultOf(d)
+    helper.test_case.assertEqual(resp.code, 201)
 
 
 class NovaAPITests(SynchronousTestCase):
@@ -335,6 +383,11 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(delete_server_response.code, 204)
         self.assertEqual(self.successResultOf(treq.content(delete_server_response)),
                          b"")
+        # Get and see if server actually got deleted
+        get_server = request(
+            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+        get_server_response = self.successResultOf(get_server)
+        self.assertEqual(get_server_response.code, 404)
 
     def test_delete_server_negative(self):
         """
@@ -499,6 +552,95 @@ class NovaAPITests(SynchronousTestCase):
         second_status = status_of_server(self, second_server_id)
         self.assertEqual(status, "ERROR")
         self.assertEqual(second_status, "BUILD")
+
+
+class NovaAPIChangesSinceTests(SynchronousTestCase):
+    """
+    Tests for listing servers with changes-since filter
+    """
+
+    def setUp(self):
+        """
+        Create a :obj:`MimicCore` with :obj:`NovaApi` as the only plugin,
+        and create a server
+        """
+        nova_api = NovaApi(["ORD", "MIMIC"])
+        helper = self.helper = APIMockHelper(
+            self, [nova_api, NovaControlApi(nova_api=nova_api)]
+        )
+        self.root = helper.root
+        self.uri = helper.uri
+        self.clock = helper.clock
+        self.control_endpoint = helper.auth.get_service_endpoint(
+            "cloudServersBehavior",
+            "ORD")
+        self.server1 = quick_create_server(helper)
+        self.clock.advance(1)
+        self.server2 = quick_create_server(helper)
+
+    def list_servers_detail(self, since):
+        changes_since = seconds_to_timestamp(since)
+        params = urlencode({"changes-since": changes_since})
+        resp, body = self.successResultOf(
+            json_request(
+                self, self.root, "GET",
+                '{}/servers/detail?{}'.format(self.uri, params)))
+        self.assertEqual(resp.code, 200)
+        return body['servers']
+
+    def list_servers(self, since):
+        servers = self.list_servers_detail(since)
+        return [s['id'] for s in servers]
+
+    def test_no_changes(self):
+        """
+        Returns no servers if nothing has changed since time given
+        """
+        self.clock.advance(3)
+        self.assertEqual(self.list_servers(2), [])
+
+    def test_returns_created_servers(self):
+        """
+        Returns servers created after given time
+        """
+        self.assertEqual(self.list_servers(0.5), [self.server2])
+        self.assertEqual(self.list_servers(1.0), [self.server2])
+
+    def test_returns_deleted_servers(self):
+        """
+        Returns DELETED servers if they've been deleted since the time given
+        """
+        self.clock.advance(1)
+        delete_server(self.helper, self.server1)
+        self.clock.advance(2)
+        matcher = MatchesListwise(
+            [ContainsDict({"status": Equals(u"DELETED"), "id": Equals(self.server1)})])
+        mismatch = matcher.match(self.list_servers_detail(1.5))
+        self.assertIsNone(mismatch)
+
+    def test_returns_updated_status_servers(self):
+        """
+        Returns servers whose status has been updated since given time
+        """
+        self.clock.advance(1)
+        update_status(self.helper, self.control_endpoint, self.server2, u"ERROR")
+        self.assertEqual(self.list_servers(1.5), [self.server2])
+
+    def test_returns_updated_metadata_servers(self):
+        """
+        Returns servers whose metadata has changes since given time
+        """
+        self.clock.advance(1)
+        update_metdata_item(self.helper, self.server1, "a", "b")
+        self.assertEqual(self.list_servers(1.5), [self.server1])
+
+    def test_returns_replaced_metadata_servers(self):
+        """
+        Returns servers whose metadata has been replaced since given time
+        """
+        self.clock.advance(1)
+        update_metdata(self.helper, self.server1, {"a": "b"})
+        self.assertEqual(self.list_servers(1.5), [self.server1])
 
 
 class NovaAPIListServerPaginationTests(SynchronousTestCase):
@@ -1025,17 +1167,35 @@ class NovaAPINegativeTests(SynchronousTestCase):
     def test_create_server_failure(self):
         """
         Test to verify :func:`create_server` fails with given error message
-        and response code in the metadata.
+        and response code in the metadata, and the given failure type.
         """
-        serverfail = {"message": "Create server failure", "code": 500}
+        serverfail = {"message": "Create server failure", "code": 500,
+                      "type": "specialType"}
         metadata = {"create_server_failure": json.dumps(serverfail)}
         create_server_response = self.create_server(metadata=metadata)
         self.assertEquals(create_server_response.code, 500)
         create_server_response_body = self.successResultOf(
             treq.json_content(create_server_response))
-        self.assertEquals(create_server_response_body['message'],
+        self.assertEquals(
+            create_server_response_body['specialType']['message'],
+            "Create server failure")
+        self.assertEquals(
+            create_server_response_body['specialType']['code'], 500)
+
+    def test_create_server_failure_string_type(self):
+        """
+        Test to verify :func:`create_server` fails with string body
+        and response code in the metadata, if the failure type is "string".
+        """
+        serverfail = {"message": "Create server failure", "code": 500,
+                      "type": "string"}
+        metadata = {"create_server_failure": json.dumps(serverfail)}
+        create_server_response = self.create_server(metadata=metadata)
+        self.assertEquals(create_server_response.code, 500)
+        create_server_response_body = self.successResultOf(
+            treq.content(create_server_response))
+        self.assertEquals(create_server_response_body,
                           "Create server failure")
-        self.assertEquals(create_server_response_body['code'], 500)
 
     def test_create_server_failure_and_list_servers(self):
         """
@@ -1048,9 +1208,11 @@ class NovaAPINegativeTests(SynchronousTestCase):
         self.assertEquals(create_server_response.code, 500)
         create_server_response_body = self.successResultOf(
             treq.json_content(create_server_response))
-        self.assertEquals(create_server_response_body['message'],
-                          "Create server failure")
-        self.assertEquals(create_server_response_body['code'], 500)
+        self.assertEquals(
+            create_server_response_body['computeFault']['message'],
+            "Create server failure")
+        self.assertEquals(
+            create_server_response_body['computeFault']['code'], 500)
         # List servers
         list_servers = request(self, self.root, "GET", self.uri + '/servers')
         list_servers_response = self.successResultOf(list_servers)
@@ -1233,9 +1395,11 @@ class NovaAPINegativeTests(SynchronousTestCase):
         self.assertEquals(create_server_response.code, 500)
         create_server_response_body = self.successResultOf(
             treq.json_content(create_server_response))
-        self.assertEquals(create_server_response_body['message'],
-                          "Create server failure")
-        self.assertEquals(create_server_response_body['code'], 500)
+        self.assertEquals(
+            create_server_response_body['computeFault']['message'],
+            "Create server failure")
+        self.assertEquals(
+            create_server_response_body['computeFault']['code'], 500)
 
     def test_create_server_failure_based_on_metadata(self):
         """
@@ -1244,7 +1408,8 @@ class NovaAPINegativeTests(SynchronousTestCase):
         """
         self.use_creation_behavior(
             "fail",
-            {"message": "Sample failure message", "code": 503},
+            {"message": "Sample failure message",
+             "type": "specialType", "code": 503},
             [{"metadata": {"field1": "value1",
                            "field2": "reg.*ex"}}]
         )
@@ -1261,15 +1426,17 @@ class NovaAPINegativeTests(SynchronousTestCase):
             treq.json_content(failing_create_response)
         )
 
-        self.assertEquals(failing_create_response_body['message'],
-                          "Sample failure message")
-        self.assertEquals(failing_create_response_body['code'], 503)
+        self.assertEquals(
+            failing_create_response_body['specialType']['message'],
+            "Sample failure message")
+        self.assertEquals(
+            failing_create_response_body['specialType']['code'], 503)
 
-    def test_create_false_negative_failure_using_behaviors(self):
+    def _try_false_negative_failure(self, failure_type=None):
         """
-        :func:`create_server` fails with given error message and response
-        code, but creates the server anyway, when a behavior is registered
-        that matches its hostname.
+        Helper function to list servers and verify that there are no servers,
+        then trigger a false-negative create and verify that it created a
+        server.  Returns the failure response so it can be further verified.
         """
         # List servers with details and verify there are no servers
         resp, list_body = self.successResultOf(json_request(
@@ -1277,26 +1444,62 @@ class NovaAPINegativeTests(SynchronousTestCase):
         self.assertEqual(resp.code, 200)
         self.assertEqual(len(list_body['servers']), 0)
 
+        params = {"message": "Create server failure", "code": 500}
+        if failure_type is not None:
+            params["type"] = failure_type
+
         # Get a 500 creating a server
         self.use_creation_behavior(
-            "false-negative",
-            {"message": "Create server failure", "code": 500},
-            [{"server_name": "failing_server_name"}]
+            "false-negative", params, [{"server_name": "failing_server_name"}]
         )
+
         create_server_response = self.create_server(
             name="failing_server_name")
         self.assertEquals(create_server_response.code, 500)
-        create_server_response_body = self.successResultOf(
-            treq.json_content(create_server_response))
-        self.assertEquals(create_server_response_body['message'],
-                          "Create server failure")
-        self.assertEquals(create_server_response_body['code'], 500)
 
         # List servers with details and verify there are no servers
         resp, list_body = self.successResultOf(json_request(
             self, self.root, "GET", self.uri + '/servers'))
         self.assertEqual(resp.code, 200)
         self.assertEqual(len(list_body['servers']), 1)
+        return create_server_response
+
+    def test_create_false_negative_failure_using_behaviors(self):
+        """
+        :func:`create_server` fails with given error message, type, and
+        response code, but creates the server anyway, when a behavior is
+        registered that matches its hostname.  The type is 'computeFault'
+        by default.
+        """
+        response = self._try_false_negative_failure()
+        body = self.successResultOf(treq.json_content(response))
+        self.assertEquals(body['computeFault']['message'],
+                          "Create server failure")
+        self.assertEquals(body['computeFault']['code'], 500)
+
+    def test_create_false_negative_failure_with_specific_type(self):
+        """
+        :func:`create_server` fails with given error message, type, and
+        response code, but creates the server anyway, when a behavior is
+        registered that matches its hostname.  The type is whatever is
+        specified if it's not "string".
+        """
+        response = self._try_false_negative_failure('specialType')
+        body = self.successResultOf(treq.json_content(response))
+        self.assertEquals(body['specialType']['message'],
+                          "Create server failure")
+        self.assertEquals(body['specialType']['code'], 500)
+
+    def test_create_false_negative_failure_with_string_type(self):
+        """
+        :func:`create_server` fails with given error body and
+        response code, but creates the server anyway, when a behavior is
+        registered that matches its hostname.  The body is just a string
+        when the type is "string".
+        """
+        response = self._try_false_negative_failure("string")
+        body = self.successResultOf(treq.content(response))
+        self.assertEquals(body, "Create server failure")
 
     def test_create_sequence_behavior(self):
         """

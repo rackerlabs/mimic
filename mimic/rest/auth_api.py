@@ -2,18 +2,24 @@
 """
 Defines get token, impersonation
 """
-
 import json
-from six import text_type
-from uuid import uuid4
 
 from twisted.web.server import Request
 from twisted.python.urlpath import URLPath
-from mimic.canned_responses.auth import get_token, get_endpoints, impersonator_user_role
+from mimic.canned_responses.auth import (
+    get_token,
+    get_endpoints,
+    format_timestamp,
+    impersonator_user_role)
+from mimic.canned_responses.mimic_presets import get_presets
+from mimic.model.identity import (
+    APIKeyCredentials,
+    ImpersonationCredentials,
+    PasswordCredentials,
+    TokenCredentials)
 from mimic.rest.mimicapp import MimicApp
-from mimic.canned_responses.auth import format_timestamp
-from mimic.util.helper import invalid_resource
 from mimic.session import NonMatchingTenantError
+from mimic.util.helper import invalid_resource
 
 Request.defaultContentType = 'application/json'
 
@@ -45,13 +51,9 @@ class AuthApi(object):
             request.setResponseCode(400)
             return json.dumps(invalid_resource("Invalid JSON request body"))
 
-        tenant_id = (content['auth'].get('tenantName', None) or
-                     content['auth'].get('tenantId', None))
-
-        def format_response(callable_returning_session,
-                            nonmatching_tenant_message_generator):
+        def format_response(cred, nonmatching_tenant_message_generator):
             try:
-                session = callable_returning_session()
+                session = cred.get_session(self.core.sessions)
             except NonMatchingTenantError as e:
                 request.setResponseCode(401)
                 return json.dumps({
@@ -72,7 +74,8 @@ class AuthApi(object):
                     session.tenant_id,
                     entry_generator=lambda tenant_id:
                     list(self.core.entries_for_tenant(
-                         tenant_id, prefix_map, base_uri_from_request(request))),
+                         session.tenant_id,
+                         prefix_map, base_uri_from_request(request))),
                     prefix_for_endpoint=lookup,
                     response_token=session.token,
                     response_user_id=session.user_id,
@@ -87,35 +90,33 @@ class AuthApi(object):
                                   exception.session.username,
                                   exception.session.user_id))
 
-        if content['auth'].get('passwordCredentials'):
-            username = content['auth']['passwordCredentials']['username']
-            password = content['auth']['passwordCredentials']['password']
-            return format_response(
-                lambda: self.core.sessions.session_for_username_password(
-                    username, password, tenant_id),
-                username_generator)
+        cred_mappings = {
+            'passwordCredentials':
+                (PasswordCredentials, username_generator),
+            'RAX-KSKEY:apiKeyCredentials':
+                (APIKeyCredentials, username_generator),
+            'token':
+                (TokenCredentials,
+                 lambda e: (
+                     "Token doesn't belong to Tenant with Id/Name: "
+                     "'{0}'".format(e.desired_tenant)))
+        }
 
-        elif content['auth'].get('RAX-KSKEY:apiKeyCredentials'):
-            username = content['auth']['RAX-KSKEY:apiKeyCredentials'][
-                'username']
-            api_key = content['auth']['RAX-KSKEY:apiKeyCredentials'][
-                'apiKey']
-            return format_response(
-                lambda: self.core.sessions.session_for_api_key(
-                    username, api_key, tenant_id),
-                username_generator)
+        relevant_cred_keys = set(cred_mappings).intersection(
+            set(content['auth']))
 
-        elif content['auth'].get('token') and tenant_id:
-            token = content['auth']['token']['id']
-            return format_response(
-                lambda: self.core.sessions.session_for_token(
-                    token, tenant_id),
-                lambda e: "Token doesn't belong to Tenant with Id/Name: "
-                          "'{0}'".format(e.desired_tenant))
-        else:
-            request.setResponseCode(400)
-            return json.dumps(
-                invalid_resource("Invalid JSON request body"))
+        if relevant_cred_keys:
+            cred_type, error_handler = cred_mappings[relevant_cred_keys.pop()]
+            try:
+                cred = cred_type.from_json(content)
+            except Exception:
+                pass
+            else:
+                return format_response(cred, error_handler)
+
+        request.setResponseCode(400)
+        return json.dumps(
+            invalid_resource("Invalid JSON request body"))
 
     @app.route('/v1.1/mosso/<string:tenant_id>', methods=['GET'])
     def get_username(self, request, tenant_id):
@@ -153,17 +154,12 @@ class AuthApi(object):
         except ValueError:
             request.setResponseCode(400)
             return json.dumps(invalid_resource("Invalid JSON request body"))
-        impersonator_token = request.getHeader("x-auth-token")
-        expires_in = content['RAX-AUTH:impersonation']['expire-in-seconds']
-        username = content['RAX-AUTH:impersonation']['user']['username']
-        impersonated_token = 'impersonated_token_' + text_type(uuid4())
-        session = self.core.sessions.session_for_impersonation(username,
-                                                               expires_in,
-                                                               impersonator_token,
-                                                               impersonated_token)
 
+        cred = ImpersonationCredentials.from_json(
+            content, request.getHeader("x-auth-token"))
+        session = cred.get_session(self.core.sessions)
         return json.dumps({"access": {
-            "token": {"id": impersonated_token,
+            "token": {"id": cred.impersonated_token,
                       "expires": format_timestamp(session.expires)}
         }})
 
@@ -190,6 +186,46 @@ class AuthApi(object):
             response["access"]["RAX-AUTH:impersonator"] = impersonator_user_role(
                 impersonator_session.user_id,
                 impersonator_session.username)
+
+        if token_id in get_presets["identity"]["token_fail_to_auth"]:
+            request.setResponseCode(401)
+            return json.dumps({'itemNotFound':
+                              {'code': 401, 'message': 'Invalid auth token'}})
+
+        imp_token = get_presets["identity"]["maas_admin_roles"]
+        racker_token = get_presets["identity"]["racker_token"]
+        if token_id in imp_token:
+            response["access"]["RAX-AUTH:impersonator"] = {
+                "id": response["access"]["user"]["id"],
+                "name": response["access"]["user"]["name"],
+                "roles": [{"id": "123",
+                           "name": "monitoring:service-admin"},
+                          {"id": "234",
+                           "name": "object-store:admin"}]}
+        if token_id in racker_token:
+            response["access"]["RAX-AUTH:impersonator"] = {
+                "id": response["access"]["user"]["id"],
+                "name": response["access"]["user"]["name"],
+                "roles": [{"id": "9",
+                           "name": "Racker"}]}
+        if tenant_id in get_presets["identity"]["observer_role"]:
+            response["access"]["user"]["roles"] = [
+                {"id": "observer",
+                 "description": "Global Observer Role.",
+                 "name": "observer"}]
+        if tenant_id in get_presets["identity"]["creator_role"]:
+            response["access"]["user"]["roles"] = [
+                {"id": "creator",
+                 "description": "Global Creator Role.",
+                 "name": "creator"}]
+        if tenant_id in get_presets["identity"]["admin_role"]:
+            response["access"]["user"]["roles"] = [
+                {"id": "admin",
+                 "description": "Global Admin Role.",
+                 "name": "admin"},
+                {"id": "observer",
+                 "description": "Global Observer Role.",
+                 "name": "observer"}]
         return json.dumps(response)
 
     @app.route('/v2.0/tokens/<string:token_id>/endpoints', methods=['GET'])

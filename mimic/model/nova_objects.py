@@ -14,8 +14,8 @@ from six import string_types
 
 from mimic.util.helper import (
     seconds_to_timestamp,
-    invalid_resource,
     random_string,
+    timestamp_to_seconds
 )
 
 from mimic.model.behaviors import (
@@ -219,6 +219,13 @@ class Server(object):
             }
         }
 
+    def set_metadata(self, metadata):
+        """
+        Replace all metadata with given metadata
+        """
+        self.metadata = metadata
+        self.update_time = self.collection.clock.seconds()
+
     def set_metadata_item(self, key, value):
         """
         Set a metadata item on the server.
@@ -237,6 +244,15 @@ class Server(object):
                 "Invalid metadata: The input is not a string or unicode"))
 
         self.metadata[key] = value
+        self.update_time = self.collection.clock.seconds()
+
+    def update_status(self, status):
+        """
+        Update status on the server. This will also update the `update_time`
+        of the server
+        """
+        self.status = status
+        self.update_time = self.collection.clock.seconds()
 
     @classmethod
     def validate_metadata(cls, metadata, max_metadata_items=40):
@@ -418,27 +434,88 @@ def default_with_hook(function):
     return hooked
 
 
+def _get_failure_behavior(parameters, create=False):
+    """
+    Helper function to produce a failure to create function.  Either creating
+    the server or not.
+
+    Takes three parameters:
+
+    ``"code"``, an integer describing the HTTP response code, and
+    ``"message"``, a string describing a textual message.
+    ``"type"``, a string representing what type of error message it is
+
+    If ``type`` is "string", the message is just returned as the string body.
+    Otherwise, the following JSON body will be synthesized (as per the
+    canonical Nova error format):
+
+    ```
+    {
+        <type>: {
+            "message": <message>,
+            "code": <code>
+        }
+    }
+
+    The default type is computeFault, the default code is 500, and the default
+    message is "The server has either erred or is incapable of performing the
+    requested operation".
+    """
+    status_code = parameters.get("code", 500)
+    failure_type = parameters.get("type", "computeFault")
+    failure_message = parameters.get(
+        "message",
+        ("The server has either erred or is incapable of performing the "
+         "requested operation"))
+
+    if failure_type == "string":
+        fail_body = failure_message
+    else:
+        fail_body = dumps({
+            failure_type: {
+                "message": failure_message,
+                "code": status_code
+            }
+        })
+
+    def _fail(collection, http, json, absolutize_url):
+        if create:
+            Server.from_creation_request_json(
+                collection, json, lambda: randrange(255))
+
+        http.setResponseCode(status_code)
+        return fail_body
+    return _fail
+
+
 @server_creation.declare_behavior_creator("fail")
 def create_fail_behavior(parameters):
     """
     Create a failing behavior for server creation.
 
-    Takes two parameters:
+    Takes three parameters:
 
     ``"code"``, an integer describing the HTTP response code, and
     ``"message"``, a string describing a textual message.
+    ``"type"``, a string representing what type of error message it is
 
-    The response body will be a JSON object including ``code`` and ``message``
-    fields matching the parameters.
+    If ``type`` is "string", the message is just returned as the string body.
+    Otherwise, the following JSON body will be synthesized (as per the
+    canonical Nova error format):
+
+    ```
+    {
+        <type>: {
+            "message": <message>,
+            "code": <code>
+        }
+    }
+
+    The default type is computeFault, the default code is 500, and the default
+    message is "The server has either erred or is incapable of performing the
+    requested operation".
     """
-    status_code = parameters.get("code", 500)
-    failure_message = parameters.get("message", "Server creation failed.")
-
-    def fail_without_creating(collection, http, json, absolutize_url):
-        # behavior for failing to even start to build
-        http.setResponseCode(status_code)
-        return dumps(invalid_resource(failure_message, status_code))
-    return fail_without_creating
+    return _get_failure_behavior(parameters)
 
 
 @server_creation.declare_behavior_creator("false-negative")
@@ -447,23 +524,29 @@ def create_success_report_failure_behavior(parameters):
     Create a behavior that reports failure, but actually succeeds, for server
     creation.
 
-    Takes two parameters:
+    Takes three parameters:
 
     ``"code"``, an integer describing the HTTP response code, and
     ``"message"``, a string describing a textual message.
+    ``"type"``, a string representing what type of error message it is
 
-    The response body will be a JSON object including ``code`` and ``message``
-    fields matching the parameters.
+    If ``type`` is "string", the message is just returned as the string body.
+    Otherwise, the following JSON body will be synthesized (as per the
+    canonical Nova error format):
+
+    ```
+    {
+        <type>: {
+            "message": <message>,
+            "code": <code>
+        }
+    }
+
+    The default type is computeFault, the default code is 500, and the default
+    message is "The server has either erred or is incapable of performing the
+    requested operation".
     """
-    status_code = parameters.get("code", 500)
-    failure_message = parameters.get("message", "Server creation failed.")
-
-    def create_then_fail(collection, http, json, absolutize_url):
-        Server.from_creation_request_json(
-            collection, json, lambda: randrange(255))
-        http.setResponseCode(status_code)
-        return dumps(invalid_resource(failure_message, status_code))
-    return create_then_fail
+    return _get_failure_behavior(parameters, create=True)
 
 
 @server_creation.declare_behavior_creator("build")
@@ -483,10 +566,11 @@ def create_building_behavior(parameters):
 
     @default_with_hook
     def set_building(server):
-        server.status = u"BUILD"
+        server.update_status(u"BUILD")
         server.collection.clock.callLater(
             duration,
-            lambda: setattr(server, "status", u"ACTIVE"))
+            server.update_status,
+            u"ACTIVE")
     return set_building
 
 
@@ -501,7 +585,7 @@ def create_error_status_behavior(parameters=None):
     """
     @default_with_hook
     def set_error(server):
-        server.status = u"ERROR"
+        server.update_status(u"ERROR")
     return set_error
 
 
@@ -521,10 +605,11 @@ def active_then_error(parameters):
 
     @default_with_hook
     def fail_later(server):
-        server.status = u"ACTIVE"
+        server.update_status(u"ACTIVE")
         server.collection.clock.callLater(
             duration,
-            lambda: setattr(server, "status", u"ERROR"))
+            server.update_status,
+            u"ERROR")
     return fail_later
 
 
@@ -615,7 +700,7 @@ class RegionalServerCollection(object):
         Retrieve a :obj:`Server` object by its ID.
         """
         for server in self.servers:
-            if server.server_id == server_id:
+            if server.server_id == server_id and server.status != u"DELETED":
                 return server
 
     def request_creation(self, creation_http_request, creation_json,
@@ -662,9 +747,12 @@ class RegionalServerCollection(object):
         return dumps({"addresses": server.addresses_json()})
 
     def request_list(self, http_get_request, include_details, absolutize_url,
-                     name=u"", limit=None, marker=None):
+                     name=u"", limit=None, marker=None, changes_since=None):
         """
         Request the list JSON for all servers.
+
+        :param str changes_since: ISO8601 formatted datetime. Based on
+            http://docs.rackspace.com/servers/api/v2/cs-devguide/content/ChangesSince.html
 
         Note: only supports filtering by name right now, but will need to
         support more going forward.
@@ -672,6 +760,10 @@ class RegionalServerCollection(object):
         Pagination behavior verified against Rackspace Nova as of 2015-04-29.
         """
         to_be_listed = self.servers
+
+        if changes_since is not None:
+            since = timestamp_to_seconds(changes_since)
+            to_be_listed = filter(lambda s: s.update_time >= since, to_be_listed)
 
         # marker can be passed without limit, in which case the whole server
         # list, after the server that matches the marker, is returned
@@ -704,6 +796,9 @@ class RegionalServerCollection(object):
                                          http_get_request))
 
             to_be_listed = to_be_listed[:limit]
+
+        if changes_since is None:
+            to_be_listed = filter(lambda s: s.status != u"DELETED", to_be_listed)
 
         result = {
             "servers": [
@@ -753,7 +848,7 @@ class RegionalServerCollection(object):
                 http_delete_request.setResponseCode(500)
                 return b''
         http_delete_request.setResponseCode(204)
-        self.servers.remove(server)
+        server.update_status(u"DELETED")
         return b''
 
 

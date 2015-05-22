@@ -34,16 +34,6 @@ class TenantAuthentication(object):
             }
         ))
 
-    def nth_endpoint_public(self, n):
-        """
-        Return the publicURL for the ``n``th endpoint.
-        :param int n: The index of the endpoint in the first catalog entry to return
-        """
-        return (
-            self.service_catalog_json
-            ['access']['serviceCatalog'][0]['endpoints'][n]['publicURL']
-        )
-
     def get_service_endpoint(self, service_name, region=''):
         """
         Return the publicURL for the given service and region. Note that if there are multiple
@@ -82,7 +72,6 @@ class APIMockHelper(object):
 
         # map some attributes and methods
         self.service_catalog_json = self.auth.service_catalog_json
-        self.nth_endpoint_public = self.auth.nth_endpoint_public
         self.get_service_endpoint = self.auth.get_service_endpoint
 
         tenant_id = self.auth.service_catalog_json["access"]["token"]["tenant"]["id"]

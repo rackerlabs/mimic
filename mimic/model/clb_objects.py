@@ -307,6 +307,42 @@ class RegionalCLBCollection(object):
 
         return not_found_response("loadbalancer"), 404
 
+    def del_load_balancer(self, lb_id, current_timestamp):
+        """
+        Returns response for a load balancer
+         is in building status for 20
+        seconds and response code 202, and adds the new lb to ``self.lbs``.
+        A loadbalancer, on delete, goes into PENDING-DELETE and remains in DELETED
+        status until a nightly job(maybe?)
+        """
+        if lb_id in self.lbs:
+
+            if self.lbs[lb_id]["status"] == "PENDING-DELETE":
+                msg = ("Must provide valid load balancers: {0} are immutable and "
+                       "could not be processed.".format(lb_id))
+                # Dont doubt this to be 422, it is 400!
+                return invalid_resource(msg, 400), 400
+
+            _verify_and_update_lb_state(self, lb_id, True, current_timestamp)
+
+            if any([self.lbs[lb_id]["status"] == "ACTIVE",
+                    self.lbs[lb_id]["status"] == "ERROR",
+                    self.lbs[lb_id]["status"] == "PENDING-UPDATE"]):
+                del self.lbs[lb_id]
+                return EMPTY_RESPONSE, 202
+
+            if self.lbs[lb_id]["status"] == "PENDING-DELETE":
+                return EMPTY_RESPONSE, 202
+
+            if self.lbs[lb_id]["status"] == "DELETED":
+                _verify_and_update_lb_state(self, lb_id,
+                                            current_timestamp=current_timestamp)
+                msg = "Must provide valid load balancers: {0} could not be found.".format(lb_id)
+                # Dont doubt this to be 422, it is 400!
+                return invalid_resource(msg, 400), 400
+
+        return not_found_response("loadbalancer"), 404
+
 
 @attributes(["tenant_id", "clock",
              Attribute("regional_collections", default_factory=dict)])

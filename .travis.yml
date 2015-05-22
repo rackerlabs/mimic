@@ -1,45 +1,43 @@
-language: c
-
-os:
-  - osx
-  - linux
-
-compiler:
-  - clang
-  - gcc
+sudo: false
+language: python
+cache:
+    directories:
+      - $HOME/.cache/pip
 
 env:
-  matrix:
-     - TOX_ENV=lint
-     - TOX_ENV=py26
-     - TOX_ENV=py27
-     - TOX_ENV=pypy
-     - TOX_ENV=docs
-     - TOX_ENV=docs-spellcheck
-     - TOX_ENV=docs-linkcheck
-     - MACAPP_ENV=system
+    global:
+        - PIP_WHEEL_DIR=$HOME/.cache/pip/wheels
+        - PIP_FIND_LINKS=file://$HOME/.cache/pip/wheels
 
 matrix:
-  allow_failures:
-    - env: TOX_ENV=docs-linkcheck
-  exclude:
-    - os: osx
-      compiler: gcc
-    - os: linux
-      compiler: clang
-    # don't build mac app on linux
-    - os: linux
-      env: MACAPP_ENV=system
-    - os: osx
-      env: TOX_ENV=lint
-    - os: osx
-      env: TOX_ENV=docs
-    - os: osx
-      env: TOX_ENV=docs-spellcheck
-    - os: osx
-      env: TOX_ENV=docs-linkcheck
-    - os: osx
-      env: TOX_ENV=py26
+    include:
+        - python: 2.7
+          env: TOXENV=py27
+        - python: pypy
+          env: TOXENV=pypy
+        - python: 2.7
+          env: TOXENV=docs
+        - python: 2.7
+          env: TOXENV=docs-spellcheck
+          addons:
+              apt:
+                  packages:
+                      - libenchant-dev
+        - python: 2.7
+          env: TOXENV=docs-linkcheck
+        - python: 2.7
+          env: TOXENV=lint
+        - language: generic
+          os: osx
+          env: TOXENV=py27
+        - language: generic
+          os: osx
+          env: TOXENV=pypy
+        - language: c
+          os: osx
+          env: MACAPP_ENV=system
+    allow_failures:
+      - env: TOXENV=docs-linkcheck
 
 install:
   - travis_retry ./.travis/install.sh
