@@ -112,8 +112,13 @@ class LoadbalancerAPITests(SynchronousTestCase):
 
     def test_lb_status_changes_as_requested(self):
         """
-        Perhaps a bit mislabeled, this test exercises the endpoint that causes
-        a load balancer to return a specific status.
+        Clients can ``POST`` to the ``.../loadbalancer/<lb-id>/setAttr``
+        :obj:`LoadBalancerControlApi` endpoint in order to change the
+        ``status`` attribute on the load balancer identified by the given
+        load-balancer ID for the same tenant in the :obj:`LoadBalancerApi`.
+
+        This attribute controls the status code returned when the load balancer
+        is retrieved by a ``GET`` request.
         """
         api_uri = self.uri
         ctl_uri = self.helper.auth.get_service_endpoint("cloudLoadBalancerControl", "ORD")
