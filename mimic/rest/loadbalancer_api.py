@@ -34,7 +34,6 @@ class LoadBalancerApi(object):
         Create an API with the specified regions.
         """
         self._regions = regions
-        self.session_store = None
 
     def catalog_entries(self, tenant_id):
         """
@@ -54,7 +53,6 @@ class LoadBalancerApi(object):
         Get an :obj:`twisted.web.iweb.IResource` for the given URI prefix;
         implement :obj:`IAPIMock`.
         """
-        self.session_store = session_store
         lb_region = LoadBalancerRegion(self, uri_prefix, session_store,
                                        region)
         return lb_region.app.resource()
@@ -105,7 +103,7 @@ class LoadBalancerControlApi(object):
         implement :obj:`IAPIMock`.
         """
         lbc_region = LoadBalancerControlRegion(api_mock=self, uri_prefix=uri_prefix,
-                                               session_store=self.lb_api.session_store, region=region)
+                                               session_store=session_store, region=region)
         return lbc_region.app.resource()
 
 
