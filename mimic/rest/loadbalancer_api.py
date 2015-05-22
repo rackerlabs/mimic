@@ -117,21 +117,6 @@ class LoadBalancerControlRegion(object):
 
     app = MimicApp()
 
-    def session(self, tenant_id):
-        """
-        Gets a session for a particular tenant, creating one if there isn't
-        one.
-        """
-        tenant_session = self._session_store.session_for_tenant_id(tenant_id)
-        clb_global_collection = tenant_session.data_for_api(
-            self._api_mock,
-            lambda: GlobalCLBCollections(
-                tenant_id=tenant_id,
-                clock=self._session_store.clock))
-        clb_region_collection = clb_global_collection.collection_for_region(
-            self.region_name)
-        return clb_region_collection
-
     def _collection_from_tenant(self, tenant_id):
         """
         Retrieve the server collection for this region for the given tenant.
