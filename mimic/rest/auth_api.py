@@ -65,6 +65,12 @@ def default_authentication_behavior(core, http_request, credentials):
             }
         })
     else:
+        if type(credentials) == ImpersonationCredentials:
+            return json.dumps({"access": {
+                "token": {"id": credentials.impersonated_token,
+                          "expires": format_timestamp(session.expires)}
+            }})
+
         http_request.setResponseCode(200)
         prefix_map = {
             # map of entry to URI prefix for that entry
@@ -163,11 +169,11 @@ class AuthApi(object):
 
         cred = ImpersonationCredentials.from_json(
             content, request.getHeader("x-auth-token"))
-        session = cred.get_session(self.core.sessions)
-        return json.dumps({"access": {
-            "token": {"id": cred.impersonated_token,
-                      "expires": format_timestamp(session.expires)}
-        }})
+        behavior = self.auth_behavior_registry.behavior_for_attributes({
+            "token": cred.impersonator_token,
+            "username": cred.impersonated_username
+        })
+        return behavior(self.core, request, cred)
 
     @app.route('/v2.0/tokens/<string:token_id>', methods=['GET'])
     def validate_token(self, request, token_id):
