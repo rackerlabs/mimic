@@ -89,8 +89,10 @@ class PasswordCredentials(object):
 
         :return: a class:`PasswordCredentials` object
         """
-        tenant_id = (json_blob['auth'].get('tenantName', None) or
-                     json_blob['auth'].get('tenantId', None))
+        tenant_id = json_blob['auth'].get('tenantName')
+        if tenant_id is None:
+            tenant_id = json_blob['auth'].get('tenantId')
+
         username = json_blob['auth']['passwordCredentials']['username']
         password = json_blob['auth']['passwordCredentials']['password']
         return cls(username=username, password=password, tenant_id=tenant_id)
@@ -139,8 +141,10 @@ class APIKeyCredentials(object):
         :return: a class:`APIKeyCredentials` object
         """
         creds = json_blob['auth']
-        tenant_id = (creds.get('tenantName', None) or
-                     creds.get('tenantId', None))
+        tenant_id = creds.get('tenantName')
+        if tenant_id is None:
+            tenant_id = creds.get('tenantId')
+
         username = creds['RAX-KSKEY:apiKeyCredentials']['username']
         api_key = creds['RAX-KSKEY:apiKeyCredentials']['apiKey']
         return cls(username=username, api_key=api_key, tenant_id=tenant_id)
@@ -183,8 +187,10 @@ class TokenCredentials(object):
 
         :return: a class:`TokenCredentials` object
         """
-        tenant_id = (json_blob['auth'].get('tenantName', None) or
-                     json_blob['auth'].get('tenantId', None))
+        tenant_id = json_blob['auth'].get('tenantName')
+        if tenant_id is None:
+            tenant_id = json_blob['auth'].get('tenantId')
+
         token = json_blob['auth']['token']['id']
         return cls(token=token, tenant_id=tenant_id)
 
