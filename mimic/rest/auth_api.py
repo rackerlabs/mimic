@@ -4,6 +4,8 @@ Defines get token, impersonation
 """
 import json
 
+import attr
+
 from twisted.web.server import Request
 from twisted.python.urlpath import URLPath
 from mimic.canned_responses.auth import (
@@ -21,23 +23,79 @@ from mimic.rest.mimicapp import MimicApp
 from mimic.session import NonMatchingTenantError
 from mimic.util.helper import invalid_resource
 
+from mimic.model.behaviors import BehaviorRegistry, EventDescription
+
 Request.defaultContentType = 'application/json'
 
 
-class AuthApi(object):
+authentication = EventDescription()
+"""
+Event refers to authenticating against Identity using a username/password,
+username/api-key, token, or getting an impersonation token.
+"""
 
+
+@authentication.declare_default_behavior
+def default_authentication_behavior(core, http_request, credentials):
+    """
+    Default behavior in response to a server creation.
+
+    :param core: An instance of :class:`mimic.core.MimicCore`
+    :param http_request: A twisted http request/response object
+    :param credentials: An `mimic.model.identity.ICredentials` provider
+    """
+    try:
+        session = credentials.get_session(core.sessions)
+    except NonMatchingTenantError as e:
+        http_request.setResponseCode(401)
+        if type(credentials) == TokenCredentials:
+            message = ("Token doesn't belong to Tenant with Id/Name: "
+                       "'{0}'".format(e.desired_tenant))
+        else:
+            message = ("Tenant with Name/Id: '{0}' is not valid for "
+                       "User '{1}' (id: '{2}')".format(
+                           e.desired_tenant,
+                           e.session.username,
+                           e.session.user_id))
+
+        return json.dumps({
+            "unauthorized": {
+                "code": 401,
+                "message": message
+            }
+        })
+    else:
+        http_request.setResponseCode(200)
+        prefix_map = {
+            # map of entry to URI prefix for that entry
+        }
+
+        def lookup(entry):
+            return prefix_map[entry]
+        result = get_token(
+            session.tenant_id,
+            entry_generator=lambda tenant_id:
+            list(core.entries_for_tenant(
+                 session.tenant_id, prefix_map,
+                 base_uri_from_request(http_request))),
+            prefix_for_endpoint=lookup,
+            response_token=session.token,
+            response_user_id=session.user_id,
+            response_user_name=session.username,
+        )
+        return json.dumps(result)
+
+
+@attr.s(hash=False)
+class AuthApi(object):
     """
     Rest endpoints for mocked Auth api.
     """
+    core = attr.ib()
+    auth_behavior_registry = attr.ib(default=attr.Factory(
+        lambda: BehaviorRegistry(event=authentication)))
 
     app = MimicApp()
-
-    def __init__(self, core):
-        """
-        :param MimicCore core: The core to which this AuthApi will be
-            authenticating.
-        """
-        self.core = core
 
     @app.route('/v2.0/tokens', methods=['POST'])
     def get_token_and_service_catalog(self, request):
@@ -48,75 +106,23 @@ class AuthApi(object):
         try:
             content = json.loads(request.content.read())
         except ValueError:
-            request.setResponseCode(400)
-            return json.dumps(invalid_resource("Invalid JSON request body"))
-
-        def format_response(cred, nonmatching_tenant_message_generator):
-            try:
-                session = cred.get_session(self.core.sessions)
-            except NonMatchingTenantError as e:
-                request.setResponseCode(401)
-                return json.dumps({
-                    "unauthorized": {
-                        "code": 401,
-                        "message": nonmatching_tenant_message_generator(e)
-                    }
-                })
-            else:
-                request.setResponseCode(200)
-                prefix_map = {
-                    # map of entry to URI prefix for that entry
-                }
-
-                def lookup(entry):
-                    return prefix_map[entry]
-                result = get_token(
-                    session.tenant_id,
-                    entry_generator=lambda tenant_id:
-                    list(self.core.entries_for_tenant(
-                         session.tenant_id,
-                         prefix_map, base_uri_from_request(request))),
-                    prefix_for_endpoint=lookup,
-                    response_token=session.token,
-                    response_user_id=session.user_id,
-                    response_user_name=session.username,
-                )
-                return json.dumps(result)
-
-        username_generator = (
-            lambda exception: "Tenant with Name/Id: '{0}' is not valid for "
-                              "User '{1}' (id: '{2}')".format(
-                                  exception.desired_tenant,
-                                  exception.session.username,
-                                  exception.session.user_id))
-
-        cred_mappings = {
-            'passwordCredentials':
-                (PasswordCredentials, username_generator),
-            'RAX-KSKEY:apiKeyCredentials':
-                (APIKeyCredentials, username_generator),
-            'token':
-                (TokenCredentials,
-                 lambda e: (
-                     "Token doesn't belong to Tenant with Id/Name: "
-                     "'{0}'".format(e.desired_tenant)))
-        }
-
-        relevant_cred_keys = set(cred_mappings).intersection(
-            set(content['auth']))
-
-        if relevant_cred_keys:
-            cred_type, error_handler = cred_mappings[relevant_cred_keys.pop()]
-            try:
-                cred = cred_type.from_json(content)
-            except Exception:
-                pass
-            else:
-                return format_response(cred, error_handler)
+            pass
+        else:
+            for cred_type in (PasswordCredentials, APIKeyCredentials,
+                              TokenCredentials):
+                if cred_type.type_key in content['auth']:
+                    try:
+                        cred = cred_type.from_json(content)
+                    except Exception:
+                        pass
+                    else:
+                        behavior = (self.auth_behavior_registry
+                                    .behavior_for_attributes(
+                                        attr.asdict(cred)))
+                        return behavior(self.core, request, cred)
 
         request.setResponseCode(400)
-        return json.dumps(
-            invalid_resource("Invalid JSON request body"))
+        return json.dumps(invalid_resource("Invalid JSON request body"))
 
     @app.route('/v1.1/mosso/<string:tenant_id>', methods=['GET'])
     def get_username(self, request, tenant_id):
