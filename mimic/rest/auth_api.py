@@ -38,11 +38,18 @@ username/api-key, token, or getting an impersonation token.
 @authentication.declare_default_behavior
 def default_authentication_behavior(core, http_request, credentials):
     """
-    Default behavior in response to a server creation.
+    Default behavior in response to a server creation.  This will create
+    a session for the tenant if one does not already exist, and return
+    the auth token for that session.  In the case of
+    :class:`PasswordCredentials`, :class:`ApiKeyCredentials`, or
+    :class:`TokenCredentials`, also returns the service catalog.
 
     :param core: An instance of :class:`mimic.core.MimicCore`
     :param http_request: A twisted http request/response object
     :param credentials: An `mimic.model.identity.ICredentials` provider
+
+    Handles setting the response code and also
+    :return: The response body for a default authentication request.
     """
     try:
         session = credentials.get_session(core.sessions)
