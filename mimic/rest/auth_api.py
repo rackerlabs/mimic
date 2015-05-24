@@ -126,7 +126,7 @@ class AuthApi(object):
                 if cred_type.type_key in content['auth']:
                     try:
                         cred = cred_type.from_json(content)
-                    except Exception:
+                    except (KeyError, TypeError):
                         pass
                     else:
                         behavior = (self.auth_behavior_registry
