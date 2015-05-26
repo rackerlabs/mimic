@@ -27,7 +27,6 @@ Request.defaultContentType = 'application/json'
 class LoadBalancerApi(object):
     """
     This class registers the load balancer API in the service catalog.
-    It does NOT implement individual endpoints.
     """
     def __init__(self, regions=["ORD"]):
         """
@@ -81,7 +80,7 @@ class LoadBalancerApi(object):
 class LoadBalancerControlApi(object):
     """
     This class registers the load balancer controller API in the service
-    catalog.  It does NOT implement individual endpoints.
+    catalog.
     """
     def catalog_entries(self, tenant_id):
         """
