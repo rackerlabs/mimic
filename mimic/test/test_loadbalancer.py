@@ -123,7 +123,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
         ctl_uri = self.helper.auth.get_service_endpoint("cloudLoadBalancerControl", "ORD")
         lb_id = self._create_loadbalancer('test_lb')
         set_attributes_req = request(
-            self, self.root, "PATCH", "{0}/loadbalancer/{1}/setAttr".format(
+            self, self.root, "PATCH", "{0}/loadbalancer/{1}/attributes".format(
                 ctl_uri, lb_id
             ),
             '{"status": "PENDING_DELETE"}'
