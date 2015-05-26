@@ -17,8 +17,7 @@ from mimic.canned_responses.loadbalancer import (load_balancer_example,
 class BadKeysError(Exception):
     """
     When trying to alter the settings of a load balancer, this exception will
-    be raised if you misspell or otherwise attempt to alter an attribute which
-    doesn't exist.
+    be raised if you attempt to alter an attribute which doesn't exist.
     """
     def __init__(self, msg, keys):
         """
