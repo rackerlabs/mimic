@@ -135,7 +135,7 @@ class LoadBalancerControlRegion(object):
         if not regional_lbs.lb_in_region(clb_id):
             request.setResponseCode(404)
             return json.dumps({
-                "message": "Tenant {} doesn't own load balancer {}".format(
+                "message": "Tenant {0} doesn't own load balancer {1}".format(
                     tenant_id, clb_id
                 ),
                 "code": 404,
