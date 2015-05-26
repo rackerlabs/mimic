@@ -120,7 +120,6 @@ class LoadbalancerAPITests(SynchronousTestCase):
         This attribute controls the status code returned when the load balancer
         is retrieved by a ``GET`` request.
         """
-        api_uri = self.uri
         ctl_uri = self.helper.auth.get_service_endpoint("cloudLoadBalancerControl", "ORD")
         lb_id = self._create_loadbalancer('test_lb')
         set_attributes_req = request(

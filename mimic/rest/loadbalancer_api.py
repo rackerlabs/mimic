@@ -13,7 +13,7 @@ from mimic.imimic import IAPIMock
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 
-from mimic.model.clb_objects import GlobalCLBCollections
+from mimic.model.clb_objects import GlobalCLBCollections, BadKeysError
 from random import randrange
 
 from mimic.util.helper import invalid_resource, json_dump

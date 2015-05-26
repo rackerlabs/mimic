@@ -30,7 +30,7 @@ class CoreBuildingTests(SynchronousTestCase):
         """
         core = MimicCore.fromPlugins(Clock())
         plugin_apis = set((
-            glance_plugin.glance
+            glance_plugin.glance,
             loadbalancer_plugin.loadbalancer,
             loadbalancer_plugin.loadbalancer_control,
             maas_plugin.maas,

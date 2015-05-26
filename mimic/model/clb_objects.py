@@ -21,6 +21,11 @@ class BadKeysError(Exception):
     doesn't exist.
     """
     def __init__(self, msg, keys):
+        """
+        Exception constructor.
+
+        :param list keys: The set of keys that are considered bad.
+        """
         super(BadKeysError, self).__init__(msg)
         self.keys = keys
 
