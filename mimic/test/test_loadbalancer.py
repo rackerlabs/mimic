@@ -112,7 +112,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
 
     def test_lb_status_changes_as_requested(self):
         """
-        Clients can ``POST`` to the ``.../loadbalancer/<lb-id>/setAttr``
+        Clients can ``PATCH`` to the ``.../loadbalancer/<lb-id>/attributes``
         :obj:`LoadBalancerControlApi` endpoint in order to change the
         ``status`` attribute on the load balancer identified by the given
         load-balancer ID for the same tenant in the :obj:`LoadBalancerApi`.
@@ -123,7 +123,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
         ctl_uri = self.helper.auth.get_service_endpoint("cloudLoadBalancerControl", "ORD")
         lb_id = self._create_loadbalancer('test_lb')
         set_attributes_req = request(
-            self, self.root, "POST", "{}/loadbalancer/{}/setAttr".format(
+            self, self.root, "PATCH", "{0}/loadbalancer/{1}/setAttr".format(
                 ctl_uri, lb_id
             ),
             '{"status": "PENDING_DELETE"}'

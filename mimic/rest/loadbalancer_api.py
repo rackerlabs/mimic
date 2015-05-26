@@ -121,7 +121,10 @@ class LoadBalancerControlRegion(object):
         return (self.api_mock.lb_api._get_session(self.session_store, tenant_id)
                 .collection_for_region(self.region))
 
-    @app.route('/v2/<string:tenant_id>/loadbalancer/<int:clb_id>/setAttr', methods=['POST'])
+    @app.route(
+        '/v2/<string:tenant_id>/loadbalancer/<int:clb_id>/attributes',
+        methods=['PATCH']
+    )
     def set_attributes(self, request, tenant_id, clb_id):
         """
         Alters the supported attributes of the CLB to supported values.  To
