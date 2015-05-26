@@ -152,7 +152,7 @@ class NovaControlApiRegion(object):
                 }
             }
 
-        The response looks like:
+        The response looks like::
 
             {
                 "id": "this-is-a-uuid-here"
