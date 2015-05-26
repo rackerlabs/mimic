@@ -54,7 +54,7 @@ def delete_server(helper, server_id):
     """
     d = request_with_content(
         helper.test_case, helper.root, "DELETE",
-        '{}/servers/{}'.format(helper.uri, server_id))
+        '{0}/servers/{1}'.format(helper.uri, server_id))
     resp, body = helper.test_case.successResultOf(d)
     helper.test_case.assertEqual(resp.code, 204)
 
@@ -65,7 +65,7 @@ def update_metdata_item(helper, server_id, key, value):
     """
     d = request_with_content(
         helper.test_case, helper.root, "PUT",
-        '{}/servers/{}/metadata/{}'.format(helper.uri, server_id, key),
+        '{0}/servers/{1}/metadata/{2}'.format(helper.uri, server_id, key),
         json.dumps({'meta': {key: value}}))
     resp, body = helper.test_case.successResultOf(d)
     helper.test_case.assertEqual(resp.code, 200)
@@ -77,7 +77,7 @@ def update_metdata(helper, server_id, metadata):
     """
     d = request_with_content(
         helper.test_case, helper.root, "PUT",
-        '{}/servers/{}/metadata'.format(helper.uri, server_id),
+        '{0}/servers/{1}/metadata'.format(helper.uri, server_id),
         json.dumps({'metadata': metadata}))
     resp, body = helper.test_case.successResultOf(d)
     helper.test_case.assertEqual(resp.code, 200)
@@ -584,7 +584,7 @@ class NovaAPIChangesSinceTests(SynchronousTestCase):
         resp, body = self.successResultOf(
             json_request(
                 self, self.root, "GET",
-                '{}/servers/detail?{}'.format(self.uri, params)))
+                '{0}/servers/detail?{1}'.format(self.uri, params)))
         self.assertEqual(resp.code, 200)
         return body['servers']
 
@@ -616,7 +616,7 @@ class NovaAPIChangesSinceTests(SynchronousTestCase):
         matcher = MatchesListwise(
             [ContainsDict({"status": Equals(u"DELETED"), "id": Equals(self.server1)})])
         mismatch = matcher.match(self.list_servers_detail(1.5))
-        self.assertIsNone(mismatch)
+        self.assertIs(mismatch, None)
 
     def test_returns_updated_status_servers(self):
         """
