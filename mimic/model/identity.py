@@ -44,6 +44,7 @@ class PasswordCredentials(object):
     username = attr(validator=validators.instance_of(string_types))
     password = attr(validator=validators.instance_of(string_types))
     tenant_id = attr(default=None)
+    type_key = "passwordCredentials"
 
     def get_session(self, session_store):
         """
@@ -76,8 +77,8 @@ class PasswordCredentials(object):
         if tenant_id is None:
             tenant_id = json_blob['auth'].get('tenantId')
 
-        username = json_blob['auth']['passwordCredentials']['username']
-        password = json_blob['auth']['passwordCredentials']['password']
+        username = json_blob['auth'][cls.type_key]['username']
+        password = json_blob['auth'][cls.type_key]['password']
         return cls(username=username, password=password, tenant_id=tenant_id)
 
 
@@ -95,6 +96,7 @@ class APIKeyCredentials(object):
     username = attr(validator=validators.instance_of(string_types))
     api_key = attr(validator=validators.instance_of(string_types))
     tenant_id = attr(default=None)
+    type_key = "RAX-KSKEY:apiKeyCredentials"
 
     def get_session(self, session_store):
         """
@@ -123,13 +125,12 @@ class APIKeyCredentials(object):
 
         :return: a class:`APIKeyCredentials` object
         """
-        creds = json_blob['auth']
-        tenant_id = creds.get('tenantName')
+        tenant_id = json_blob['auth'].get('tenantName')
         if tenant_id is None:
-            tenant_id = creds.get('tenantId')
+            tenant_id = json_blob['auth'].get('tenantId')
 
-        username = creds['RAX-KSKEY:apiKeyCredentials']['username']
-        api_key = creds['RAX-KSKEY:apiKeyCredentials']['apiKey']
+        username = json_blob['auth'][cls.type_key]['username']
+        api_key = json_blob['auth'][cls.type_key]['apiKey']
         return cls(username=username, api_key=api_key, tenant_id=tenant_id)
 
 
@@ -144,6 +145,7 @@ class TokenCredentials(object):
     """
     token = attr(validator=validators.instance_of(string_types))
     tenant_id = attr(validator=validators.instance_of(string_types))
+    type_key = "token"
 
     def get_session(self, session_store):
         """
@@ -174,7 +176,7 @@ class TokenCredentials(object):
         if tenant_id is None:
             tenant_id = json_blob['auth'].get('tenantId')
 
-        token = json_blob['auth']['token']['id']
+        token = json_blob['auth'][cls.type_key]['id']
         return cls(token=token, tenant_id=tenant_id)
 
 
@@ -200,6 +202,7 @@ class ImpersonationCredentials(object):
     impersonated_token = attr(
         default=Factory(lambda: 'impersonated_token_' + text_type(uuid4())),
         validator=validators.instance_of(string_types))
+    type_key = 'RAX-AUTH:impersonation'
 
     def get_session(self, session_store):
         """
@@ -229,8 +232,8 @@ class ImpersonationCredentials(object):
 
         :return: a class:`ImpersonationCredentials` object
         """
-        expires_in = json_blob['RAX-AUTH:impersonation']['expire-in-seconds']
-        username = json_blob['RAX-AUTH:impersonation']['user']['username']
+        expires_in = json_blob[cls.type_key]['expire-in-seconds']
+        username = json_blob[cls.type_key]['user']['username']
         return cls(impersonator_token=auth_token,
                    impersonated_username=username,
                    expires_in=int(expires_in))

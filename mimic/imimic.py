@@ -2,7 +2,7 @@
 Interfaces for Mimic.
 """
 
-from zope.interface import Interface
+from zope.interface import Attribute, Interface
 
 
 class IAPIMock(Interface):
@@ -29,6 +29,9 @@ class ICredential(Interface):
     """
     An :obj:`ICredential` provides identity authentication credentials.
     """
+    type_key = Attribute("The type key to look for in a JSON dictionary "
+                         "representing the credential.")
+
     def get_session(session_store):  # pragma:nocover
         """
         Get a session corresponding to the user and tenant from the given

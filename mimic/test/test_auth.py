@@ -247,14 +247,14 @@ class CatalogGenerationTests(SynchronousTestCase):
         )
 
 
-def authenticate_with_username_password(test_case, core, uri='/identity/v2.0/tokens',
+def authenticate_with_username_password(test_case, root,
+                                        uri='/identity/v2.0/tokens',
                                         username=None, password=None,
                                         tenant_name=None, tenant_id=None):
     """
     Returns a tuple of the response code and json body after authentication
     with username and password.
     """
-    root = MimicRoot(core).app.resource()
     creds = {
         "auth": {
             "passwordCredentials": {
@@ -272,14 +272,13 @@ def authenticate_with_username_password(test_case, core, uri='/identity/v2.0/tok
                                                   uri, creds))
 
 
-def authenticate_with_api_key(test_case, core, uri='/identity/v2.0/tokens',
+def authenticate_with_api_key(test_case, root, uri='/identity/v2.0/tokens',
                               username=None, api_key=None,
                               tenant_name=None, tenant_id=None):
     """
     Returns a tuple of the response code and json body after authentication
     using the username and api_key.
     """
-    root = MimicRoot(core).app.resource()
     creds = {
         "auth": {
             "RAX-KSKEY:apiKeyCredentials": {
@@ -297,13 +296,12 @@ def authenticate_with_api_key(test_case, core, uri='/identity/v2.0/tokens',
                                                   uri, creds))
 
 
-def authenticate_with_token(test_case, core, uri='/identity/v2.0/tokens',
+def authenticate_with_token(test_case, root, uri='/identity/v2.0/tokens',
                             token_id=None, tenant_id=None):
     """
     Returns a tuple of the response code and json body after authentication
     using token and tenant ids.
     """
-    root = MimicRoot(core).app.resource()
     creds = {
         "auth": {
             "tenantId": tenant_id or "12345",
@@ -316,14 +314,13 @@ def authenticate_with_token(test_case, core, uri='/identity/v2.0/tokens',
                                                   uri, creds))
 
 
-def impersonate_user(test_case, core,
+def impersonate_user(test_case, root,
                      uri="http://mybase/identity/v2.0/RAX-AUTH/impersonation-tokens",
                      username=None, impersonator_token=None):
     """
     Returns a tuple of the response code and json body after authentication
     using token and tenant ids.
     """
-    root = MimicRoot(core).app.resource()
     headers = {
         'X-Auth-Token': [str(impersonator_token)]} if impersonator_token else None
     return test_case.successResultOf(json_request(
@@ -347,8 +344,8 @@ class GetAuthTokenAPITests(SynchronousTestCase):
         MimicCore session, and therefore access.token.tenant.id should match
         that session's tenant_id.
         """
-        core = MimicCore(Clock(), [])
-        (response, json_body) = authenticate_with_username_password(self, core)
+        core, root = core_and_root([])
+        (response, json_body) = authenticate_with_username_password(self, root)
         self.assertEqual(200, response.code)
         token = json_body['access']['token']['id']
         tenant_id = json_body['access']['token']['tenant']['id']
@@ -360,8 +357,8 @@ class GetAuthTokenAPITests(SynchronousTestCase):
         """
         The JSON response for authenticate has the role `identity:user-admin`.
         """
-        core = MimicCore(Clock(), [])
-        (response, json_body) = authenticate_with_username_password(self, core)
+        core, root = core_and_root([])
+        (response, json_body) = authenticate_with_username_password(self, root)
         self.assertEqual(200, response.code)
         self.assertEqual(
             json_body['access']['user']['roles'], HARD_CODED_ROLES)
@@ -371,18 +368,18 @@ class GetAuthTokenAPITests(SynchronousTestCase):
         The JSON response for authenticate has only one `identity:user-admin`
         role, no matter how many times the user authenticates.
         """
-        core = MimicCore(Clock(), [])
-        (response, json_body) = authenticate_with_username_password(self, core)
+        core, root = core_and_root([])
+        (response, json_body) = authenticate_with_username_password(self, root)
         self.assertEqual(200, response.code)
         self.assertEqual(
             json_body['access']['user']['roles'], HARD_CODED_ROLES)
         (response1, json_body1) = authenticate_with_username_password(
-            self, core)
+            self, root)
         self.assertEqual(200, response1.code)
         self.assertEqual(
             json_body1['access']['user']['roles'], HARD_CODED_ROLES)
         (response2, json_body2) = authenticate_with_username_password(
-            self, core)
+            self, root)
         self.assertEqual(200, response2.code)
         self.assertEqual(
             json_body2['access']['user']['roles'], HARD_CODED_ROLES)
@@ -414,11 +411,11 @@ class GetAuthTokenAPITests(SynchronousTestCase):
         If "tenantName" is passed, the tenant specified is used instead of a
         generated tenant ID.
         """
-        core = MimicCore(Clock(), [])
+        core, root = core_and_root([])
 
         (response, json_body) = authenticate_with_username_password(
             self,
-            core,
+            root,
             tenant_name="turtlepower")
 
         self.assertEqual(200, response.code)
@@ -434,10 +431,10 @@ class GetAuthTokenAPITests(SynchronousTestCase):
         If "tenantId" is passed, the tenant specified is used instead of a
         generated tenant ID.
         """
-        core = MimicCore(Clock(), [])
+        core, root = core_and_root([])
         (response, json_body) = authenticate_with_username_password(
             self,
-            core,
+            root,
             tenant_id="turtlepower")
         self.assertEqual(200, response.code)
         self.assertEqual("turtlepower",
@@ -452,10 +449,10 @@ class GetAuthTokenAPITests(SynchronousTestCase):
         The JSON response's service catalog whose endpoints all begin with
         the same base URI as the request.
         """
-        core = MimicCore(Clock(), [ExampleAPI()])
+        core, root = core_and_root([ExampleAPI()])
         (response, json_body) = authenticate_with_username_password(
             self,
-            core, uri='http://mybase/identity/v2.0/tokens')
+            root, uri='http://mybase/identity/v2.0/tokens')
         self.assertEqual(200, response.code)
         services = json_body['access']['serviceCatalog']
         self.assertEqual(1, len(services))
@@ -518,10 +515,10 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         """
         regions_and_versions_list = [
             ("ORD", "v1"), ("DFW", "v1"), ("DFW", "v2"), ("IAD", "v3")]
-        core = MimicCore(
-            Clock(), [ExampleAPI(regions_and_versions=regions_and_versions_list)])
+        core, root = core_and_root([ExampleAPI(
+            regions_and_versions=regions_and_versions_list)])
 
-        (response, json_body) = authenticate_with_username_password(self, core)
+        (response, json_body) = authenticate_with_username_password(self, root)
         self.assertEqual(response.code, 200)
         service_catalog = json_body["access"]["serviceCatalog"]
         self.assertEqual(len(service_catalog), 1)
@@ -533,8 +530,8 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         The response returned should include the password credentials that were supplied
         during authentication
         """
-        core = MimicCore(Clock(), [ExampleAPI()])
-        (response, json_body) = authenticate_with_username_password(self, core,
+        core, root = core_and_root([ExampleAPI()])
+        (response, json_body) = authenticate_with_username_password(self, root,
                                                                     tenant_id='12345')
         self.assertEqual(response.code, 200)
         tenant_id = json_body["access"]["token"]["tenant"]["id"]
@@ -549,8 +546,8 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         The response returned should include the credentials that were supplied
         during authentication
         """
-        core = MimicCore(Clock(), [ExampleAPI()])
-        (response, json_body) = authenticate_with_api_key(self, core,
+        core, root = core_and_root([ExampleAPI()])
+        (response, json_body) = authenticate_with_api_key(self, root,
                                                           tenant_name='12345')
         self.assertEqual(response.code, 200)
         tenant_id = json_body["access"]["token"]["tenant"]["id"]
@@ -565,9 +562,9 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         The response returned should include the credentials that were supplied
         during authentication
         """
-        core = MimicCore(Clock(), [ExampleAPI()])
+        core, root = core_and_root([ExampleAPI()])
         (response, json_body) = authenticate_with_token(
-            self, core, tenant_id='12345')
+            self, root, tenant_id='12345')
         self.assertEqual(response.code, 200)
         tenant_id = json_body["access"]["token"]["tenant"]["id"]
         self.assertEqual(tenant_id, "12345")
@@ -583,14 +580,14 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         If authed once as one tenant ID, and a second time with a different
         tenant ID, then the second auth will return with a 401 Unauthorized.
         """
-        core = MimicCore(Clock(), [ExampleAPI()])
+        core, root = core_and_root([ExampleAPI()])
         (response, json_body) = authenticate_with_username_password(
-            self, core, tenant_id="12345")
+            self, root, tenant_id="12345")
         self.assertEqual(response.code, 200)
         username = json_body["access"]["user"]["id"]
 
         (response, fail_body) = authenticate_with_username_password(
-            self, core, tenant_id="23456")
+            self, root, tenant_id="23456")
         self.assertEqual(response.code, 401)
         self.assertEqual(fail_body, {
             "unauthorized": {
@@ -644,15 +641,14 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         If authed once as one tenant ID, and a second time with a different
         tenant ID, then the second auth will return with a 401 Unauthorized.
         """
-
-        core = MimicCore(Clock(), [ExampleAPI()])
+        core, root = core_and_root([ExampleAPI()])
         (response, json_body) = authenticate_with_api_key(
-            self, core, tenant_id="12345")
+            self, root, tenant_id="12345")
         self.assertEqual(response.code, 200)
         username = json_body["access"]["user"]["id"]
 
         (response, fail_body) = authenticate_with_api_key(
-            self, core, tenant_id="23456")
+            self, root, tenant_id="23456")
         self.assertEqual(response.code, 401)
         self.assertEqual(fail_body, {
             "unauthorized": {
@@ -669,13 +665,13 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         If authed once as one tenant ID, and a second time with a different
         tenant ID, then the second auth will return with a 401 Unauthorized.
         """
-        core = MimicCore(Clock(), [ExampleAPI()])
+        core, root = core_and_root([ExampleAPI()])
         (response, json_body) = authenticate_with_token(
-            self, core, tenant_id="12345")
+            self, root, tenant_id="12345")
         self.assertEqual(response.code, 200)
 
         (response, fail_body) = authenticate_with_token(
-            self, core, tenant_id="23456")
+            self, root, tenant_id="23456")
         self.assertEqual(response.code, 401)
         self.assertEqual(fail_body, {
             "unauthorized": {
@@ -722,9 +718,9 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         """
         Test to verify :func: `get_impersonation_token`.
         """
-        core = MimicCore(Clock(), [ExampleAPI()])
+        core, root = core_and_root([ExampleAPI()])
 
-        (response, json_body) = impersonate_user(self, core)
+        (response, json_body) = impersonate_user(self, root)
         self.assertEqual(200, response.code)
         self.assertTrue(json_body['access']['token']['id'])
 
@@ -793,7 +789,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
             "http://mybase/identity/v2.0/tokens/123456a?belongsTo=111111"
         ))
         self.assertEqual(200, response1.code)
-        (response, json_body) = authenticate_with_token(self, core,
+        (response, json_body) = authenticate_with_token(self, root,
                                                         tenant_id="111111",
                                                         token_id="123456a")
         self.assertEqual(response.code, 200)
@@ -812,7 +808,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
 
         # Authenticate the impersonator (admin user)
         (response0, json_body0) = authenticate_with_token(
-            self, core,
+            self, root,
             tenant_id="111111",
             token_id="123456a")
         self.assertEqual(200, response0.code)
@@ -820,14 +816,14 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
 
         # Authenticate using the username so we know the tenant_id
         (response1, json_body1) = authenticate_with_username_password(
-            self, core,
+            self, root,
             username="test1",
             tenant_id="12345")
         self.assertEqual(200, response1.code)
 
         # Impersonate user test1
         (response2, json_body2) = impersonate_user(
-            self, core,
+            self, root,
             username="test1",
             impersonator_token=impersonator_token)
         self.assertEqual(200, response2.code)
@@ -850,7 +846,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
 
         # Authenticate the impersonator (admin user 1)
         (response0, json_body0) = authenticate_with_token(
-            self, core,
+            self, root,
             tenant_id="111111",
             token_id="123456a")
         self.assertEqual(200, response0.code)
@@ -858,7 +854,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
 
         # Authenticate the impersonator (admin user 2)
         (response1, json_body1) = authenticate_with_token(
-            self, core,
+            self, root,
             tenant_id="222222",
             token_id="123456b")
 
@@ -868,14 +864,14 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         # Authenticate the impersonatee using the username so we know the
         # tenant_id to make the validate token id call with 'belongsTo'
         (response2, json_body2) = authenticate_with_username_password(
-            self, core,
+            self, root,
             username="test1",
             tenant_id="12345")
         self.assertEqual(200, response2.code)
 
         # Impersonate user test1 using admin user1's token
         (response3, json_body3) = impersonate_user(
-            self, core,
+            self, root,
             username="test1",
             impersonator_token=impersonator_token1)
         self.assertEqual(200, response3.code)
@@ -883,7 +879,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
 
         # Impersonate user test1 using admin user2's token
         (response4, json_body4) = impersonate_user(
-            self, core,
+            self, root,
             username="test1",
             impersonator_token=impersonator_token2)
         self.assertEqual(200, response4.code)
@@ -1034,7 +1030,7 @@ class AuthIntegrationTests(SynchronousTestCase):
         # was previously in the system, but this will ensure that we can check
         # the username
         response, json_body = authenticate_with_username_password(
-            self, core, username="my_user", tenant_id=tenant_id)
+            self, root, username="my_user", tenant_id=tenant_id)
         self.assertEqual(200, response.code)
         self.assertEqual(tenant_id,
                          json_body['access']['token']['tenant']['id'])
@@ -1047,7 +1043,7 @@ class AuthIntegrationTests(SynchronousTestCase):
         self.assertEqual("my_user", user)
 
         # impersonate this user
-        response, json_body = impersonate_user(self, core, username=user)
+        response, json_body = impersonate_user(self, root, username=user)
         self.assertEqual(200, response.code)
         token = json_body["access"]['token']["id"]
 
@@ -1061,7 +1057,7 @@ class AuthIntegrationTests(SynchronousTestCase):
 
         # authenticate with this token and see what the tenant is
         response, json_body = authenticate_with_token(
-            self, core, token_id=token, tenant_id=tenant_id)
+            self, root, token_id=token, tenant_id=tenant_id)
         self.assertEqual(tenant_id,
                          json_body['access']['token']['tenant']['id'])
 
@@ -1072,15 +1068,15 @@ class AuthIntegrationTests(SynchronousTestCase):
         from the one returned by the API key response. Both tokens
         should be accessing the same session.
         """
-        core = MimicCore(Clock(), [ExampleAPI()])
+        core, root = core_and_root([ExampleAPI()])
         tenant_id = "123456"
 
-        response, json_body = authenticate_with_api_key(self, core, tenant_id=tenant_id)
+        response, json_body = authenticate_with_api_key(self, root, tenant_id=tenant_id)
         self.assertEqual(200, response.code)
         username_from_api_key = json_body["access"]["user"]["name"]
 
         response, json_body = authenticate_with_token(
-            self, core, token_id="fake_111111", tenant_id=tenant_id)
+            self, root, token_id="fake_111111", tenant_id=tenant_id)
         self.assertEqual(200, response.code)
         username_from_token = json_body["access"]["user"]["name"]
 
