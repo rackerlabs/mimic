@@ -2,9 +2,18 @@
 General-purpose utilities for customizing response behavior.
 """
 import re
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import attr
+
+
+@attr.s
+class NoSuchBehaviorError(Exception):
+    """
+    An exception that is raised when attempting to access or delete a
+    non-existant behavior based on ID.
+    """
+    behavior_id = attr.ib(validator=attr.validators.instance_of(UUID))
 
 
 @attr.s
@@ -167,3 +176,14 @@ class BehaviorRegistry(object):
             if criteria.evaluate(attributes):
                 return behavior
         return self.event.default_behavior
+
+    def remove_behavior_by_id(self, behavior_id):
+        """
+        Remove a previously-registered behavior given the behavior's ID.
+        """
+        for i, behaviors in enumerate(self.registered_behaviors):
+            b, c, b_id = behaviors
+            if b_id == behavior_id:
+                del self.registered_behaviors[i]
+                return
+        raise NoSuchBehaviorError(behavior_id=behavior_id)
