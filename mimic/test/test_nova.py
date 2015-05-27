@@ -76,7 +76,7 @@ def create_server(helper, body, region="ORD", json=False):
         helper.test_case,
         helper.root,
         "POST",
-        '{}/servers'.format(helper.get_service_endpoint(
+        '{0}/servers'.format(helper.get_service_endpoint(
             "cloudServersOpenStack", region)),
         body
     )
@@ -153,7 +153,7 @@ def use_creation_behavior(helper, name, parameters, criteria):
                  "criteria": criteria}
     set_criteria = json_request(
         helper.test_case, helper.root, "POST",
-        "{}/behaviors/creation".format(
+        "{0}/behaviors/creation".format(
             helper.auth.get_service_endpoint("cloudServersBehavior")),
         json.dumps(criterion))
 
