@@ -13,7 +13,9 @@ from mimic.imimic import IAPIMock
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 
-from mimic.model.clb_objects import GlobalCLBCollections, BadKeysError
+from mimic.model.clb_objects import (
+    GlobalCLBCollections, BadKeysError, BadValueError
+)
 from random import randrange
 
 from mimic.util.helper import invalid_resource, json_dump
@@ -153,6 +155,12 @@ class LoadBalancerControlRegion(object):
             request.setResponseCode(400)
             return json.dumps({
                 "message": str(bke),
+                "code": 400,
+            })
+        except BadValueError, bve:
+            request.setResponseCode(400)
+            return json.dumps({
+                "message": str(bve),
                 "code": 400,
             })
         else:

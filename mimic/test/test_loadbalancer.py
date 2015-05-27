@@ -124,7 +124,9 @@ class LoadbalancerAPITests(SynchronousTestCase):
         create_lb_response_body = self.successResultOf(treq.json_content(create_lb_response))
         return create_lb_response_body['loadBalancer']['id']
 
-    def _patch_attributes_request(self, lb_id_offset=0, status_key=None):
+    def _patch_attributes_request(
+        self, lb_id_offset=0, status_key=None, status_val=None
+    ):
         """
         Creates a CLB for the tenant, then attempts to patch its status using
         the CLB control plane endpoint.
@@ -133,8 +135,11 @@ class LoadbalancerAPITests(SynchronousTestCase):
             created for the tenant will be referenced in the patch request
             offset by this much.
         :param str status_key: Defaults to '"status"'.  If provided, the patch
-            will be made against this member of the CLB's state.
-
+            will be made against this member of the CLB's state.  Note that
+            surrounding quotes are required for th key, thus giving the caller
+            the ability to deliberately distort the JSON.
+        :param str status_val: Defaults to 'PENDING_DELETE'.  If provided, the
+            provided setting will be used for the status key provided.
         :return: An instance of _CLBChangeResponseAndID.  The `resp` attribute
             will refer to Mimic's response object; `code` will be set to the
             HTTP result code from the request.
@@ -144,11 +149,13 @@ class LoadbalancerAPITests(SynchronousTestCase):
         )
         lb_id = self._create_loadbalancer('test_lb') + lb_id_offset
         status_key = status_key or '"status"'
+        status_val = status_val or 'PENDING_DELETE'
+        payload = '{{{0}: "{1}"}}'.format(status_key, status_val)
         set_attributes_req = request(
             self, self.root, "PATCH", "{0}/loadbalancer/{1}/attributes".format(
                 ctl_uri, lb_id
             ),
-            '{{{0}: "PENDING_DELETE"}}'.format(status_key)
+            payload
         )
         return _CLBChangeResponseAndID(
             resp=self.successResultOf(set_attributes_req), lb_id=lb_id
@@ -189,6 +196,14 @@ class LoadbalancerAPITests(SynchronousTestCase):
         supported, we should get back a 400 Bad Request as well.
         """
         r = self._patch_attributes_request(status_key="\"stats\"")
+        self.assertEqual(r.resp.code, 400)
+
+    def test_lb_status_change_to_illegal_status(self):
+        """
+        If we attempt to set a valid status on a valid CLB for a valid tenant
+        to a value which is nonsensical, we should get back a 400.
+        """
+        r = self._patch_attributes_request(status_val="KJDHSFLKJDSH")
         self.assertEqual(r.resp.code, 400)
 
     def test_lb_status_change_against_undefined_clb(self):

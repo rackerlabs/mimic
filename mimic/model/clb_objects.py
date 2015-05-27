@@ -14,19 +14,20 @@ from mimic.canned_responses.loadbalancer import (load_balancer_example,
                                                  _delete_node)
 
 
+@attributes(["keys"])
 class BadKeysError(Exception):
     """
     When trying to alter the settings of a load balancer, this exception will
     be raised if you attempt to alter an attribute which doesn't exist.
     """
-    def __init__(self, msg, keys):
-        """
-        Exception constructor.
 
-        :param list keys: The set of keys that are considered bad.
-        """
-        super(BadKeysError, self).__init__(msg)
-        self.keys = keys
+
+@attributes(["value", "accepted_values"])
+class BadValueError(Exception):
+    """
+    When trying to alter the settings of a load balancer, this exception will
+    be raised if you attempt to set a valid attribute to an invalid setting.
+    """
 
 
 def _prep_for_list(lb_list):
@@ -113,7 +114,7 @@ class RegionalCLBCollection(object):
             if k not in supported_keys:
                 badKeys.append(k)
         if len(badKeys) > 0:
-            raise BadKeysError("Attempt to alter a bad attribute", badKeys)
+            raise BadKeysError("Attempt to alter a bad attribute", keys=badKeys)
 
         if "status" in kvpairs:
             supported_statuses = [
@@ -121,10 +122,11 @@ class RegionalCLBCollection(object):
             ]
             s = kvpairs["status"]
             if s not in supported_statuses:
-                raise ValueError(
-                    "Unsupported status {} not one of {}".format(
+                raise BadValueError(
+                    "Unsupported status {0} not one of {1}".format(
                         s, supported_statuses
-                    )
+                    ),
+                    value=s, accepted_values=supported_statuses
                 )
 
         self.lbs[lb_id].update(kvpairs)
