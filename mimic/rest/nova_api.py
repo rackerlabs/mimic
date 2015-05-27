@@ -151,14 +151,19 @@ class NovaControlApiRegion(object):
                     "message": "Stuff is broken, what"
                 }
             }
+
+        The response looks like::
+
+            {
+                "id": "this-is-a-uuid-here"
+            }
         """
         behavior_description = json.loads(request.content.read())
         region_collection = self._collection_from_tenant(tenant_id)
-        region_collection.create_behavior_registry.register_from_json(
-            behavior_description
-        )
+        behavior_id = (region_collection.create_behavior_registry
+                       .register_from_json(behavior_description))
         request.setResponseCode(CREATED)
-        return b''
+        return json.dumps({'id': text_type(behavior_id)})
 
     @app.route("/v2/<string:tenant_id>/attributes/", methods=['POST'])
     def change_attributes(self, request, tenant_id):

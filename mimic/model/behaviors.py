@@ -1,17 +1,20 @@
 """
 General-purpose utilities for customizing response behavior.
 """
-
 import re
-from characteristic import attributes, Attribute
+from uuid import uuid4
+
+import attr
 
 
-@attributes(['name', 'predicate'])
+@attr.s
 class Criterion(object):
     """
     A criterion evaluates a predicate (callable object returning boolean)
     against an attribute with the given name.
     """
+    name = attr.ib()
+    predicate = attr.ib()
 
     def evaluate(self, attributes):
         """
@@ -22,13 +25,14 @@ class Criterion(object):
         return self.predicate(attributes[self.name])
 
 
-@attributes(['criteria'])
+@attr.s
 class CriteriaCollection(object):
     """
     A CriteriaCollection is a collection of Criterion which implements the same
     interface (``evaluate(attributes)``) by evaluating each of the Criterion
     objects it comprises and returning True if they all match.
     """
+    criteria = attr.ib()
 
     def evaluate(self, attributes):
         """
@@ -48,8 +52,7 @@ def regexp_predicate(value):
     return re.compile(value).match
 
 
-@attributes([Attribute("_behaviors", default_factory=dict),
-             Attribute("_criteria", default_factory=dict)])
+@attr.s
 class EventDescription(object):
     """
     A collection of behaviors which might be responses for a given event, and
@@ -59,6 +62,8 @@ class EventDescription(object):
         :obj:`BehaviorRegistry.behavior_for_attributes` if no registered
         criteria match.
     """
+    _behaviors = attr.ib(default=attr.Factory(dict))
+    _criteria = attr.ib(default=attr.Factory(dict))
 
     def declare_behavior_creator(self, name):
         """
@@ -129,30 +134,36 @@ class EventDescription(object):
         return CriteriaCollection(criteria=list(create_criteria()))
 
 
-@attributes(["event",
-             Attribute("registered_behaviors", default_factory=list)])
+@attr.s
 class BehaviorRegistry(object):
     """
     A registry of behavior.
 
-    :ivar EventDescription event: The set of criteria and behaviors that this
-        registry is operating for.
+    :ivar EventDescription event: The event this registry is operating for.
+    :ivar registered_behaviors: The set of criteria and behaviors to use for
+        this event.  Currently this is just a list of tuples of
+        (behavior, criteria, and uuid).
     """
+    event = attr.ib()
+    registered_behaviors = attr.ib(default=attr.Factory(list))
 
     def register_from_json(self, json_payload):
         """
         Register a behavior with the given JSON payload from a request.
         """
+        behavior_id = uuid4()
         self.registered_behaviors.append(
             (self.event.create_behavior(json_payload["name"],
                                         json_payload["parameters"]),
-             self.event.create_criteria(json_payload["criteria"])))
+             self.event.create_criteria(json_payload["criteria"]),
+             behavior_id))
+        return behavior_id
 
     def behavior_for_attributes(self, attributes):
         """
         Retrive a previously-registered behavior given the set of attributes.
         """
-        for behavior, criteria in self.registered_behaviors:
+        for behavior, criteria, _ in self.registered_behaviors:
             if criteria.evaluate(attributes):
                 return behavior
         return self.event.default_behavior
