@@ -67,6 +67,9 @@ def create_server(helper, body, region="ORD", json=False):
     :param str body: String containing the server args
     :param str region: The region in which to create the server
     :param bool json: Whether to use json_request
+
+    :return: either the response object, or the response object and JSON
+        body if ``json`` is `True`.
     """
     request_func = json_request if json else request
     create_server = request_func(
@@ -80,12 +83,17 @@ def create_server(helper, body, region="ORD", json=False):
     return helper.test_case.successResultOf(create_server)
 
 
-def quick_create_server(helper, region="ORD"):
+def quick_create_server(helper, region="ORD", name=None):
     """
     Quickly create a server with a bunch of default parameters, retrieving its
     server ID.
+
+    :param name: Optional name of the server
+
+    :return: the server ID of the created server
     """
-    _, body = create_server(helper, server_args(), region=region, json=True)
+    _, body = create_server(helper, server_args(name=name),
+                            region=region, json=True)
     return body["server"]["id"]
 
 
@@ -682,15 +690,13 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
         """
         Create ``n`` servers, returning a list of their server IDs.
         """
-        resps = [
-            create_server(
+        return [
+            quick_create_server(
                 self.helper,
-                server_args(name=("{0}".format(i) if name_generation is None
-                                  else name_generation(i))),
-                json=True
+                name=("{0}".format(i) if name_generation is None
+                      else name_generation(i))
             ) for i in range(n)
         ]
-        return [body['server']['id'] for resp, body in resps]
 
     def list_servers(self, path, params=None, code=200):
         """
