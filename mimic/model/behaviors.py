@@ -184,6 +184,6 @@ class BehaviorRegistry(object):
         for i, behaviors in enumerate(self.registered_behaviors):
             b, c, b_id = behaviors
             if b_id == behavior_id:
-                self.registered_behaviors.pop(i)
+                del self.registered_behaviors[i]
                 return
         raise NoSuchBehaviorError(behavior_id=behavior_id)
