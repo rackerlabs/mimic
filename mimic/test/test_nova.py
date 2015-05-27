@@ -5,6 +5,9 @@ Tests for :mod:`nova_api` and :mod:`nova_objects`.
 import json
 from urllib import urlencode
 from urlparse import parse_qs
+from uuid import UUID
+
+from six import string_types
 
 from testtools.matchers import (
     ContainsDict, Equals, MatchesDict, MatchesListwise, StartsWith)
@@ -1380,7 +1383,9 @@ class NovaAPINegativeTests(SynchronousTestCase):
                                     json.dumps(criterion))
         response, body = self.successResultOf(set_criteria)
         self.assertEqual(response.code, 201)
-        self.assertTrue(body.get("id"))
+        behavior_id = body.get("id")
+        self.assertIsInstance(behavior_id, string_types)
+        self.assertEqual(UUID(behavior_id).version, 4)
 
     def test_create_server_failure_using_behaviors(self):
         """
