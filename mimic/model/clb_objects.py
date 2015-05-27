@@ -14,6 +14,22 @@ from mimic.canned_responses.loadbalancer import (load_balancer_example,
                                                  _delete_node)
 
 
+@attributes(["keys"])
+class BadKeysError(Exception):
+    """
+    When trying to alter the settings of a load balancer, this exception will
+    be raised if you attempt to alter an attribute which doesn't exist.
+    """
+
+
+@attributes(["value", "accepted_values"])
+class BadValueError(Exception):
+    """
+    When trying to alter the settings of a load balancer, this exception will
+    be raised if you attempt to set a valid attribute to an invalid setting.
+    """
+
+
 def _prep_for_list(lb_list):
     """
     Removes tenant id and changes the nodes list to 'nodeCount' set to the
@@ -23,7 +39,9 @@ def _prep_for_list(lb_list):
                        'created', 'virtualIps', 'updated', 'nodeCount')
     filtered_lb_list = []
     for each in lb_list:
-        filtered_lb_list.append(dict((entry, each[entry]) for entry in entries_to_keep))
+        filtered_lb_list.append(
+            dict((entry, each[entry]) for entry in entries_to_keep)
+        )
     return filtered_lb_list
 
 
@@ -37,6 +55,13 @@ class RegionalCLBCollection(object):
         """
         self.lbs = {}
         self.meta = {}
+
+    def lb_in_region(self, clb_id):
+        """
+        Returns true if the CLB ID is registered with our list of load
+        balancers.
+        """
+        return clb_id in self.lbs
 
     def add_load_balancer(self, tenant_id, lb_info, lb_id, current_timestamp):
         """
@@ -77,6 +102,34 @@ class RegionalCLBCollection(object):
         new_lb = _lb_without_tenant(self, lb_id)
 
         return {'loadBalancer': new_lb}, 202
+
+    def set_attributes(self, lb_id, kvpairs):
+        """
+        Sets zero or more attributes on the load balancer object.
+        Currently supported attributes include: status.
+        """
+        supported_keys = ["status"]
+        badKeys = []
+        for k in kvpairs:
+            if k not in supported_keys:
+                badKeys.append(k)
+        if len(badKeys) > 0:
+            raise BadKeysError("Attempt to alter a bad attribute", keys=badKeys)
+
+        if "status" in kvpairs:
+            supported_statuses = [
+                "ACTIVE", "ERROR", "PENDING_DELETE", "PENDING_UPDATE"
+            ]
+            s = kvpairs["status"]
+            if s not in supported_statuses:
+                raise BadValueError(
+                    "Unsupported status {0} not one of {1}".format(
+                        s, supported_statuses
+                    ),
+                    value=s, accepted_values=supported_statuses
+                )
+
+        self.lbs[lb_id].update(kvpairs)
 
     def get_load_balancers(self, lb_id, current_timestamp):
         """
