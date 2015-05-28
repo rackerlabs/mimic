@@ -785,6 +785,9 @@ class RegionalServerCollection(object):
         to_be_listed = [server for server in to_be_listed
                         if name in server.server_name]
 
+        if changes_since is None:
+            to_be_listed = filter(lambda s: s.status != u"DELETED", to_be_listed)
+
         if limit is not None:
             try:
                 limit = int(limit)
@@ -796,9 +799,6 @@ class RegionalServerCollection(object):
                                          http_get_request))
 
             to_be_listed = to_be_listed[:limit]
-
-        if changes_since is None:
-            to_be_listed = filter(lambda s: s.status != u"DELETED", to_be_listed)
 
         result = {
             "servers": [
