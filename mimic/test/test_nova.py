@@ -1119,6 +1119,23 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
             self.assertEqual({'servers': [servers[3], servers[5]]},
                              with_params)
 
+    def test_deleted_servers_do_not_affect_pagination_no_changes_since(self):
+        """
+        If a bunch of servers are deleted, they do not impact pagination if
+        changes-since is not passed.
+        """
+        for path in ('/servers', '/servers/detail'):
+            self.make_nova_app()
+            server_ids = self.create_servers(5)
+            for server_id in server_ids:
+                delete_server(self.helper, server_id)
+
+            server_ids = self.create_servers(5)
+            servers = self.list_servers(path, {'limit': 5})
+            self.assertEqual(set([s['id'] for s in servers['servers']]),
+                             set(server_ids))
+            self.assertIn('servers_links', servers)
+
 
 class NovaAPINegativeTests(SynchronousTestCase):
     """
