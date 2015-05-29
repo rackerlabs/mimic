@@ -1,4 +1,4 @@
-# -*- test-case-name: mimic.test.test_auth -*-
+# -*- test-case-name: mimic.test.test_mailgun -*-
 """
 API Mock for Mail Gun.
 https://documentation.mailgun.com/api-sending.html
