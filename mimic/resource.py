@@ -10,7 +10,7 @@ from mimic.canned_responses.mimic_presets import get_presets
 from mimic.rest.mimicapp import MimicApp
 from mimic.rest.auth_api import AuthApi, base_uri_from_request
 from mimic.rest.noit_api import NoitApi
-from mimic.rest import fastly_api
+from mimic.rest import fastly_api, mailgun_api
 from mimic.util.helper import seconds_to_timestamp
 
 
@@ -63,15 +63,12 @@ class MimicRoot(object):
         request.setResponseCode(200)
         return b''
 
-    @app.route("/cloudmonitoring.rackspace.com/messages", methods=['POST'])
+    @app.route("/cloudmonitoring.rackspace.com", branch=True)
     def mailgun_api(self, request):
         """
-        Mock Mailgun api responds with a 200 with a statis response.
+        Mock Mail Gun API.
         """
-        request.setResponseCode(200)
-        return json.dumps({
-            "message": "Queued. Thank you.",
-            "id": "<20120315083536.28675.36480@samples.mailgun.org>"})
+        return mailgun_api.MailGunApi(self.core).app.resource()
 
     @app.route("/fastly", branch=True)
     def get_fastly_api(self, request):
