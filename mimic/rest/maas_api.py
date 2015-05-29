@@ -253,11 +253,17 @@ def create_multiplot_from_metric(metric, reqargs, allchecks):
     """
     Given a metric, this will produce fake datapoints to graph
     This is for the multiplot API call
+
+    Also, if you name a PING check "squarewave", you will get
+    datapoints that form such a wave. This is for testing the
+    graphing-solution you have in place. Produces a static, yet
+    unique-looking, graph for screen comparison solutions.
     """
     fromdate = int(reqargs['from'][0])
     todate = int(reqargs['to'][0])
     points = int(reqargs['points'][0])
     multiplot = {}
+    squarewave_downtrend = 1
     for c in allchecks:
         if c['entity_id'] == metric['entity_id']:
             if c['type'] == 'remote.ping':
@@ -276,7 +282,15 @@ def create_multiplot_from_metric(metric, reqargs, allchecks):
                     d = {}
                     d['numPoints'] = 4
                     d['timestamp'] = timestamp
-                    d['average'] = random.randint(1, 99)
+                    if not q % (points / 4):
+                        squarewave_downtrend = squarewave_downtrend ^ 1
+                    if c['label'] == 'squarewave':
+                        if squarewave_downtrend:
+                            d['average'] = 15
+                        else:
+                            d['average'] = 85
+                    else:
+                        d['average'] = random.randint(1, 99)
                     multiplot['data'].append(d)
                     timestamp += interval
 

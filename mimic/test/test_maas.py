@@ -399,6 +399,28 @@ class MaasAPITests(SynchronousTestCase):
         data = self.get_responsebody(resp)
         self.assertEquals(500, len(data['metrics'][0]['data']))
 
+    def test_multiplot_squarewave(self):
+        """
+        get datapoints for graph, specifically squarewave PING check graph
+        """
+        metrics = []
+        squarewave_check_id = self.getXobjectIDfromResponse(self.createCheck('squarewave',
+                                                                             self.entity_id))
+        req = request(self, self.root, "GET", self.uri + '/views/metric_list', '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        for m in data['values'][0]['checks'][0]['metrics']:
+            mq = {'entity_id': self.entity_id, 'check_id': squarewave_check_id, 'metric': m['name']}
+            metrics.append(mq)
+        qstring = '?from=1412902262560&points=500&to=1412988662560'
+        req = request(self, self.root, "POST",
+                      self.uri + '/__experiments/multiplot' + qstring, json.dumps({'metrics': metrics}))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertEquals(500, len(data['metrics'][0]['data']))
+
     def test_get_all_notification_plans(self):
         """
         get all notification plans
