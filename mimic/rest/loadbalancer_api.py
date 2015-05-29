@@ -13,10 +13,13 @@ from mimic.imimic import IAPIMock
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 
-from mimic.model.clb_objects import GlobalCLBCollections
+from mimic.model.clb_objects import (
+    GlobalCLBCollections, BadKeysError, BadValueError
+)
 from random import randrange
 
 from mimic.util.helper import invalid_resource, json_dump
+from characteristic import attributes
 
 
 Request.defaultContentType = 'application/json'
@@ -25,7 +28,7 @@ Request.defaultContentType = 'application/json'
 @implementer(IAPIMock, IPlugin)
 class LoadBalancerApi(object):
     """
-    Rest endpoints for mocked Load balancer api.
+    This class registers the load balancer API in the service catalog.
     """
     def __init__(self, regions=["ORD"]):
         """
@@ -37,8 +40,6 @@ class LoadBalancerApi(object):
         """
         Cloud load balancer entries.
         """
-        # TODO: actually add some entries so load balancers show up in the
-        # service catalog.
         return [
             Entry(tenant_id, "rax:load-balancer", "cloudLoadBalancers",
                   [
@@ -56,6 +57,115 @@ class LoadBalancerApi(object):
         lb_region = LoadBalancerRegion(self, uri_prefix, session_store,
                                        region)
         return lb_region.app.resource()
+
+    def _get_session(self, session_store, tenant_id):
+        """
+        Retrieve or create a new LoadBalancer session from a given tenant identifier
+        and :obj:`SessionStore`.
+
+        For use with ``data_for_api``.
+
+        Temporary hack; see this issue
+        https://github.com/rackerlabs/mimic/issues/158
+        """
+        return (
+            session_store.session_for_tenant_id(tenant_id)
+            .data_for_api(self, lambda: GlobalCLBCollections(
+                tenant_id=tenant_id,
+                clock=session_store.clock
+            ))
+        )
+
+
+@implementer(IAPIMock, IPlugin)
+@attributes(["lb_api"])
+class LoadBalancerControlApi(object):
+    """
+    This class registers the load balancer controller API in the service
+    catalog.
+    """
+    def catalog_entries(self, tenant_id):
+        """
+        Cloud load balancer controller endpoints.
+        """
+        return [
+            Entry(
+                tenant_id, "rax:load-balancer", "cloudLoadBalancerControl",
+                [
+                    Endpoint(tenant_id, region, text_type(uuid4()), prefix="v2")
+                    for region in self.lb_api._regions
+                ]
+            )
+        ]
+
+    def resource_for_region(self, region, uri_prefix, session_store):
+        """
+        Get an :obj:`twisted.web.iweb.IResource` for the given URI prefix;
+        implement :obj:`IAPIMock`.
+        """
+        lbc_region = LoadBalancerControlRegion(api_mock=self, uri_prefix=uri_prefix,
+                                               session_store=session_store, region=region)
+        return lbc_region.app.resource()
+
+
+@attributes(["api_mock", "uri_prefix", "session_store", "region"])
+class LoadBalancerControlRegion(object):
+    """
+    Klein routes for load balancer's control API within a particular region.
+    """
+
+    app = MimicApp()
+
+    def _collection_from_tenant(self, tenant_id):
+        """
+        Retrieve the server collection for this region for the given tenant.
+        """
+        return (self.api_mock.lb_api._get_session(self.session_store, tenant_id)
+                .collection_for_region(self.region))
+
+    @app.route(
+        '/v2/<string:tenant_id>/loadbalancer/<int:clb_id>/attributes',
+        methods=['PATCH']
+    )
+    def set_attributes(self, request, tenant_id, clb_id):
+        """
+        Alters the supported attributes of the CLB to supported values.  To
+        return things back to normal, you'll first need to list the CLB to get
+        any original values yourself.
+        """
+        regional_lbs = self._collection_from_tenant(tenant_id)
+        if not regional_lbs.lb_in_region(clb_id):
+            request.setResponseCode(404)
+            return json.dumps({
+                "message": "Tenant {0} doesn't own load balancer {1}".format(
+                    tenant_id, clb_id
+                ),
+                "code": 404,
+            })
+
+        try:
+            content = json.loads(request.content.read())
+        except ValueError:
+            request.setResponseCode(400)
+            return json.dumps(invalid_resource("Invalid JSON request body"))
+
+        try:
+            regional_lbs.set_attributes(clb_id, content)
+        except BadKeysError, bke:
+            request.setResponseCode(400)
+            return json.dumps({
+                "message": str(bke),
+                "code": 400,
+            })
+        except BadValueError, bve:
+            request.setResponseCode(400)
+            return json.dumps({
+                "message": str(bve),
+                "code": 400,
+            })
+        else:
+            request.setResponseCode(204)
+            return b''
 
 
 class LoadBalancerRegion(object):

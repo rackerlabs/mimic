@@ -7,9 +7,12 @@ Helper methods
 """
 import os
 import string
+import calendar
 from datetime import datetime, timedelta
 import json
 from random import choice, randint
+
+import iso8601
 
 from six import text_type
 
@@ -71,6 +74,18 @@ def seconds_to_timestamp(seconds, format=fmt):
     Return an ISO8601 Zulu timestamp given seconds since the epoch.
     """
     return datetime.utcfromtimestamp(seconds).strftime(format)
+
+
+def timestamp_to_seconds(timestamp):
+    """
+    Return epoch from an ISO8601 Zulu timestamp
+
+    :param str timestamp: ISO8601 formatted time
+    :return: EPOCH seconds
+    :rtype: float
+    """
+    dt = iso8601.parse_date(timestamp)
+    return calendar.timegm(dt.utctimetuple()) + dt.microsecond / 1000000.
 
 
 def not_found_response(resource='servers'):

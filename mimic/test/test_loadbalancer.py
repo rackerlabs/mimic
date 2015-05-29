@@ -8,9 +8,10 @@ import treq
 from twisted.trial.unittest import SynchronousTestCase
 from mimic.canned_responses.loadbalancer import load_balancer_example
 from mimic.test.fixtures import APIMockHelper, TenantAuthentication
-from mimic.rest.loadbalancer_api import LoadBalancerApi
+from mimic.rest.loadbalancer_api import LoadBalancerApi, LoadBalancerControlApi
 from mimic.test.helpers import request_with_content, request
 from mimic.util.helper import EMPTY_RESPONSE
+import attr
 
 
 class ResponseGenerationTests(SynchronousTestCase):
@@ -76,6 +77,19 @@ class ResponseGenerationTests(SynchronousTestCase):
         self.assertEqual(actual, lb_example)
 
 
+@attr.s
+class _CLBChangeResponseAndID(object):
+    """
+    A simple data structure intended to conveniently communicate the results
+    of issuing a CLB control plane request.
+    """
+    resp = attr.ib()
+    "The response returned from the .../attributes PATCH request."
+
+    lb_id = attr.ib()
+    "The CLB ID used for the purposes of performing the test."
+
+
 class LoadbalancerAPITests(SynchronousTestCase):
     """
     Tests for the Loadbalancer plugin API
@@ -85,7 +99,8 @@ class LoadbalancerAPITests(SynchronousTestCase):
         """
         Create a :obj:`MimicCore` with :obj:`LoadBalancerApi` as the only plugin
         """
-        self.helper = APIMockHelper(self, [LoadBalancerApi()])
+        lb = LoadBalancerApi()
+        self.helper = APIMockHelper(self, [lb, LoadBalancerControlApi(lb_api=lb)])
         self.root = self.helper.root
         self.uri = self.helper.uri
 
@@ -108,6 +123,96 @@ class LoadbalancerAPITests(SynchronousTestCase):
         create_lb_response = self.successResultOf(create_lb)
         create_lb_response_body = self.successResultOf(treq.json_content(create_lb_response))
         return create_lb_response_body['loadBalancer']['id']
+
+    def _patch_attributes_request(
+        self, lb_id_offset=0, status_key=None, status_val=None
+    ):
+        """
+        Creates a CLB for the tenant, then attempts to patch its status using
+        the CLB control plane endpoint.
+
+        :param int lb_id_offset: Defaults to 0.  If provided, the CLB that is
+            created for the tenant will be referenced in the patch request
+            offset by this much.
+        :param str status_key: Defaults to '"status"'.  If provided, the patch
+            will be made against this member of the CLB's state.  Note that
+            surrounding quotes are required for th key, thus giving the caller
+            the ability to deliberately distort the JSON.
+        :param str status_val: Defaults to 'PENDING_DELETE'.  If provided, the
+            provided setting will be used for the status key provided.
+        :return: An instance of _CLBChangeResponseAndID.  The `resp` attribute
+            will refer to Mimic's response object; `code` will be set to the
+            HTTP result code from the request.
+        """
+        ctl_uri = self.helper.auth.get_service_endpoint(
+            "cloudLoadBalancerControl", "ORD"
+        )
+        lb_id = self._create_loadbalancer('test_lb') + lb_id_offset
+        status_key = status_key or '"status"'
+        status_val = status_val or 'PENDING_DELETE'
+        payload = '{{{0}: "{1}"}}'.format(status_key, status_val)
+        set_attributes_req = request(
+            self, self.root, "PATCH", "{0}/loadbalancer/{1}/attributes".format(
+                ctl_uri, lb_id
+            ),
+            payload
+        )
+        return _CLBChangeResponseAndID(
+            resp=self.successResultOf(set_attributes_req), lb_id=lb_id
+        )
+
+    def test_lb_status_changes_as_requested(self):
+        """
+        Clients can ``PATCH`` to the ``.../loadbalancer/<lb-id>/attributes``
+        :obj:`LoadBalancerControlApi` endpoint in order to change the
+        ``status`` attribute on the load balancer identified by the given
+        load-balancer ID for the same tenant in the :obj:`LoadBalancerApi`.
+
+        This attribute controls the status code returned when the load balancer
+        is retrieved by a ``GET`` request.
+        """
+        r = self._patch_attributes_request()
+        self.assertEqual(r.resp.code, 204)
+
+        get_lb = request(self, self.root, "GET", self.uri + '/loadbalancers/' + str(r.lb_id))
+        get_lb_response = self.successResultOf(get_lb)
+        get_lb_response_body = self.successResultOf(
+            treq.json_content(get_lb_response)
+        )["loadBalancer"]
+        self.assertEqual(get_lb_response.code, 200)
+        self.assertEqual(get_lb_response_body["status"], "PENDING_DELETE")
+
+    def test_lb_status_change_with_illegal_json(self):
+        """
+        In the event the user sends a malformed request body to the
+        .../attributes endpoint, we should get back a 400 Bad Request.
+        """
+        r = self._patch_attributes_request(status_key="\"status'")
+        self.assertEqual(r.resp.code, 400)
+
+    def test_lb_status_change_with_bad_keys(self):
+        """
+        In the event the user sends a request to alter a key which isn't
+        supported, we should get back a 400 Bad Request as well.
+        """
+        r = self._patch_attributes_request(status_key="\"stats\"")
+        self.assertEqual(r.resp.code, 400)
+
+    def test_lb_status_change_to_illegal_status(self):
+        """
+        If we attempt to set a valid status on a valid CLB for a valid tenant
+        to a value which is nonsensical, we should get back a 400.
+        """
+        r = self._patch_attributes_request(status_val="KJDHSFLKJDSH")
+        self.assertEqual(r.resp.code, 400)
+
+    def test_lb_status_change_against_undefined_clb(self):
+        """
+        In the event the user sends a request to alter a key on a load balancer
+        which doesn't belong to the requestor, we should get back a 404 code.
+        """
+        r = self._patch_attributes_request(lb_id_offset=1000)
+        self.assertEqual(r.resp.code, 404)
 
     def test_multiple_regions_multiple_endpoints(self):
         """
@@ -274,7 +379,8 @@ class LoadbalancerAPITests(SynchronousTestCase):
         list_lb_response, list_lb_response_body = self.successResultOf(
             request_with_content(
                 self, self.root, "GET",
-                other_tenant.nth_endpoint_public(0) + "/loadbalancers"))
+                other_tenant.get_service_endpoint("cloudLoadBalancers")
+                + "/loadbalancers"))
 
         self.assertEqual(list_lb_response.code, 200)
 
@@ -293,7 +399,8 @@ class LoadbalancerAPITests(SynchronousTestCase):
         list_lb_response, list_lb_response_body = self.successResultOf(
             request_with_content(
                 self, helper.root, "GET",
-                helper.nth_endpoint_public(1) + "/loadbalancers"))
+                helper.get_service_endpoint("cloudLoadBalancers", "DFW")
+                + "/loadbalancers"))
 
         self.assertEqual(list_lb_response.code, 200)
 

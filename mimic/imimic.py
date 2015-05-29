@@ -2,7 +2,7 @@
 Interfaces for Mimic.
 """
 
-from zope.interface import Interface
+from zope.interface import Attribute, Interface
 
 
 class IAPIMock(Interface):
@@ -22,4 +22,26 @@ class IAPIMock(Interface):
                             session_store):  # pragma:nocover
         """
         Get a resource for the given region.
+        """
+
+
+class ICredential(Interface):
+    """
+    An :obj:`ICredential` provides identity authentication credentials.
+    """
+    type_key = Attribute("The type key to look for in a JSON dictionary "
+                         "representing the credential.")
+
+    def get_session(session_store):  # pragma:nocover
+        """
+        Get a session corresponding to the user and tenant from the given
+        session store.
+
+        :param session_store: The store of all sessions for all tenants for
+            all plugins across all regions.
+        :type session_store: :class:`mimic.session.SessionStore`
+
+        :return: A session corresponding to the user and plugin data for a
+            single tenant for all plugins across all regions.
+        :rtype: :class:`mimic.session.SessionStore`
         """

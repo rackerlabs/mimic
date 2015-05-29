@@ -5,18 +5,21 @@ Tests for :mod:`nova_api` and :mod:`nova_objects`.
 import json
 from urllib import urlencode
 from urlparse import parse_qs
+from uuid import UUID, uuid4
+
+from six import string_types, text_type
 
 from testtools.matchers import (
-    Equals, MatchesDict, MatchesListwise, StartsWith)
+    ContainsDict, Equals, MatchesDict, MatchesListwise, StartsWith)
 
 import treq
 
-from twisted.internet.defer import gatherResults
 from twisted.trial.unittest import SynchronousTestCase
 
-from mimic.test.helpers import json_request, request, validate_link_json
+from mimic.test.helpers import json_request, request, request_with_content, validate_link_json
 from mimic.rest.nova_api import NovaApi, NovaControlApi
 from mimic.test.fixtures import APIMockHelper, TenantAuthentication
+from mimic.util.helper import seconds_to_timestamp
 
 
 def status_of_server(test_case, server_id):
@@ -31,20 +34,135 @@ def status_of_server(test_case, server_id):
     return get_server_response_body['server']['status']
 
 
-def quick_create_server(helper, region="ORD"):
+def server_args(name=None, imageRef=None, flavorRef=None,
+                metadata=None, diskConfig=None):
+    """
+    Helper function to generate a create server request body.
+
+    :param name: Name of the server
+    :param imageRef: Image of the server
+    :param flavorRef: Flavor size of the server
+    :param metadata: Metadata of the server
+    :param diskConfig: the "OS-DCF:diskConfig" setting for the server
+
+    :return: A stringified JSON dictionary that can be passed to a create
+        server request.
+    """
+    data = {
+        "name": name or 'test_server',
+        "imageRef": imageRef or "test-image",
+        "flavorRef": flavorRef or "test-flavor"
+    }
+    if metadata is not None:
+        data['metadata'] = metadata
+    if diskConfig is not None:
+        data["OS-DCF:diskConfig"] = diskConfig
+    return json.dumps({"server": data})
+
+
+def create_server(helper, body, region="ORD", json=False):
+    """
+    Create a server with the given body and returns the response object.
+
+    :param str body: String containing the server args
+    :param str region: The region in which to create the server
+    :param bool json: Whether to use json_request
+
+    :return: either the response object, or the response object and JSON
+        body if ``json`` is `True`.
+    """
+    request_func = json_request if json else request
+    create_server = request_func(
+        helper.test_case,
+        helper.root,
+        "POST",
+        '{0}/servers'.format(helper.get_service_endpoint(
+            "cloudServersOpenStack", region)),
+        body
+    )
+    return helper.test_case.successResultOf(create_server)
+
+
+def quick_create_server(helper, region="ORD", name=None):
     """
     Quickly create a server with a bunch of default parameters, retrieving its
     server ID.
+
+    :param name: Optional name of the server
+
+    :return: the server ID of the created server
     """
-    response = request(
-        helper.test_case, helper.root, "POST", helper.get_service_endpoint(
-            "cloudServersOpenStack", region) + "/servers",
-        json.dumps({"server": {
-            "name": "test2", "imageRef": "w/e", "flavorRef": "lol"
-        }}))
-    return helper.test_case.successResultOf(
-        treq.json_content(helper.test_case.successResultOf(response))
-    )["server"]["id"]
+    _, body = create_server(helper, server_args(name=name),
+                            region=region, json=True)
+    return body["server"]["id"]
+
+
+def delete_server(helper, server_id):
+    """
+    Delete server
+    """
+    d = request_with_content(
+        helper.test_case, helper.root, "DELETE",
+        '{0}/servers/{1}'.format(helper.uri, server_id))
+    resp, body = helper.test_case.successResultOf(d)
+    helper.test_case.assertEqual(resp.code, 204)
+
+
+def update_metdata_item(helper, server_id, key, value):
+    """
+    Update metadata item
+    """
+    d = request_with_content(
+        helper.test_case, helper.root, "PUT",
+        '{0}/servers/{1}/metadata/{2}'.format(helper.uri, server_id, key),
+        json.dumps({'meta': {key: value}}))
+    resp, body = helper.test_case.successResultOf(d)
+    helper.test_case.assertEqual(resp.code, 200)
+
+
+def update_metdata(helper, server_id, metadata):
+    """
+    Update metadata
+    """
+    d = request_with_content(
+        helper.test_case, helper.root, "PUT",
+        '{0}/servers/{1}/metadata'.format(helper.uri, server_id),
+        json.dumps({'metadata': metadata}))
+    resp, body = helper.test_case.successResultOf(d)
+    helper.test_case.assertEqual(resp.code, 200)
+
+
+def update_status(helper, control_endpoint, server_id, status):
+    """
+    Update server status
+    """
+    d = request_with_content(
+        helper.test_case, helper.root, "POST",
+        control_endpoint + "/attributes/",
+        json.dumps({"status": {server_id: status}}))
+    resp, body = helper.test_case.successResultOf(d)
+    helper.test_case.assertEqual(resp.code, 201)
+
+
+def use_creation_behavior(helper, name, parameters, criteria):
+    """
+    Use the given behavior for server creation.
+    """
+    criterion = {"name": name,
+                 "parameters": parameters,
+                 "criteria": criteria}
+    set_criteria = json_request(
+        helper.test_case, helper.root, "POST",
+        "{0}/behaviors/creation".format(
+            helper.auth.get_service_endpoint("cloudServersBehavior")),
+        json.dumps(criterion))
+
+    response, body = helper.test_case.successResultOf(set_criteria)
+    helper.test_case.assertEqual(response.code, 201)
+    behavior_id = body.get("id")
+    helper.test_case.assertIsInstance(behavior_id, string_types)
+    helper.test_case.assertEqual(UUID(behavior_id).version, 4)
+    return behavior_id
 
 
 class NovaAPITests(SynchronousTestCase):
@@ -59,22 +177,15 @@ class NovaAPITests(SynchronousTestCase):
         and create a server
         """
         nova_api = NovaApi(["ORD", "MIMIC"])
-        helper = self.helper = APIMockHelper(
+        self.helper = self.helper = APIMockHelper(
             self, [nova_api, NovaControlApi(nova_api=nova_api)]
         )
-        self.root = helper.root
-        self.uri = helper.uri
+        self.root = self.helper.root
+        self.uri = self.helper.uri
         self.server_name = 'test_server'
-        create_server = request(
-            self, self.root, "POST", self.uri + '/servers',
-            json.dumps({
-                "server": {
-                    "name": self.server_name,
-                    "imageRef": "test-image",
-                    "flavorRef": "test-flavor"
-                }
-            }))
-        self.create_server_response = self.successResultOf(create_server)
+
+        self.create_server_response = create_server(
+            self.helper, server_args(name=self.server_name))
         self.create_server_response_body = self.successResultOf(
             treq.json_content(self.create_server_response))
         self.server_id = self.create_server_response_body['server']['id']
@@ -84,17 +195,9 @@ class NovaAPITests(SynchronousTestCase):
         Servers should respect the provided OS-DCF:diskConfig setting if
         supplied.
         """
-        create_server = request(
-            self, self.root, "POST", self.uri + '/servers',
-            json.dumps({
-                "server": {
-                    "name": self.server_name + "A",
-                    "imageRef": "test-image",
-                    "flavorRef": "test-flavor",
-                    "OS-DCF:diskConfig": "MANUAL",
-                }
-            }))
-        create_server_response = self.successResultOf(create_server)
+        create_server_response = create_server(
+            self.helper, server_args(name=self.server_name + "A",
+                                     diskConfig="MANUAL"))
         response_body = self.successResultOf(
             treq.json_content(create_server_response))
         self.assertEqual(
@@ -117,17 +220,9 @@ class NovaAPITests(SynchronousTestCase):
         (e.g., one which is neither AUTO nor MANUAL), it should return an HTTP
         status code of 400.
         """
-        create_server = request(
-            self, self.root, "POST", self.uri + '/servers',
-            json.dumps({
-                "server": {
-                    "name": self.server_name + "A",
-                    "imageRef": "test-image",
-                    "flavorRef": "test-flavor",
-                    "OS-DCF:diskConfig": "AUTO-MANUAL",
-                }
-            }))
-        create_server_response = self.successResultOf(create_server)
+        create_server_response = create_server(
+            self.helper, server_args(name=self.server_name + "A",
+                                     diskConfig="AUTO-MANUAL"))
         self.assertEqual(create_server_response.code, 400)
 
     def validate_server_detail_json(self, server_json):
@@ -173,16 +268,8 @@ class NovaAPITests(SynchronousTestCase):
         """
         Two (or more) servers created should not share passwords.
         """
-        create_server = request(
-            self, self.root, "POST", self.uri + '/servers',
-            json.dumps({
-                "server": {
-                    "name": self.server_name,
-                    "imageRef": "test-image",
-                    "flavorRef": "test-flavor"
-                }
-            }))
-        other_response = self.successResultOf(create_server)
+        other_response = create_server(
+            self.helper, server_args(name=self.server_name))
         other_response_body = self.successResultOf(
             treq.json_content(other_response))
         self.assertNotEqual(
@@ -292,16 +379,7 @@ class NovaAPITests(SynchronousTestCase):
         ``GET /v2.0/<tenant_id>/servers/detail``, returns the server details
         for only the servers of a given name
         """
-        request(
-            self, self.root, "POST", self.uri + '/servers',
-            json.dumps({
-                "server": {
-                    "name": 'non-matching-name',
-                    "imageRef": "test-image",
-                    "flavorRef": "test-flavor"
-                }
-            }))
-
+        create_server(self.helper, server_args(name="non-matching-name"))
         response, body = self.successResultOf(json_request(
             self, self.root, "GET",
             "{0}/servers/detail?name={1}".format(self.uri, self.server_name)))
@@ -335,6 +413,11 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(delete_server_response.code, 204)
         self.assertEqual(self.successResultOf(treq.content(delete_server_response)),
                          b"")
+        # Get and see if server actually got deleted
+        get_server = request(
+            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+        get_server_response = self.successResultOf(get_server)
+        self.assertEqual(get_server_response.code, 404)
 
     def test_delete_server_negative(self):
         """
@@ -501,6 +584,95 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(second_status, "BUILD")
 
 
+class NovaAPIChangesSinceTests(SynchronousTestCase):
+    """
+    Tests for listing servers with changes-since filter
+    """
+
+    def setUp(self):
+        """
+        Create a :obj:`MimicCore` with :obj:`NovaApi` as the only plugin,
+        and create a server
+        """
+        nova_api = NovaApi(["ORD", "MIMIC"])
+        helper = self.helper = APIMockHelper(
+            self, [nova_api, NovaControlApi(nova_api=nova_api)]
+        )
+        self.root = helper.root
+        self.uri = helper.uri
+        self.clock = helper.clock
+        self.control_endpoint = helper.auth.get_service_endpoint(
+            "cloudServersBehavior",
+            "ORD")
+        self.server1 = quick_create_server(helper)
+        self.clock.advance(1)
+        self.server2 = quick_create_server(helper)
+
+    def list_servers_detail(self, since):
+        changes_since = seconds_to_timestamp(since)
+        params = urlencode({"changes-since": changes_since})
+        resp, body = self.successResultOf(
+            json_request(
+                self, self.root, "GET",
+                '{0}/servers/detail?{1}'.format(self.uri, params)))
+        self.assertEqual(resp.code, 200)
+        return body['servers']
+
+    def list_servers(self, since):
+        servers = self.list_servers_detail(since)
+        return [s['id'] for s in servers]
+
+    def test_no_changes(self):
+        """
+        Returns no servers if nothing has changed since time given
+        """
+        self.clock.advance(3)
+        self.assertEqual(self.list_servers(2), [])
+
+    def test_returns_created_servers(self):
+        """
+        Returns servers created after given time
+        """
+        self.assertEqual(self.list_servers(0.5), [self.server2])
+        self.assertEqual(self.list_servers(1.0), [self.server2])
+
+    def test_returns_deleted_servers(self):
+        """
+        Returns DELETED servers if they've been deleted since the time given
+        """
+        self.clock.advance(1)
+        delete_server(self.helper, self.server1)
+        self.clock.advance(2)
+        matcher = MatchesListwise(
+            [ContainsDict({"status": Equals(u"DELETED"), "id": Equals(self.server1)})])
+        mismatch = matcher.match(self.list_servers_detail(1.5))
+        self.assertIs(mismatch, None)
+
+    def test_returns_updated_status_servers(self):
+        """
+        Returns servers whose status has been updated since given time
+        """
+        self.clock.advance(1)
+        update_status(self.helper, self.control_endpoint, self.server2, u"ERROR")
+        self.assertEqual(self.list_servers(1.5), [self.server2])
+
+    def test_returns_updated_metadata_servers(self):
+        """
+        Returns servers whose metadata has changes since given time
+        """
+        self.clock.advance(1)
+        update_metdata_item(self.helper, self.server1, "a", "b")
+        self.assertEqual(self.list_servers(1.5), [self.server1])
+
+    def test_returns_replaced_metadata_servers(self):
+        """
+        Returns servers whose metadata has been replaced since given time
+        """
+        self.clock.advance(1)
+        update_metdata(self.helper, self.server1, {"a": "b"})
+        self.assertEqual(self.list_servers(1.5), [self.server1])
+
+
 class NovaAPIListServerPaginationTests(SynchronousTestCase):
     """
     Tests for the Nova plugin API for paginating while listing servers,
@@ -511,28 +683,21 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
         Create a :obj:`MimicCore` with :obj:`NovaApi` as the only plugin,
         and create a server
         """
-        helper = APIMockHelper(self, [NovaApi(["ORD", "MIMIC"])])
-        self.root = helper.root
-        self.uri = helper.uri
+        self.helper = APIMockHelper(self, [NovaApi(["ORD", "MIMIC"])])
+        self.root = self.helper.root
+        self.uri = self.helper.uri
 
     def create_servers(self, n, name_generation=None):
         """
         Create ``n`` servers, returning a list of their server IDs.
         """
-        resps = self.successResultOf(gatherResults([
-            json_request(
-                self, self.root, "POST", self.uri + '/servers',
-                json.dumps({
-                    "server": {
-                        "name": ("{0}".format(i)if name_generation is None
-                                 else name_generation(i)),
-                        "imageRef": "test-image",
-                        "flavorRef": "test-flavor"
-                    }
-                }))
-            for i in range(n)
-        ]))
-        return [body['server']['id'] for resp, body in resps]
+        return [
+            quick_create_server(
+                self.helper,
+                name=("{0}".format(i) if name_generation is None
+                      else name_generation(i))
+            ) for i in range(n)
+        ]
 
     def list_servers(self, path, params=None, code=200):
         """
@@ -954,6 +1119,23 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
             self.assertEqual({'servers': [servers[3], servers[5]]},
                              with_params)
 
+    def test_deleted_servers_do_not_affect_pagination_no_changes_since(self):
+        """
+        If a bunch of servers are deleted, they do not impact pagination if
+        changes-since is not passed.
+        """
+        for path in ('/servers', '/servers/detail'):
+            self.make_nova_app()
+            server_ids = self.create_servers(5)
+            for server_id in server_ids:
+                delete_server(self.helper, server_id)
+
+            server_ids = self.create_servers(5)
+            servers = self.list_servers(path, {'limit': 5})
+            self.assertEqual(set([s['id'] for s in servers['servers']]),
+                             set(server_ids))
+            self.assertIn('servers_links', servers)
+
 
 class NovaAPINegativeTests(SynchronousTestCase):
     """
@@ -967,13 +1149,13 @@ class NovaAPINegativeTests(SynchronousTestCase):
         """
         nova_api = NovaApi(["ORD", "MIMIC"])
         nova_control_api = NovaControlApi(nova_api=nova_api)
-        helper = APIMockHelper(self, [nova_api, nova_control_api])
-        self.nova_control_endpoint = helper.auth.get_service_endpoint(
+        self.helper = APIMockHelper(self, [nova_api, nova_control_api])
+        self.nova_control_endpoint = self.helper.auth.get_service_endpoint(
             "cloudServersBehavior",
             "ORD")
-        self.root = helper.root
-        self.uri = helper.uri
-        self.helper = helper
+        self.root = self.helper.root
+        self.uri = self.helper.uri
+        self.helper = self.helper
 
     def create_server(self, name=None, imageRef=None, flavorRef=None,
                       metadata=None, body='default'):
@@ -987,24 +1169,15 @@ class NovaAPINegativeTests(SynchronousTestCase):
         :param metadat: Metadata of the server
         """
         if body == 'default':
-            json_request = json.dumps({
-                "server": {
-                    "name": name or 'test_server',
-                    "imageRef": imageRef or "test-image",
-                    "flavorRef": flavorRef or "test-flavor",
-                    "metadata": metadata or {}
-                }
-            })
+            json_request = server_args(name=name, imageRef=imageRef,
+                                       flavorRef=flavorRef,
+                                       metadata=metadata or {})
         elif body is None:
             json_request = ""
         else:
             json_request = body
 
-        create_server = request(
-            self, self.root, "POST", self.uri + '/servers', json_request
-        )
-        create_server_response = self.successResultOf(create_server)
-        return create_server_response
+        return create_server(self.helper, json_request)
 
     def test_create_server_request_with_no_body_causes_bad_request(self):
         """
@@ -1229,15 +1402,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         """
         Use the given behavior for server creation.
         """
-        criterion = {"name": name,
-                     "parameters": parameters,
-                     "criteria": criteria}
-        set_criteria = request(self, self.root, "POST",
-                               self.nova_control_endpoint +
-                               "/behaviors/creation/",
-                               json.dumps(criterion))
-        set_criteria_response = self.successResultOf(set_criteria)
-        self.assertEqual(set_criteria_response.code, 201)
+        use_creation_behavior(self.helper, name, parameters, criteria)
 
     def test_create_server_failure_using_behaviors(self):
         """
@@ -1446,6 +1611,95 @@ class NovaAPINegativeTests(SynchronousTestCase):
         self.assertEqual(set_status_response.code, 400)
 
 
+class NovaControlPlaneTests(SynchronousTestCase):
+    """
+    Tests for the Nova control plane API.
+    """
+    def setUp(self):
+        """
+        Create a core with a nova API and nova control plane API.
+        """
+        nova_api = NovaApi(["ORD", "MIMIC"])
+        self.helper = APIMockHelper(self, [nova_api,
+                                           NovaControlApi(nova_api=nova_api)])
+
+    def test_deleting_creation_behavior_reverts_to_default_behavior(self):
+        """
+        If deleting a behavior succeeds, and there are no other behaviors,
+        the server creation reverts back to the default creation behavior.
+        """
+        behavior_id = use_creation_behavior(
+            self.helper,
+            "fail",
+            {"message": "Create server failure", "code": 500},
+            [{"server_name": "failing_server_name"}]
+        )
+        resp = create_server(self.helper,
+                             server_args(name="failing_server_name"))
+        self.assertEquals(resp.code, 500)
+
+        resp, body = self.successResultOf(request_with_content(
+            self, self.helper.root, "DELETE",
+            "{0}/behaviors/creation/{1}".format(
+                self.helper.get_service_endpoint("cloudServersBehavior"),
+                behavior_id)))
+        self.assertEqual(resp.code, 204)
+        self.assertEqual(body, '')
+
+        resp = create_server(self.helper,
+                             server_args(name="failing_server_name"))
+        self.assertEquals(resp.code, 202)
+
+    def test_deleting_creation_behavior_removes_top_behavior(self):
+        """
+        If deleting a behavior succeeds, and there were other behaviors the
+        first behavior was masking, then the server creation uses the next
+        specified behavior.
+        """
+        behavior_id = use_creation_behavior(
+            self.helper,
+            "fail",
+            {"message": "Create server failure", "code": 500},
+            [{"server_name": "failing_server_name"}]
+        )
+        use_creation_behavior(
+            self.helper,
+            "fail",
+            {"message": "This won't show until later", "code": 400},
+            [{"server_name": "failing_server_name"}]
+        )
+
+        resp = create_server(self.helper,
+                             server_args(name="failing_server_name"))
+        self.assertEquals(resp.code, 500)
+
+        resp, body = self.successResultOf(request_with_content(
+            self, self.helper.root, "DELETE",
+            "{0}/behaviors/creation/{1}".format(
+                self.helper.get_service_endpoint("cloudServersBehavior"),
+                behavior_id)))
+        self.assertEqual(resp.code, 204)
+        self.assertEqual(body, '')
+
+        resp = create_server(self.helper,
+                             server_args(name="failing_server_name"))
+        self.assertEquals(resp.code, 400)
+
+    def test_deleting_nonexistant_creation_behavior_fails(self):
+        """
+        Deleting a non-existant behavior ID fails with a 404.  Similarly with
+        an invalid behavior ID.
+        """
+        for invalid_id in (text_type(uuid4()), "not-even-a-uuid"):
+            resp, body = self.successResultOf(request_with_content(
+                self, self.helper.root, "DELETE",
+                "{0}/behaviors/creation/{1}".format(
+                    self.helper.get_service_endpoint("cloudServersBehavior"),
+                    invalid_id)))
+            self.assertEqual(resp.code, 404)
+            self.assertEqual(body, '')
+
+
 class NovaAPIMetadataTests(SynchronousTestCase):
     """
     Tests for the Nova Api plugin handling metadata.
@@ -1456,24 +1710,16 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         Create a :obj:`MimicCore` with :obj:`NovaApi` as the only plugin,
         and create a server
         """
-        helper = APIMockHelper(self, [NovaApi(["ORD", "MIMIC"])])
-        self.root = helper.root
-        self.uri = helper.uri
+        self.helper = APIMockHelper(self, [NovaApi(["ORD", "MIMIC"])])
+        self.root = self.helper.root
+        self.uri = self.helper.uri
 
     def create_server(self, metadata):
         """
         Create a server with the given metadata.
         """
-        return self.successResultOf(json_request(
-            self, self.root, "POST", self.uri + '/servers',
-            {
-                "server": {
-                    "name": "A",
-                    "imageRef": "test-image",
-                    "flavorRef": "test-flavor",
-                    "metadata": metadata
-                }
-            }))
+        return create_server(
+            self.helper, server_args(name="A", metadata=metadata), json=True)
 
     def get_server_url(self, metadata):
         """

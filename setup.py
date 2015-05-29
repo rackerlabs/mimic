@@ -13,7 +13,7 @@ except ImportError:
 
 
 _NAME = "mimic"
-_VERSION = "1.3.0"
+_VERSION = "1.4.0"
 
 
 def setup_options(name, version):
@@ -34,7 +34,8 @@ def setup_options(name, version):
             "six>=1.6.0",
             "xmltodict>=0.9.1",
             "attrs>=15.0.0",
-            "testtools>=1.7.1,<1.8.0"
+            "testtools>=1.7.1,<1.8.0",
+            "iso8601>=0.1.10"
         ],
         package_dir={"mimic": "mimic"},
         packages=find_packages(exclude=[]) + ["twisted.plugins"],

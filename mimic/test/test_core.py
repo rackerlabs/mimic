@@ -29,10 +29,17 @@ class CoreBuildingTests(SynchronousTestCase):
         :class:`MimicCore`, the nova and loadbalancer plugins are included.
         """
         core = MimicCore.fromPlugins(Clock())
-        plugin_apis = set((nova_plugin.nova, loadbalancer_plugin.loadbalancer,
-                           swift_plugin.swift, queue_plugin.queue,
-                           maas_plugin.maas, rackconnect_v3_plugin.rackconnect,
-                           nova_plugin.nova_control_api, glance_plugin.glance))
+        plugin_apis = set((
+            glance_plugin.glance,
+            loadbalancer_plugin.loadbalancer,
+            loadbalancer_plugin.loadbalancer_control,
+            maas_plugin.maas,
+            nova_plugin.nova,
+            nova_plugin.nova_control_api,
+            queue_plugin.queue,
+            rackconnect_v3_plugin.rackconnect,
+            swift_plugin.swift,
+        ))
         self.assertEqual(
             plugin_apis,
             set(core._uuid_to_api.values()))

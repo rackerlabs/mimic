@@ -3,7 +3,7 @@
 Defines create, delete, get, list servers and get images and flavors.
 """
 
-from uuid import uuid4
+from uuid import UUID, uuid4
 import json
 
 from characteristic import attributes
@@ -16,13 +16,14 @@ from twisted.web.server import Request
 from twisted.python.urlpath import URLPath
 
 from twisted.plugin import IPlugin
-from twisted.web.http import CREATED, BAD_REQUEST
+from twisted.web.http import CREATED, BAD_REQUEST, NO_CONTENT, NOT_FOUND
 
 from mimic.canned_responses.nova import get_limit, get_image, get_flavor
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.imimic import IAPIMock
+from mimic.model.behaviors import NoSuchBehaviorError
 from mimic.model.nova_objects import (
     BadRequestError, GlobalServerCollections, LimitError, Server,
     bad_request, forbidden, not_found)
@@ -151,13 +152,40 @@ class NovaControlApiRegion(object):
                     "message": "Stuff is broken, what"
                 }
             }
+
+        The response looks like::
+
+            {
+                "id": "this-is-a-uuid-here"
+            }
         """
         behavior_description = json.loads(request.content.read())
         region_collection = self._collection_from_tenant(tenant_id)
-        region_collection.create_behavior_registry.register_from_json(
-            behavior_description
-        )
+        behavior_id = (region_collection.create_behavior_registry
+                       .register_from_json(behavior_description))
         request.setResponseCode(CREATED)
+        return json.dumps({'id': text_type(behavior_id)})
+
+    @app.route(
+        '/v2/<string:tenant_id>/behaviors/creation/<string:behavior_id>',
+        methods=['DELETE'])
+    def delete_creation_behavior(self, request, tenant_id, behavior_id):
+        """
+        Remove a registered create-server behavior with the specified ID.
+
+        The response is a 204 with no body if successful.
+
+        If the behavior does not exist, the response is a 404 with no body.
+        """
+        region_collection = self._collection_from_tenant(tenant_id)
+        try:
+            region_collection.create_behavior_registry.remove_behavior_by_id(
+                UUID(behavior_id)
+            )
+        except (ValueError, NoSuchBehaviorError):
+            request.setResponseCode(NOT_FOUND)
+        else:
+            request.setResponseCode(NO_CONTENT)
         return b''
 
     @app.route("/v2/<string:tenant_id>/attributes/", methods=['POST'])
@@ -186,7 +214,7 @@ class NovaControlApiRegion(object):
             request.setResponseCode(BAD_REQUEST)
             return b''
         for server in servers:
-            server.status = statuses_description[server.server_id]
+            server.update_status(statuses_description[server.server_id])
         request.setResponseCode(CREATED)
         return b''
 
@@ -295,7 +323,8 @@ class NovaRegion(object):
                 request, include_details=True, absolutize_url=self.url,
                 name=request.args.get('name', [u""])[0],
                 limit=request.args.get('limit', [None])[0],
-                marker=request.args.get('marker', [None])[0]
+                marker=request.args.get('marker', [None])[0],
+                changes_since=request.args.get('changes-since', [None])[0]
             )
         )
 
@@ -427,7 +456,7 @@ class ServerMetadata(object):
         except LimitError as e:
             return json.dumps(forbidden(e.nova_message, request))
 
-        self._server.metadata = content['metadata']
+        self._server.set_metadata(content['metadata'])
         return json.dumps({'metadata': content['metadata']})
 
     @app.route('/<key>', methods=['PUT'])
