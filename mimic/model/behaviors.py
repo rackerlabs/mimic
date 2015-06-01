@@ -11,8 +11,6 @@ from six import text_type
 
 from twisted.web.http import CREATED, BAD_REQUEST, NO_CONTENT, NOT_FOUND
 
-from zope.interface import implementedBy
-
 from mimic.imimic import IBehaviorAPI
 
 
