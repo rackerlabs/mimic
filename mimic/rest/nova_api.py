@@ -3,8 +3,10 @@
 Defines create, delete, get, list servers and get images and flavors.
 """
 
-from uuid import UUID, uuid4
+from uuid import uuid4
 import json
+
+import attr
 
 from characteristic import attributes
 from six import text_type
@@ -16,17 +18,17 @@ from twisted.web.server import Request
 from twisted.python.urlpath import URLPath
 
 from twisted.plugin import IPlugin
-from twisted.web.http import CREATED, BAD_REQUEST, NO_CONTENT, NOT_FOUND
+from twisted.web.http import CREATED, BAD_REQUEST
 
 from mimic.canned_responses.nova import get_limit, get_image, get_flavor
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
-from mimic.imimic import IAPIMock
-from mimic.model.behaviors import NoSuchBehaviorError
+from mimic.imimic import IAPIMock, IBehaviorAPI
+from mimic.model.behaviors import behavior_api
 from mimic.model.nova_objects import (
     BadRequestError, GlobalServerCollections, LimitError, Server,
-    bad_request, forbidden, not_found)
+    bad_request, forbidden, not_found, server_creation)
 
 Request.defaultContentType = 'application/json'
 
@@ -119,6 +121,15 @@ class NovaControlApi(object):
                 .app.resource())
 
 
+@behavior_api({'creation': server_creation})
+@implementer(IBehaviorAPI)
+@attr.s
+class NovaControlApiRegionBehaviors(object):
+    """meh"""
+    app = MimicApp()
+    registry_collection = attr.ib()
+
+
 @attributes(["api_mock", "uri_prefix", "session_store", "region"])
 class NovaControlApiRegion(object):
     """
@@ -126,67 +137,15 @@ class NovaControlApiRegion(object):
     """
     app = MimicApp()
 
-    @app.route('/v2/<string:tenant_id>/behaviors/creation/', methods=['POST'])
-    def register_creation_behavior(self, request, tenant_id):
+    @app.route('/v2/<string:tenant_id>/behaviors', branch=True)
+    def handle_behaviors(self, request, tenant_id):
         """
-        Register the specified behavior to cause a future server creation
-        operation to behave in the described way.
-
-        The request looks like this::
-
-            {
-                # list of criteria for which requests will behave in the
-                # described way
-                "criteria": [
-                    {"tenant_id": "maybe_fail_.*"},
-                    {"server_name": "failing_server_.*"},
-                    {"metadata": {"key_we_should_have": "fail",
-                                  "key_we_should_not_have": null}}
-                ],
-                # what kind of behavior: in this case, "fail the request"
-                "name": "fail",
-                # parameters for the behavior: in this case,
-                # "return a 404 with a message".
-                "parameters": {
-                    "code": 404,
-                    "message": "Stuff is broken, what"
-                }
-            }
-
-        The response looks like::
-
-            {
-                "id": "this-is-a-uuid-here"
-            }
-        """
-        behavior_description = json.loads(request.content.read())
-        region_collection = self._collection_from_tenant(tenant_id)
-        behavior_id = (region_collection.create_behavior_registry
-                       .register_from_json(behavior_description))
-        request.setResponseCode(CREATED)
-        return json.dumps({'id': text_type(behavior_id)})
-
-    @app.route(
-        '/v2/<string:tenant_id>/behaviors/creation/<string:behavior_id>',
-        methods=['DELETE'])
-    def delete_creation_behavior(self, request, tenant_id, behavior_id):
-        """
-        Remove a registered create-server behavior with the specified ID.
-
-        The response is a 204 with no body if successful.
-
-        If the behavior does not exist, the response is a 404 with no body.
+        Return the behavior CRUD resource.
         """
         region_collection = self._collection_from_tenant(tenant_id)
-        try:
-            region_collection.create_behavior_registry.remove_behavior_by_id(
-                UUID(behavior_id)
-            )
-        except (ValueError, NoSuchBehaviorError):
-            request.setResponseCode(NOT_FOUND)
-        else:
-            request.setResponseCode(NO_CONTENT)
-        return b''
+        behavior_handler = NovaControlApiRegionBehaviors(
+            region_collection.behavior_registry_collection)
+        return behavior_handler.app.resource()
 
     @app.route("/v2/<string:tenant_id>/attributes/", methods=['POST'])
     def change_attributes(self, request, tenant_id):

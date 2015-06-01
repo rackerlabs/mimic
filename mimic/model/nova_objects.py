@@ -19,7 +19,7 @@ from mimic.util.helper import (
 )
 
 from mimic.model.behaviors import (
-    BehaviorRegistry, EventDescription, Criterion, regexp_predicate
+    BehaviorRegistryCollection, EventDescription, Criterion, regexp_predicate
 )
 from twisted.web.http import ACCEPTED, BAD_REQUEST, FORBIDDEN, NOT_FOUND
 
@@ -687,8 +687,9 @@ def metadata_to_creation_behavior(metadata):
     ["tenant_id", "region_name", "clock",
      Attribute("servers", default_factory=list),
      Attribute(
-         "create_behavior_registry",
-         default_factory=lambda: BehaviorRegistry(event=server_creation))]
+         "behavior_registry_collection",
+         default_factory=lambda: BehaviorRegistryCollection(
+             supported_events=(server_creation,)))]
 )
 class RegionalServerCollection(object):
     """
@@ -711,7 +712,9 @@ class RegionalServerCollection(object):
         metadata = creation_json.get('server', {}).get('metadata') or {}
         behavior = metadata_to_creation_behavior(metadata)
         if behavior is None:
-            behavior = self.create_behavior_registry.behavior_for_attributes({
+            registry = self.behavior_registry_collection.registry_by_event(
+                server_creation)
+            behavior = registry.behavior_for_attributes({
                 "tenant_id": self.tenant_id,
                 "server_name": creation_json["server"]["name"],
                 "metadata": creation_json["server"].get("metadata")
