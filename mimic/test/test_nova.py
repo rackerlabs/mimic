@@ -17,6 +17,7 @@ from twisted.trial.unittest import SynchronousTestCase
 
 from mimic.test.helpers import json_request, request, request_with_content, validate_link_json
 from mimic.rest.nova_api import NovaApi, NovaControlApi
+from mimic.test.behavior_tests import register_behavior
 from mimic.test.fixtures import APIMockHelper, TenantAuthentication
 from mimic.util.helper import seconds_to_timestamp
 
@@ -146,21 +147,11 @@ def use_creation_behavior(helper, name, parameters, criteria):
     """
     Use the given behavior for server creation.
     """
-    criterion = {"name": name,
-                 "parameters": parameters,
-                 "criteria": criteria}
-    set_criteria = json_request(
-        helper.test_case, helper.root, "POST",
+    return register_behavior(
+        helper.test_case, helper.root,
         "{0}/behaviors/creation".format(
             helper.auth.get_service_endpoint("cloudServersBehavior")),
-        json.dumps(criterion))
-
-    response, body = helper.test_case.successResultOf(set_criteria)
-    helper.test_case.assertEqual(response.code, 201)
-    behavior_id = body.get("id")
-    helper.test_case.assertIsInstance(behavior_id, string_types)
-    helper.test_case.assertEqual(UUID(behavior_id).version, 4)
-    return behavior_id
+        name, parameters, criteria)
 
 
 class NovaAPITests(SynchronousTestCase):
