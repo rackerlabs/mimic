@@ -202,7 +202,6 @@ class BehaviorRegistryCollection(object):
     A collection of behavior registries that can be retrieved by event
     description.
     """
-    supported_events = attr.ib()
     _registries = attr.ib(default=attr.Factory(list))
 
     def registry_by_event(self, event_description):
@@ -219,10 +218,6 @@ class BehaviorRegistryCollection(object):
 
         :raises: :class:`ValueError` if the event is not supported
         """
-        if event_description not in self.supported_events:
-            raise ValueError("{0} is not a supported event.".format(
-                event_description))
-
         for event, registry in self._registries:
             if event == event_description:
                 return registry
@@ -278,7 +273,7 @@ def behavior_api(event_names_and_descriptions):
                 try:
                     behavior_description = json.loads(request.content.read())
                     behavior_id = reg.register_from_json(behavior_description)
-                except (ValueError, AttributeError):
+                except (ValueError, KeyError):
                     request.setResponseCode(BAD_REQUEST)
                     return b''
 

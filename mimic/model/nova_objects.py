@@ -688,8 +688,7 @@ def metadata_to_creation_behavior(metadata):
      Attribute("servers", default_factory=list),
      Attribute(
          "behavior_registry_collection",
-         default_factory=lambda: BehaviorRegistryCollection(
-             supported_events=(server_creation,)))]
+         default_factory=lambda: BehaviorRegistryCollection())]
 )
 class RegionalServerCollection(object):
     """
