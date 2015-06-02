@@ -1,0 +1,198 @@
+"""
+Module that contains utilities to automatically generate or help generate
+some tests.
+"""
+import json
+
+from uuid import UUID, uuid4
+
+from six import text_type, string_types
+
+from twisted.trial.unittest import SynchronousTestCase
+
+from zope.interface import Attribute, Interface
+
+from mimic.test.helpers import json_request, request_with_content
+
+
+class IBehaviorAPITestHelper(Interface):
+    """
+    Helper class that provides some setup and assertion methods that tests
+    for behavior CRUD need.  An instance will be created and
+    used for each CRUD test case.
+    """
+    root = Attribute("The root resource for mimic.")
+    behavior_api_endpoint = Attribute(
+        "The API endpoint for behaviors for the event to be tested.")
+    criteria = Attribute("""
+    A list of criteria for the behaviors to be injected.  Example::
+
+        [
+            {"criteria1": "regex_pattern.*"},
+            {"criteria2": "regex_pattern.*"},
+        ]
+    """)
+    name_and_params = Attribute("""
+    An list of 1 or 2 tuples of name and parameters, which together
+    with the criteria, can form a behavior specification.  Any more than
+    2 will ignored.  Example::
+
+        # tuples of (name of the behavior, parameters for the behavior)
+        [
+            ("fail", {"code": 500, "message": "Stuff is broken"}),
+            ("fail", {"code": 404, "message": "Stuff doesn't exist"})
+        }
+    """)
+
+    def trigger_event_and_validate_injected_behavior(name, test_case):
+        """
+        Make a request to the regular API that this behavior event modifies,
+        and validate that the behavior was triggered as opposed to the default
+        behavior or some other behavior.  Note that the event should conform
+        to the criteria given.
+
+        :param name: The name of the behavior to trigger - this will be one
+            of the names provided in :ivar:`name_and_params`.
+        :param test_case: An instance of a test case that has assertion
+            and cleanup functions.
+        """
+
+    def trigger_event_and_validate_default_behavior(test_case):
+        """
+        Make a request to the regular API that this behavior event modifies,
+        and validate that the default behavior was triggered as opposed to
+        some other behavior.  Note that the event should conform
+        to the criteria given, otherwise we won't be able to test that
+        deleting a behavior will return to the default behavior.
+
+        :param test_case: An instance of a test case that has assertion
+            and cleanup functions.
+        """
+
+
+def register_behavior(test_case, root, uri, behavior_name, parameters,
+                      criteria):
+    """
+    Register a particular behavior.
+
+    :param test_case: the test case with which to make assertions
+    :param root: A mimic root API object
+    :param str uri: The uri fo the behavior resource to register.
+    :param str behavior_name: The name of the behavior
+    :param dict parameters: A dictionary of parameters to pass to the behavior
+    :param list criteria: The criteria for which this behavior should be
+        applied.
+
+    :return: The behavior ID of the registered behavior.
+    """
+    behavior_json = {"name": behavior_name,
+                     "parameters": parameters,
+                     "criteria": criteria}
+    response, body = test_case.successResultOf(json_request(
+        test_case, root, "POST", uri, json.dumps(behavior_json)))
+
+    test_case.assertEqual(response.code, 201)
+    behavior_id = body.get("id")
+    test_case.assertIsInstance(behavior_id, string_types)
+    test_case.assertEqual(UUID(behavior_id).version, 4)
+    return behavior_id
+
+
+def make_behavior_tests(behavior_helper_klass):
+    """
+    :param behavior_helper_lkass: a class that implements
+        :class:`IBehaviorAPITestHelper`
+
+    Will generate a test suite containing:
+
+    - 1 test case that deleting a behavior will revert to the underlying
+        behavior.  If 2 behaviors are provided, will also assert that the
+        first behavior registered will be the behavior used, and that deleting
+        it means the second mock takes over.  Deleting that will revert to
+        default behavior.  If only 1 behavior is provided, it will just test
+        that deleting it reverts to default behavior.
+
+    - 1 test case validating that deleting an invalid behavior for will
+      result in a 404.
+
+    - 1 test case asserting that providing invalid JSON will result in a 400
+      when creating the behavior.
+
+    :return: a :class:`twisted.trial.unittest.SynchronousTestCase` object
+        containing the above tests, and named "TestsFor<behavior_helper name>"
+    """
+    class Tester(SynchronousTestCase):
+        """Tests for behavior API crud that uses {}""".format(
+            behavior_helper_klass.__name__)
+
+        def setUp(self):
+            self.bhelper = behavior_helper_klass()
+
+        def delete_behavior(self, behavior_id, status=204, expected_body=b''):
+            """
+            Given a behavior ID, attempts to delete it.
+            """
+            response, body = self.successResultOf(request_with_content(
+                self, self.bhelper.root, "DELETE",
+                "{0}/{1}".format(self.bhelper.behavior_api_endpoint,
+                                 behavior_id)))
+            self.assertEqual(response.code, status)
+            self.assertEqual(body, expected_body)
+
+        def test_deleting_nonexistant_creation_behavior_fails(self):
+            """
+            Deleting a non-existant behavior ID fails with a 404.  Similarly
+            with an invalid behavior ID.
+            """
+            for invalid_id in (text_type(uuid4()), "not-even-a-uuid"):
+                self.delete_behavior(invalid_id, status=404)
+
+        def test_providing_invalid_json_fails_with_400(self):
+            """
+            Providing invalid JSON for the behavior registration request
+            results in a 400.
+            """
+            one_invalid = dict(self.bhelper.behaviors[0])
+            del one_invalid["criteria"]
+
+            for invalid in ('', '{}', one_invalid):
+                response, body = self.successResultOf(request_with_content(
+                    self, self.bhelper.root, "POST",
+                    self.bhelper.behavior_api_endpoint,
+                    invalid))
+                self.assertEqual(response.code, 400)
+                self.assertEqual(b"", body)
+
+        def test_deleting_creation_behavior_removes_top_behavior(self):
+            """
+            If deleting a behavior succeeds, and there were other behaviors
+            the first behavior was masking, then the next behavior is used.
+            When there are no more behaviors, the default behavior is used.
+            """
+            names_and_params = self.bhelper.names_and_params[:2]
+            behavior_ids = []
+            for i, name_and_params in enumerate(names_and_params):
+                name, params = name_and_params
+                behavior_ids.append(register_behavior(
+                    self,
+                    self.bhelper.root,
+                    self.bhelper.behavior_api_endpoint,
+                    name,
+                    params,
+                    self.bhelper.criteria))
+
+            self.bhelper.trigger_event_and_validate_injected_behavior(
+                name_and_params[0][0], self)
+
+            self.delete_behavior(behavior_ids[0])
+
+            if len(behavior_ids) > 1:
+                self.bhelper.trigger_event_and_validate_injected_behavior(
+                    names_and_params[1][0], self)
+
+                self.delete_behavior(behavior_ids[1])
+
+            self.bhelper.trigger_event_and_validate_default_behavior(self)
+
+    Tester.__name__ = "TestsFor{0}".format(behavior_helper_klass.__name__)
+    return Tester
