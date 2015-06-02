@@ -11,7 +11,7 @@ from six import text_type
 
 from twisted.web.http import CREATED, BAD_REQUEST, NO_CONTENT, NOT_FOUND
 
-from mimic.imimic import IBehaviorAPI
+from mimic.rest.mimicapp import MimicApp
 
 
 @attr.s
@@ -226,85 +226,88 @@ class BehaviorRegistryCollection(object):
         return registry
 
 
-def behavior_api(event_names_and_descriptions):
+def make_behavior_api(event_names_and_descriptions):
     """
-    Decorator for a class which adds API endpoints for registering and
-    deleting behaviors for the given events.  Expects the class to have
-    an attribute, ``app``, which is an instance of :class:`klein.Klein`.
+    Create a Klein handler class which adds API endpoints for registering and
+    deleting behaviors for the given events.
+
+    This returns class which takes a single argument, ``registry_collection``,
+    which is an instance of :class:`BehaviorRegistryColelction`.
     """
-    def decorator(klass):
-        if not IBehaviorAPI.implementedBy(klass):
-            raise ValueError("{0} must implement IBehaviorAPI".format(klass))
+    @attr.s
+    class BehaviorAPI(object):
+        app = MimicApp()
+        registry_collection = attr.ib(
+            validator=attr.validators.instance_of(BehaviorRegistryCollection))
 
-        for name, event in event_names_and_descriptions.items():
-            @klass.app.route('/{0}'.format(name), methods=['POST'])
-            def register_behavior(kl_self, request):
-                """
-                Register the specified behavior to cause a future event
-                operation to behave in the described way.
+    for name, event in event_names_and_descriptions.items():
+        @BehaviorAPI.app.route('/{0}'.format(name), methods=['POST'])
+        def register_behavior(kl_self, request):
+            """
+            Register the specified behavior to cause a future event
+            operation to behave in the described way.
 
-                The request looks like this::
+            The request looks like this::
 
-                    {
-                        # list of criteria for which requests will behave
-                        # in the described way
-                        "criteria": [
-                            {"criteria1": "regex_pattern.*"},
-                            {"criteria2": "regex_pattern.*"},
-                        ],
-                        # what kind of behavior: in this case,
-                        # "fail the request"
-                        "name": "fail",
-                        # parameters for the behavior: in this case,
-                        # "return a 404 with a message".
-                        "parameters": {
-                            "code": 404,
-                            "message": "Stuff is broken, what"
-                        }
+                {
+                    # list of criteria for which requests will behave
+                    # in the described way
+                    "criteria": [
+                        {"criteria1": "regex_pattern.*"},
+                        {"criteria2": "regex_pattern.*"},
+                    ],
+                    # what kind of behavior: in this case,
+                    # "fail the request"
+                    "name": "fail",
+                    # parameters for the behavior: in this case,
+                    # "return a 404 with a message".
+                    "parameters": {
+                        "code": 404,
+                        "message": "Stuff is broken, what"
                     }
+                }
 
-                The response looks like::
+            The response looks like::
 
-                    {
-                        "id": "this-is-a-uuid-here"
-                    }
-                """
-                reg = kl_self.registry_collection.registry_by_event(event)
-                try:
-                    behavior_description = json.loads(request.content.read())
-                    behavior_id = reg.register_from_json(behavior_description)
-                except (ValueError, KeyError):
-                    request.setResponseCode(BAD_REQUEST)
-                    return b''
-
-                request.setResponseCode(CREATED)
-                return json.dumps({'id': text_type(behavior_id)})
-
-            @klass.app.route(
-                '/{0}/<string:behavior_id>'.format(name),
-                methods=['DELETE'])
-            def delete_behavior(kl_self, request, behavior_id):
-                """
-                Remove a registered behavior with the specified ID.
-
-                The response is a 204 with no body if successful.
-
-                If the behavior does not exist, the response is a 404 with no
-                body.
-                """
-                reg = kl_self.registry_collection.registry_by_event(event)
-                try:
-                    reg.remove_behavior_by_id(UUID(behavior_id))
-                except (ValueError, NoSuchBehaviorError):
-                    request.setResponseCode(NOT_FOUND)
-                else:
-                    request.setResponseCode(NO_CONTENT)
+                {
+                    "id": "this-is-a-uuid-here"
+                }
+            """
+            reg = kl_self.registry_collection.registry_by_event(event)
+            try:
+                behavior_description = json.loads(request.content.read())
+                behavior_id = reg.register_from_json(behavior_description)
+            except (ValueError, KeyError):
+                request.setResponseCode(BAD_REQUEST)
                 return b''
 
-            setattr(klass, 'register_{0}_behavior'.format(event),
-                    register_behavior)
-            setattr(klass, 'delete_{0}_behavior'.format(event),
-                    delete_behavior)
+            request.setResponseCode(CREATED)
+            return json.dumps({'id': text_type(behavior_id)})
 
-        return klass
-    return decorator
+        @BehaviorAPI.app.route(
+            '/{0}/<string:behavior_id>'.format(name),
+            methods=['DELETE'])
+        def delete_behavior(kl_self, request, behavior_id):
+            """
+            Remove a registered behavior with the specified ID.
+
+            The response is a 204 with no body if successful.
+
+            If the behavior does not exist, the response is a 404 with no
+            body.
+            """
+            reg = kl_self.registry_collection.registry_by_event(event)
+            try:
+                reg.remove_behavior_by_id(UUID(behavior_id))
+            except (ValueError, NoSuchBehaviorError):
+                request.setResponseCode(NOT_FOUND)
+            else:
+                request.setResponseCode(NO_CONTENT)
+            return b''
+
+        setattr(BehaviorAPI, 'register_{0}_behavior'.format(event),
+                register_behavior)
+        setattr(BehaviorAPI, 'delete_{0}_behavior'.format(event),
+                delete_behavior)
+
+    return BehaviorAPI

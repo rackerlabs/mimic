@@ -45,12 +45,3 @@ class ICredential(Interface):
             single tenant for all plugins across all regions.
         :rtype: :class:`mimic.session.SessionStore`
         """
-
-
-class IBehaviorAPI(Interface):
-    """
-    An :obj:`IBehaviorAPI` is an object that has Klein route handlers for
-    standard :mod:`mimic.model.behavior` CRUD.
-    """
-    app = Attribute("A Klein instance.")
-    registry_collection = Attribute("A BehaviorRegistryCollection instance.")

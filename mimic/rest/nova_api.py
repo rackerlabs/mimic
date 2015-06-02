@@ -6,8 +6,6 @@ Defines create, delete, get, list servers and get images and flavors.
 from uuid import uuid4
 import json
 
-import attr
-
 from characteristic import attributes
 from six import text_type
 
@@ -24,8 +22,8 @@ from mimic.canned_responses.nova import get_limit, get_image, get_flavor
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
-from mimic.imimic import IAPIMock, IBehaviorAPI
-from mimic.model.behaviors import behavior_api
+from mimic.imimic import IAPIMock
+from mimic.model.behaviors import make_behavior_api
 from mimic.model.nova_objects import (
     BadRequestError, GlobalServerCollections, LimitError, Server,
     bad_request, forbidden, not_found, server_creation)
@@ -121,13 +119,14 @@ class NovaControlApi(object):
                 .app.resource())
 
 
-@behavior_api({'creation': server_creation})
-@implementer(IBehaviorAPI)
-@attr.s
-class NovaControlApiRegionBehaviors(object):
-    """meh"""
-    app = MimicApp()
-    registry_collection = attr.ib()
+NovaControlApiRegionBehaviors = make_behavior_api(
+    {'creation': server_creation})
+"""
+Handlers for CRUD operations on create server behaviors.
+
+:ivar registry_collection: an instance of
+    :class:`mimic.model.behaviors.BehaviorRegistryColelction`
+"""
 
 
 @attributes(["api_mock", "uri_prefix", "session_store", "region"])
