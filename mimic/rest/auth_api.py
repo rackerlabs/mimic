@@ -8,6 +8,7 @@ import attr
 
 from twisted.web.server import Request
 from twisted.python.urlpath import URLPath
+
 from mimic.canned_responses.auth import (
     get_token,
     get_endpoints,
@@ -23,7 +24,10 @@ from mimic.rest.mimicapp import MimicApp
 from mimic.session import NonMatchingTenantError
 from mimic.util.helper import invalid_resource
 
-from mimic.model.behaviors import BehaviorRegistry, EventDescription
+from mimic.model.behaviors import (
+    BehaviorRegistryCollection,
+    EventDescription
+)
 
 Request.defaultContentType = 'application/json'
 
@@ -105,8 +109,8 @@ class AuthApi(object):
     Rest endpoints for mocked Auth api.
     """
     core = attr.ib()
-    auth_behavior_registry = attr.ib(default=attr.Factory(
-        lambda: BehaviorRegistry(event=authentication)))
+    registry_collection = attr.ib(default=attr.Factory(
+        lambda: BehaviorRegistryCollection()))
 
     app = MimicApp()
 
@@ -129,9 +133,10 @@ class AuthApi(object):
                     except (KeyError, TypeError):
                         pass
                     else:
-                        behavior = (self.auth_behavior_registry
-                                    .behavior_for_attributes(
-                                        attr.asdict(cred)))
+                        registry = self.registry_collection.registry_by_event(
+                            authentication)
+                        behavior = registry.behavior_for_attributes(
+                            attr.asdict(cred))
                         return behavior(self.core, request, cred)
 
         request.setResponseCode(400)
@@ -176,7 +181,8 @@ class AuthApi(object):
 
         cred = ImpersonationCredentials.from_json(
             content, request.getHeader("x-auth-token"))
-        behavior = self.auth_behavior_registry.behavior_for_attributes({
+        registry = self.registry_collection.registry_by_event(authentication)
+        behavior = registry.behavior_for_attributes({
             "token": cred.impersonator_token,
             "username": cred.impersonated_username
         })
