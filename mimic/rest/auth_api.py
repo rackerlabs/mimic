@@ -103,6 +103,55 @@ def default_authentication_behavior(core, http_request, credentials):
         return json.dumps(result)
 
 
+@authentication.declare_behavior_creator("fail")
+def authenticate_failure_behavior(parameters):
+    """
+    Create a failing behavior for authentication.
+
+    Takes three parameters:
+
+    ``"code"``, an integer describing the HTTP response code, and
+    ``"message"``, a string describing a textual message.
+    ``"type"``, a string representing what type of error message it is
+
+    If ``type`` is "string", the message is just returned as the string body.
+    Otherwise, the following JSON body will be synthesized (as per the
+    canonical Nova error format):
+
+    ```
+    {
+        <type>: {
+            "message": <message>,
+            "code": <code>
+        }
+    }
+
+    The default type is unauthorized, the default code is 401, and the
+    default message is
+    "Unable to authenticate user with credentials provided."
+    """
+    def _fail(core, http_request, credentials):
+        status_code = parameters.get("code", 401)
+        http_request.setResponseCode(status_code)
+
+        failure_type = parameters.get("type", "unauthorized")
+        failure_message = parameters.get(
+            "message",
+            "Unable to authenticate user with credentials provided.")
+
+        if failure_type == "string":
+            return failure_message
+        else:
+            return json.dumps({
+                failure_type: {
+                    "message": failure_message,
+                    "code": status_code
+                }
+            })
+
+    return _fail
+
+
 @attr.s(hash=False)
 class AuthApi(object):
     """
