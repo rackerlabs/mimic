@@ -136,7 +136,7 @@ def make_behavior_tests(behavior_helper_klass):
         containing the above tests, and named "TestsFor<behavior_helper name>"
     """
     class Tester(SynchronousTestCase):
-        """Tests for behavior API crud that uses {}""".format(
+        """Tests for behavior API crud that uses {0}""".format(
             behavior_helper_klass.__name__)
 
         def setUp(self):
