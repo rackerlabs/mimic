@@ -714,7 +714,7 @@ class RegionalServerCollection(object):
             behavior = self.create_behavior_registry.behavior_for_attributes({
                 "tenant_id": self.tenant_id,
                 "server_name": creation_json["server"]["name"],
-                "metadata": creation_json["server"].get("metadata")
+                "metadata": creation_json["server"].get("metadata", {})
             })
         return behavior(self, creation_http_request, creation_json,
                         absolutize_url)
