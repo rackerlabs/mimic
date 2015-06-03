@@ -209,4 +209,5 @@ def make_behavior_tests(behavior_helper_klass):
                 *self.bhelper.trigger_event())
 
     Tester.__name__ = "TestsFor{0}".format(behavior_helper_klass.__name__)
+    Tester.__module__ = behavior_helper_klass.__module__
     return Tester
