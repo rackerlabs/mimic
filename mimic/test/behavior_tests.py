@@ -1,6 +1,6 @@
 """
-Module that contains utilities to automatically generate or help generate
-some tests.
+Automatically generate tests for behavior registration/deletion APIs.
+Also contains helper functions for specific behavior testing.
 """
 import json
 
@@ -114,9 +114,6 @@ def register_behavior(test_case, root, uri, behavior_name, parameters,
 
 def make_behavior_tests(behavior_helper_klass):
     """
-    :param behavior_helper_lkass: a class that implements
-        :class:`IBehaviorAPITestHelper`
-
     Will generate a test suite containing:
 
     - 1 test case that deleting a behavior will revert to the underlying
@@ -131,6 +128,9 @@ def make_behavior_tests(behavior_helper_klass):
 
     - 1 test case asserting that providing invalid JSON will result in a 400
       when creating the behavior.
+
+    :param behavior_helper_klass: a class that implements
+        :class:`IBehaviorAPITestHelper`
 
     :return: a :class:`twisted.trial.unittest.SynchronousTestCase` object
         containing the above tests, and named "TestsFor<behavior_helper name>"
