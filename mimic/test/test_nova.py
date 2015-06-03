@@ -1623,6 +1623,21 @@ class NovaControlPlaneTests(SynchronousTestCase):
         self.helper = APIMockHelper(self, [nova_api,
                                            NovaControlApi(nova_api=nova_api)])
 
+    def test_invalid_json_behavior_400(self):
+        """
+        Providing invalid JSON for the behavior registration request results
+        in a 400.
+        """
+        for invalid in ('', '{}', '{"name": "fail"}'):
+            response, body = self.successResultOf(request_with_content(
+                self, self.helper.root, "POST",
+                "{0}/behaviors/creation".format(
+                    self.helper.auth.get_service_endpoint(
+                        "cloudServersBehavior")),
+                invalid))
+            self.assertEqual(response.code, 400)
+            self.assertEqual(b"", body)
+
     def test_deleting_creation_behavior_reverts_to_default_behavior(self):
         """
         If deleting a behavior succeeds, and there are no other behaviors,
