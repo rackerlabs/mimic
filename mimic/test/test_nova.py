@@ -4,9 +4,9 @@ Tests for :mod:`nova_api` and :mod:`nova_objects`.
 import json
 from urllib import urlencode
 from urlparse import parse_qs
-from uuid import UUID, uuid4
+from uuid import uuid4
 
-from six import string_types, text_type
+from six import text_type
 
 from testtools.matchers import (
     ContainsDict, Equals, MatchesDict, MatchesListwise, StartsWith)
@@ -15,9 +15,14 @@ import treq
 
 from twisted.trial.unittest import SynchronousTestCase
 
+from zope.interface import implementer
+
 from mimic.test.helpers import json_request, request, request_with_content, validate_link_json
 from mimic.rest.nova_api import NovaApi, NovaControlApi
-from mimic.test.behavior_tests import register_behavior
+from mimic.test.behavior_tests import (
+    IBehaviorAPITestHelper,
+    make_behavior_tests,
+    register_behavior)
 from mimic.test.fixtures import APIMockHelper, TenantAuthentication
 from mimic.util.helper import seconds_to_timestamp
 
@@ -1546,104 +1551,62 @@ class NovaAPINegativeTests(SynchronousTestCase):
         self.assertEqual(set_status_response.code, 400)
 
 
-class NovaControlPlaneTests(SynchronousTestCase):
+@make_behavior_tests
+@implementer(IBehaviorAPITestHelper)
+class NovaCreateServerBehaviorControlPlane(object):
     """
-    Tests for the Nova control plane API.
+    Helper object used to generate tests for Nova create server behavior
+    CRUD operations.
     """
-    def setUp(self):
+    criteria = [{"server_name": "failing_server_name"}]
+    names_and_params = (
+        ("fail",
+         {"message": "Create server failure", "code": 500, "type": "string"}),
+        ("fail",
+         {"message": "Invalid creation", "code": 400, "type": "string"})
+    )
+
+    def __init__(self, test_case):
         """
-        Create a core with a nova API and nova control plane API.
+        Set up the criteria, api mock, etc.
         """
         nova_api = NovaApi(["ORD", "MIMIC"])
-        self.helper = APIMockHelper(self, [nova_api,
-                                           NovaControlApi(nova_api=nova_api)])
+        self.api_helper = APIMockHelper(
+            test_case, [nova_api, NovaControlApi(nova_api=nova_api)])
+        self.root = self.api_helper.root
 
-    def test_invalid_json_behavior_400(self):
+        self.behavior_api_endpoint = "{0}/behaviors/creation".format(
+            self.api_helper.get_service_endpoint("cloudServersBehavior"))
+
+    def trigger_event(self):
         """
-        Providing invalid JSON for the behavior registration request results
-        in a 400.
+        Create server with with the name "failing_server_name".
         """
-        for invalid in ('', '{}', '{"name": "fail"}'):
-            response, body = self.successResultOf(request_with_content(
-                self, self.helper.root, "POST",
-                "{0}/behaviors/creation".format(
-                    self.helper.auth.get_service_endpoint(
-                        "cloudServersBehavior")),
-                invalid))
-            self.assertEqual(response.code, 400)
-            self.assertEqual(b"", body)
+        return create_server(self.api_helper, name="failing_server_name",
+                             request_func=request_with_content)
 
-    def test_deleting_creation_behavior_reverts_to_default_behavior(self):
+    def validate_injected_behavior(self, name_and_params, response, body):
         """
-        If deleting a behavior succeeds, and there are no other behaviors,
-        the server creation reverts back to the default creation behavior.
+        Given the behavior that is expected, validate the response and body.
         """
-        behavior_id = use_creation_behavior(
-            self.helper,
-            "fail",
-            {"message": "Create server failure", "code": 500},
-            [{"server_name": "failing_server_name"}]
-        )
-        resp, _ = create_server(self.helper, name="failing_server_name")
-        self.assertEquals(resp.code, 500)
+        name, params = name_and_params
+        self.api_helper.test_case.assertEquals(response.code, params['code'])
+        self.api_helper.test_case.assertEquals(body, params['message'])
 
-        resp, body = self.successResultOf(request_with_content(
-            self, self.helper.root, "DELETE",
-            "{0}/behaviors/creation/{1}".format(
-                self.helper.get_service_endpoint("cloudServersBehavior"),
-                behavior_id)))
-        self.assertEqual(resp.code, 204)
-        self.assertEqual(body, '')
-
-        resp, _ = create_server(self.helper, name="failing_server_name")
-        self.assertEquals(resp.code, 202)
-
-    def test_deleting_creation_behavior_removes_top_behavior(self):
+    def validate_default_behavior(self, response, body):
         """
-        If deleting a behavior succeeds, and there were other behaviors the
-        first behavior was masking, then the server creation uses the next
-        specified behavior.
+        Validate the response and body of a successful server create.
         """
-        behavior_id = use_creation_behavior(
-            self.helper,
-            "fail",
-            {"message": "Create server failure", "code": 500},
-            [{"server_name": "failing_server_name"}]
-        )
-        use_creation_behavior(
-            self.helper,
-            "fail",
-            {"message": "This won't show until later", "code": 400},
-            [{"server_name": "failing_server_name"}]
-        )
+        self.api_helper.test_case.assertEquals(response.code, 202)
+        body = json.loads(body)
+        self.api_helper.test_case.assertIn('server', body)
 
-        resp, _ = create_server(self.helper, name="failing_server_name")
-        self.assertEquals(resp.code, 500)
-
-        resp, body = self.successResultOf(request_with_content(
-            self, self.helper.root, "DELETE",
-            "{0}/behaviors/creation/{1}".format(
-                self.helper.get_service_endpoint("cloudServersBehavior"),
-                behavior_id)))
-        self.assertEqual(resp.code, 204)
-        self.assertEqual(body, '')
-
-        resp, _ = create_server(self.helper, name="failing_server_name")
-        self.assertEquals(resp.code, 400)
-
-    def test_deleting_nonexistant_creation_behavior_fails(self):
+    @classmethod
+    def from_test_case(cls, test_case):
         """
-        Deleting a non-existant behavior ID fails with a 404.  Similarly with
-        an invalid behavior ID.
+        Construct and return a :class:`NovaCreateServerBehaviorControlPlane`
         """
-        for invalid_id in (text_type(uuid4()), "not-even-a-uuid"):
-            resp, body = self.successResultOf(request_with_content(
-                self, self.helper.root, "DELETE",
-                "{0}/behaviors/creation/{1}".format(
-                    self.helper.get_service_endpoint("cloudServersBehavior"),
-                    invalid_id)))
-            self.assertEqual(resp.code, 404)
-            self.assertEqual(body, '')
+        return cls(test_case)
 
 
 class NovaAPIMetadataTests(SynchronousTestCase):

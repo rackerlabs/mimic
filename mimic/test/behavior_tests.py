@@ -19,7 +19,7 @@ class IBehaviorAPITestHelper(Interface):
     """
     Helper class that provides some setup and assertion methods that tests
     for behavior CRUD need.  An instance will be created and
-    used for each CRUD test case.
+    used for each CRUD test method.
     """
     root = Attribute("The root resource for mimic.")
     behavior_api_endpoint = Attribute(
@@ -44,29 +44,43 @@ class IBehaviorAPITestHelper(Interface):
         }
     """)
 
-    def trigger_event_and_validate_injected_behavior(name, test_case):
+    def trigger_event():
         """
-        Make a request to the regular API that this behavior event modifies,
-        and validate that the behavior was triggered as opposed to the default
-        behavior or some other behavior.  Note that the event should conform
-        to the criteria given.
+        Make a request to the regular API that this behavior event modifies.
+        Note that the event should conform to the criteria given.
 
-        :param name: The name of the behavior to trigger - this will be one
-            of the names provided in :ivar:`name_and_params`.
+        :return: a tuple of (response, body)
+        """
+
+    def validate_injected_behavior(name_and_params, response, body):
+        """
+        Validate that the named behavior was triggered as opposed to the
+        default behavior or some other behavior.
+
+        :param name_and_params: The name and parameters of the behavior to
+            trigger - this will be one of the ones specified in
+            :ivar:`name_and_params`.
+        :param response: The response from triggering the event.
+        :param body: The response body from triggering the event.
+        """
+
+    def validate_default_behavior(response, body):
+        """
+        Validate that the default behavior was triggered as opposed to
+        some other behavior.
+
+        :param response: The response from triggering the event.
+        :param body: The response body from triggering the event.
+        """
+
+    def from_test_case(test_case):
+        """
+        A constructor that generates a provider of
+        :class:`IBehaviorAPITestHelper`.
+
         :param test_case: An instance of a test case that has assertion
             and cleanup functions.
-        """
-
-    def trigger_event_and_validate_default_behavior(test_case):
-        """
-        Make a request to the regular API that this behavior event modifies,
-        and validate that the default behavior was triggered as opposed to
-        some other behavior.  Note that the event should conform
-        to the criteria given, otherwise we won't be able to test that
-        deleting a behavior will return to the default behavior.
-
-        :param test_case: An instance of a test case that has assertion
-            and cleanup functions.
+        :return: a :class:`IBehaviorAPITestHelper` provider
         """
 
 
@@ -126,7 +140,7 @@ def make_behavior_tests(behavior_helper_klass):
             behavior_helper_klass.__name__)
 
         def setUp(self):
-            self.bhelper = behavior_helper_klass()
+            self.bhelper = behavior_helper_klass.from_test_case(self)
 
         def delete_behavior(self, behavior_id, status=204, expected_body=b''):
             """
@@ -152,10 +166,9 @@ def make_behavior_tests(behavior_helper_klass):
             Providing invalid JSON for the behavior registration request
             results in a 400.
             """
-            one_invalid = dict(self.bhelper.behaviors[0])
-            del one_invalid["criteria"]
-
-            for invalid in ('', '{}', one_invalid):
+            name, params = self.bhelper.names_and_params[0]
+            almost_correct = json.dumps({'name': name, 'parameters': params})
+            for invalid in ('', '{}', almost_correct):
                 response, body = self.successResultOf(request_with_content(
                     self, self.bhelper.root, "POST",
                     self.bhelper.behavior_api_endpoint,
@@ -171,8 +184,8 @@ def make_behavior_tests(behavior_helper_klass):
             """
             names_and_params = self.bhelper.names_and_params[:2]
             behavior_ids = []
-            for i, name_and_params in enumerate(names_and_params):
-                name, params = name_and_params
+            for i, n_and_p in enumerate(names_and_params):
+                name, params = n_and_p
                 behavior_ids.append(register_behavior(
                     self,
                     self.bhelper.root,
@@ -181,18 +194,19 @@ def make_behavior_tests(behavior_helper_klass):
                     params,
                     self.bhelper.criteria))
 
-            self.bhelper.trigger_event_and_validate_injected_behavior(
-                name_and_params[0][0], self)
+            self.bhelper.validate_injected_behavior(
+                names_and_params[0], *self.bhelper.trigger_event())
 
             self.delete_behavior(behavior_ids[0])
 
             if len(behavior_ids) > 1:
-                self.bhelper.trigger_event_and_validate_injected_behavior(
-                    names_and_params[1][0], self)
+                self.bhelper.validate_injected_behavior(
+                    names_and_params[1], *self.bhelper.trigger_event())
 
                 self.delete_behavior(behavior_ids[1])
 
-            self.bhelper.trigger_event_and_validate_default_behavior(self)
+            self.bhelper.validate_default_behavior(
+                *self.bhelper.trigger_event())
 
     Tester.__name__ = "TestsFor{0}".format(behavior_helper_klass.__name__)
     return Tester
