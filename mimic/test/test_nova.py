@@ -1,7 +1,6 @@
 """
 Tests for :mod:`nova_api` and :mod:`nova_objects`.
 """
-
 import json
 from urllib import urlencode
 from urlparse import parse_qs
@@ -34,44 +33,42 @@ def status_of_server(test_case, server_id):
     return get_server_response_body['server']['status']
 
 
-def server_args(name=None, imageRef=None, flavorRef=None,
-                metadata=None, diskConfig=None):
+def create_server(helper, name=None, imageRef=None, flavorRef=None,
+                  metadata=None, diskConfig=None, body_override=None,
+                  region="ORD", request_func=json_request):
     """
-    Helper function to generate a create server request body.
+    Create a server with the given body and returns the response object and
+    body.
 
-    :param name: Name of the server
-    :param imageRef: Image of the server
-    :param flavorRef: Flavor size of the server
-    :param metadata: Metadata of the server
-    :param diskConfig: the "OS-DCF:diskConfig" setting for the server
+    :param name: Name of the server - defaults to "test_server"
+    :param imageRef: Image of the server - defaults to "test-image"
+    :param flavorRef: Flavor size of the server - defaults to "test-flavor"
+    :param metadata: Metadata of the server - optional
+    :param diskConfig: the "OS-DCF:diskConfig" setting for the server -
+        optional
 
-    :return: A stringified JSON dictionary that can be passed to a create
-        server request.
-    """
-    data = {
-        "name": name or 'test_server',
-        "imageRef": imageRef or "test-image",
-        "flavorRef": flavorRef or "test-flavor"
-    }
-    if metadata is not None:
-        data['metadata'] = metadata
-    if diskConfig is not None:
-        data["OS-DCF:diskConfig"] = diskConfig
-    return json.dumps({"server": data})
-
-
-def create_server(helper, body, region="ORD", json=False):
-    """
-    Create a server with the given body and returns the response object.
-
-    :param str body: String containing the server args
+    :param str body_override: String containing the server args to
+        override the default server body JSON.
     :param str region: The region in which to create the server
-    :param bool json: Whether to use json_request
+    :param callable request_func: What function to use to make the request -
+        defaults to json_request (alternately could be request_with_content)
 
     :return: either the response object, or the response object and JSON
         body if ``json`` is `True`.
     """
-    request_func = json_request if json else request
+    body = body_override
+    if body is None:
+        data = {
+            "name": name if name is not None else 'test_server',
+            "imageRef": imageRef if imageRef is not None else "test-image",
+            "flavorRef": flavorRef if flavorRef is not None else "test-flavor"
+        }
+        if metadata is not None:
+            data['metadata'] = metadata
+        if diskConfig is not None:
+            data["OS-DCF:diskConfig"] = diskConfig
+        body = json.dumps({"server": data})
+
     create_server = request_func(
         helper.test_case,
         helper.root,
@@ -83,7 +80,7 @@ def create_server(helper, body, region="ORD", json=False):
     return helper.test_case.successResultOf(create_server)
 
 
-def quick_create_server(helper, region="ORD", name=None):
+def quick_create_server(helper, **create_server_kwargs):
     """
     Quickly create a server with a bunch of default parameters, retrieving its
     server ID.
@@ -92,8 +89,9 @@ def quick_create_server(helper, region="ORD", name=None):
 
     :return: the server ID of the created server
     """
-    _, body = create_server(helper, server_args(name=name),
-                            region=region, json=True)
+    resp, body = create_server(helper, request_func=json_request,
+                               **create_server_kwargs)
+    helper.test_case.assertEqual(resp.code, 202)
     return body["server"]["id"]
 
 
@@ -184,10 +182,8 @@ class NovaAPITests(SynchronousTestCase):
         self.uri = self.helper.uri
         self.server_name = 'test_server'
 
-        self.create_server_response = create_server(
-            self.helper, server_args(name=self.server_name))
-        self.create_server_response_body = self.successResultOf(
-            treq.json_content(self.create_server_response))
+        self.create_server_response, self.create_server_response_body = (
+            create_server(self.helper, name=self.server_name))
         self.server_id = self.create_server_response_body['server']['id']
 
     def test_create_server_with_manual_diskConfig(self):
@@ -195,11 +191,8 @@ class NovaAPITests(SynchronousTestCase):
         Servers should respect the provided OS-DCF:diskConfig setting if
         supplied.
         """
-        create_server_response = create_server(
-            self.helper, server_args(name=self.server_name + "A",
-                                     diskConfig="MANUAL"))
-        response_body = self.successResultOf(
-            treq.json_content(create_server_response))
+        create_server_response, response_body = create_server(
+            self.helper, name=self.server_name + "A", diskConfig="MANUAL")
         self.assertEqual(
             response_body['server']['OS-DCF:diskConfig'], 'MANUAL')
 
@@ -220,9 +213,9 @@ class NovaAPITests(SynchronousTestCase):
         (e.g., one which is neither AUTO nor MANUAL), it should return an HTTP
         status code of 400.
         """
-        create_server_response = create_server(
-            self.helper, server_args(name=self.server_name + "A",
-                                     diskConfig="AUTO-MANUAL"))
+        create_server_response, _ = create_server(
+            self.helper, name=self.server_name + "A",
+            diskConfig="AUTO-MANUAL")
         self.assertEqual(create_server_response.code, 400)
 
     def validate_server_detail_json(self, server_json):
@@ -268,10 +261,8 @@ class NovaAPITests(SynchronousTestCase):
         """
         Two (or more) servers created should not share passwords.
         """
-        other_response = create_server(
-            self.helper, server_args(name=self.server_name))
-        other_response_body = self.successResultOf(
-            treq.json_content(other_response))
+        other_response, other_response_body = create_server(
+            self.helper, name=self.server_name)
         self.assertNotEqual(
             self.create_server_response_body['server']['adminPass'],
             other_response_body['server']['adminPass']
@@ -379,7 +370,7 @@ class NovaAPITests(SynchronousTestCase):
         ``GET /v2.0/<tenant_id>/servers/detail``, returns the server details
         for only the servers of a given name
         """
-        create_server(self.helper, server_args(name="non-matching-name"))
+        create_server(self.helper, name="non-matching-name")
         response, body = self.successResultOf(json_request(
             self, self.root, "GET",
             "{0}/servers/detail?name={1}".format(self.uri, self.server_name)))
@@ -561,7 +552,7 @@ class NovaAPITests(SynchronousTestCase):
         """
         nova_control_endpoint = self.helper.auth.get_service_endpoint(
             "cloudServersBehavior", "ORD")
-        second_server_id = quick_create_server(self.helper, "ORD")
+        second_server_id = quick_create_server(self.helper, region="ORD")
         server_id = self.create_server_response_body["server"]["id"]
         status_modification = {
             "status": {server_id: "ERROR",
@@ -1157,34 +1148,13 @@ class NovaAPINegativeTests(SynchronousTestCase):
         self.uri = self.helper.uri
         self.helper = self.helper
 
-    def create_server(self, name=None, imageRef=None, flavorRef=None,
-                      metadata=None, body='default'):
-        """
-        Creates a server with the given specifications and returns the response
-        object
-
-        :param name: Name of the server
-        :param imageRef: Image of the server
-        :param flavorRef: Flavor size of the server
-        :param metadat: Metadata of the server
-        """
-        if body == 'default':
-            json_request = server_args(name=name, imageRef=imageRef,
-                                       flavorRef=flavorRef,
-                                       metadata=metadata or {})
-        elif body is None:
-            json_request = ""
-        else:
-            json_request = body
-
-        return create_server(self.helper, json_request)
-
     def test_create_server_request_with_no_body_causes_bad_request(self):
         """
         Test to verify :func:`create_server` does not fail when it receives a
         request with no body.
         """
-        create_server_response = self.create_server(body=None)
+        create_server_response, _ = create_server(
+            self.helper, body_override="")
         self.assertEquals(create_server_response.code, 400)
 
     def test_create_server_request_with_invalid_body_causes_bad_request(self):
@@ -1192,7 +1162,8 @@ class NovaAPINegativeTests(SynchronousTestCase):
         Test to verify :func:`create_server` does not fail when it receives a
         request with no body.
         """
-        create_server_response = self.create_server(body='{ bad request: }')
+        create_server_response, _ = create_server(
+            self.helper, body_override='{ bad request: }')
         self.assertEquals(create_server_response.code, 400)
 
     def test_create_server_failure(self):
@@ -1203,10 +1174,9 @@ class NovaAPINegativeTests(SynchronousTestCase):
         serverfail = {"message": "Create server failure", "code": 500,
                       "type": "specialType"}
         metadata = {"create_server_failure": json.dumps(serverfail)}
-        create_server_response = self.create_server(metadata=metadata)
+        create_server_response, create_server_response_body = create_server(
+            self.helper, metadata=metadata)
         self.assertEquals(create_server_response.code, 500)
-        create_server_response_body = self.successResultOf(
-            treq.json_content(create_server_response))
         self.assertEquals(
             create_server_response_body['specialType']['message'],
             "Create server failure")
@@ -1221,10 +1191,9 @@ class NovaAPINegativeTests(SynchronousTestCase):
         serverfail = {"message": "Create server failure", "code": 500,
                       "type": "string"}
         metadata = {"create_server_failure": json.dumps(serverfail)}
-        create_server_response = self.create_server(metadata=metadata)
+        create_server_response, create_server_response_body = create_server(
+            self.helper, metadata=metadata, request_func=request_with_content)
         self.assertEquals(create_server_response.code, 500)
-        create_server_response_body = self.successResultOf(
-            treq.content(create_server_response))
         self.assertEquals(create_server_response_body,
                           "Create server failure")
 
@@ -1235,10 +1204,9 @@ class NovaAPINegativeTests(SynchronousTestCase):
         """
         serverfail = {"message": "Create server failure", "code": 500}
         metadata = {"create_server_failure": json.dumps(serverfail)}
-        create_server_response = self.create_server(metadata=metadata)
+        create_server_response, create_server_response_body = create_server(
+            self.helper, metadata=metadata)
         self.assertEquals(create_server_response.code, 500)
-        create_server_response_body = self.successResultOf(
-            treq.json_content(create_server_response))
         self.assertEquals(
             create_server_response_body['computeFault']['message'],
             "Create server failure")
@@ -1268,7 +1236,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         creating a behavior via the behaviors API ahead of time, rather than
         passing metadata.
         """
-        self.use_creation_behavior("build", {"duration": 4.0}, [])
+        use_creation_behavior(self.helper, "build", {"duration": 4.0}, [])
         self.do_timing_test(metadata={},
                             before=u"BUILD",
                             delay=5.0,
@@ -1280,7 +1248,8 @@ class NovaAPINegativeTests(SynchronousTestCase):
         will go into the "error" state after the specified ``duration`` number
         of seconds.
         """
-        self.use_creation_behavior("active-then-error", {"duration": 7.0}, [])
+        use_creation_behavior(
+            self.helper, "active-then-error", {"duration": 7.0}, [])
         self.do_timing_test(metadata={},
                             before=u"ACTIVE",
                             delay=8.0,
@@ -1293,16 +1262,10 @@ class NovaAPINegativeTests(SynchronousTestCase):
         """
         # create server with metadata to keep the server in building state for
         # 3 seconds
-        create_server_response = self.create_server(metadata=metadata)
-        # verify the create server was successful
-        self.assertEquals(create_server_response.code, 202)
+        server_id = quick_create_server(self.helper, metadata=metadata)
 
         def get_server_status():
             return status_of_server(self, server_id)
-
-        server_id = (self.successResultOf(
-            treq.json_content(create_server_response))["server"]["id"]
-        )
 
         # get server and verify status is BUILD
         self.assertEquals(get_server_status(), before)
@@ -1328,14 +1291,10 @@ class NovaAPINegativeTests(SynchronousTestCase):
         """
         metadata = {"server_error": "1"}
         # create server with metadata to set status in ERROR
-        create_server_response = self.create_server(metadata=metadata)
-        # verify the create server was successful
-        self.assertEquals(create_server_response.code, 202)
-        create_server_response_body = self.successResultOf(
-            treq.json_content(create_server_response))
+        server_id = quick_create_server(self.helper, metadata=metadata)
         # get server and verify status is ERROR
         get_server = request(self, self.root, "GET", self.uri + '/servers/' +
-                             create_server_response_body["server"]["id"])
+                             server_id)
         get_server_response = self.successResultOf(get_server)
         get_server_response_body = self.successResultOf(
             treq.json_content(get_server_response))
@@ -1351,30 +1310,27 @@ class NovaAPINegativeTests(SynchronousTestCase):
         deletefail = {"times": 1, "code": 500}
         metadata = {"delete_server_failure": json.dumps(deletefail)}
         # create server and verify it was successful
-        create_server_response = self.create_server(metadata=metadata)
-        self.assertEquals(create_server_response.code, 202)
-        create_server_response_body = self.successResultOf(
-            treq.json_content(create_server_response))
+        server_id = quick_create_server(self.helper, metadata=metadata)
         # delete server and verify the response
-        delete_server = request(self, self.root, "DELETE", self.uri + '/servers/'
-                                + create_server_response_body["server"]["id"])
+        delete_server = request(
+            self, self.root, "DELETE", self.uri + '/servers/' + server_id)
         delete_server_response = self.successResultOf(delete_server)
         self.assertEqual(delete_server_response.code, 500)
         # get server and verify the server was not deleted
         get_server = request(self, self.root, "GET", self.uri + '/servers/' +
-                             create_server_response_body["server"]["id"])
+                             server_id)
         get_server_response = self.successResultOf(get_server)
         self.assertEquals(get_server_response.code, 200)
         # delete server again and verify the response
-        delete_server = request(self, self.root, "DELETE", self.uri + '/servers/'
-                                + create_server_response_body["server"]["id"])
+        delete_server = request(
+            self, self.root, "DELETE", self.uri + '/servers/' + server_id)
         delete_server_response = self.successResultOf(delete_server)
         self.assertEqual(delete_server_response.code, 204)
         self.assertEqual(self.successResultOf(treq.content(delete_server_response)),
                          b"")
         # get server and verify the server was deleted this time
-        get_server = request(self, self.root, "GET", self.uri + '/servers/' +
-                             create_server_response_body["server"]["id"])
+        get_server = request(
+            self, self.root, "GET", self.uri + '/servers/' + server_id)
         get_server_response = self.successResultOf(get_server)
         self.assertEquals(get_server_response.code, 404)
 
@@ -1398,26 +1354,20 @@ class NovaAPINegativeTests(SynchronousTestCase):
         get_server_flavor_response = self.successResultOf(get_server_flavor)
         self.assertEqual(get_server_flavor_response.code, 404)
 
-    def use_creation_behavior(self, name, parameters, criteria):
-        """
-        Use the given behavior for server creation.
-        """
-        use_creation_behavior(self.helper, name, parameters, criteria)
-
     def test_create_server_failure_using_behaviors(self):
         """
         :func:`create_server` fails with given error message and response code
         when a behavior is registered that matches its hostname.
         """
-        self.use_creation_behavior(
+        use_creation_behavior(
+            self.helper,
             "fail",
             {"message": "Create server failure", "code": 500},
             [{"server_name": "failing_server_name"}]
         )
-        create_server_response = self.create_server(name="failing_server_name")
+        create_server_response, create_server_response_body = create_server(
+            self.helper, name="failing_server_name")
         self.assertEquals(create_server_response.code, 500)
-        create_server_response_body = self.successResultOf(
-            treq.json_content(create_server_response))
         self.assertEquals(
             create_server_response_body['computeFault']['message'],
             "Create server failure")
@@ -1429,24 +1379,22 @@ class NovaAPINegativeTests(SynchronousTestCase):
         :func:`create_server` fails with the given error message and response
         code when a behavior is registered that matches its metadata.
         """
-        self.use_creation_behavior(
+        use_creation_behavior(
+            self.helper,
             "fail",
             {"message": "Sample failure message",
              "type": "specialType", "code": 503},
             [{"metadata": {"field1": "value1",
                            "field2": "reg.*ex"}}]
         )
-        create_server_response = self.create_server(name="failing_server_name")
+        create_server_response, _ = create_server(
+            self.helper, name="failing_server_name")
         self.assertEquals(create_server_response.code, 202)
-        self.successResultOf(treq.json_content(create_server_response))
 
-        failing_create_response = self.create_server(
+        failing_create_response, failing_create_response_body = create_server(
+            self.helper,
             metadata={"field1": "value1",
                       "field2": "regular expression"}
-        )
-
-        failing_create_response_body = self.successResultOf(
-            treq.json_content(failing_create_response)
         )
 
         self.assertEquals(
@@ -1472,12 +1420,15 @@ class NovaAPINegativeTests(SynchronousTestCase):
             params["type"] = failure_type
 
         # Get a 500 creating a server
-        self.use_creation_behavior(
+        use_creation_behavior(
+            self.helper,
             "false-negative", params, [{"server_name": "failing_server_name"}]
         )
 
-        create_server_response = self.create_server(
-            name="failing_server_name")
+        create_server_response, body = create_server(
+            self.helper,
+            name="failing_server_name",
+            request_func=request_with_content)
         self.assertEquals(create_server_response.code, 500)
 
         # List servers with details and verify there are no servers
@@ -1485,7 +1436,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
             self, self.root, "GET", self.uri + '/servers'))
         self.assertEqual(resp.code, 200)
         self.assertEqual(len(list_body['servers']), 1)
-        return create_server_response
+        return create_server_response, body
 
     def test_create_false_negative_failure_using_behaviors(self):
         """
@@ -1494,8 +1445,8 @@ class NovaAPINegativeTests(SynchronousTestCase):
         registered that matches its hostname.  The type is 'computeFault'
         by default.
         """
-        response = self._try_false_negative_failure()
-        body = self.successResultOf(treq.json_content(response))
+        response, body = self._try_false_negative_failure()
+        body = json.loads(body)
         self.assertEquals(body['computeFault']['message'],
                           "Create server failure")
         self.assertEquals(body['computeFault']['code'], 500)
@@ -1507,8 +1458,8 @@ class NovaAPINegativeTests(SynchronousTestCase):
         registered that matches its hostname.  The type is whatever is
         specified if it's not "string".
         """
-        response = self._try_false_negative_failure('specialType')
-        body = self.successResultOf(treq.json_content(response))
+        response, body = self._try_false_negative_failure('specialType')
+        body = json.loads(body)
         self.assertEquals(body['specialType']['message'],
                           "Create server failure")
         self.assertEquals(body['specialType']['code'], 500)
@@ -1520,8 +1471,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         registered that matches its hostname.  The body is just a string
         when the type is "string".
         """
-        response = self._try_false_negative_failure("string")
-        body = self.successResultOf(treq.content(response))
+        response, body = self._try_false_negative_failure("string")
         self.assertEquals(body, "Create server failure")
 
     def test_create_sequence_behavior(self):
@@ -1537,7 +1487,8 @@ class NovaAPINegativeTests(SynchronousTestCase):
 
         # Just to make sure, we have no servers to start with.
         self.assertEqual(server_count(), 0)
-        self.use_creation_behavior(
+        use_creation_behavior(
+            self.helper,
             "sequence",
             {
                 "behaviors": [
@@ -1563,18 +1514,11 @@ class NovaAPINegativeTests(SynchronousTestCase):
             },
             [{"server_name": "sequenced_server_name"}]
         )
-        create_server_response_1 = self.create_server(
-            name="sequenced_server_name")
-        create_server_response_2 = self.create_server(
-            name="sequenced_server_name")
-        create_server_response_3 = self.create_server(
-            name="sequenced_server_name")
-        create_server_response_4 = self.create_server(
-            name="sequenced_server_name")
-        self.assertEqual(create_server_response_1.code, 500)
-        self.assertEqual(create_server_response_2.code, 404)
-        self.assertEqual(create_server_response_3.code, 202)
-        self.assertEqual(create_server_response_4.code, 500)
+        codes = [
+            create_server(self.helper, name="sequenced_server_name")[0].code
+            for _ in range(4)
+        ]
+        self.assertEqual(codes, [500, 404, 202, 500])
 
         # We should have created 1 server from the above actions.
         self.assertEqual(server_count(), 1)
@@ -1649,8 +1593,7 @@ class NovaControlPlaneTests(SynchronousTestCase):
             {"message": "Create server failure", "code": 500},
             [{"server_name": "failing_server_name"}]
         )
-        resp = create_server(self.helper,
-                             server_args(name="failing_server_name"))
+        resp, _ = create_server(self.helper, name="failing_server_name")
         self.assertEquals(resp.code, 500)
 
         resp, body = self.successResultOf(request_with_content(
@@ -1661,8 +1604,7 @@ class NovaControlPlaneTests(SynchronousTestCase):
         self.assertEqual(resp.code, 204)
         self.assertEqual(body, '')
 
-        resp = create_server(self.helper,
-                             server_args(name="failing_server_name"))
+        resp, _ = create_server(self.helper, name="failing_server_name")
         self.assertEquals(resp.code, 202)
 
     def test_deleting_creation_behavior_removes_top_behavior(self):
@@ -1684,8 +1626,7 @@ class NovaControlPlaneTests(SynchronousTestCase):
             [{"server_name": "failing_server_name"}]
         )
 
-        resp = create_server(self.helper,
-                             server_args(name="failing_server_name"))
+        resp, _ = create_server(self.helper, name="failing_server_name")
         self.assertEquals(resp.code, 500)
 
         resp, body = self.successResultOf(request_with_content(
@@ -1696,8 +1637,7 @@ class NovaControlPlaneTests(SynchronousTestCase):
         self.assertEqual(resp.code, 204)
         self.assertEqual(body, '')
 
-        resp = create_server(self.helper,
-                             server_args(name="failing_server_name"))
+        resp, _ = create_server(self.helper, name="failing_server_name")
         self.assertEquals(resp.code, 400)
 
     def test_deleting_nonexistant_creation_behavior_fails(self):
@@ -1729,19 +1669,12 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         self.root = self.helper.root
         self.uri = self.helper.uri
 
-    def create_server(self, metadata):
-        """
-        Create a server with the given metadata.
-        """
-        return create_server(
-            self.helper, server_args(name="A", metadata=metadata), json=True)
-
     def get_server_url(self, metadata):
         """
         Create a server with the given metadata, and return the URL of
         the server.
         """
-        response, body = self.create_server(metadata)
+        response, body = create_server(self.helper, metadata=metadata)
         self.assertEqual(response.code, 202)
         return [
             link['href'] for link in body['server']['links']
@@ -1825,7 +1758,8 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         When ``create_server`` with an invalid metadata object (a string), it
         should return an HTTP status code of 400:malformed body.
         """
-        self.assert_malformed_body(*self.create_server("not metadata"))
+        self.assert_malformed_body(
+            *create_server(self.helper, metadata="not metadata"))
 
     def test_create_server_with_too_many_metadata_items(self):
         """
@@ -1835,7 +1769,8 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         """
         metadata = dict(("key{0}".format(i), "value{0}".format(i))
                         for i in xrange(100))
-        self.assert_maximum_metadata(*self.create_server(metadata))
+        self.assert_maximum_metadata(
+            *create_server(self.helper, metadata=metadata))
 
     def test_create_server_with_invalid_metadata_values(self):
         """
@@ -1843,7 +1778,8 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         it should return an HTTP status code of 400 and an error message
         saying that values must be strings or unicode.
         """
-        self.assert_metadata_not_string(*self.create_server({"key": []}))
+        self.assert_metadata_not_string(
+            *create_server(self.helper, metadata={"key": []}))
 
     def test_create_server_too_many_metadata_items_takes_precedence(self):
         """
@@ -1851,14 +1787,15 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         invalid metadata values, the too many items error takes precedence.
         """
         metadata = dict(("key{0}".format(i), []) for i in xrange(100))
-        self.assert_maximum_metadata(*self.create_server(metadata))
+        self.assert_maximum_metadata(
+            *create_server(self.helper, metadata=metadata))
 
     def test_create_server_null_metadata_succeeds(self):
         """
         When ``create_server`` is passed null metadata, it successfully
         creates a server.
         """
-        response, body = self.create_server(None)
+        response, body = create_server(self.helper, metadata=None)
         self.assertEqual(response.code, 202)
 
     def test_get_metadata(self):
