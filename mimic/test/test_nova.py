@@ -1236,7 +1236,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         creating a behavior via the behaviors API ahead of time, rather than
         passing metadata.
         """
-        self.use_creation_behavior("build", {"duration": 4.0}, [])
+        use_creation_behavior(self.helper, "build", {"duration": 4.0}, [])
         self.do_timing_test(metadata={},
                             before=u"BUILD",
                             delay=5.0,
@@ -1248,7 +1248,8 @@ class NovaAPINegativeTests(SynchronousTestCase):
         will go into the "error" state after the specified ``duration`` number
         of seconds.
         """
-        self.use_creation_behavior("active-then-error", {"duration": 7.0}, [])
+        use_creation_behavior(
+            self.helper, "active-then-error", {"duration": 7.0}, [])
         self.do_timing_test(metadata={},
                             before=u"ACTIVE",
                             delay=8.0,
@@ -1353,18 +1354,13 @@ class NovaAPINegativeTests(SynchronousTestCase):
         get_server_flavor_response = self.successResultOf(get_server_flavor)
         self.assertEqual(get_server_flavor_response.code, 404)
 
-    def use_creation_behavior(self, name, parameters, criteria):
-        """
-        Use the given behavior for server creation.
-        """
-        use_creation_behavior(self.helper, name, parameters, criteria)
-
     def test_create_server_failure_using_behaviors(self):
         """
         :func:`create_server` fails with given error message and response code
         when a behavior is registered that matches its hostname.
         """
-        self.use_creation_behavior(
+        use_creation_behavior(
+            self.helper,
             "fail",
             {"message": "Create server failure", "code": 500},
             [{"server_name": "failing_server_name"}]
@@ -1383,7 +1379,8 @@ class NovaAPINegativeTests(SynchronousTestCase):
         :func:`create_server` fails with the given error message and response
         code when a behavior is registered that matches its metadata.
         """
-        self.use_creation_behavior(
+        use_creation_behavior(
+            self.helper,
             "fail",
             {"message": "Sample failure message",
              "type": "specialType", "code": 503},
@@ -1423,7 +1420,8 @@ class NovaAPINegativeTests(SynchronousTestCase):
             params["type"] = failure_type
 
         # Get a 500 creating a server
-        self.use_creation_behavior(
+        use_creation_behavior(
+            self.helper,
             "false-negative", params, [{"server_name": "failing_server_name"}]
         )
 
@@ -1489,7 +1487,8 @@ class NovaAPINegativeTests(SynchronousTestCase):
 
         # Just to make sure, we have no servers to start with.
         self.assertEqual(server_count(), 0)
-        self.use_creation_behavior(
+        use_creation_behavior(
+            self.helper,
             "sequence",
             {
                 "behaviors": [
