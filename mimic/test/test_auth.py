@@ -331,24 +331,6 @@ def impersonate_user(test_case, root,
     ))
 
 
-def use_auth_behavior(test_case, root, name, parameters, criteria):
-    """
-    Use the given behavior for authentication.
-    """
-    criterion = {"name": name,
-                 "parameters": parameters,
-                 "criteria": criteria}
-
-    set_criteria = request(
-        test_case, root, "POST",
-        self.helper.auth.get_service_endpoint(
-            "cloudServersBehavior", "ORD") +
-                           "/behaviors/creation/",
-                           json.dumps(criterion))
-    set_criteria_response = self.successResultOf(set_criteria)
-    self.assertEqual(set_criteria_response.code, 201)
-
-
 class GetAuthTokenAPITests(SynchronousTestCase):
 
     """
@@ -482,29 +464,6 @@ class GetAuthTokenAPITests(SynchronousTestCase):
         self.assertTrue(urls[0].startswith('http://mybase/'),
                         '{0} does not start with "http://mybase"'
                         .format(urls[0]))
-
-    def test_failure_injection_auth_with_username_password(self):
-        """
-        Creating a behavior for identity returning a failure response when
-        authenticating with a username and password.
-        """
-        self.use_creation_behavior("build", {"duration": 4.0}, [])
-        self.do_timing_test(metadata={},
-                            before=u"BUILD",
-                            delay=5.0,
-                            after=u"ACTIVE")
-
-    def test_server_active_then_error_behavior(self):
-        """
-        When a server is created with the :obj:`active-then-error` behavior, it
-        will go into the "error" state after the specified ``duration`` number
-        of seconds.
-        """
-        self.use_creation_behavior("active-then-error", {"duration": 7.0}, [])
-        self.do_timing_test(metadata={},
-                            before=u"ACTIVE",
-                            delay=8.0,
-                            after=u"ERROR")
 
 
 class GetEndpointsForTokenTests(SynchronousTestCase):
