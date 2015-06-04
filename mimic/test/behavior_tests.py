@@ -110,34 +110,6 @@ class IBehaviorAPITestHelper(Interface):
         """
 
 
-def register_behavior(test_case, root, uri, behavior_name, parameters,
-                      criteria):
-    """
-    Register a particular behavior.
-
-    :param test_case: the test case with which to make assertions
-    :param root: A mimic root API object
-    :param str uri: The uri fo the behavior resource to register.
-    :param str behavior_name: The name of the behavior
-    :param dict parameters: A dictionary of parameters to pass to the behavior
-    :param list criteria: The criteria for which this behavior should be
-        applied.
-
-    :return: The behavior ID of the registered behavior.
-    """
-    behavior_json = {"name": behavior_name,
-                     "parameters": parameters,
-                     "criteria": criteria}
-    response, body = test_case.successResultOf(json_request(
-        test_case, root, "POST", uri, json.dumps(behavior_json)))
-
-    test_case.assertEqual(response.code, 201)
-    behavior_id = body.get("id")
-    test_case.assertIsInstance(behavior_id, string_types)
-    test_case.assertEqual(UUID(behavior_id).version, 4)
-    return behavior_id
-
-
 def make_behavior_tests(behavior_helper_factory):
     """
     Generate a test suite containing test that validate that:
@@ -305,3 +277,31 @@ def behavior_tests_helper_class(klass):
     verifyObject(IBehaviorAPITestHelperFactory, instance)
 
     return make_behavior_tests(klass)
+
+
+def register_behavior(test_case, root, uri, behavior_name, parameters,
+                      criteria):
+    """
+    Register a particular behavior.
+
+    :param test_case: the test case with which to make assertions
+    :param root: A mimic root API object
+    :param str uri: The uri fo the behavior resource to register.
+    :param str behavior_name: The name of the behavior
+    :param dict parameters: A dictionary of parameters to pass to the behavior
+    :param list criteria: The criteria for which this behavior should be
+        applied.
+
+    :return: The behavior ID of the registered behavior.
+    """
+    behavior_json = {"name": behavior_name,
+                     "parameters": parameters,
+                     "criteria": criteria}
+    response, body = test_case.successResultOf(json_request(
+        test_case, root, "POST", uri, json.dumps(behavior_json)))
+
+    test_case.assertEqual(response.code, 201)
+    behavior_id = body.get("id")
+    test_case.assertIsInstance(behavior_id, string_types)
+    test_case.assertEqual(UUID(behavior_id).version, 4)
+    return behavior_id
