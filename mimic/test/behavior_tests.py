@@ -226,9 +226,59 @@ def behavior_tests_helper_class(klass):
 
     - providing invalid JSON will result in a 400 when creating the behavior.
 
+    Note that these ONLY test that you have correctly added behavior CRUD
+    (and that if multiple behaviors are added for the same criteria, they
+    supercede each other rather than interfere).  This is not meant to be a
+    replacement for tests that ensure that the behaviors themselves do the
+    right thing.
+
     A basic version of ``klass`` should have all the methods and attributes
     required by :class:`IBehaviorAPITestHelper`, and an `__init__` function
     that takes a :class:`twisted.trial.unittest.SynchronousTestCase`.
+
+    Example usage::
+
+        @behavior_tests_helper_class
+        class MyPluginBehaviorAPI(object):
+            criteria = [{"criteria_name": "my_regex.*"}]
+            names_and_parameters = [
+                ("behavior_name1", {"param1": "val1"}),
+                ("behavior_name2", {"param1": "val2"})
+            ]
+
+            def __init__(self, test_case):
+                self.test_case = test_case
+                self.helper = APIMockHelper(test_case, [])
+                self.root = helper.root
+                self.behavior_api_endpoint = "{0}/behaviors/mytype".format(
+                    self.helper.get_service_endpoint(
+                        "control_plane_service_name"))
+
+            def trigger_event(self):
+                return json_request(
+                    self.test_case, self.root, "POST",
+                    self.helper.get_service_endpoint("real_service_name),
+                    {"json": {"with": {"criteria_name": "my_regex}}})
+
+            def validate_injected_behavior(self, name_and_params, response,
+                                           body):
+                name, params = name_and_params
+                if name == "behavior_name1":
+                    self.test_case.assertEquals(response.code, 500)
+                else:
+                    self.test_case.assertEquals(response.code, 400)
+
+            def validate_default_behavior(self, response, body):
+                self.test_case.assertEquals(response.code, 201)
+
+
+    This will produce trial output like the following::
+
+        <class's module FQDN>.TestsForMyPluginBehaviorAPI
+            test_deleting_behavior_removes_top_behavior ...           [OK]
+            test_deleting_nonexistant_behavior_fails ...              [OK]
+            test_providing_invalid_json_fails_with_400 ...            [OK]
+
 
     This decorator is syntactic sugar for
     #. declaring that ``klass`` implements :class:`IBehaviorAPITestHelper` if
