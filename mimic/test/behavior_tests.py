@@ -25,31 +25,34 @@ class IBehaviorAPITestHelper(Interface):
     behavior_api_endpoint = Attribute(
         "The API endpoint for behaviors for the event to be tested.")
     criteria = Attribute("""
-    A list of criteria for the behaviors to be injected.  Example::
+        A list of criteria for the behaviors to be injected.  Example::
 
-        [
-            {"criteria1": "regex_pattern.*"},
-            {"criteria2": "regex_pattern.*"},
-        ]
-    """)
+            [
+                {"criteria1": "regex_pattern.*"},
+                {"criteria2": "regex_pattern.*"},
+            ]
+        """)
     name_and_params = Attribute("""
-    An list of 1 or 2 tuples of name and parameters, which together
-    with the criteria, can form a behavior specification.  Any more than
-    2 will ignored.  Example::
+        An list of 1 or 2 tuples of name and parameters, which together
+        with the criteria, can form a behavior specification.  Any more than
+        2 will ignored.  Example::
 
-        # tuples of (name of the behavior, parameters for the behavior)
-        [
-            ("fail", {"code": 500, "message": "Stuff is broken"}),
-            ("fail", {"code": 404, "message": "Stuff doesn't exist"})
-        }
-    """)
+            # tuples of (name of the behavior, parameters for the behavior)
+            [
+                ("fail", {"code": 500, "message": "Stuff is broken"}),
+                ("fail", {"code": 404, "message": "Stuff doesn't exist"})
+            }
+        """)
 
     def trigger_event():
         """
         Make a request to the regular API that this behavior event modifies.
         Note that the event should conform to the criteria given.
 
-        :return: a tuple of (response, body)
+        :return: a tuple of (:class:`twisted.web.client.Response`, `str` or
+            `dict` or `list` body).  The body can either be a string, or
+            JSON blob loaded into a dictionary or array, just so long as the
+            validation functions can handle it.
         """
 
     def validate_injected_behavior(name_and_params, response, body):
@@ -62,6 +65,11 @@ class IBehaviorAPITestHelper(Interface):
             :ivar:`name_and_params`.
         :param response: The response from triggering the event.
         :param body: The response body from triggering the event.
+
+        :raises: :class:`FailTest` using an instance of
+            :class:`twisted.trial.unittest.SynchronousTestCase` if the
+            behavior was not triggered correctly.
+        :return: `None` if the behavior was triggered correctly.
         """
 
     def validate_default_behavior(response, body):
@@ -71,6 +79,11 @@ class IBehaviorAPITestHelper(Interface):
 
         :param response: The response from triggering the event.
         :param body: The response body from triggering the event.
+
+        :raises: :class:`FailTest` using a
+            :class:`twisted.trial.unittest.SynchronousTestCase` if the
+            default behavior was not triggered correctly.
+        :return: `None` if the default behavior was triggered correctly.
         """
 
     def from_test_case(test_case):
@@ -114,25 +127,24 @@ def register_behavior(test_case, root, uri, behavior_name, parameters,
 
 def make_behavior_tests(behavior_helper_klass):
     """
-    Will generate a test suite containing:
+    Generate a test suite containing test that validate that:
 
-    - 1 test case that deleting a behavior will revert to the underlying
-        behavior.  If 2 behaviors are provided, will also assert that the
-        first behavior registered will be the behavior used, and that deleting
-        it means the second mock takes over.  Deleting that will revert to
-        default behavior.  If only 1 behavior is provided, it will just test
-        that deleting it reverts to default behavior.
+    - deleting a behavior will revert to the underlying
+      behavior.  If 2 behaviors are provided, will also assert that the
+      first behavior registered will be the behavior used, and that deleting
+      it means the second mock takes over.  Deleting that will revert to
+      default behavior.  If only 1 behavior is provided, it will just test
+      that deleting it reverts to default behavior.
 
-    - 1 test case validating that deleting an invalid behavior for will
-      result in a 404.
+    - deleting an invalid behavior for will result in a 404.
 
-    - 1 test case asserting that providing invalid JSON will result in a 400
-      when creating the behavior.
+    - providing invalid JSON will result in a 400 when creating the behavior.
 
     :param behavior_helper_klass: a class that implements
         :class:`IBehaviorAPITestHelper`
 
-    :return: a :class:`twisted.trial.unittest.SynchronousTestCase` object
+    :return: an instance of
+        :class:`twisted.trial.unittest.SynchronousTestCase`
         containing the above tests, and named "TestsFor<behavior_helper name>"
     """
     class Tester(SynchronousTestCase):
