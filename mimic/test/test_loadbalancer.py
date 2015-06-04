@@ -538,6 +538,60 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         create_node_response = self.successResultOf(create_duplicate_nodes)
         self.assertEqual(create_node_response.code, 413)
 
+    def test_add_single_over_node_limit(self):
+        """
+        Test to verify :func: `add_node` does not allow creation of a single
+        node at a time to exceed the node limit.
+
+        Note: This assumes the node limit is 25. If the limit is made
+        configurable, this test will need to be updated.
+        """
+
+        for port in range(101, 126):
+            request(
+                self, self.root, "POST", self.uri + '/loadbalancers/' +
+                str(self.lb_id) + '/nodes',
+                json.dumps({"nodes": [{"address": "127.0.0.1",
+                                       "port": port,
+                                       "condition": "ENABLED"}]})
+            )
+        create_over_node = request(
+            self, self.root, "POST", self.uri + '/loadbalancers/' +
+            str(self.lb_id) + '/nodes',
+            json.dumps({"nodes": [{"address": "127.0.0.2",
+                                   "port": 130,
+                                   "condition": "ENABLED",
+                                   "type": "SECONDARY"}]})
+        )
+
+        create_node_response = self.successResultOf(create_over_node)
+        self.assertEqual(create_node_response.code, 413)
+
+    def test_add_bulk_nodes_over_limit(self):
+        """
+        Test to verify :func: `add_node` does not allow creation of a single
+        node at a time to exceed the node limit.
+
+        Note: This assumes the node limit is 25. If the limit is made
+        configurable, this test will need to be updated.
+        """
+
+        add_node_list = []
+        for a in range(26):
+            node_addr = "127.0.0.{0}".format(a)
+            add_node_list.append({"address": node_addr,
+                                  "port": 88,
+                                  "condition": "ENABLED",
+                                  "type": "SECONDARY"})
+
+        create_over_node = request(
+            self, self.root, "POST", self.uri + '/loadbalancers/' +
+            str(self.lb_id) + '/nodes',
+            json.dumps({"nodes": add_node_list})
+        )
+        create_node_response = self.successResultOf(create_over_node)
+        self.assertEqual(create_node_response.code, 413)
+
     def test_add_node_request_with_no_body_causes_bad_request(self):
         """
         Test to verify :func: `add_node` does not fail on bad request.
