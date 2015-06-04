@@ -153,7 +153,7 @@ def make_behavior_tests(behavior_helper_klass):
             self.assertEqual(response.code, status)
             self.assertEqual(body, expected_body)
 
-        def test_deleting_nonexistant_creation_behavior_fails(self):
+        def test_deleting_nonexistant_behavior_fails(self):
             """
             Deleting a non-existant behavior ID fails with a 404.  Similarly
             with an invalid behavior ID.
@@ -176,7 +176,7 @@ def make_behavior_tests(behavior_helper_klass):
                 self.assertEqual(response.code, 400)
                 self.assertEqual(b"", body)
 
-        def test_deleting_creation_behavior_removes_top_behavior(self):
+        def test_deleting_behavior_removes_top_behavior(self):
             """
             If deleting a behavior succeeds, and there were other behaviors
             the first behavior was masking, then the next behavior is used.
