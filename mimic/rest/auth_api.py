@@ -15,6 +15,8 @@ from mimic.canned_responses.auth import (
     format_timestamp,
     impersonator_user_role)
 from mimic.canned_responses.mimic_presets import get_presets
+from mimic.core import MimicCore
+from mimic.model.behaviors import make_behavior_api
 from mimic.model.identity import (
     APIKeyCredentials,
     ImpersonationCredentials,
@@ -156,11 +158,14 @@ def authenticate_failure_behavior(parameters):
 class AuthApi(object):
     """
     Rest endpoints for mocked Auth api.
-    """
-    core = attr.ib()
-    registry_collection = attr.ib(default=attr.Factory(
-        lambda: BehaviorRegistryCollection()))
 
+    :ivar core: an instance of :class:`mimic.core.MimicCore`
+    :ivar registry_collection: an instance of
+        :class:`mimic.model.behaviors.BehaviorRegistryCollection`
+    """
+    core = attr.ib(validator=attr.validators.instance_of(MimicCore))
+    registry_collection = attr.ib(
+        validator=attr.validators.instance_of(BehaviorRegistryCollection))
     app = MimicApp()
 
     @app.route('/v2.0/tokens', methods=['POST'])
@@ -332,3 +337,12 @@ def base_uri_from_request(request):
     :rtype: ``str``
     """
     return str(URLPath.fromRequest(request).click('/'))
+
+
+AuthControlApiBehaviors = make_behavior_api({'auth': authentication})
+"""
+Handlers for CRUD operations on authentication behaviors.
+
+:ivar registry_collection: an instance of
+    :class:`mimic.model.behaviors.BehaviorRegistryCollection`
+"""
