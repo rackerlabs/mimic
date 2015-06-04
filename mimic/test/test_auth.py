@@ -2,6 +2,7 @@
 Tests for mimic identity (:mod:`mimic.model.identity` and
 :mod:`mimic.rest.auth_api`)
 """
+import json
 
 from twisted.trial.unittest import SynchronousTestCase
 from twisted.internet.task import Clock
@@ -23,7 +24,7 @@ from mimic.test.behavior_tests import (
     register_behavior
 )
 from mimic.test.dummy import ExampleAPI
-from mimic.test.helpers import request, json_request
+from mimic.test.helpers import json_request, request, request_with_content
 
 
 def core_and_root(api_list):
@@ -262,7 +263,8 @@ class CatalogGenerationTests(SynchronousTestCase):
 def authenticate_with_username_password(test_case, root,
                                         uri='/identity/v2.0/tokens',
                                         username=None, password=None,
-                                        tenant_name=None, tenant_id=None):
+                                        tenant_name=None, tenant_id=None,
+                                        request_func=json_request):
     """
     Returns a tuple of the response code and json body after authentication
     with username and password.
@@ -280,8 +282,8 @@ def authenticate_with_username_password(test_case, root,
         creds["auth"]["tenantId"] = tenant_id
     if tenant_name is not None:
         creds["auth"]["tenantName"] = tenant_name
-    return test_case.successResultOf(json_request(test_case, root, "POST",
-                                                  uri, creds))
+    return test_case.successResultOf(request_func(test_case, root, "POST",
+                                                  uri, json.dumps(creds)))
 
 
 def authenticate_with_api_key(test_case, root, uri='/identity/v2.0/tokens',
@@ -1229,3 +1231,22 @@ class IdentityBehaviorInjectionTests(SynchronousTestCase):
         # token auth with that username succeeds
         response, body = impersonate_user(self, root, username="failme")
         self.assertEqual(response.code, 200)
+
+    def test_string_errors_as_well_as_json_errors(self):
+        """
+        Failure injection will return a string error response as well as a
+        json response.
+        """
+        core, root = core_and_root([])
+        fail_params = {"message": "Failure of JSON", "code": 500,
+                       "type": "string"}
+
+        # tenant auths fail
+        register_behavior(self, root, auth_behavior_endpoint,
+                          behavior_name="fail",
+                          criteria=[{"username": "failme"}],
+                          parameters=fail_params)
+        response, body = authenticate_with_username_password(
+            self, root, username="failme", request_func=request_with_content)
+        self.assertEqual(response.code, 500)
+        self.assertEqual(body, "Failure of JSON")
