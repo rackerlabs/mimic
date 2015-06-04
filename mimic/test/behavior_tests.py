@@ -38,9 +38,15 @@ class IBehaviorAPITestHelperFactory(Interface):
 
 class IBehaviorAPITestHelper(Interface):
     """
-    Helper class that provides some setup and assertion methods that tests
-    for behavior CRUD need.  An instance will be created and
-    used for each CRUD test method.
+    Set-up and assertion methods required for testing behavior CRUD.
+    :class:`IBehaviorAPITestHelperFactory.from_test_case` will be called at
+    the beginning of every CRUD method, the intent of which is to generate
+    a new instance should this be a class.  If the provider is not a class,
+    then please keep in mind the intended usage.
+
+    The reason there are two interfaces, both clearly intended to be
+    implemented by a single class, is a convoluted way to avoid eventual
+    diamond inheritance.
     """
     root = Attribute("The root resource for mimic.")
     behavior_api_endpoint = Attribute(
