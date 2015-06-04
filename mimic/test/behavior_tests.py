@@ -10,7 +10,8 @@ from six import text_type, string_types
 
 from twisted.trial.unittest import SynchronousTestCase
 
-from zope.interface import Attribute, Interface
+from zope.interface import Attribute, Interface, implementer
+from zope.interface.verify import verifyObject
 
 from mimic.test.helpers import json_request, request_with_content
 
@@ -20,15 +21,18 @@ class IBehaviorAPITestHelperFactory(Interface):
     A class with a `classmethod` that accepts a test case and returns a
     helper.  This will be used to generate a behavior CRUD test suite.
     """
-    __name__ = Attribute(
+    name = Attribute(
         "A name which will be used to generate the test suite name.")
-    __module__ = Attribute(
+    module = Attribute(
         "The module in which the test suite should go.")
 
     def from_test_case(test_case):
         """
         A constructor that generates a provider of
-        :class:`IBehaviorAPITestHelper`.
+        :class:`IBehaviorAPITestHelper`.  This should return a new provider
+        every time.
+
+        :see: :func:`make_behavior_tests` implementation
 
         :param test_case: An instance of a
             :class:`twisted.trial.unittest.SynchronousTestCase`
@@ -39,14 +43,6 @@ class IBehaviorAPITestHelperFactory(Interface):
 class IBehaviorAPITestHelper(Interface):
     """
     Set-up and assertion methods required for testing behavior CRUD.
-    :class:`IBehaviorAPITestHelperFactory.from_test_case` will be called at
-    the beginning of every CRUD method, the intent of which is to generate
-    a new instance should this be a class.  If the provider is not a class,
-    then please keep in mind the intended usage.
-
-    The reason there are two interfaces, both clearly intended to be
-    implemented by a single class, is a convoluted way to avoid eventual
-    diamond inheritance.
     """
     root = Attribute("The root resource for mimic.")
     behavior_api_endpoint = Attribute(
@@ -59,7 +55,7 @@ class IBehaviorAPITestHelper(Interface):
                 {"criteria2": "regex_pattern.*"},
             ]
         """)
-    name_and_params = Attribute("""
+    names_and_params = Attribute("""
         An list of 1 or 2 tuples of name and parameters, which together
         with the criteria, can form a behavior specification.  Any more than
         2 will ignored.  Example::
@@ -162,7 +158,8 @@ def make_behavior_tests(behavior_helper_factory):
 
     :return: an instance of
         :class:`twisted.trial.unittest.SynchronousTestCase`
-        containing the above tests, and named "TestsFor<behavior_helper name>"
+        containing the above tests, and named
+        "TestsFor<behavior_helper_factory.name>"
     """
     class Tester(SynchronousTestCase):
         """Tests for behavior API crud that uses {0}""".format(
@@ -237,6 +234,74 @@ def make_behavior_tests(behavior_helper_factory):
             self.bhelper.validate_default_behavior(
                 *self.bhelper.trigger_event())
 
-    Tester.__name__ = "TestsFor{0}".format(behavior_helper_factory.__name__)
-    Tester.__module__ = behavior_helper_factory.__module__
+    Tester.__name__ = "TestsFor{0}".format(behavior_helper_factory.name)
+    Tester.__module__ = behavior_helper_factory.module
     return Tester
+
+
+def behavior_tests_helper_class(klass):
+    """
+    Generate a test suite containing test that validate that:
+
+    - deleting a behavior will revert to the underlying
+      behavior.  If 2 behaviors are provided, will also assert that the
+      first behavior registered will be the behavior used, and that deleting
+      it means the second mock takes over.  Deleting that will revert to
+      default behavior.  If only 1 behavior is provided, it will just test
+      that deleting it reverts to default behavior.
+
+    - deleting an invalid behavior for will result in a 404.
+
+    - providing invalid JSON will result in a 400 when creating the behavior.
+
+    A basic version of ``klass`` should have all the methods and attributes
+    required by :class:`IBehaviorAPITestHelper`, and an `__init__` function
+    that takes a :class:`twisted.trial.unittest.SynchronousTestCase`.
+
+    This decorator is syntactic sugar for
+    #. declaring that ``klass`` implements :class:`IBehaviorAPITestHelper` if
+       it hasn't already been declared, and verifying that it does
+    #. assigning a ``name`` and ``module`` attribute to ``klass`` if they
+       aren't assigned already declaring (and validating that)
+    #. setting ``from_test_case`` to be a method that calls the ``klass``
+       initializer with a test case if ``from_test_case`` is not already
+       provided
+    #. declaring that ``klass`` also implements
+       :class:`IBehaviorAPITestHelperFactory`
+    #. calling :func:`make_behavior_tests` on ``klass``
+
+    This decorator will also validate that ``klass`` correctly implements
+    :class:`IBehaviorAPITestHelper`.  It creates an instance of ``klass`` to
+    do so.
+
+    :param klass: a class that implements :class:`IBehaviorAPITestHelper`,
+        although it does not have to declare that it does (this decorator will
+        do so)
+
+    :raises: :class:`zope.interface.verify.BrokenImplementation` if ``klass`
+        does not implement :class:`IBehaviorAPITestHelper`
+    :return: an instance of
+        :class:`twisted.trial.unittest.SynchronousTestCase`
+        containing the above tests, and named "TestsFor<``klass.__name__``>".
+        The test suite will run as if it were in the same module as
+        ``klass``, unless the ``name`` or ``module`` attributes of ``klass``
+        were already specified.
+    """
+    klass = implementer(IBehaviorAPITestHelper,
+                        IBehaviorAPITestHelperFactory)(klass)
+
+    if getattr(klass, 'name', None) is None:
+        setattr(klass, 'name', klass.__name__)
+
+    if getattr(klass, 'module', None) is None:
+        setattr(klass, 'module', klass.__module__)
+
+    if getattr(klass, 'from_test_case', None) is None:
+        setattr(klass, 'from_test_case',
+                classmethod(lambda cls, test_case: cls(test_case)))
+
+    instance = klass.from_test_case(SynchronousTestCase())
+    verifyObject(IBehaviorAPITestHelper, instance)
+    verifyObject(IBehaviorAPITestHelperFactory, instance)
+
+    return make_behavior_tests(klass)

@@ -12,14 +12,10 @@ import treq
 
 from twisted.trial.unittest import SynchronousTestCase
 
-from zope.interface import implementer
-
 from mimic.test.helpers import json_request, request, request_with_content, validate_link_json
 from mimic.rest.nova_api import NovaApi, NovaControlApi
 from mimic.test.behavior_tests import (
-    IBehaviorAPITestHelper,
-    IBehaviorAPITestHelperFactory,
-    make_behavior_tests,
+    behavior_tests_helper_class,
     register_behavior)
 from mimic.test.fixtures import APIMockHelper, TenantAuthentication
 from mimic.util.helper import seconds_to_timestamp
@@ -1549,8 +1545,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         self.assertEqual(set_status_response.code, 400)
 
 
-@make_behavior_tests
-@implementer(IBehaviorAPITestHelper, IBehaviorAPITestHelperFactory)
+@behavior_tests_helper_class
 class NovaCreateServerBehaviorControlPlane(object):
     """
     Helper object used to generate tests for Nova create server behavior
@@ -1598,13 +1593,6 @@ class NovaCreateServerBehaviorControlPlane(object):
         self.api_helper.test_case.assertEquals(response.code, 202)
         body = json.loads(body)
         self.api_helper.test_case.assertIn('server', body)
-
-    @classmethod
-    def from_test_case(cls, test_case):
-        """
-        Construct and return a :class:`NovaCreateServerBehaviorControlPlane`
-        """
-        return cls(test_case)
 
 
 class NovaAPIMetadataTests(SynchronousTestCase):
