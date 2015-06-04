@@ -18,6 +18,7 @@ from mimic.test.helpers import json_request, request, request_with_content, vali
 from mimic.rest.nova_api import NovaApi, NovaControlApi
 from mimic.test.behavior_tests import (
     IBehaviorAPITestHelper,
+    IBehaviorAPITestHelperFactory,
     make_behavior_tests,
     register_behavior)
 from mimic.test.fixtures import APIMockHelper, TenantAuthentication
@@ -1549,7 +1550,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
 
 
 @make_behavior_tests
-@implementer(IBehaviorAPITestHelper)
+@implementer(IBehaviorAPITestHelper, IBehaviorAPITestHelperFactory)
 class NovaCreateServerBehaviorControlPlane(object):
     """
     Helper object used to generate tests for Nova create server behavior

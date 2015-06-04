@@ -15,6 +15,27 @@ from zope.interface import Attribute, Interface
 from mimic.test.helpers import json_request, request_with_content
 
 
+class IBehaviorAPITestHelperFactory(Interface):
+    """
+    A class with a `classmethod` that accepts a test case and returns a
+    helper.  This will be used to generate a behavior CRUD test suite.
+    """
+    __name__ = Attribute(
+        "A name which will be used to generate the test suite name.")
+    __module__ = Attribute(
+        "The module in which the test suite should go.")
+
+    def from_test_case(test_case):
+        """
+        A constructor that generates a provider of
+        :class:`IBehaviorAPITestHelper`.
+
+        :param test_case: An instance of a
+            :class:`twisted.trial.unittest.SynchronousTestCase`
+        :return: a :class:`IBehaviorAPITestHelper` provider
+        """
+
+
 class IBehaviorAPITestHelper(Interface):
     """
     Helper class that provides some setup and assertion methods that tests
@@ -86,16 +107,6 @@ class IBehaviorAPITestHelper(Interface):
         :return: `None` if the default behavior was triggered correctly.
         """
 
-    def from_test_case(test_case):
-        """
-        A constructor that generates a provider of
-        :class:`IBehaviorAPITestHelper`.
-
-        :param test_case: An instance of a test case that has assertion
-            and cleanup functions.
-        :return: a :class:`IBehaviorAPITestHelper` provider
-        """
-
 
 def register_behavior(test_case, root, uri, behavior_name, parameters,
                       criteria):
@@ -125,7 +136,7 @@ def register_behavior(test_case, root, uri, behavior_name, parameters,
     return behavior_id
 
 
-def make_behavior_tests(behavior_helper_klass):
+def make_behavior_tests(behavior_helper_factory):
     """
     Generate a test suite containing test that validate that:
 
@@ -140,8 +151,8 @@ def make_behavior_tests(behavior_helper_klass):
 
     - providing invalid JSON will result in a 400 when creating the behavior.
 
-    :param behavior_helper_klass: a class that implements
-        :class:`IBehaviorAPITestHelper`
+    :param behavior_helper_factory: a class that implements
+        :class:`IBehaviorAPITestHelperFactory`
 
     :return: an instance of
         :class:`twisted.trial.unittest.SynchronousTestCase`
@@ -149,10 +160,10 @@ def make_behavior_tests(behavior_helper_klass):
     """
     class Tester(SynchronousTestCase):
         """Tests for behavior API crud that uses {0}""".format(
-            behavior_helper_klass.__name__)
+            behavior_helper_factory.__name__)
 
         def setUp(self):
-            self.bhelper = behavior_helper_klass.from_test_case(self)
+            self.bhelper = behavior_helper_factory.from_test_case(self)
 
         def delete_behavior(self, behavior_id, status=204, expected_body=b''):
             """
@@ -220,6 +231,6 @@ def make_behavior_tests(behavior_helper_klass):
             self.bhelper.validate_default_behavior(
                 *self.bhelper.trigger_event())
 
-    Tester.__name__ = "TestsFor{0}".format(behavior_helper_klass.__name__)
-    Tester.__module__ = behavior_helper_klass.__module__
+    Tester.__name__ = "TestsFor{0}".format(behavior_helper_factory.__name__)
+    Tester.__module__ = behavior_helper_factory.__module__
     return Tester
