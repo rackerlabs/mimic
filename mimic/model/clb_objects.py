@@ -55,6 +55,7 @@ class RegionalCLBCollection(object):
         """
         self.lbs = {}
         self.meta = {}
+        self.node_limit = 25
 
     def lb_in_region(self, clb_id):
         """
@@ -303,7 +304,16 @@ class RegionalCLBCollection(object):
                                 "already configured on load balancer.", 413)
                             return (resource, 413)
 
-                self.lbs[lb_id]["nodes"] = self.lbs[lb_id]["nodes"] + nodes
+                # If there were no duplicates
+                new_nodeCount = self.lbs[lb_id]["nodeCount"] + len(nodes)
+                if new_nodeCount <= self.node_limit:
+                    self.lbs[lb_id]["nodes"] = self.lbs[lb_id]["nodes"] + nodes
+                    self.lbs[lb_id]["nodeCount"] = new_nodeCount
+                else:
+                    resource = invalid_resource(
+                        "Nodes must not exceed {0} "
+                        "per load balancer.".format(self.node_limit), 413)
+                    return (resource, 413)
             else:
                 self.lbs[lb_id]["nodes"] = nodes
                 self.lbs[lb_id]["nodeCount"] = len(self.lbs[lb_id]["nodes"])
