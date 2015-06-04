@@ -1197,7 +1197,7 @@ class IdentityBehaviorInjectionTests(SynchronousTestCase):
         # token auth with that tenant ID succeeds
         response, body = authenticate_with_token(
             self, root, tenant_id="123456")
-        self.assertEqual(response, 200)
+        self.assertEqual(response.code, 200)
 
     def test_tenant_id_criteria_works_on_all_auth_methods_with_tenant(self):
         """
@@ -1217,7 +1217,7 @@ class IdentityBehaviorInjectionTests(SynchronousTestCase):
         # tenant auths fail
         register_behavior(self, root, auth_behavior_endpoint,
                           behavior_name="fail",
-                          criteria=[{"username": "failme"}],
+                          criteria=[{"tenant_id": "123456"}],
                           parameters=fail_params)
         for auth_func in (authenticate_with_username_password,
                           authenticate_with_api_key,
@@ -1228,4 +1228,4 @@ class IdentityBehaviorInjectionTests(SynchronousTestCase):
 
         # token auth with that username succeeds
         response, body = impersonate_user(self, root, username="failme")
-        self.assertEqual(response, 200)
+        self.assertEqual(response.code, 200)

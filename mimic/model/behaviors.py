@@ -38,7 +38,8 @@ class Criterion(object):
         and evaluate it against this Criterion's predicate, returning True if
         it matches and False otherwise.
         """
-        return self.predicate(attributes[self.name])
+        return (self.name in attributes and
+                self.predicate(attributes[self.name]))
 
 
 @attr.s
