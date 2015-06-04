@@ -28,17 +28,36 @@ from mimic.util.helper import invalid_resource
 
 from mimic.model.behaviors import (
     BehaviorRegistryCollection,
-    EventDescription
+    Criterion,
+    EventDescription,
+    regexp_predicate
 )
 
 Request.defaultContentType = 'application/json'
-
 
 authentication = EventDescription()
 """
 Event refers to authenticating against Identity using a username/password,
 username/api-key, token, or getting an impersonation token.
 """
+
+
+@authentication.declare_criterion("username")
+def username_criterion(value):
+    """
+    Return a Criterion which matches the given regular expression string
+    against the ``"username"`` attribute.
+    """
+    return Criterion(name='username', predicate=regexp_predicate(value))
+
+
+@authentication.declare_criterion("tenant_id")
+def tenant_id_criterion(value):
+    """
+    Return a Criterion which matches the given regular expression string
+    against the ``"tenant_Id"`` attribute.
+    """
+    return Criterion(name='tenant_id', predicate=regexp_predicate(value))
 
 
 @authentication.declare_default_behavior
