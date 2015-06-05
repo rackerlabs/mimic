@@ -7,8 +7,6 @@ import json
 from twisted.trial.unittest import SynchronousTestCase
 from twisted.internet.task import Clock
 
-from zope.interface import implementer
-
 from mimic.canned_responses.auth import (
     get_token, HARD_CODED_TOKEN, HARD_CODED_USER_ID,
     HARD_CODED_USER_NAME, HARD_CODED_ROLES,
@@ -19,8 +17,7 @@ from mimic.catalog import Entry, Endpoint
 from mimic.core import MimicCore
 from mimic.resource import MimicRoot
 from mimic.test.behavior_tests import (
-    IBehaviorAPITestHelper,
-    make_behavior_tests,
+    behavior_tests_helper_class,
     register_behavior
 )
 from mimic.test.dummy import ExampleAPI
@@ -1105,8 +1102,7 @@ class AuthIntegrationTests(SynchronousTestCase):
 auth_behavior_endpoint = "http://mybase/mimic/v1.1/behaviors/auth"
 
 
-@make_behavior_tests
-@implementer(IBehaviorAPITestHelper)
+@behavior_tests_helper_class
 class IdentityAuthBehaviorControlPlane(object):
     """
     Helper object used to generate tests for Nova create server behavior
