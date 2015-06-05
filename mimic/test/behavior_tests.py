@@ -1,6 +1,9 @@
 """
 Automatically generate tests for behavior registration/deletion APIs.
+(:see: :func:`behavior_tests_helper_class`).
+
 Also contains helper functions for specific behavior testing.
+(:see: :func:`register_behavior`)
 """
 import json
 
@@ -274,7 +277,7 @@ def behavior_tests_helper_class(klass):
 
     This will produce trial output like the following::
 
-        <class's module FQDN>.TestsForMyPluginBehaviorAPI
+        <full name python module path to class>.TestsForMyPluginBehaviorAPI
             test_deleting_behavior_removes_top_behavior ...           [OK]
             test_deleting_nonexistant_behavior_fails ...              [OK]
             test_providing_invalid_json_fails_with_400 ...            [OK]
