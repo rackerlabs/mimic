@@ -1153,13 +1153,6 @@ class IdentityAuthBehaviorControlPlane(object):
         self.test_case.assertEquals(response.code, 200)
         self.test_case.assertIn('access', body)
 
-    @classmethod
-    def from_test_case(cls, test_case):
-        """
-        Construct and return a :class:`IdentityAuthBehaviorControlPlane`
-        """
-        return cls(test_case)
-
 
 class IdentityBehaviorInjectionTests(SynchronousTestCase):
     """
@@ -1224,7 +1217,7 @@ class IdentityBehaviorInjectionTests(SynchronousTestCase):
             self.assertEqual(response.code, 403)
             self.assertEqual(body, {"unauthorized": fail_params})
 
-        # token auth with that username succeeds
+        # impersonation with that username succeeds
         response, body = impersonate_user(self, root, username="failme")
         self.assertEqual(response.code, 200)
 
@@ -1237,7 +1230,6 @@ class IdentityBehaviorInjectionTests(SynchronousTestCase):
         fail_params = {"message": "Failure of JSON", "code": 500,
                        "type": "string"}
 
-        # tenant auths fail
         register_behavior(self, root, auth_behavior_endpoint,
                           behavior_name="fail",
                           criteria=[{"username": "failme"}],
