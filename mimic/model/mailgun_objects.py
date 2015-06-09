@@ -9,7 +9,9 @@ from characteristic import attributes, Attribute
              Attribute("headers", default_factory=dict)])
 class Messages(object):
     """
-    A message object representing an email in mailgun.
+    A :obj:`Message` is a representation of an email in Mailgun.
+    It can produce JSON-serializable objects for various pieces of
+    state that are required for API responses.
     """
 
     static_defaults = {
@@ -48,7 +50,8 @@ class Messages(object):
 
     def generate_events(self):
         """
-        Create an event for each message created.
+        Long-form JSON-serializable object representation of this message, as
+        returned by a GET on this individual message.
         """
         template = self.static_defaults.copy()
         template.update({
@@ -78,7 +81,8 @@ class MessageStore(object):
 
     def _add_to_message_store(self, **attributes):
         """
-        Add messages to the message storage
+        Create a new Message object and add it to the
+        :obj: `message_store`
         """
         msg = Messages(**attributes)
         self.message_store.append(msg)
@@ -86,7 +90,10 @@ class MessageStore(object):
 
     def _list_messages(self, filter_by=None):
         """
-        List events pertaining to the messages
+        List all the messages.
+
+        :param str filter_by: supports filtering the List by
+        `to` addresses only currently.
         """
         to_be_listed = self.message_store
         if filter_by:
@@ -103,7 +110,7 @@ class MessageStore(object):
                 "previous": "http://i-am-a-fake-link-to-nothing=="
             }}
 
-    def message_by_to_address(self, to_address):
+    def filter_message_by_to_address(self, to_address):
         """
         Retrieve a :obj:`Message` object by its `to` address.
         """

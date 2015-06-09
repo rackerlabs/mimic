@@ -31,7 +31,10 @@ class MailGunApi(object):
     @app.route('/messages', methods=['POST'])
     def send_messages(self, request):
         """
-        Responds with a 200 with a static response.
+        Responds with response code 200 with a generic response body.
+
+        If the `to` address is `bademail@example.com` results in error 500
+        and if it is `failingemail@example.com` results in 400.
         """
         content = urlparse.parse_qs(request.content.read())
         to_address = content.get('to')
@@ -39,6 +42,7 @@ class MailGunApi(object):
         for key, value in content.items():
             if key.startswith("h:") or key.startswith("v:"):
                 headers[key] = value
+
         if 'bademail@example.com' in to_address:
             request.setResponseCode(500)
             global count
@@ -65,7 +69,7 @@ class MailGunApi(object):
     @app.route('/messages', methods=['GET'])
     def get_messages(self, request):
         """
-        Responds with a 200 and the number of messages POSTed
+        Responds with a 200 and list of of messages POSTed
         through the ``/messages`` endpoint.
         """
         filter_by_to = request.args.get("to")
@@ -76,7 +80,7 @@ class MailGunApi(object):
     def get_messages_500_count(self, request):
         """
         Responds with a 200 and the number of messages resulting in 500s
-        i.e. when the `to` address is bademail@example.com.
+        i.e. when the `to` address is `bademail@example.com`.
         """
         request.setResponseCode(200)
         return json.dumps({"count": count})
@@ -85,9 +89,9 @@ class MailGunApi(object):
     def get_message_headers(self, request):
         """
         Responds with a 200 and returns the headers recieved when the
-        message with the `to` address was POSTed.
+        message with the given `to` address in the query, was created.
         """
         request.setResponseCode(200)
         to_addr = request.args.get("to")
-        msg = self.core.message_store.message_by_to_address(to_addr)
+        msg = self.core.message_store.filter_message_by_to_address(to_addr)
         return json.dumps({msg.to: msg.headers})

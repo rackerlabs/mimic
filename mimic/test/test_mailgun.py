@@ -16,7 +16,8 @@ class MailGunAPITests(SynchronousTestCase):
 
     def test_mailgun_send_message(self):
         """
-        ``/cloudmonitoring.rackspace.com/messages`` returns response code 200.
+        ``/cloudmonitoring.rackspace.com/messages`` returns response code 200
+        when a create message is successful.
         """
         core = MimicCore(Clock(), [])
         root = MimicRoot(core).app.resource()
@@ -41,8 +42,8 @@ class MailGunAPITests(SynchronousTestCase):
 
     def test_mailgun_send_message_receives_error_400(self):
         """
-        ``/cloudmonitoring.rackspace.com/messages`` returns response code 500
-        when the `to` address is `bademail@example.com`.
+        ``/cloudmonitoring.rackspace.com/messages`` returns response code 400
+        when the `to` address is `failingemail@example.com`.
         """
         core = MimicCore(Clock(), [])
         root = MimicRoot(core).app.resource()
@@ -54,7 +55,8 @@ class MailGunAPITests(SynchronousTestCase):
 
     def test_mailgun_get_messages(self):
         """
-        ``/cloudmonitoring.rackspace.com/messages`` returns response code 200.
+        ``/cloudmonitoring.rackspace.com/messages`` returns response code 200
+        and returns the list of messages created thus far.
         """
         core = MimicCore(Clock(), [])
         root = MimicRoot(core).app.resource()
@@ -73,7 +75,8 @@ class MailGunAPITests(SynchronousTestCase):
     def test_mailgun_get_messages_by_filter(self):
         """
         ``/cloudmonitoring.rackspace.com/messages`` returns response code 200
-        and is fitered by `to`.
+        and returns the list of messages created thus far, fitered by `to`
+        address.
         """
         core = MimicCore(Clock(), [])
         root = MimicRoot(core).app.resource()
