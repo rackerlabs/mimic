@@ -24,7 +24,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         postdata = {}
         postdata['agent_id'] = None
-        postdata['label'] = 'testCreateEntity'
+        postdata['label'] = label
         req = request(self, self.root, "POST",
                       self.uri + '/entities',
                       json.dumps(postdata))
@@ -212,6 +212,21 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
         self.assertEquals('Iamamwhoami', data['label'])
+
+    def test_partial_update_entity(self):
+        """
+        Update an entity, fields not specified in the body don't change.
+        """
+        data = {'agent_id': 'ag13378901234'}
+        req = request(self, self.root, "PUT", self.uri + '/entities/' + self.entity_id, json.dumps(data))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 204)
+        req = request(self, self.root, "GET", self.uri + '/entities/' + self.entity_id, '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertEquals('ag13378901234', data['agent_id'])
+        self.assertEquals('ItsAnEntity', data['label'])
 
     def test_update_check(self):
         """
