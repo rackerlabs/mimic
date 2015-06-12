@@ -287,6 +287,14 @@ class RegionalCLBCollection(object):
             _verify_and_update_lb_state(self, lb_id, False, current_timestamp)
 
             if self.lbs[lb_id]["status"] != "ACTIVE":
+                # This is one possible error response per the "Rackspace Cloud
+                # Load Balancers Developer's Guide - API v1.0" section 3.8.6.
+                if self.lbs[lb_id]["status"] == "ERROR":
+                    resource = invalid_resource(
+                        "Out of virtual IPs. Please contact support so they "
+                        "can allocate more virtual IPs.", 500)
+                    return (resource, 400)
+
                 resource = invalid_resource(
                     "Load Balancer '{0}' has a status of {1} and is considered "
                     "immutable.".format(lb_id, self.lbs[lb_id]["status"]), 422)

@@ -145,6 +145,7 @@ class LoadBalancerControlRegion(object):
 
         try:
             content = json.loads(request.content.read())
+            print(' --- CONTROL PLANE --- content: {0}'.format(content))
         except ValueError:
             request.setResponseCode(400)
             return json.dumps(invalid_resource("Invalid JSON request body"))
