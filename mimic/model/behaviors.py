@@ -3,6 +3,7 @@ General-purpose utilities for customizing response behavior.
 """
 import json
 import re
+from itertools import cycle
 from uuid import UUID, uuid4
 
 import attr
@@ -85,7 +86,8 @@ class EventDescription(object):
     def declare_behavior_creator(self, name):
         """
         Decorator which declares that the decorated function is a factory,
-        taking parameters (a JSON-serialized object), and returning a behavior.
+        taking parameters (a JSON-serialized object), and returning a
+        behavior.
 
         Use like so::
 
@@ -312,3 +314,73 @@ def make_behavior_api(event_names_and_descriptions):
                 delete_behavior)
 
     return BehaviorAPI
+
+
+_sequence_docstring = """
+    Sometimes a sequence of behaviors occur when you try to trigger an
+    event in a predictable pattern.
+
+    Takes one parameter, ``behaviors``, which is a list of specifications
+    of other behaviors, similar to those specified in the request to
+    create a behavior, with the addition of a behavior with a name of
+    "default" that means default success.
+
+    Each time the criterion for this behavior is matched, the next
+    behavior is executed, looping back to the beginning when the list of
+    behaviors is exhausted.  In other words, this creation behavior is
+    stateful.
+
+    Note that the behavior specifications here do not need a criterion,
+    since the criterion is specified for the behavior overall, and each
+    behavior is unconditionally executed in sequence.
+
+    For example, to specify an alternating sequence of success and then
+    failure when the criterion for the ``sequence`` behavior is matched::
+
+        {
+            "behaviors": [
+                {
+                    "name": "default"
+                },
+                {
+                    "name": "fail",
+                    "parameters": {
+                        "code": 500,
+                        "message": "synthetic error"
+                    }
+                }
+            ]
+        }
+"""
+
+
+def sequence_behavior(event):
+    """
+    {0}
+
+    This function, given an event, produces a generic behavior-creator that
+    provides this sequence behavior, which is named "sequence".
+
+    :param event: an instance of :class:`EventDescription`
+    :return: a callable behavior-creator as described above
+    """.format(_sequence_docstring)
+    @event.declare_behavior_creator("sequence")
+    def sequence(parameters):
+        """{0}""".format(_sequence_docstring)
+        behavior_specification = parameters["behaviors"]
+        behavior_objects = cycle([
+            (
+                event.create_behavior(behavior["name"],
+                                      behavior["parameters"])
+                if behavior["name"] != "default"
+                else event.default_behavior
+            )
+            for behavior in behavior_specification
+        ])
+
+        def rotating_behavior(*args, **kwargs):
+            current = next(behavior_objects)
+            return current(*args, **kwargs)
+        return rotating_behavior
+
+    return sequence

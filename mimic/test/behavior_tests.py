@@ -28,6 +28,8 @@ class IBehaviorAPITestHelperFactory(Interface):
         "A name which will be used to generate the test suite name.")
     module = Attribute(
         "The module in which the test suite should go.")
+    test_sequence = Attribute(
+        "A boolean as to whether to generate a test for sequence behavior.")
 
     def from_test_case(test_case):
         """
@@ -58,6 +60,7 @@ class IBehaviorAPITestHelper(Interface):
                 {"criteria2": "regex_pattern.*"},
             ]
         """)
+
     names_and_params = Attribute("""
         An list of 1 or 2 tuples of name and parameters, which together
         with the criteria, can form a behavior specification.  Any more than
@@ -127,6 +130,9 @@ def make_behavior_tests(behavior_helper_factory):
     - deleting an invalid behavior for will result in a 404.
 
     - providing invalid JSON will result in a 400 when creating the behavior.
+
+    - sequence behavior will rotate through the behaviors provided to it (if
+      :bool:`behavior_helper_factory.test_sequence` is true)
 
     :param behavior_helper_factory: a class that implements
         :class:`IBehaviorAPITestHelperFactory`
@@ -209,6 +215,38 @@ def make_behavior_tests(behavior_helper_factory):
             self.bhelper.validate_default_behavior(
                 *self.bhelper.trigger_event())
 
+    if behavior_helper_factory.test_sequence:
+        def test_sequence_behavior(self):
+            """
+            There is also a behavior, sequence, which should rotate through
+            all the behaviors provided.
+            """
+            names_and_params = self.bhelper.names_and_params[:2]
+            behaviors = [{'name': name, 'parameters': params}
+                         for name, params in names_and_params]
+
+            register_behavior(
+                self, self.bhelper.root,
+                self.bhelper.behavior_api_endpoint,
+                behavior_name="sequence",
+                parameters={"behaviors": behaviors + [{'name': 'default'}]},
+                criteria=self.bhelper.criteria)
+
+            # The results rotate through the first behavior, second behavior
+            # (if present), the default behavior, and then back, in order.
+            for i in range(2):
+                self.bhelper.validate_injected_behavior(
+                    names_and_params[0], *self.bhelper.trigger_event())
+
+                if len(names_and_params) > 1:
+                    self.bhelper.validate_injected_behavior(
+                        names_and_params[1], *self.bhelper.trigger_event())
+
+                self.bhelper.validate_default_behavior(
+                    *self.bhelper.trigger_event())
+
+        Tester.test_sequence_behavior = test_sequence_behavior
+
     Tester.__name__ = "TestsFor{0}".format(behavior_helper_factory.name)
     Tester.__module__ = behavior_helper_factory.module
     return Tester
@@ -229,11 +267,17 @@ def behavior_tests_helper_class(klass):
 
     - providing invalid JSON will result in a 400 when creating the behavior.
 
+    - sequence behavior will rotate through the behaviors provided to it (if
+      :bool:`klass.test_sequence` is true)
+
     Note that these ONLY test that you have correctly added behavior CRUD
     (and that if multiple behaviors are added for the same criteria, they
-    supercede each other rather than interfere).  This is not meant to be a
-    replacement for tests that ensure that the behaviors themselves do the
-    right thing.
+    supercede each other rather than interfere).  This also happens to test
+    sequence behavior, because that is a utility that is provided by
+    :mod:`mimic.model.behaviors`.
+
+    This generated test suite is not meant to be a replacement for tests that
+    ensure that custom behaviors themselves do the right thing.
 
     A basic version of ``klass`` should have all the methods and attributes
     required by :class:`IBehaviorAPITestHelper`, and an `__init__` function
@@ -287,7 +331,9 @@ def behavior_tests_helper_class(klass):
     #. declaring that ``klass`` implements :class:`IBehaviorAPITestHelper` if
        it hasn't already been declared, and verifying that it does
     #. assigning a ``name`` and ``module`` attribute to ``klass`` if they
-       aren't assigned already declaring (and validating that)
+       aren't assigned already
+    #. assigning a ``test_sequence`` attribute to ``klass`` false if they
+       aren't assigned already
     #. setting ``from_test_case`` to be a method that calls the ``klass``
        initializer with a test case if ``from_test_case`` is not already
        provided
@@ -320,6 +366,9 @@ def behavior_tests_helper_class(klass):
 
     if getattr(klass, 'module', None) is None:
         setattr(klass, 'module', klass.__module__)
+
+    if getattr(klass, 'test_sequence', None) is None:
+        setattr(klass, 'test_sequence', False)
 
     if getattr(klass, 'from_test_case', None) is None:
         setattr(klass, 'from_test_case',

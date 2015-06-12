@@ -4,7 +4,6 @@ Model objects for the Nova mimic.
 
 import re
 
-from itertools import cycle
 from characteristic import attributes, Attribute
 from random import randrange
 from json import loads, dumps
@@ -19,7 +18,11 @@ from mimic.util.helper import (
 )
 
 from mimic.model.behaviors import (
-    BehaviorRegistryCollection, EventDescription, Criterion, regexp_predicate
+    BehaviorRegistryCollection,
+    EventDescription,
+    Criterion,
+    regexp_predicate,
+    sequence_behavior
 )
 from twisted.web.http import ACCEPTED, BAD_REQUEST, FORBIDDEN, NOT_FOUND
 
@@ -613,58 +616,7 @@ def active_then_error(parameters):
     return fail_later
 
 
-@server_creation.declare_behavior_creator("sequence")
-def sequence(parameters):
-    """
-    Sometimes a sequence of behaviors occur when you try to create a server in
-    a predictable pattern.
-
-    Takes one parameter, ``behaviors``, which is a list of specifications of
-    other behaviors, similar to those specified in the request to create a
-    behavior, with the addition of a behavior with a name of "default" that
-    means default success.
-
-    Each time the criterion for this behavior is matched, the next behavior is
-    executed, looping back to the beginning when the list of behaviors is
-    exhausted.  In other words, this creation behavior is stateful.
-
-    Note that the behavior specifications here do not need a criterion, since
-    the criterion is specified for the behavior overall, and each behavior is
-    unconditionally executed in sequence.
-
-    For example, to specify an alternating sequence of success and then failure
-    when the criterion for the ``sequence`` behavior is matched::
-
-        {
-            "behaviors": [
-                {
-                    "name": "default"
-                },
-                {
-                    "name": "fail",
-                    "parameters": {
-                        "code": 500,
-                        "message": "synthetic error"
-                    }
-                }
-            ]
-        }
-    """
-    behavior_specification = parameters["behaviors"]
-    behavior_objects = cycle([
-        (
-            server_creation.create_behavior(behavior["name"],
-                                            behavior["parameters"])
-            if behavior["name"] != "default"
-            else server_creation.default_behavior
-        )
-        for behavior in behavior_specification
-    ])
-
-    def rotating_behavior(collection, http, json, absolutize_url):
-        current = next(behavior_objects)
-        return current(collection, http, json, absolutize_url)
-    return rotating_behavior
+sequence = sequence_behavior(server_creation)
 
 
 def metadata_to_creation_behavior(metadata):

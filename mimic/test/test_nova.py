@@ -1464,55 +1464,6 @@ class NovaAPINegativeTests(SynchronousTestCase):
         response, body = self._try_false_negative_failure("string")
         self.assertEquals(body, "Create server failure")
 
-    def test_create_sequence_behavior(self):
-        """
-        :func:`create_server` responds with each behavior in sequence,
-        repeatedly, as specified to the "sequence" behavior.
-        """
-        def server_count():
-            resp, list_body = self.successResultOf(json_request(
-                self, self.root, "GET", self.uri + '/servers'))
-            self.assertEqual(resp.code, 200)
-            return len(list_body['servers'])
-
-        # Just to make sure, we have no servers to start with.
-        self.assertEqual(server_count(), 0)
-        use_creation_behavior(
-            self.helper,
-            "sequence",
-            {
-                "behaviors": [
-                    {
-                        "name": "fail",
-                        "parameters": {
-                            "code": 500,
-                            "message": "lol"
-                        }
-                    },
-                    {
-                        "name": "fail",
-                        "parameters": {
-                            "code": 404,
-                            "message": "wut"
-                        }
-                    },
-                    {
-                        "name": "default",
-                        "parameters": {}
-                    }
-                ]
-            },
-            [{"server_name": "sequenced_server_name"}]
-        )
-        codes = [
-            create_server(self.helper, name="sequenced_server_name")[0].code
-            for _ in range(4)
-        ]
-        self.assertEqual(codes, [500, 404, 202, 500])
-
-        # We should have created 1 server from the above actions.
-        self.assertEqual(server_count(), 1)
-
     def test_modify_status_non_existent_server(self):
         """
         When using the ``.../attributes`` endpoint, if a non-existent server is
@@ -1558,6 +1509,7 @@ class NovaCreateServerBehaviorControlPlane(object):
         ("fail",
          {"message": "Invalid creation", "code": 400, "type": "string"})
     )
+    test_sequence = True
 
     def __init__(self, test_case):
         """

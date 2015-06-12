@@ -30,7 +30,8 @@ from mimic.model.behaviors import (
     BehaviorRegistryCollection,
     Criterion,
     EventDescription,
-    regexp_predicate
+    regexp_predicate,
+    sequence_behavior
 )
 
 Request.defaultContentType = 'application/json'
@@ -171,6 +172,9 @@ def authenticate_failure_behavior(parameters):
             })
 
     return _fail
+
+
+sequence = sequence_behavior(authentication)
 
 
 @attr.s(hash=False)
