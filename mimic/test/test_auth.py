@@ -1099,7 +1099,8 @@ class AuthIntegrationTests(SynchronousTestCase):
         self.assertEqual(username_from_api_key, username_from_token)
 
 
-auth_behavior_endpoint = "http://mybase/mimic/v1.1/behaviors/auth"
+auth_behavior_endpoint = (
+    "http://mybase/mimic/v1.1/IdentityControlAPI/behaviors/auth")
 
 
 @behavior_tests_helper_class

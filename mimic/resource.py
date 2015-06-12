@@ -91,7 +91,7 @@ class MimicRoot(object):
             "now": seconds_to_timestamp(self.clock.seconds())
         })
 
-    @app.route("/mimic/v1.1/behaviors", branch=True)
+    @app.route("/mimic/v1.1/IdentityControlAPI/behaviors", branch=True)
     def handle_identity_behaviors(self, request):
         """
         Handle creating/deleting behaviors for mimic identity.
