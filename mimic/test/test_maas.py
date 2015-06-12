@@ -705,3 +705,12 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
         self.assertEquals(data['metadata']['count'], 0)
+
+    def test_unicode_label(self):
+        """
+        Create an entity with weird letters in the name.
+        """
+        req = request(self, self.root, "POST", self.uri + '/entities',
+                      json.dumps({'label': u'\u0CA0_\u0CA0'}))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 201)
