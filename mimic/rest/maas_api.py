@@ -118,7 +118,7 @@ def create_entity(params):
     """
     params = collections.defaultdict(lambda: '', params)
     newentity = {}
-    newentity['label'] = params[u'label'].encode("ascii")
+    newentity['label'] = params[u'label'].encode("utf-8")
     newentity['id'] = 'en' + random_hex_generator(4)
     newentity['agent_id'] = params['agent_id'] or random_hex_generator(12)
     newentity['created_at'] = time.time()
@@ -137,7 +137,7 @@ def create_check(params):
     params = collections.defaultdict(lambda: '', params)
     for k in params.keys():
         if 'encode' in dir(params[k]):
-            params[k] = params[k].encode('ascii')
+            params[k] = params[k].encode('utf-8')
     params['id'] = 'ch' + random_hex_generator(4)
     params['collectors'] = []
     for q in range(3):
@@ -163,7 +163,7 @@ def create_alarm(params):
     params = collections.defaultdict(lambda: '', params)
     for k in params.keys():
         if 'encode' in dir(params[k]):
-            params[k] = params[k].encode('ascii')
+            params[k] = params[k].encode('utf-8')
     params['id'] = 'al' + random_hex_generator(4)
     params['confd_hash'] = None
     params['confd_name'] = None
@@ -180,7 +180,7 @@ def create_notification_plan(params):
     """
     for k in params.keys():
         if 'encode' in dir(params[k]):  # because there are integers sometimes.
-            params[k] = params[k].encode('ascii')
+            params[k] = params[k].encode('utf-8')
     params['id'] = 'np' + random_hex_generator(4)
     params['critical_state'] = None
     params['warning_state'] = None
@@ -197,7 +197,7 @@ def create_notification(params):
     """
     for k in params.keys():
         if 'encode' in dir(params[k]):  # because there are integers sometimes.
-            params[k] = params[k].encode('ascii')
+            params[k] = params[k].encode('utf-8')
     params['id'] = 'nt' + random_hex_generator(4)
     params['created_at'] = time.time()
     params['updated_at'] = time.time()
@@ -211,7 +211,7 @@ def create_suppression(params):
     """
     for k in params.keys():
         if 'encode' in dir(params[k]):
-            params[k] = params[k].encode('ascii')
+            params[k] = params[k].encode('utf-8')
     params['id'] = 'sp' + random_hex_generator(4)
     if 'notification_plans' not in params:
         params['notification_plans'] = []
@@ -242,9 +242,9 @@ def create_metric_list_from_entity(entity, allchecks):
             metricscheck['metrics'] = []
             for mz in c['monitoring_zones_poll']:
                 metricscheck['metrics'].append(
-                    {'name': mz.encode('ascii') + '.available', 'unit': 'percent', 'type': 'D'})
+                    {'name': mz.encode('utf-8') + '.available', 'unit': 'percent', 'type': 'D'})
                 metricscheck['metrics'].append(
-                    {'name': mz.encode('ascii') + '.average', 'unit': 'seconds', 'type': 'D'})
+                    {'name': mz.encode('utf-8') + '.average', 'unit': 'seconds', 'type': 'D'})
             v['checks'].append(metricscheck)
     return v
 
@@ -409,7 +409,7 @@ class MaasMock(object):
             if self._entity_cache_for_tenant(tenant_id).entities_list[q]['id'] == entity_id:
                 entity = self._entity_cache_for_tenant(tenant_id).entities_list[q]
                 if 'label' in update:
-                    entity['label'] = update[u'label'].encode("ascii")
+                    entity['label'] = update[u'label'].encode("utf-8")
                 for k in ['agent_id', 'managed', 'metadata', 'ip_addresses', 'uri']:
                     if k in update:
                         entity[k] = update[k]
@@ -417,8 +417,8 @@ class MaasMock(object):
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         request.setResponseCode(204)
         request.setHeader('location', myhostname_and_port + request.path +
-                          '/' + entity_id.encode('ascii'))
-        request.setHeader('x-object-id', entity_id.encode('ascii'))
+                          '/' + entity_id.encode('utf-8'))
+        request.setHeader('x-object-id', entity_id.encode('utf-8'))
         request.setHeader('content-type', 'text/plain')
         return ''
 
@@ -484,7 +484,7 @@ class MaasMock(object):
         newcheck['entity_id'] = entity_id
         for k in newcheck.keys():
             if 'encode' in dir(newcheck[k]):  # because there are integers sometimes.
-                newcheck[k] = newcheck[k].encode('ascii')
+                newcheck[k] = newcheck[k].encode('utf-8')
         for q in range(len(checks)):
             if checks[q]['entity_id'] == entity_id and checks[q]['id'] == check_id:
                 del checks[q]
@@ -544,7 +544,7 @@ class MaasMock(object):
         newalarm['updated_at'] = time.time()
         for k in newalarm.keys():
             if 'encode' in dir(newalarm[k]):  # because there are integers sometimes.
-                newalarm[k] = newalarm[k].encode('ascii')
+                newalarm[k] = newalarm[k].encode('utf-8')
         for q in range(len(alarms)):
             if alarms[q]['entity_id'] == entity_id and alarms[q]['id'] == alarm_id:
                 newalarm['check_id'] = alarms[q]['check_id']
@@ -758,7 +758,7 @@ class MaasMock(object):
         """
         postdata = json.loads(request.content.read())
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        newnp = create_notification_plan({'label': postdata[u'label'].encode('ascii')})
+        newnp = create_notification_plan({'label': postdata[u'label'].encode('utf-8')})
         self._entity_cache_for_tenant(tenant_id).notificationplans_list.append(newnp)
         request.setResponseCode(201)
         request.setHeader('content-type', 'text/plain')
