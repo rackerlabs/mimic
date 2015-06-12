@@ -402,23 +402,23 @@ class MaasMock(object):
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>', methods=['PUT'])
     def update_entity(self, request, tenant_id, entity_id):
         """
-        Update entity. I really just delete it and then put a new one, but with the same id
-        so I don't mess up relationships to checks & alarms
+        Update entity in place.
         """
-        newentity = create_entity(json.loads(request.content.read()))
-        newentity['id'] = entity_id
-        for k in newentity.keys():
-            if 'encode' in dir(newentity[k]):  # because there are integers sometimes.
-                newentity[k] = newentity[k].encode('ascii')
+        update = json.loads(request.content.read())
         for q in range(len(self._entity_cache_for_tenant(tenant_id).entities_list)):
             if self._entity_cache_for_tenant(tenant_id).entities_list[q]['id'] == entity_id:
-                del self._entity_cache_for_tenant(tenant_id).entities_list[q]
-                self._entity_cache_for_tenant(tenant_id).entities_list.append(newentity)
+                entity = self._entity_cache_for_tenant(tenant_id).entities_list[q]
+                if 'label' in update:
+                    entity['label'] = update[u'label'].encode("ascii")
+                for k in ['agent_id', 'managed', 'metadata', 'ip_addresses', 'uri']:
+                    if k in update:
+                        entity[k] = update[k]
                 break
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         request.setResponseCode(204)
-        request.setHeader('location', myhostname_and_port + request.path + '/' + newentity['id'])
-        request.setHeader('x-object-id', newentity['id'])
+        request.setHeader('location', myhostname_and_port + request.path +
+                          '/' + entity_id.encode('ascii'))
+        request.setHeader('x-object-id', entity_id.encode('ascii'))
         request.setHeader('content-type', 'text/plain')
         return ''
 
