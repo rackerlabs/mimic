@@ -7,8 +7,13 @@ import json
 from twisted.web.resource import NoResource
 
 from mimic.canned_responses.mimic_presets import get_presets
+from mimic.model.behaviors import BehaviorRegistryCollection
 from mimic.rest.mimicapp import MimicApp
-from mimic.rest.auth_api import AuthApi, base_uri_from_request
+from mimic.rest.auth_api import (
+    AuthApi,
+    AuthControlApiBehaviors,
+    base_uri_from_request
+)
 from mimic.rest.noit_api import NoitApi
 from mimic.rest import fastly_api
 from mimic.util.helper import seconds_to_timestamp
@@ -30,6 +35,7 @@ class MimicRoot(object):
         """
         self.core = core
         self.clock = clock
+        self.identity_behavior_registry = BehaviorRegistryCollection()
 
     @app.route("/", methods=["GET"])
     def help(self, request):
@@ -45,7 +51,8 @@ class MimicRoot(object):
         """
         Get the identity ...
         """
-        return AuthApi(self.core).app.resource()
+        return AuthApi(self.core,
+                       self.identity_behavior_registry).app.resource()
 
     @app.route("/noit", branch=True)
     def get_noit_api(self, request):
@@ -83,6 +90,14 @@ class MimicRoot(object):
             "advanced": amount,
             "now": seconds_to_timestamp(self.clock.seconds())
         })
+
+    @app.route("/mimic/v1.1/IdentityControlAPI/behaviors", branch=True)
+    def handle_identity_behaviors(self, request):
+        """
+        Handle creating/deleting behaviors for mimic identity.
+        """
+        api = AuthControlApiBehaviors(self.identity_behavior_registry)
+        return api.app.resource()
 
     @app.route("/mimicking/<string:service_id>/<string:region_name>",
                branch=True)

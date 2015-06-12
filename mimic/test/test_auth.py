@@ -1,17 +1,27 @@
+"""
+Tests for mimic identity (:mod:`mimic.model.identity` and
+:mod:`mimic.rest.auth_api`)
+"""
+import json
+
 from twisted.trial.unittest import SynchronousTestCase
 from twisted.internet.task import Clock
 
-from mimic.core import MimicCore
-from mimic.resource import MimicRoot
 from mimic.canned_responses.auth import (
     get_token, HARD_CODED_TOKEN, HARD_CODED_USER_ID,
     HARD_CODED_USER_NAME, HARD_CODED_ROLES,
     get_endpoints
 )
-from mimic.test.dummy import ExampleAPI
-from mimic.test.helpers import request, json_request
-from mimic.catalog import Entry, Endpoint
 from mimic.canned_responses.mimic_presets import get_presets
+from mimic.catalog import Entry, Endpoint
+from mimic.core import MimicCore
+from mimic.resource import MimicRoot
+from mimic.test.behavior_tests import (
+    behavior_tests_helper_class,
+    register_behavior
+)
+from mimic.test.dummy import ExampleAPI
+from mimic.test.helpers import json_request, request, request_with_content
 
 
 def core_and_root(api_list):
@@ -250,7 +260,8 @@ class CatalogGenerationTests(SynchronousTestCase):
 def authenticate_with_username_password(test_case, root,
                                         uri='/identity/v2.0/tokens',
                                         username=None, password=None,
-                                        tenant_name=None, tenant_id=None):
+                                        tenant_name=None, tenant_id=None,
+                                        request_func=json_request):
     """
     Returns a tuple of the response code and json body after authentication
     with username and password.
@@ -268,8 +279,8 @@ def authenticate_with_username_password(test_case, root,
         creds["auth"]["tenantId"] = tenant_id
     if tenant_name is not None:
         creds["auth"]["tenantName"] = tenant_name
-    return test_case.successResultOf(json_request(test_case, root, "POST",
-                                                  uri, creds))
+    return test_case.successResultOf(request_func(test_case, root, "POST",
+                                                  uri, json.dumps(creds)))
 
 
 def authenticate_with_api_key(test_case, root, uri='/identity/v2.0/tokens',
@@ -1086,3 +1097,145 @@ class AuthIntegrationTests(SynchronousTestCase):
         # distinct, then the token would have generated a UUID for its
         # username.
         self.assertEqual(username_from_api_key, username_from_token)
+
+
+auth_behavior_endpoint = (
+    "http://mybase/mimic/v1.1/IdentityControlAPI/behaviors/auth")
+
+
+@behavior_tests_helper_class
+class IdentityAuthBehaviorControlPlane(object):
+    """
+    Helper object used to generate tests for Nova create server behavior
+    CRUD operations.
+    """
+    criteria = [{"username": "failme"}]
+    names_and_params = (
+        ("fail",
+         {"message": "Auth failure", "code": 500, "type": "identityFault"}),
+        ("fail",
+         {"message": "Invalid creds", "code": 403})
+    )
+
+    def __init__(self, test_case):
+        """
+        Set up the criteria, api mock, etc.
+        """
+        self.test_case = test_case
+        _, self.root = core_and_root([])
+        self.behavior_api_endpoint = auth_behavior_endpoint
+
+    def trigger_event(self):
+        """
+        Create server with with the name "failing_server_name".
+        """
+        return authenticate_with_username_password(
+            self.test_case, self.root, username="failme")
+
+    def validate_injected_behavior(self, name_and_params, response, body):
+        """
+        Given the behavior that is expected, validate the response and body.
+        """
+        name, params = name_and_params
+        self.test_case.assertEquals(response.code, params['code'])
+        if params['code'] == 500:
+            expected = {"identityFault": {"message": "Auth failure",
+                                          "code": 500}}
+        else:
+            expected = {"unauthorized": {"message": "Invalid creds",
+                                         "code": 403}}
+
+        self.test_case.assertEquals(body, expected)
+
+    def validate_default_behavior(self, response, body):
+        """
+        Validate the response and body of a successful server create.
+        """
+        self.test_case.assertEquals(response.code, 200)
+        self.test_case.assertIn('access', body)
+
+
+class IdentityBehaviorInjectionTests(SynchronousTestCase):
+    """
+    Tests for specific failures and/or criteria.
+    """
+    def test_username_criteria_works_on_all_auth_methods_with_username(self):
+        """
+        Failure injection based on the username criteria will work on
+        username/password, username/api-key, and impersonation.  But not
+        token ID, even if it's with the same tenant.
+        """
+        core, root = core_and_root([])
+        fail_params = {"message": "Invalid creds", "code": 403}
+
+        # make sure a user exists in mimic with the given username tenant
+        # associated
+        response, body = authenticate_with_username_password(
+            self, root, username="failme", tenant_id="123456")
+        self.assertEqual(response.code, 200)
+
+        # username auths fail
+        register_behavior(self, root, auth_behavior_endpoint,
+                          behavior_name="fail",
+                          criteria=[{"username": "failme"}],
+                          parameters=fail_params)
+        for auth_func in (authenticate_with_username_password,
+                          authenticate_with_api_key,
+                          impersonate_user):
+            response, body = auth_func(self, root, username="failme")
+            self.assertEqual(response.code, 403)
+            self.assertEqual(body, {"unauthorized": fail_params})
+
+        # token auth with that tenant ID succeeds
+        response, body = authenticate_with_token(
+            self, root, tenant_id="123456")
+        self.assertEqual(response.code, 200)
+
+    def test_tenant_id_criteria_works_on_all_auth_methods_with_tenant(self):
+        """
+        Failure injection based on the username criteria will work on
+        username/password, username/api-key, and token.
+        But not impersonation.
+        """
+        core, root = core_and_root([])
+        fail_params = {"message": "Invalid creds", "code": 403}
+
+        # make sure a user exists in mimic with the given username tenant
+        # associated
+        response, body = authenticate_with_username_password(
+            self, root, username="failme", tenant_id="123456")
+        self.assertEqual(response.code, 200)
+
+        # tenant auths fail
+        register_behavior(self, root, auth_behavior_endpoint,
+                          behavior_name="fail",
+                          criteria=[{"tenant_id": "123456"}],
+                          parameters=fail_params)
+        for auth_func in (authenticate_with_username_password,
+                          authenticate_with_api_key,
+                          authenticate_with_token):
+            response, body = auth_func(self, root, tenant_id="123456")
+            self.assertEqual(response.code, 403)
+            self.assertEqual(body, {"unauthorized": fail_params})
+
+        # impersonation with that username succeeds
+        response, body = impersonate_user(self, root, username="failme")
+        self.assertEqual(response.code, 200)
+
+    def test_string_errors_as_well_as_json_errors(self):
+        """
+        Failure injection will return a string error response as well as a
+        json response.
+        """
+        core, root = core_and_root([])
+        fail_params = {"message": "Failure of JSON", "code": 500,
+                       "type": "string"}
+
+        register_behavior(self, root, auth_behavior_endpoint,
+                          behavior_name="fail",
+                          criteria=[{"username": "failme"}],
+                          parameters=fail_params)
+        response, body = authenticate_with_username_password(
+            self, root, username="failme", request_func=request_with_content)
+        self.assertEqual(response.code, 500)
+        self.assertEqual(body, "Failure of JSON")

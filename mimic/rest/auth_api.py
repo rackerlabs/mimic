@@ -8,12 +8,15 @@ import attr
 
 from twisted.web.server import Request
 from twisted.python.urlpath import URLPath
+
 from mimic.canned_responses.auth import (
     get_token,
     get_endpoints,
     format_timestamp,
     impersonator_user_role)
 from mimic.canned_responses.mimic_presets import get_presets
+from mimic.core import MimicCore
+from mimic.model.behaviors import make_behavior_api
 from mimic.model.identity import (
     APIKeyCredentials,
     ImpersonationCredentials,
@@ -23,16 +26,38 @@ from mimic.rest.mimicapp import MimicApp
 from mimic.session import NonMatchingTenantError
 from mimic.util.helper import invalid_resource
 
-from mimic.model.behaviors import BehaviorRegistry, EventDescription
+from mimic.model.behaviors import (
+    BehaviorRegistryCollection,
+    Criterion,
+    EventDescription,
+    regexp_predicate
+)
 
 Request.defaultContentType = 'application/json'
-
 
 authentication = EventDescription()
 """
 Event refers to authenticating against Identity using a username/password,
 username/api-key, token, or getting an impersonation token.
 """
+
+
+@authentication.declare_criterion("username")
+def username_criterion(value):
+    """
+    Return a Criterion which matches the given regular expression string
+    against the ``"username"`` attribute.
+    """
+    return Criterion(name='username', predicate=regexp_predicate(value))
+
+
+@authentication.declare_criterion("tenant_id")
+def tenant_id_criterion(value):
+    """
+    Return a Criterion which matches the given regular expression string
+    against the ``"tenant_Id"`` attribute.
+    """
+    return Criterion(name='tenant_id', predicate=regexp_predicate(value))
 
 
 @authentication.declare_default_behavior
@@ -99,15 +124,67 @@ def default_authentication_behavior(core, http_request, credentials):
         return json.dumps(result)
 
 
+@authentication.declare_behavior_creator("fail")
+def authenticate_failure_behavior(parameters):
+    """
+    Create a failing behavior for authentication.
+
+    Takes three parameters:
+
+    ``"code"``, an integer describing the HTTP response code, and
+    ``"message"``, a string describing a textual message.
+    ``"type"``, a string representing what type of error message it is
+
+    If ``type`` is "string", the message is just returned as the string body.
+    Otherwise, the following JSON body will be synthesized (as per the
+    canonical Nova error format):
+
+    ```
+    {
+        <type>: {
+            "message": <message>,
+            "code": <code>
+        }
+    }
+
+    The default type is unauthorized, the default code is 401, and the
+    default message is
+    "Unable to authenticate user with credentials provided."
+    """
+    def _fail(core, http_request, credentials):
+        status_code = parameters.get("code", 401)
+        http_request.setResponseCode(status_code)
+
+        failure_type = parameters.get("type", "unauthorized")
+        failure_message = parameters.get(
+            "message",
+            "Unable to authenticate user with credentials provided.")
+
+        if failure_type == "string":
+            return failure_message
+        else:
+            return json.dumps({
+                failure_type: {
+                    "message": failure_message,
+                    "code": status_code
+                }
+            })
+
+    return _fail
+
+
 @attr.s(hash=False)
 class AuthApi(object):
     """
     Rest endpoints for mocked Auth api.
-    """
-    core = attr.ib()
-    auth_behavior_registry = attr.ib(default=attr.Factory(
-        lambda: BehaviorRegistry(event=authentication)))
 
+    :ivar core: an instance of :class:`mimic.core.MimicCore`
+    :ivar registry_collection: an instance of
+        :class:`mimic.model.behaviors.BehaviorRegistryCollection`
+    """
+    core = attr.ib(validator=attr.validators.instance_of(MimicCore))
+    registry_collection = attr.ib(
+        validator=attr.validators.instance_of(BehaviorRegistryCollection))
     app = MimicApp()
 
     @app.route('/v2.0/tokens', methods=['POST'])
@@ -129,9 +206,10 @@ class AuthApi(object):
                     except (KeyError, TypeError):
                         pass
                     else:
-                        behavior = (self.auth_behavior_registry
-                                    .behavior_for_attributes(
-                                        attr.asdict(cred)))
+                        registry = self.registry_collection.registry_by_event(
+                            authentication)
+                        behavior = registry.behavior_for_attributes(
+                            attr.asdict(cred))
                         return behavior(self.core, request, cred)
 
         request.setResponseCode(400)
@@ -176,7 +254,8 @@ class AuthApi(object):
 
         cred = ImpersonationCredentials.from_json(
             content, request.getHeader("x-auth-token"))
-        behavior = self.auth_behavior_registry.behavior_for_attributes({
+        registry = self.registry_collection.registry_by_event(authentication)
+        behavior = registry.behavior_for_attributes({
             "token": cred.impersonator_token,
             "username": cred.impersonated_username
         })
@@ -277,3 +356,12 @@ def base_uri_from_request(request):
     :rtype: ``str``
     """
     return str(URLPath.fromRequest(request).click('/'))
+
+
+AuthControlApiBehaviors = make_behavior_api({'auth': authentication})
+"""
+Handlers for CRUD operations on authentication behaviors.
+
+:ivar registry_collection: an instance of
+    :class:`mimic.model.behaviors.BehaviorRegistryCollection`
+"""
