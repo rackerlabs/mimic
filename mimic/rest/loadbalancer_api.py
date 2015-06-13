@@ -167,6 +167,48 @@ class LoadBalancerControlRegion(object):
             request.setResponseCode(204)
             return b''
 
+    @app.route(
+        '/v2/<string:tenant_id>/loadbalancer/<int:clb_id>/error_reason',
+        methods=['POST']
+    )
+    def set_error_reason(self, request, tenant_id, clb_id):
+        """
+        Sets a configurable response code and message that will be returned
+        when the load balancer is in an ERROR state.
+
+        The requeset body should take the form of a dictionary with two keys:
+            {"code": code, "message": message}
+
+        The request represents the response to be returned based on an ERROR state.
+        ex. {"code": 500, "message": "Out of virtual IPs. Please contact support."}
+
+        This is needed since a load balancer can have a status of ERROR
+        for multiple reasons, resulting in various responses.
+        Note: If no response is configured, a default 422 will be used.
+        """
+        regional_lbs = self._collection_from_tenant(tenant_id)
+        if not regional_lbs.lb_in_region(clb_id):
+            request.setResponseCode(404)
+            return json.dumps({
+                "message": "Tenant {0} doesn't own load balancer {1}".format(
+                    tenant_id, clb_id
+                ),
+                "code": 404,
+            })
+
+        try:
+            content = json.loads(request.content.read())
+        except ValueError:
+            request.setResponseCode(400)
+            return json.dumps(invalid_resource("Invalid JSON request body"))
+
+        if not ("code" in content and "message" in content):
+            request.setResponseCode(400)
+            return json.dumps(invalid_resource("Both a code and "
+                              "message must be supplied."))
+
+        regional_lbs.lbs[clb_id].update({"error_response": content})
+
 
 class LoadBalancerRegion(object):
     """

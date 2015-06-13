@@ -108,6 +108,9 @@ class RegionalCLBCollection(object):
         """
         Sets zero or more attributes on the load balancer object.
         Currently supported attributes include: status.
+        :param lb_id: The ID of the load balancer to change.
+        :param dict kvpairs: A dictionary with keys corresponding to load
+            balancer attributes and the values to a replacement value.
         """
         supported_keys = ["status"]
         badKeys = []
@@ -287,6 +290,14 @@ class RegionalCLBCollection(object):
             _verify_and_update_lb_state(self, lb_id, False, current_timestamp)
 
             if self.lbs[lb_id]["status"] != "ACTIVE":
+                if ((self.lbs[lb_id]["status"] == "ERROR") and
+                        ("error_response" in self.lbs[lb_id])):
+
+                    err_resp = self.lbs[lb_id]["error_response"]
+                    resource = invalid_resource(err_resp["message"],
+                                                err_resp["code"])
+                    return (resource, err_resp["code"])
+
                 resource = invalid_resource(
                     "Load Balancer '{0}' has a status of {1} and is considered "
                     "immutable.".format(lb_id, self.lbs[lb_id]["status"]), 422)
