@@ -1509,7 +1509,6 @@ class NovaCreateServerBehaviorControlPlane(object):
         ("fail",
          {"message": "Invalid creation", "code": 400, "type": "string"})
     )
-    test_sequence = True
 
     def __init__(self, test_case):
         """

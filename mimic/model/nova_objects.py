@@ -18,11 +18,7 @@ from mimic.util.helper import (
 )
 
 from mimic.model.behaviors import (
-    BehaviorRegistryCollection,
-    EventDescription,
-    Criterion,
-    regexp_predicate,
-    sequence_behavior
+    BehaviorRegistryCollection, EventDescription, Criterion, regexp_predicate
 )
 from twisted.web.http import ACCEPTED, BAD_REQUEST, FORBIDDEN, NOT_FOUND
 
@@ -614,9 +610,6 @@ def active_then_error(parameters):
             server.update_status,
             u"ERROR")
     return fail_later
-
-
-sequence = sequence_behavior(server_creation)
 
 
 def metadata_to_creation_behavior(metadata):

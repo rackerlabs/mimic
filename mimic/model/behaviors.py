@@ -70,7 +70,7 @@ def regexp_predicate(value):
     return re.compile(value).match
 
 
-@attr.s
+@attr.s(these={"_behaviors": attr.ib(), "_criteria": attr.ib()}, init=False)
 class EventDescription(object):
     """
     A collection of behaviors which might be responses for a given event, and
@@ -79,9 +79,19 @@ class EventDescription(object):
     :ivar default_behavior: The behavior to return from
         :obj:`BehaviorRegistry.behavior_for_attributes` if no registered
         criteria match.
+
+    All :class:`EventDescription`s come with a sequence behavior (named
+    "sequence") by default.  (:see: :obj:`sequence_docstring` for more
+    information)
     """
-    _behaviors = attr.ib(default=attr.Factory(dict))
-    _criteria = attr.ib(default=attr.Factory(dict))
+    def __init__(self):
+        """
+        Cannot use :mod:`attr` to generate the ``__init__`` function, because
+        we want to also generate a seqeuence behavior by default.
+        """
+        self._behaviors = {}
+        self._criteria = {}
+        _sequence_behavior(self)
 
     def declare_behavior_creator(self, name):
         """
@@ -316,7 +326,7 @@ def make_behavior_api(event_names_and_descriptions):
     return BehaviorAPI
 
 
-_sequence_docstring = """
+sequence_docstring = """
     Sometimes a sequence of behaviors occur when you try to trigger an
     event in a predictable pattern.
 
@@ -354,19 +364,17 @@ _sequence_docstring = """
 """
 
 
-def sequence_behavior(event):
+def _sequence_behavior(event):
     """
-    {0}
-
-    This function, given an event, produces a generic behavior-creator that
-    provides this sequence behavior, which is named "sequence".
+    A convenience function that should for :class:`EventDescription` that,
+    given an event, produces a generic behavior-creator that provides this
+    sequence behavior, which is named "sequence".
 
     :param event: an instance of :class:`EventDescription`
     :return: a callable behavior-creator as described above
-    """.format(_sequence_docstring)
+    """
     @event.declare_behavior_creator("sequence")
     def sequence(parameters):
-        """{0}""".format(_sequence_docstring)
         behavior_specification = parameters["behaviors"]
         behavior_objects = cycle([
             (
@@ -383,4 +391,5 @@ def sequence_behavior(event):
             return current(*args, **kwargs)
         return rotating_behavior
 
+    sequence.__doc__ = sequence_docstring
     return sequence

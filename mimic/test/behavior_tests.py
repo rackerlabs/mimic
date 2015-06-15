@@ -28,8 +28,6 @@ class IBehaviorAPITestHelperFactory(Interface):
         "A name which will be used to generate the test suite name.")
     module = Attribute(
         "The module in which the test suite should go.")
-    test_sequence = Attribute(
-        "A boolean as to whether to generate a test for sequence behavior.")
 
     def from_test_case(test_case):
         """
@@ -131,8 +129,7 @@ def make_behavior_tests(behavior_helper_factory):
 
     - providing invalid JSON will result in a 400 when creating the behavior.
 
-    - sequence behavior will rotate through the behaviors provided to it (if
-      :bool:`behavior_helper_factory.test_sequence` is true)
+    - sequence behavior will rotate through the behaviors and default behavior
 
     :param behavior_helper_factory: a class that implements
         :class:`IBehaviorAPITestHelperFactory`
@@ -215,7 +212,6 @@ def make_behavior_tests(behavior_helper_factory):
             self.bhelper.validate_default_behavior(
                 *self.bhelper.trigger_event())
 
-    if behavior_helper_factory.test_sequence:
         def test_sequence_behavior(self):
             """
             There is also a behavior, sequence, which should rotate through
@@ -245,8 +241,6 @@ def make_behavior_tests(behavior_helper_factory):
                 self.bhelper.validate_default_behavior(
                     *self.bhelper.trigger_event())
 
-        Tester.test_sequence_behavior = test_sequence_behavior
-
     Tester.__name__ = "TestsFor{0}".format(behavior_helper_factory.name)
     Tester.__module__ = behavior_helper_factory.module
     return Tester
@@ -267,8 +261,8 @@ def behavior_tests_helper_class(klass):
 
     - providing invalid JSON will result in a 400 when creating the behavior.
 
-    - sequence behavior will rotate through the behaviors provided to it (if
-      :bool:`klass.test_sequence` is true)
+    - sequence behavior will rotate through the behaviors (including the
+        default behavior).
 
     Note that these ONLY test that you have correctly added behavior CRUD
     (and that if multiple behaviors are added for the same criteria, they
@@ -332,8 +326,6 @@ def behavior_tests_helper_class(klass):
        it hasn't already been declared, and verifying that it does
     #. assigning a ``name`` and ``module`` attribute to ``klass`` if they
        aren't assigned already
-    #. assigning a ``test_sequence`` attribute to ``klass`` false if they
-       aren't assigned already
     #. setting ``from_test_case`` to be a method that calls the ``klass``
        initializer with a test case if ``from_test_case`` is not already
        provided
@@ -366,9 +358,6 @@ def behavior_tests_helper_class(klass):
 
     if getattr(klass, 'module', None) is None:
         setattr(klass, 'module', klass.__module__)
-
-    if getattr(klass, 'test_sequence', None) is None:
-        setattr(klass, 'test_sequence', False)
 
     if getattr(klass, 'from_test_case', None) is None:
         setattr(klass, 'from_test_case',

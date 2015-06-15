@@ -1116,7 +1116,6 @@ class IdentityAuthBehaviorControlPlane(object):
         ("fail",
          {"message": "Invalid creds", "code": 403})
     )
-    test_sequence = True
 
     def __init__(self, test_case):
         """
