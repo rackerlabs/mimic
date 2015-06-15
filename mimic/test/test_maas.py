@@ -292,6 +292,26 @@ class MaasAPITests(SynchronousTestCase):
         alarm2 = self.get_responsebody(resp)['values'][0]['alarms'][0]
         self.assertEquals(alarm['label'], alarm2['label'])
 
+    def test_partial_update_alarm(self):
+        """
+        When a request is received that updates an alarm, fields not specified
+        in that request's body remain the same.
+
+        """
+        data = {'notification_plan_id': 'np123456'}
+        req = request(self, self.root, "PUT",
+                      self.uri + '/entities/' + self.entity_id + '/alarms/' + self.alarm_id,
+                      json.dumps(data))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 204)
+        req = request(self, self.root, "GET",
+                      self.uri + '/entities/' + self.entity_id + '/alarms/' + self.alarm_id, '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertEquals('np123456', data['notification_plan_id'])
+        self.assertEquals('ItsAnAlarm', data['label'])
+
     def test_delete_alarm(self):
         """
         delete alarm

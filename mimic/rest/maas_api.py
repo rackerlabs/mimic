@@ -558,25 +558,28 @@ class MaasMock(object):
                methods=['PUT'])
     def update_alarm(self, request, tenant_id, entity_id, alarm_id):
         """
-        update alarm
+        Updates an alarm in place.
+
+        Documentation for this API can be found in the Rackspace Cloud
+        Monitoring Developer Guide, section 5.12.5, "Update alarm by ID".
+        The full link is quite long, but you can reach it by browsing
+        to the following goo.gl URL:
+
+            http://goo.gl/NhxgTZ
         """
-        alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
-        newalarm = json.loads(request.content.read())
-        newalarm['entity_id'] = entity_id
-        newalarm['updated_at'] = time.time()
-        for k in newalarm.keys():
-            if 'encode' in dir(newalarm[k]):  # because there are integers sometimes.
-                newalarm[k] = newalarm[k].encode('utf-8')
-        for q in range(len(alarms)):
-            if alarms[q]['entity_id'] == entity_id and alarms[q]['id'] == alarm_id:
-                newalarm['check_id'] = alarms[q]['check_id']
-                del alarms[q]
-                alarms.append(newalarm)
+        update = json.loads(request.content.read())
+        for alarm in self._entity_cache_for_tenant(tenant_id).alarms_list:
+            if alarm['entity_id'] == entity_id and alarm['id'] == alarm_id:
+                for k in ['check_id', 'notification_plan_id', 'criteria', 'disabled', 'label',
+                          'metadata']:
+                    if k in update:
+                        alarm[k] = update[k]
                 break
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         request.setResponseCode(204)
-        request.setHeader('location', myhostname_and_port + request.path + '/' + newalarm['id'])
-        request.setHeader('x-object-id', newalarm['id'])
+        request.setHeader('location', myhostname_and_port + request.path +
+                          '/' + alarm_id.encode('utf-8'))
+        request.setHeader('x-object-id', alarm_id.encode('utf-8'))
         request.setHeader('content-type', 'text/plain')
         return ''
 
