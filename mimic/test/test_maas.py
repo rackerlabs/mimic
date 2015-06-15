@@ -250,6 +250,24 @@ class MaasAPITests(SynchronousTestCase):
         data = self.get_responsebody(resp)
         self.assertEquals('Iamamwhoami', data['label'])
 
+    def test_partial_update_check(self):
+        """
+        Update a check, fields not specified in the body don't change.
+        """
+        data = {'target_alias': 'internet7_v4'}
+        req = request(self, self.root, "PUT",
+                      self.uri + '/entities/' + self.entity_id + '/checks/' + self.check_id,
+                      json.dumps(data))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 204)
+        req = request(self, self.root, "GET",
+                      self.uri + '/entities/' + self.entity_id + '/checks/' + self.check_id, '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertEquals('internet7_v4', data['target_alias'])
+        self.assertEquals('ItsAcheck', data['label'])
+
     def test_update_alarm(self):
         """
         update alarm
