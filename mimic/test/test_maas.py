@@ -24,7 +24,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         postdata = {}
         postdata['agent_id'] = None
-        postdata['label'] = 'testCreateEntity'
+        postdata['label'] = label
         req = request(self, self.root, "POST",
                       self.uri + '/entities',
                       json.dumps(postdata))
@@ -586,6 +586,47 @@ class MaasAPITests(SynchronousTestCase):
         mz = data['values'][0]
         self.assertEquals('mzdfw', mz['id'])
 
+    def test_test_check(self):
+        """
+        This tests the test-check API
+        http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-checks.html#
+        POST_checkTestNew_entities__entityId__test-check_service-checks
+        """
+        postdata = {"type": "agent.cpu", "label": "test check", "details": {},
+                    "target_alias": None, "target_resolver": None, "target_hostname": None}
+        req = request(self, self.root, "POST",
+                      self.uri + '/entities/' + self.entity_id + '/test-check', json.dumps(postdata))
+        resp = self.successResultOf(req)
+        data = self.get_responsebody(resp)
+        self.assertEquals("success", data[0]["status"])
+
+    def test_test_alarm(self):
+        """
+        Support for test-alarm API
+        http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-alarms.html#
+        POST_alarmsTest_entities__entityId__test-alarm_service-alarms
+        """
+        my_states = ["OK", "WARNING", "CRITICAL"]
+        my_entity_ids = []
+        for state in my_states:
+            my_entity_ids.append(self.getXobjectIDfromResponse(self.createEntity('CPU ' + state)))
+        postdata = {"type": "agent.cpu", "label": "test check", "details": {},
+                    "target_alias": None, "target_resolver": None, "target_hostname": None}
+        req = request(self, self.root, "POST",
+                      self.uri + '/entities/' + self.entity_id + '/test-check', json.dumps(postdata))
+        resp = self.successResultOf(req)
+        data = self.get_responsebody(resp)
+        self.assertEquals("success", data[0]["status"])
+        postdata = {"criteria": "whatever_alarm_syntax_I_dont_care", "check_data": data}
+        for pair in zip(my_states, my_entity_ids):
+            state = pair[0]
+            entity_id = pair[1]
+            req = request(self, self.root, "POST",
+                          self.uri + '/entities/' + entity_id + '/test-alarm', json.dumps(postdata))
+            resp = self.successResultOf(req)
+            data = self.get_responsebody(resp)
+            self.assertEquals(state, data[0]["state"])
+
     def test_list_alarm_examples(self):
         """
         List the alarm examples
@@ -596,6 +637,20 @@ class MaasAPITests(SynchronousTestCase):
         data = self.get_responsebody(resp)
         ax = data['values'][0]
         self.assertEquals('remote.http_body_match_1', ax['id'])
+
+    def test_alarm_examples_template(self):
+        """
+        Evaluates an alarm metric
+        http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-alarm-examples.html#
+        POST_evaluateAlarmExampleId_alarm_examples__alarmExampleId__service-alarm-examples
+        """
+        postdata = {"values": {"critical_threshold": "1", "warning_threshold": "2"}}
+        req = request(self, self.root, "POST", self.uri + '/alarm_examples/agent.cpu_usage_average',
+                      json.dumps(postdata))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertEquals(True, "AlarmStatus" in str(data))
 
     def test_alarm_count_per_np(self):
         """

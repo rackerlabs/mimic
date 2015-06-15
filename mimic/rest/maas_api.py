@@ -23,7 +23,8 @@ from mimic.imimic import IAPIMock
 from mimic.canned_responses.maas_json_home import json_home
 from mimic.canned_responses.maas_agent_info import agent_info
 from mimic.canned_responses.maas_monitoring_zones import monitoring_zones
-from mimic.canned_responses.maas_alarm_examples import alarm_examples
+from mimic.canned_responses.maas_alarm_examples import alarm_examples, alarm_examples_template
+from mimic.canned_responses.maas_test_check import test_check
 from mimic.util.helper import random_hex_generator
 
 
@@ -332,6 +333,47 @@ class MaasMock(object):
         metadata['next_href'] = None
         request.setResponseCode(200)
         return json.dumps({'metadata': metadata, 'values': entities})
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/test-check', methods=['POST'])
+    def test_check(self, request, tenant_id, entity_id):
+        """
+        Replies the test-check
+        http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-checks.html#
+        POST_checkTestNew_entities__entityId__test-check_service-checks
+        """
+        postdata = json.loads(request.content.read())
+        result = test_check(postdata['type'])
+        request.setResponseCode(200)
+        return json.dumps(result)
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/test-alarm', methods=['POST'])
+    def test_alarm(self, request, tenant_id, entity_id):
+        """
+        Replies the test-alarm
+        http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-alarms.html#
+        POST_alarmsTest_entities__entityId__test-alarm_service-alarms
+        """
+        entity_label = "not_found"
+        my_state = "OK"
+        entities = self._entity_cache_for_tenant(tenant_id).entities_list
+        for e in entities:
+            if e['id'] == entity_id:
+                entity_label = e['label']
+                break
+        if entity_label == "CPU OK":
+            my_state = "OK"
+        elif entity_label == "CPU WARNING":
+            my_state = "WARNING"
+        elif entity_label == "CPU CRITICAL":
+            my_state = "CRITICAL"
+        request.setResponseCode(200)
+        return json.dumps([{
+            "timestamp": str(int(time.time() * 100)),
+            "state": my_state,
+            "status": "Entity with label " + entity_label + " gets state " + my_state +
+            ". An Entity Named 'CPU OK' will have OK status CPU alarm." +
+            ". CPU WARNING will be warning and CPU CRITICAL will be critical."
+        }])
 
     @app.route('/v1.0/<string:tenant_id>/entities', methods=['POST'])
     def create_entity(self, request, tenant_id):
@@ -934,6 +976,20 @@ class MaasMock(object):
         }
         request.setResponseCode(200)
         return json.dumps({'values': axs, 'metadata': metadata})
+
+    @app.route('/v1.0/<string:tenant_id>/alarm_examples/<string:metric>', methods=['POST'])
+    def alarm_examples_template(self, request, tenant_id, metric):
+        """
+        Evaluate template of alarm example
+        http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-alarm-examples.html#
+        GET_getAlarmExampleId_alarm_examples__alarmExampleId__service-alarm-examples
+        (POST /alarm_examples/{alarmExampleId})
+        """
+        postdata = json.loads(request.content.read())
+        result = alarm_examples_template(metric, postdata['values']['critical_threshold'],
+                                         postdata['values']['warning_threshold'])
+        request.setResponseCode(200)
+        return json.dumps(result)
 
     @app.route('/v1.0/<string:tenant_id>/views/alarmCountsPerNp', methods=['GET'])
     def alarm_counts_per_np(self, request, tenant_id):
