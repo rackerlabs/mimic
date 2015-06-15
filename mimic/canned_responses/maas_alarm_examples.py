@@ -294,3 +294,16 @@ def alarm_examples():
             "type": "whole number (may be zero padded)"
         }]
     }]
+
+
+def alarm_examples_template(metric, crit_threshold, warn_threshold):
+    """
+    Returns the specific canned alarm example asked for by the 'metric' param.
+    """
+    criteria = "NOT_IMPLEMENTED_IN_MIMIC"
+    all_alarm_examples = alarm_examples()
+    for ae in all_alarm_examples:
+        if ae['id'] == metric:
+            criteria = ae['criteria']
+            break
+    return {"bound_criteria": criteria}
