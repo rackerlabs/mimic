@@ -533,6 +533,28 @@ class MaasMock(object):
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/<string:alarm_id>',
+               methods=['GET'])
+    def get_alarm(self, request, tenant_id, entity_id, alarm_id):
+        """
+        Gets an alarm by ID.
+        """
+        alarm = None
+        for a in self._entity_cache_for_tenant(tenant_id).alarms_list:
+            if a['entity_id'] == entity_id and a['id'] == alarm_id:
+                alarm = a
+                break
+        else:
+            request.setResponseCode(404)
+            return json.dumps({'type': 'notFoundError',
+                               'code': 404,
+                               'message': 'Object does not exist',
+                               'details': 'Object "Alarm" with key "{0}:{1}" does not exist'.format(
+                                   entity_id, alarm_id)
+                               })
+        request.setResponseCode(200)
+        return json.dumps(alarm)
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/<string:alarm_id>',
                methods=['PUT'])
     def update_alarm(self, request, tenant_id, entity_id, alarm_id):
         """
