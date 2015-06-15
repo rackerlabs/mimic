@@ -96,8 +96,7 @@ class EventDescription(object):
     def declare_behavior_creator(self, name):
         """
         Decorator which declares that the decorated function is a factory,
-        taking parameters (a JSON-serialized object), and returning a
-        behavior.
+        taking parameters (a JSON-serialized object), and returning a behavior.
 
         Use like so::
 
