@@ -338,12 +338,31 @@ class MaasMock(object):
         Replies the entities list call
         """
         entities = self._entity_cache_for_tenant(tenant_id).entities_list
+
+        limit = 100
+        marker = None
+        next_marker = None
+        next_href = None
+        if 'limit' in request.args:
+            limit = int(request.args['limit'][0].strip())
+        if 'marker' in request.args:
+            marker = request.args['marker'][0].strip()
+            for q in range(len(entities)):
+                if entities[q]['id'] == marker:
+                    entities = entities[q:]
+                    break
+        try:
+            next_marker = entities[limit]['id']
+        except Exception,e:
+            pass
+        entities = entities[:limit]
+
         metadata = {}
         metadata['count'] = len(entities)
-        metadata['limit'] = 1000
-        metadata['marker'] = None
-        metadata['next_marker'] = None
-        metadata['next_href'] = None
+        metadata['limit'] = limit
+        metadata['marker'] = marker
+        metadata['next_marker'] = next_marker
+        metadata['next_href'] = next_href
         request.setResponseCode(200)
         return json.dumps({'metadata': metadata, 'values': entities})
 
