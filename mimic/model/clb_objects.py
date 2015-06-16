@@ -17,7 +17,6 @@ from twisted.python import log
 from mimic.canned_responses.loadbalancer import (load_balancer_example,
                                                  _verify_and_update_lb_state,
                                                  _lb_without_tenant,
-                                                 _format_nodes_on_lb,
                                                  _delete_node)
 from mimic.model.clb_errors import considered_immutable_error
 from mimic.util.helper import (not_found_response, seconds_to_timestamp,
@@ -174,8 +173,10 @@ class RegionalCLBCollection(object):
         self.lbs[lb_id] = load_balancer_example(lb_info, lb_id, status,
                                                 current_timestring)
         self.lbs[lb_id].update({"tenant_id": tenant_id})
-        self.lbs[lb_id].update(
-            {"nodeCount": len(self.lbs[lb_id].get("nodes", []))})
+        self.lbs[lb_id]["nodes"] = [
+            Node.from_json(blob) for blob in self.lbs[lb_id].get("nodes", [])]
+
+        self.lbs[lb_id].update({"nodeCount": len(self.lbs[lb_id]["nodes"])})
 
         # and remove before returning response for add lb
         new_lb = _lb_without_tenant(self, lb_id)
@@ -237,8 +238,8 @@ class RegionalCLBCollection(object):
 
             if self.lbs[lb_id].get("nodes"):
                 for each in self.lbs[lb_id]["nodes"]:
-                    if node_id == each["id"]:
-                        return {"node": each}, 200
+                    if node_id == each.id:
+                        return {"node": each.as_json()}, 200
             return not_found_response("node"), 404
 
         return not_found_response("loadbalancer"), 404
@@ -278,7 +279,8 @@ class RegionalCLBCollection(object):
                 return invalid_resource("The loadbalancer is marked as deleted.", 410), 410
             node_list = []
             if self.lbs[lb_id].get("nodes"):
-                node_list = self.lbs[lb_id]["nodes"]
+                node_list = [node.as_json()
+                             for node in self.lbs[lb_id]["nodes"]]
             return {"nodes": node_list}, 200
         else:
             return not_found_response("loadbalancer"), 404
@@ -330,7 +332,7 @@ class RegionalCLBCollection(object):
 
         # We need to verify all the deletions up front, and only allow it through
         # if all of them are valid.
-        all_ids = [node["id"] for node in self.lbs[lb_id].get("nodes", [])]
+        all_ids = [node.id for node in self.lbs[lb_id].get("nodes", [])]
         non_nodes = set(node_ids).difference(all_ids)
         if non_nodes:
             nodes = ','.join(map(str, non_nodes))
@@ -356,7 +358,15 @@ class RegionalCLBCollection(object):
 
     def add_node(self, node_list, lb_id, current_timestamp):
         """
-        Returns the canned response for add nodes
+        Add one or more nodes to a load balancer.  Fails if one or more of the
+        nodes provided has the same address/port as an existing node.  Also
+        fails if adding the nodes would exceed the maximum number of nodes on
+        the CLB.
+
+        :param list node_list: a `list` of `dict` containing specification for
+            nodes
+
+        :return: a `tuple` of (json response as a dict, http status code)
         """
         if lb_id in self.lbs:
 
@@ -366,13 +376,12 @@ class RegionalCLBCollection(object):
                 return considered_immutable_error(
                     self.lbs[lb_id]["status"], lb_id)
 
-            nodes = _format_nodes_on_lb(node_list)
+            nodes = [Node.from_json(blob) for blob in node_list]
 
             if self.lbs[lb_id].get("nodes"):
                 for existing_node in self.lbs[lb_id]["nodes"]:
-                    for new_node in node_list:
-                        if (existing_node["address"] == new_node["address"] and
-                                existing_node["port"] == new_node["port"]):
+                    for new_node in nodes:
+                        if existing_node.same_as(new_node):
                             resource = invalid_resource(
                                 "Duplicate nodes detected. One or more nodes "
                                 "already configured on load balancer.", 413)
@@ -393,7 +402,7 @@ class RegionalCLBCollection(object):
                 self.lbs[lb_id]["nodeCount"] = len(self.lbs[lb_id]["nodes"])
                 _verify_and_update_lb_state(self, lb_id,
                                             current_timestamp=current_timestamp)
-            return {"nodes": nodes}, 202
+            return {"nodes": [node.as_json() for node in nodes]}, 202
 
         return not_found_response("loadbalancer"), 404
 

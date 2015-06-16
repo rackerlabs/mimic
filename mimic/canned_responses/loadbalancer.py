@@ -48,7 +48,7 @@ def _delete_node(store, lb_id, node_id):
     """Delete a node by ID."""
     if store.lbs[lb_id].get("nodes"):
         for each in store.lbs[lb_id]["nodes"]:
-            if each["id"] == node_id:
+            if each.id == node_id:
                 index = store.lbs[lb_id]["nodes"].index(each)
                 del store.lbs[lb_id]["nodes"][index]
                 if not store.lbs[lb_id]["nodes"]:
@@ -95,6 +95,7 @@ def _lb_without_tenant(store, lb_id):
     tenant_id
     """
     new_lb = deepcopy(store.lbs[lb_id])
+    new_lb["nodes"] = [node.as_json() for node in store.lbs[lb_id]["nodes"]]
     del new_lb["tenant_id"]
     del new_lb["nodeCount"]
     return new_lb
