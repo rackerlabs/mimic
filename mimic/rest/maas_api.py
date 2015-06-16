@@ -413,6 +413,7 @@ class MaasMock(object):
                 for k in ['agent_id', 'managed', 'metadata', 'ip_addresses', 'uri']:
                     if k in update:
                         entity[k] = update[k]
+                entity['updated_at'] = time.time()
                 break
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         request.setResponseCode(204)
@@ -486,6 +487,7 @@ class MaasMock(object):
                           'monitoring_zones_poll', 'target_alias', 'target_hostname', 'target_resolver']:
                     if k in update:
                         check[k] = update[k]
+                check['updated_at'] = time.time()
                 break
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         request.setResponseCode(204)
@@ -572,6 +574,7 @@ class MaasMock(object):
                           'metadata']:
                     if k in update:
                         alarm[k] = update[k]
+                alarm['updated_at'] = time.time()
                 break
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         request.setResponseCode(204)
