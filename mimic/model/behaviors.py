@@ -3,6 +3,7 @@ General-purpose utilities for customizing response behavior.
 """
 import json
 import re
+from itertools import cycle
 from uuid import UUID, uuid4
 
 import attr
@@ -69,7 +70,7 @@ def regexp_predicate(value):
     return re.compile(value).match
 
 
-@attr.s
+@attr.s(these={"_behaviors": attr.ib(), "_criteria": attr.ib()}, init=False)
 class EventDescription(object):
     """
     A collection of behaviors which might be responses for a given event, and
@@ -78,9 +79,19 @@ class EventDescription(object):
     :ivar default_behavior: The behavior to return from
         :obj:`BehaviorRegistry.behavior_for_attributes` if no registered
         criteria match.
+
+    All :class:`EventDescription`s come with a sequence behavior (named
+    "sequence") by default.  (:see: :obj:`sequence_docstring` for more
+    information)
     """
-    _behaviors = attr.ib(default=attr.Factory(dict))
-    _criteria = attr.ib(default=attr.Factory(dict))
+    def __init__(self):
+        """
+        Cannot use :mod:`attr` to generate the ``__init__`` function, because
+        we want to also generate a seqeuence behavior by default.
+        """
+        self._behaviors = {}
+        self._criteria = {}
+        _sequence_behavior(self)
 
     def declare_behavior_creator(self, name):
         """
@@ -312,3 +323,72 @@ def make_behavior_api(event_names_and_descriptions):
                 delete_behavior)
 
     return BehaviorAPI
+
+
+sequence_docstring = """
+    Sometimes a sequence of behaviors occur when you try to trigger an
+    event in a predictable pattern.
+
+    Takes one parameter, ``behaviors``, which is a list of specifications
+    of other behaviors, similar to those specified in the request to
+    create a behavior, with the addition of a behavior with a name of
+    "default" that means default success.
+
+    Each time the criterion for this behavior is matched, the next
+    behavior is executed, looping back to the beginning when the list of
+    behaviors is exhausted.  In other words, this creation behavior is
+    stateful.
+
+    Note that the behavior specifications here do not need a criterion,
+    since the criterion is specified for the behavior overall, and each
+    behavior is unconditionally executed in sequence.
+
+    For example, to specify an alternating sequence of success and then
+    failure when the criterion for the ``sequence`` behavior is matched::
+
+        {
+            "behaviors": [
+                {
+                    "name": "default"
+                },
+                {
+                    "name": "fail",
+                    "parameters": {
+                        "code": 500,
+                        "message": "synthetic error"
+                    }
+                }
+            ]
+        }
+"""
+
+
+def _sequence_behavior(event):
+    """
+    A convenience function that should for :class:`EventDescription` that,
+    given an event, produces a generic behavior-creator that provides this
+    sequence behavior, which is named "sequence".
+
+    :param event: an instance of :class:`EventDescription`
+    :return: a callable behavior-creator as described above
+    """
+    @event.declare_behavior_creator("sequence")
+    def sequence(parameters):
+        behavior_specification = parameters["behaviors"]
+        behavior_objects = cycle([
+            (
+                event.create_behavior(behavior["name"],
+                                      behavior["parameters"])
+                if behavior["name"] != "default"
+                else event.default_behavior
+            )
+            for behavior in behavior_specification
+        ])
+
+        def rotating_behavior(*args, **kwargs):
+            current = next(behavior_objects)
+            return current(*args, **kwargs)
+        return rotating_behavior
+
+    sequence.__doc__ = sequence_docstring
+    return sequence
