@@ -28,3 +28,25 @@ class TestCloudFeeds(SynchronousTestCase):
         self.assertEquals(len(cf.get_product_endpoints()), 1)
         p = cf.get_product_by_href('hoohaw')
         self.assertEquals(p.title, 'The hoohaw product')
+
+
+class TestCloudFeedsProduct(SynchronousTestCase):
+    def test_creation(self):
+        """
+        A new product queue should be empty.
+        """
+        cfp = cloudfeeds.CloudFeedsProduct(title='title', href='href')
+        self.assertEquals(len(cfp.events), 0)
+
+    def test_post(self):
+        """
+        Posting a new event to a queue should tack said event onto the end
+        of said queue.
+        """
+        cfp = cloudfeeds.CloudFeedsProduct(title='title', href='href')
+        cfp.post("TROLOLOLOLOL!!!")
+        cfp.post("This is a totally fake event-like thing.")
+        self.assertEquals(
+            cfp.events,
+            ["TROLOLOLOLOL!!!", "This is a totally fake event-like thing."]
+        )

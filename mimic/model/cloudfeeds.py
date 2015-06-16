@@ -14,6 +14,14 @@ class CloudFeedsProduct(object):
     title = attr.ib(attr.validators.instance_of(str))
     href = attr.ib(attr.validators.instance_of(str))
 
+    events = attr.ib(default=attr.Factory(list))
+
+    def post(self, event):
+        """
+        Post an event to the product queue.
+        """
+        self.events.append(event)
+
 
 @attr.s
 class CloudFeeds(object):
