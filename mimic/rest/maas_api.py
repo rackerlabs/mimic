@@ -477,23 +477,21 @@ class MaasMock(object):
                methods=['PUT'])
     def update_check(self, request, tenant_id, entity_id, check_id):
         """
-        Update an existing check
+        Updates a check in place.
         """
-        checks = self._entity_cache_for_tenant(tenant_id).checks_list
-        newcheck = json.loads(request.content.read())
-        newcheck['entity_id'] = entity_id
-        for k in newcheck.keys():
-            if 'encode' in dir(newcheck[k]):  # because there are integers sometimes.
-                newcheck[k] = newcheck[k].encode('utf-8')
-        for q in range(len(checks)):
-            if checks[q]['entity_id'] == entity_id and checks[q]['id'] == check_id:
-                del checks[q]
-                checks.append(newcheck)
+        update = json.loads(request.content.read())
+        for check in self._entity_cache_for_tenant(tenant_id).checks_list:
+            if check['entity_id'] == entity_id and check['id'] == check_id:
+                for k in ['type', 'details', 'disabled', 'label', 'metadata', 'period', 'timeout',
+                          'monitoring_zones_poll', 'target_alias', 'target_hostname', 'target_resolver']:
+                    if k in update:
+                        check[k] = update[k]
                 break
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         request.setResponseCode(204)
-        request.setHeader('location', myhostname_and_port + request.path + '/' + newcheck['id'])
-        request.setHeader('x-object-id', newcheck['id'])
+        request.setHeader('location', myhostname_and_port + request.path +
+                          '/' + check_id.encode('utf-8'))
+        request.setHeader('x-object-id', check_id.encode('utf-8'))
         request.setHeader('content-type', 'text/plain')
         return ''
 
