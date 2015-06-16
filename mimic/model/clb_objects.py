@@ -1,8 +1,16 @@
 """
-Model objects for the CLB mimic.
+Model objects for the CLB mimic.  Please see the `Rackspace Cloud Load
+Balancer API docs
+<http://docs.rackspace.com/loadbalancers/api/v1.0/clb-devguide/content/\
+API_Operations.html>` for more information.
 """
+from random import randrange
+
+import attr
 
 from characteristic import attributes, Attribute
+
+from six import string_types
 
 from twisted.python import log
 
@@ -15,6 +23,73 @@ from mimic.model.clb_errors import considered_immutable_error
 from mimic.util.helper import (not_found_response, seconds_to_timestamp,
                                EMPTY_RESPONSE,
                                invalid_resource)
+
+@attr.s
+class Node(object):
+    """
+    An object representing a CLB node, which is a unique combination of
+    IP-address and port.  Please see section 4.4 (Nodes) of the CLB
+    documentation for more information.
+
+    :ivar int id: The ID of the node
+    :ivar str address: The IP address of the node
+    :ivar int port: The port of the node
+    :ivar str type: One of (PRIMARY, SECONDARY).  Defaults to PRIMARY.
+    :ivar int weight: Between 1 and 100 inclusive.  Defaults to 1.
+    :ivar str condition: One of (ENABLED, DISABLED, DRAINING).  Defaults to
+    :ivar str status: "Online"
+        ENABLED.
+    """
+    address = attr.ib(validator=attr.validators.instance_of(string_types))
+    port = attr.ib(validator=attr.validators.instance_of(int))
+    type = attr.ib(validator=lambda _1, _2, t: t in ("PRIMARY", "SECONDARY"),
+                   default="PRIMARY")
+    weight = attr.ib(validator=lambda _1, _2, w: 1 <= w <= 100, default=1)
+    condition = attr.ib(
+        validator=lambda _1, _2, c: c in ("ENABLED", "DISABLED", "DRAINING"),
+        default="ENABLED")
+    id = attr.ib(validator=attr.validators.instance_of(int),
+                 default=attr.Factory(lambda: randrange(999999)))
+    status = attr.ib(validator=attr.validators.instance_of(str),
+                     default="ONLINE")
+
+    @classmethod
+    def from_json(cls, json_blob, old_node=None):
+        """
+        Create a new node from JSON.
+
+        :param dict json_blob: the JSON dictionary containing node information
+        :param old_node: If provided, will return a new node containing all
+            the information from the old node, updated with the given JSON
+            information.
+
+        :return: a :class:`Node` object
+        :raises: :class:`TypeError` or :class:`ValueError` if the values
+            are incorrect.
+        """
+        json_blob['port'] = int(json_blob['port'])
+        if 'weight' in json_blob:
+            json_blob['weight'] = int(json_blob['weight'])
+
+        params = json_blob
+        if old_node is not None:
+            params = attr.asdict(old_node)
+            params.update(json_blob)
+
+        return Node(**params)
+
+    def as_json(self):
+        """
+        :return: a JSON dictionary representing the node.
+        """
+        return attr.asdict(self)
+
+    def same_as(self, other):
+        """
+        :return: `True` if the other node has the same IP address and port
+            as this node (but compares nothing else), `False` otherwise.
+        """
+        return self.address == other.address and self.port == other.port
 
 
 @attributes(["keys"])
