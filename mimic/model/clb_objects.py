@@ -1,8 +1,8 @@
 """
 Model objects for the CLB mimic.  Please see the `Rackspace Cloud Load
 Balancer API docs
-<http://docs.rackspace.com/loadbalancers/api/v1.0/clb-devguide/content/\
-API_Operations.html>` for more information.
+<http://docs.rackspace.com/loadbalancers/api/v1.0/clb-devguide/content/API_Operations.html>`
+ for more information.
 """
 from random import randrange
 
@@ -22,6 +22,7 @@ from mimic.model.clb_errors import considered_immutable_error
 from mimic.util.helper import (not_found_response, seconds_to_timestamp,
                                EMPTY_RESPONSE,
                                invalid_resource)
+
 
 @attr.s
 class Node(object):
