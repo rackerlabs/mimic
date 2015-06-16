@@ -236,10 +236,10 @@ class RegionalCLBCollection(object):
                         "The loadbalancer is marked as deleted.", 410),
                     410)
 
-            if self.lbs[lb_id].get("nodes"):
-                for each in self.lbs[lb_id]["nodes"]:
-                    if node_id == each.id:
-                        return {"node": each.as_json()}, 200
+            for each in self.lbs[lb_id]["nodes"]:
+                if node_id == each.id:
+                    return {"node": each.as_json()}, 200
+
             return not_found_response("node"), 404
 
         return not_found_response("loadbalancer"), 404
@@ -277,10 +277,10 @@ class RegionalCLBCollection(object):
 
             if self.lbs[lb_id]["status"] == "DELETED":
                 return invalid_resource("The loadbalancer is marked as deleted.", 410), 410
-            node_list = []
-            if self.lbs[lb_id].get("nodes"):
-                node_list = [node.as_json()
-                             for node in self.lbs[lb_id]["nodes"]]
+
+            node_list = [node.as_json()
+                         for node in self.lbs[lb_id]["nodes"]]
+
             return {"nodes": node_list}, 200
         else:
             return not_found_response("loadbalancer"), 404
@@ -378,30 +378,27 @@ class RegionalCLBCollection(object):
 
             nodes = [Node.from_json(blob) for blob in node_list]
 
-            if self.lbs[lb_id].get("nodes"):
-                for existing_node in self.lbs[lb_id]["nodes"]:
-                    for new_node in nodes:
-                        if existing_node.same_as(new_node):
-                            resource = invalid_resource(
-                                "Duplicate nodes detected. One or more nodes "
-                                "already configured on load balancer.", 413)
-                            return (resource, 413)
+            for existing_node in self.lbs[lb_id]["nodes"]:
+                for new_node in nodes:
+                    if existing_node.same_as(new_node):
+                        resource = invalid_resource(
+                            "Duplicate nodes detected. One or more nodes "
+                            "already configured on load balancer.", 413)
+                        return (resource, 413)
 
-                # If there were no duplicates
-                new_nodeCount = self.lbs[lb_id]["nodeCount"] + len(nodes)
-                if new_nodeCount <= self.node_limit:
-                    self.lbs[lb_id]["nodes"] = self.lbs[lb_id]["nodes"] + nodes
-                    self.lbs[lb_id]["nodeCount"] = new_nodeCount
-                else:
-                    resource = invalid_resource(
-                        "Nodes must not exceed {0} "
-                        "per load balancer.".format(self.node_limit), 413)
-                    return (resource, 413)
+            # If there were no duplicates
+            new_nodeCount = self.lbs[lb_id]["nodeCount"] + len(nodes)
+            if new_nodeCount <= self.node_limit:
+                self.lbs[lb_id]["nodes"] = self.lbs[lb_id]["nodes"] + nodes
+                self.lbs[lb_id]["nodeCount"] = new_nodeCount
             else:
-                self.lbs[lb_id]["nodes"] = nodes
-                self.lbs[lb_id]["nodeCount"] = len(self.lbs[lb_id]["nodes"])
-                _verify_and_update_lb_state(self, lb_id,
-                                            current_timestamp=current_timestamp)
+                resource = invalid_resource(
+                    "Nodes must not exceed {0} "
+                    "per load balancer.".format(self.node_limit), 413)
+                return (resource, 413)
+
+            _verify_and_update_lb_state(self, lb_id,
+                                        current_timestamp=current_timestamp)
             return {"nodes": [node.as_json() for node in nodes]}, 202
 
         return not_found_response("loadbalancer"), 404
