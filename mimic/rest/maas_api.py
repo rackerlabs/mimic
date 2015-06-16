@@ -116,15 +116,11 @@ def create_entity(params):
     """
     Returns a dictionary representing an entity
 
-    The Entity data model is described in the Rackspace Cloud Monitoring
-    Developer Guide, section 5.4:
-
-        http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-entities.html
-
-    This function returns an instance of the Entity model, mapped to a
-    Python dict. Keys of the returned object are strict ASCII. Where
-    values of the returned object are strings, or objects containing
-    strings, they must generally be considered to contain Unicode.
+    :return: an Entity model, which is described in `the Rackspace Cloud
+        Monitoring Developer Guide, section 5.4
+        <http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-entities.html>`_
+    :rtype: ``dict`` mapping ``unicode`` to ``unicode``, ``float``,
+        ``bool``, ``dict`` or ``NoneType``.
     """
     params = collections.defaultdict(lambda: '', params)
     newentity = {}
@@ -144,15 +140,11 @@ def create_check(params):
     """
     Returns a dictionary representing a check
 
-    The Check data model is described in the Rackspace Cloud Monitoring
-    Developer Guide, section 5.7:
-
-        http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-checks.html
-
-    This function returns an instance of the Check model, mapped to a
-    Python dict. Keys of the returned object are strict ASCII. Where
-    values of the returned object are strings, or objects containing
-    strings, they must generally be considered to contain Unicode.
+    :return: a Check model, which is described in `the Rackspace Cloud
+        Monitoring Developer Guide, section 5.7
+        <http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-checks.html>`_
+    :rtype: ``dict`` mapping ``unicode`` to ``unicode``, ``float``,
+        ``int``, ``bool``, ``dict`` or ``NoneType``.
     """
     params = collections.defaultdict(lambda: '', params)
     params['id'] = 'ch' + random_hex_generator(4)
@@ -177,15 +169,11 @@ def create_alarm(params):
     """
     Returns a dictionary representing an alarm
 
-    The Alarm data model is described in the Rackspace Cloud Monitoring
-    Developer Guide, section 5.12:
-
-        http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-alarms.html
-
-    This function returns an instance of the Alarm model, mapped to a
-    Python dict. Keys of the returned object are strict ASCII. Where
-    values of the returned object are strings, or objects containing
-    strings, they must generally be considered to contain Unicode.
+    :return: an Alarm model, which is described in `the Rackspace Cloud
+        Monitoring Developer Guide, section 5.12
+        <http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-alarms.html>`_
+    :rtype: ``dict`` mapping ``unicode`` to ``unicode``, ``float``,
+        ``bool``, ``dict``, or ``NoneType``.
     """
     params = collections.defaultdict(lambda: '', params)
     params['id'] = 'al' + random_hex_generator(4)
@@ -202,16 +190,11 @@ def create_notification_plan(params):
     """
     Creates a notification plan
 
-    The Notification Plan data model is described in the Rackspace Cloud
-    Monitoring Developer Guide, section 5.11:
-
-        http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-notification-plans.html
-
-
-    This function returns an instance of the Notification Plan model, mapped to
-    a Python dict. Keys of the returned object are strict ASCII. Where values
-    of the returned object are strings, or objects containing strings, they
-    must generally be considered to contain Unicode.
+    :return: a Notification Plan model, which is described in `the
+        Rackspace Cloud Monitoring Developer Guide, section 5.11
+        <http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-notification-plans.html>`_
+    :rtype: ``dict`` mapping ``unicode`` to ``unicode``, ``float``,
+        ``dict`` or ``NoneType``.
     """
     params['id'] = 'np' + random_hex_generator(4)
     params['critical_state'] = None
@@ -227,15 +210,11 @@ def create_notification(params):
     """
     Creates a notification target
 
-    The Notification data model is described in the Rackspace Cloud Monitoring
-    Developer Guide, section 5.10:
-
-        http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-notifications.html
-
-    This function returns an instance of the Notification model, mapped to a
-    Python dict. Keys of the returned object are strict ASCII. Where values of
-    the returned object are strings, or objects containing strings, they must
-    generally be considered to contain Unicode.
+    :return: a Notification model, which is described in `the Rackspace
+        Cloud Monitoring Developer Guide, section 5.10
+        <http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-notifications.html>`_
+    :rtype: ``dict`` mapping ``unicode`` to ``unicode``, ``float``,
+        ``dict`` or ``NoneType``.
     """
     params['id'] = 'nt' + random_hex_generator(4)
     params['created_at'] = time.time()
@@ -248,15 +227,10 @@ def create_suppression(params):
     """
     Creates a suppression
 
-    The Suppression data model is described in the Rackspace Cloud Monitoring
-    Developer Guide, section 5.16:
-
-        http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-suppressions.html
-
-    This function returns an instance of the Suppression model, mapped to a
-    Python dict. Keys of the returned object are strict ASCII. Where values of
-    the returned object are strings, or objects containing strings, they must
-    generally be considered to contain Unicode.
+    :return: a Suppression model, which is described in `the Rackspace
+        Cloud Monitoring Developer Guide, section 5.16
+        <http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-suppressions.html>`_
+    :rtype: ``dict`` mapping ``unicode`` to ``unicode`` or ``list``.
     """
     params['id'] = 'sp' + random_hex_generator(4)
     if 'notification_plans' not in params:
