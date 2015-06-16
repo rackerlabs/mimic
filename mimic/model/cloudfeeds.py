@@ -39,4 +39,15 @@ class CloudFeeds(object):
         :param str href: This provides the unique component of an HTTP reference
             URL that a client can use to talk to this specific feed.
         """
-        self._endpoints.append(CloudFeedsProduct(title=title, href=href))
+        if not self.get_product_by_href(href):
+            self._endpoints.append(CloudFeedsProduct(title=title, href=href))
+
+    def get_product_by_href(self, href):
+        """
+        If it exists, returns the product endpoint for the given href.
+        If no such endpoint exists, return None.
+        """
+        for e in self._endpoints:
+            if e.href == href:
+                return e
+        return None

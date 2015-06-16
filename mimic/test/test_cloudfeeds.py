@@ -18,3 +18,13 @@ class TestCloudFeeds(SynchronousTestCase):
         cf.register_product(title='The hoohaw product.', href='hoohaw')
         self.assertEquals(len(cf.get_product_endpoints()), 1)
 
+    def test_product_reregistration(self):
+        """
+        Re-registering a new product should do nothing.
+        """
+        cf = cloudfeeds.CloudFeeds()
+        cf.register_product(title='The hoohaw product', href='hoohaw')
+        cf.register_product(title='The OTHER hoohaw product', href='hoohaw')
+        self.assertEquals(len(cf.get_product_endpoints()), 1)
+        p = cf.get_product_by_href('hoohaw')
+        self.assertEquals(p.title, 'The hoohaw product')
