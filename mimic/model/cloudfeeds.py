@@ -20,7 +20,7 @@ class CloudFeeds(object):
     """
     Models CloudFeeds support at the plugin-level.
     """
-    _endpoints = attr.ib(default=attr.Factory(list))
+    _endpoints = attr.ib(default=attr.Factory(dict))
 
     def get_product_endpoints(self):
         """
@@ -40,14 +40,11 @@ class CloudFeeds(object):
             URL that a client can use to talk to this specific feed.
         """
         if not self.get_product_by_href(href):
-            self._endpoints.append(CloudFeedsProduct(title=title, href=href))
+            self._endpoints[href] = CloudFeedsProduct(title=title, href=href)
 
     def get_product_by_href(self, href):
         """
         If it exists, returns the product endpoint for the given href.
         If no such endpoint exists, return None.
         """
-        for e in self._endpoints:
-            if e.href == href:
-                return e
-        return None
+        return self._endpoints.get(href, None)
