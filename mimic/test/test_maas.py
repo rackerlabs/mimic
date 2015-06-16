@@ -228,6 +228,28 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals('ag13378901234', data['agent_id'])
         self.assertEquals('ItsAnEntity', data['label'])
 
+    def test_get_alarm(self):
+        """
+        The URL /entities/<entity_id>/alarms/<alarm_id> returns a JSON
+        description of the alarm.
+
+        """
+        req = request(self, self.root, "GET",
+                      self.uri + '/entities/' + self.entity_id + '/alarms/' + self.alarm_id, '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertEquals(self.alarm_id, data['id'])
+
+    def test_get_nonexistent_alarm(self):
+        """
+        Getting an alarm that does not exist should 404
+        """
+        req = request(self, self.root, "GET",
+                      self.uri + '/entities/' + self.entity_id + '/alarms/alDoesNotExist', '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 404)
+
     def test_update_check(self):
         """
         update check
@@ -269,6 +291,26 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 200)
         alarm2 = self.get_responsebody(resp)['values'][0]['alarms'][0]
         self.assertEquals(alarm['label'], alarm2['label'])
+
+    def test_partial_update_alarm(self):
+        """
+        When a request is received that updates an alarm, fields not specified
+        in that request's body remain the same.
+
+        """
+        data = {'notification_plan_id': 'np123456'}
+        req = request(self, self.root, "PUT",
+                      self.uri + '/entities/' + self.entity_id + '/alarms/' + self.alarm_id,
+                      json.dumps(data))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 204)
+        req = request(self, self.root, "GET",
+                      self.uri + '/entities/' + self.entity_id + '/alarms/' + self.alarm_id, '')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertEquals('np123456', data['notification_plan_id'])
+        self.assertEquals('ItsAnAlarm', data['label'])
 
     def test_delete_alarm(self):
         """
