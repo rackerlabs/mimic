@@ -54,14 +54,11 @@ class Node(object):
                      default="ONLINE")
 
     @classmethod
-    def from_json(cls, json_blob, old_node=None):
+    def from_json(cls, json_blob):
         """
         Create a new node from JSON.
 
         :param dict json_blob: the JSON dictionary containing node information
-        :param old_node: If provided, will return a new node containing all
-            the information from the old node, updated with the given JSON
-            information.
 
         :return: a :class:`Node` object
         :raises: :class:`TypeError` or :class:`ValueError` if the values
@@ -71,12 +68,7 @@ class Node(object):
         if 'weight' in json_blob:
             json_blob['weight'] = int(json_blob['weight'])
 
-        params = json_blob
-        if old_node is not None:
-            params = attr.asdict(old_node)
-            params.update(json_blob)
-
-        return Node(**params)
+        return Node(**json_blob)
 
     def as_json(self):
         """
