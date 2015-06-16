@@ -37,8 +37,6 @@ def load_balancer_example(lb_info, lb_id, status,
                   "halfClosed": lb_info.get("halfClosed", False),
                   "connectionLogging": lb_info.get("connectionLogging", {"enabled": False}),
                   "contentCaching": {"enabled": False}}
-    if lb_info.get("nodes"):
-        lb_example.update({"nodes": _format_nodes_on_lb(lb_info["nodes"])})
     if lb_info.get("metadata"):
         lb_example.update({"metadata": _format_meta(lb_info["metadata"])})
     return lb_example
@@ -48,7 +46,7 @@ def _delete_node(store, lb_id, node_id):
     """Delete a node by ID."""
     if store.lbs[lb_id].get("nodes"):
         for each in store.lbs[lb_id]["nodes"]:
-            if each["id"] == node_id:
+            if each.id == node_id:
                 index = store.lbs[lb_id]["nodes"].index(each)
                 del store.lbs[lb_id]["nodes"][index]
                 if not store.lbs[lb_id]["nodes"]:
@@ -56,26 +54,6 @@ def _delete_node(store, lb_id, node_id):
                 store.lbs[lb_id].update({"nodeCount": len(store.lbs[lb_id].get("nodes", []))})
                 return True
     return False
-
-
-def _format_nodes_on_lb(node_list):
-    """
-    create a dict of nodes given the list of nodes
-    """
-    nodes = []
-    for each in node_list:
-        node = {}
-        node["address"] = each["address"]
-        node["condition"] = each["condition"]
-        node["port"] = each["port"]
-        if each.get("weight"):
-            node["weight"] = each["weight"]
-        if each.get("type"):
-            node["type"] = each["type"]
-        node["id"] = randrange(999999)
-        node["status"] = "ONLINE"
-        nodes.append(node)
-    return nodes
 
 
 def _format_meta(metadata_list):
@@ -95,6 +73,7 @@ def _lb_without_tenant(store, lb_id):
     tenant_id
     """
     new_lb = deepcopy(store.lbs[lb_id])
+    new_lb["nodes"] = [node.as_json() for node in store.lbs[lb_id]["nodes"]]
     del new_lb["tenant_id"]
     del new_lb["nodeCount"]
     return new_lb

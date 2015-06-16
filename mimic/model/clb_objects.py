@@ -1,20 +1,87 @@
 """
-Model objects for the CLB mimic.
+Model objects for the CLB mimic.  Please see the `Rackspace Cloud Load
+Balancer API docs
+<http://docs.rackspace.com/loadbalancers/api/v1.0/clb-devguide/content/API_Operations.html>`
+ for more information.
 """
+from random import randrange
+
+import attr
 
 from characteristic import attributes, Attribute
+
+from six import string_types
 
 from twisted.python import log
 
 from mimic.canned_responses.loadbalancer import (load_balancer_example,
                                                  _verify_and_update_lb_state,
                                                  _lb_without_tenant,
-                                                 _format_nodes_on_lb,
                                                  _delete_node)
 from mimic.model.clb_errors import considered_immutable_error
 from mimic.util.helper import (not_found_response, seconds_to_timestamp,
                                EMPTY_RESPONSE,
                                invalid_resource)
+
+
+@attr.s
+class Node(object):
+    """
+    An object representing a CLB node, which is a unique combination of
+    IP-address and port.  Please see section 4.4 (Nodes) of the CLB
+    documentation for more information.
+
+    :ivar int id: The ID of the node
+    :ivar str address: The IP address of the node
+    :ivar int port: The port of the node
+    :ivar str type: One of (PRIMARY, SECONDARY).  Defaults to PRIMARY.
+    :ivar int weight: Between 1 and 100 inclusive.  Defaults to 1.
+    :ivar str condition: One of (ENABLED, DISABLED, DRAINING).  Defaults to
+    :ivar str status: "Online"
+        ENABLED.
+    """
+    address = attr.ib(validator=attr.validators.instance_of(string_types))
+    port = attr.ib(validator=attr.validators.instance_of(int))
+    type = attr.ib(validator=lambda _1, _2, t: t in ("PRIMARY", "SECONDARY"),
+                   default="PRIMARY")
+    weight = attr.ib(validator=lambda _1, _2, w: 1 <= w <= 100, default=1)
+    condition = attr.ib(
+        validator=lambda _1, _2, c: c in ("ENABLED", "DISABLED", "DRAINING"),
+        default="ENABLED")
+    id = attr.ib(validator=attr.validators.instance_of(int),
+                 default=attr.Factory(lambda: randrange(999999)))
+    status = attr.ib(validator=attr.validators.instance_of(str),
+                     default="ONLINE")
+
+    @classmethod
+    def from_json(cls, json_blob):
+        """
+        Create a new node from JSON.
+
+        :param dict json_blob: the JSON dictionary containing node information
+
+        :return: a :class:`Node` object
+        :raises: :class:`TypeError` or :class:`ValueError` if the values
+            are incorrect.
+        """
+        json_blob['port'] = int(json_blob['port'])
+        if 'weight' in json_blob:
+            json_blob['weight'] = int(json_blob['weight'])
+
+        return Node(**json_blob)
+
+    def as_json(self):
+        """
+        :return: a JSON dictionary representing the node.
+        """
+        return attr.asdict(self)
+
+    def same_as(self, other):
+        """
+        :return: `True` if the other node has the same IP address and port
+            as this node (but compares nothing else), `False` otherwise.
+        """
+        return self.address == other.address and self.port == other.port
 
 
 @attributes(["keys"])
@@ -99,8 +166,10 @@ class RegionalCLBCollection(object):
         self.lbs[lb_id] = load_balancer_example(lb_info, lb_id, status,
                                                 current_timestring)
         self.lbs[lb_id].update({"tenant_id": tenant_id})
-        self.lbs[lb_id].update(
-            {"nodeCount": len(self.lbs[lb_id].get("nodes", []))})
+        self.lbs[lb_id]["nodes"] = [
+            Node.from_json(blob) for blob in lb_info.get("nodes", [])]
+
+        self.lbs[lb_id].update({"nodeCount": len(self.lbs[lb_id]["nodes"])})
 
         # and remove before returning response for add lb
         new_lb = _lb_without_tenant(self, lb_id)
@@ -160,10 +229,10 @@ class RegionalCLBCollection(object):
                         "The loadbalancer is marked as deleted.", 410),
                     410)
 
-            if self.lbs[lb_id].get("nodes"):
-                for each in self.lbs[lb_id]["nodes"]:
-                    if node_id == each["id"]:
-                        return {"node": each}, 200
+            for each in self.lbs[lb_id]["nodes"]:
+                if node_id == each.id:
+                    return {"node": each.as_json()}, 200
+
             return not_found_response("node"), 404
 
         return not_found_response("loadbalancer"), 404
@@ -201,9 +270,10 @@ class RegionalCLBCollection(object):
 
             if self.lbs[lb_id]["status"] == "DELETED":
                 return invalid_resource("The loadbalancer is marked as deleted.", 410), 410
-            node_list = []
-            if self.lbs[lb_id].get("nodes"):
-                node_list = self.lbs[lb_id]["nodes"]
+
+            node_list = [node.as_json()
+                         for node in self.lbs[lb_id]["nodes"]]
+
             return {"nodes": node_list}, 200
         else:
             return not_found_response("loadbalancer"), 404
@@ -255,7 +325,7 @@ class RegionalCLBCollection(object):
 
         # We need to verify all the deletions up front, and only allow it through
         # if all of them are valid.
-        all_ids = [node["id"] for node in self.lbs[lb_id].get("nodes", [])]
+        all_ids = [node.id for node in self.lbs[lb_id].get("nodes", [])]
         non_nodes = set(node_ids).difference(all_ids)
         if non_nodes:
             nodes = ','.join(map(str, non_nodes))
@@ -281,7 +351,15 @@ class RegionalCLBCollection(object):
 
     def add_node(self, node_list, lb_id, current_timestamp):
         """
-        Returns the canned response for add nodes
+        Add one or more nodes to a load balancer.  Fails if one or more of the
+        nodes provided has the same address/port as an existing node.  Also
+        fails if adding the nodes would exceed the maximum number of nodes on
+        the CLB.
+
+        :param list node_list: a `list` of `dict` containing specification for
+            nodes
+
+        :return: a `tuple` of (json response as a dict, http status code)
         """
         if lb_id in self.lbs:
 
@@ -291,34 +369,30 @@ class RegionalCLBCollection(object):
                 return considered_immutable_error(
                     self.lbs[lb_id]["status"], lb_id)
 
-            nodes = _format_nodes_on_lb(node_list)
+            nodes = [Node.from_json(blob) for blob in node_list]
 
-            if self.lbs[lb_id].get("nodes"):
-                for existing_node in self.lbs[lb_id]["nodes"]:
-                    for new_node in node_list:
-                        if (existing_node["address"] == new_node["address"] and
-                                existing_node["port"] == new_node["port"]):
-                            resource = invalid_resource(
-                                "Duplicate nodes detected. One or more nodes "
-                                "already configured on load balancer.", 413)
-                            return (resource, 413)
+            for existing_node in self.lbs[lb_id]["nodes"]:
+                for new_node in nodes:
+                    if existing_node.same_as(new_node):
+                        resource = invalid_resource(
+                            "Duplicate nodes detected. One or more nodes "
+                            "already configured on load balancer.", 413)
+                        return (resource, 413)
 
-                # If there were no duplicates
-                new_nodeCount = self.lbs[lb_id]["nodeCount"] + len(nodes)
-                if new_nodeCount <= self.node_limit:
-                    self.lbs[lb_id]["nodes"] = self.lbs[lb_id]["nodes"] + nodes
-                    self.lbs[lb_id]["nodeCount"] = new_nodeCount
-                else:
-                    resource = invalid_resource(
-                        "Nodes must not exceed {0} "
-                        "per load balancer.".format(self.node_limit), 413)
-                    return (resource, 413)
+            # If there were no duplicates
+            new_nodeCount = self.lbs[lb_id]["nodeCount"] + len(nodes)
+            if new_nodeCount <= self.node_limit:
+                self.lbs[lb_id]["nodes"] = self.lbs[lb_id]["nodes"] + nodes
+                self.lbs[lb_id]["nodeCount"] = new_nodeCount
             else:
-                self.lbs[lb_id]["nodes"] = nodes
-                self.lbs[lb_id]["nodeCount"] = len(self.lbs[lb_id]["nodes"])
-                _verify_and_update_lb_state(self, lb_id,
-                                            current_timestamp=current_timestamp)
-            return {"nodes": nodes}, 202
+                resource = invalid_resource(
+                    "Nodes must not exceed {0} "
+                    "per load balancer.".format(self.node_limit), 413)
+                return (resource, 413)
+
+            _verify_and_update_lb_state(self, lb_id,
+                                        current_timestamp=current_timestamp)
+            return {"nodes": [node.as_json() for node in nodes]}, 202
 
         return not_found_response("loadbalancer"), 404
 
