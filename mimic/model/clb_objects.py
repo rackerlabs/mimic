@@ -175,7 +175,7 @@ class RegionalCLBCollection(object):
                                                 current_timestring)
         self.lbs[lb_id].update({"tenant_id": tenant_id})
         self.lbs[lb_id]["nodes"] = [
-            Node.from_json(blob) for blob in self.lbs[lb_id].get("nodes", [])]
+            Node.from_json(blob) for blob in lb_info.get("nodes", [])]
 
         self.lbs[lb_id].update({"nodeCount": len(self.lbs[lb_id]["nodes"])})
 
