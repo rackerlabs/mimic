@@ -2,16 +2,19 @@
 Model objects for the CLB mimic.
 """
 
-from mimic.util.helper import (not_found_response, seconds_to_timestamp,
-                               EMPTY_RESPONSE,
-                               invalid_resource)
-from twisted.python import log
 from characteristic import attributes, Attribute
+
+from twisted.python import log
+
 from mimic.canned_responses.loadbalancer import (load_balancer_example,
                                                  _verify_and_update_lb_state,
                                                  _lb_without_tenant,
                                                  _format_nodes_on_lb,
                                                  _delete_node)
+from mimic.model.clb_errors import considered_immutable_error
+from mimic.util.helper import (not_found_response, seconds_to_timestamp,
+                               EMPTY_RESPONSE,
+                               invalid_resource)
 
 
 @attributes(["keys"])
@@ -216,10 +219,8 @@ class RegionalCLBCollection(object):
 
             if self.lbs[lb_id]["status"] != "ACTIVE":
                 # Error message verified as of 2015-04-22
-                resource = invalid_resource(
-                    "Load Balancer '{0}' has a status of '{1}' and is considered "
-                    "immutable.".format(lb_id, self.lbs[lb_id]["status"]), 422)
-                return (resource, 422)
+                return considered_immutable_error(
+                    self.lbs[lb_id]["status"], lb_id)
 
             _verify_and_update_lb_state(self, lb_id,
                                         current_timestamp=current_timestamp)
@@ -287,10 +288,8 @@ class RegionalCLBCollection(object):
             _verify_and_update_lb_state(self, lb_id, False, current_timestamp)
 
             if self.lbs[lb_id]["status"] != "ACTIVE":
-                resource = invalid_resource(
-                    "Load Balancer '{0}' has a status of {1} and is considered "
-                    "immutable.".format(lb_id, self.lbs[lb_id]["status"]), 422)
-                return (resource, 422)
+                return considered_immutable_error(
+                    self.lbs[lb_id]["status"], lb_id)
 
             nodes = _format_nodes_on_lb(node_list)
 
