@@ -6,6 +6,16 @@ import attr
 
 
 @attr.s
+class CloudFeedsProduct(object):
+    """
+    Models a single CloudFeed product endpoint and its respective
+    functionality.
+    """
+    title = attr.ib(attr.validators.instance_of(str))
+    href = attr.ib(attr.validators.instance_of(str))
+
+
+@attr.s
 class CloudFeeds(object):
     """
     Models CloudFeeds support at the plugin-level.
@@ -17,3 +27,16 @@ class CloudFeeds(object):
         Return a list of product endpoints registered with this class.
         """
         return list(self._endpoints)
+
+    def register_product(self, title, href):
+        """
+        Register a product by creating a URL that one can GET and/or POST from/to,
+        and providing a descriptive title for it in the product endpoint
+        listing.
+
+        :param str title: This provides the human-readable description of the
+            product to the user when they GET the list of endpoints.
+        :param str href: This provides the unique component of an HTTP reference
+            URL that a client can use to talk to this specific feed.
+        """
+        self._endpoints.append(CloudFeedsProduct(title=title, href=href))
