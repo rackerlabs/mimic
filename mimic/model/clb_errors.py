@@ -42,14 +42,6 @@ def updating_node_validation_error(address=False, port=False, id=False,
       immutable.
     - when trying to update a CLB node's weight to be < 1 or > 100
 
-    Note: if an address is provided, and it's invalid (note that any IPv4
-    address, IPv6 address, or domains is OK), then the first validation error
-    to appear in the messages list is:
-
-    "Node ip is invalid. Please specify a valid ip."
-
-    This has not been implemented yet, but should go here.
-
     At least one of address, port, id, and weight should be `True` for this
     error to apply.
 

@@ -440,8 +440,7 @@ class RegionalCLBCollection(object):
                         if k in node_updates}
         node_updates = {k: v for k, v in node_updates.items()
                         if k not in ("address", "port")}
-        # use the Node.from_json to check the schema - it will raise
-        # APIError: invalid schema if anything is wrong
+        # use the Node.from_json to check the schema
         try:
             Node.from_json(dict(address="1.1.1.1", port=80, **node_updates))
         except (TypeError, ValueError):
