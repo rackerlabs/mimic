@@ -436,10 +436,10 @@ class RegionalCLBCollection(object):
         """
         # first, store whether address and port were provided - if they were
         # that's a validation error not a schema error
-        things_wrong = {k: True for k in ("address", "port", "id")
-                        if k in node_updates}
-        node_updates = {k: v for k, v in node_updates.items()
-                        if k not in ("address", "port")}
+        things_wrong = dict([(k, True) for k in ("address", "port", "id")
+                             if k in node_updates])
+        node_updates = dict([(k, v) for k, v in node_updates.items()
+                             if k not in ("address", "port")])
         # use the Node.from_json to check the schema
         try:
             Node.from_json(dict(address="1.1.1.1", port=80, **node_updates))
