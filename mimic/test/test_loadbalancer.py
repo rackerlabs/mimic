@@ -831,8 +831,8 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         When updating a node, if invalid JSON is provided (both actually not
         valid JSON and also not conforming to the schema), a 400 invalid
         JSON error will be returned.  This takes precedence over whether or not
-        a load balancer or node actually exists, and precedence over updating
-        immutable attributes.
+        a load balancer or node actually exists, and precedence over
+        validation errors.
         """
         real_lb_id = self.lb_id
         real_node_id = self.node[0]['id']
@@ -845,15 +845,17 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
 
         invalids = (
             {"node": {"weight": 1, "hockey": "stick"}},
-            {"node": {"weight": 1}, "other": "garbage"},
+            {"node": {"weight": 1, "status": "OFFLINE"}},
+            {"node": {"weight": 1},
+             "other": "garbage"},
             {"node": []},
             {"node": 1},
             {"nodes": {"weight": 1}},
             [],
             "not JSON",
-            {"node": {"weight": "not a number", "condition": "ENABLED"}},
-            {"node": {"condition": "INVALID", "weight": 1}},
-            {"node": {"type": "INVALID", "weight": 1}},
+            {"node": {"weight": "not a number", "address": "1.1.1.1"}},
+            {"node": {"condition": "INVALID", "id": 1}},
+            {"node": {"type": "INVALID", "weight": 1000}},
             {"node": {"weight": "not a number", "port": 80}}
         )
 
@@ -891,8 +893,8 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
 
         for lb_id, node_id in combos:
             data = {"node": {"weight": 1000, "address": "1.1.1.1",
-                             "port": 80, "type": "PRIMARY"}}
-            for popoff in (None, "address", "port"):
+                             "port": 80, "type": "PRIMARY", "id": 12345}}
+            for popoff in (None, "address", "port", "weight"):
                 if popoff:
                     del data["node"][popoff]
 
@@ -901,8 +903,14 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
                 expected = updating_node_validation_error(
                     address="address" in data["node"],
                     port="port" in data["node"],
-                    weight=True)  # weight is always there
-                self.assertEqual(actual, expected, "Input of {0}".format(data))
+                    weight="weight" in data["node"],
+                    id=True)  # id is always there
+                self.assertEqual(
+                    actual, expected,
+                    "Input of {0}.\nGot: {1}\nExpected: {2}".format(
+                        data,
+                        json.dumps(actual, indent=2),
+                        json.dumps(expected, indent=2)))
 
                 self.assertEqual(
                     self._get_nodes(real_lb_id), self.node)

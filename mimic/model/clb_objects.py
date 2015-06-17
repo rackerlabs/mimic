@@ -85,10 +85,9 @@ class Node(object):
         :raises: :class:`TypeError` or :class:`ValueError` if the values
             are incorrect.
         """
-        # status and ID cannot be in the JSON
-        for k in ("status", "id"):
-            if k in json_blob:
-                raise ValueError("{0} not allowed in the JSON".format(k))
+        # status cannot be in the JSON
+        if "status" in json_blob:
+            raise ValueError("'status' not allowed in the JSON")
 
         json_blob['port'] = int(json_blob['port'])
         return Node(**json_blob)
@@ -437,7 +436,7 @@ class RegionalCLBCollection(object):
         """
         # first, store whether address and port were provided - if they were
         # that's a validation error not a schema error
-        things_wrong = {k: True for k in ("address", "port")
+        things_wrong = {k: True for k in ("address", "port", "id")
                         if k in node_updates}
         node_updates = {k: v for k, v in node_updates.items()
                         if k not in ("address", "port")}

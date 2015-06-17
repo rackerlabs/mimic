@@ -33,19 +33,29 @@ def considered_immutable_error(clb_state, lb_id):
         422)
 
 
-def updating_node_validation_error(address=False, port=False, weight=False):
+def updating_node_validation_error(address=False, port=False, id=False,
+                                   weight=False):
     """
     Verified 2015-06-16:
 
-    - when trying to update a CLB node's address and/or port, which are
+    - when trying to update a CLB node's address/port/id, which are
       immutable.
     - when trying to update a CLB node's weight to be < 1 or > 100
 
-    At least one of address, port, and weight should be `True` for this error
-    to apply.
+    Note: if an address is provided, and it's invalid (note that any IPv4
+    address, IPv6 address, or domains is OK), then the first validation error
+    to appear in the messages list is:
+
+    "Node ip is invalid. Please specify a valid ip."
+
+    This has not been implemented yet, but should go here.
+
+    At least one of address, port, id, and weight should be `True` for this
+    error to apply.
 
     :param bool address: Whether the address was passed to update
     :param bool port: Whether the port was passed to update
+    :param bool id: Whether the ID was passed to update
     :param bool weight: Whether the weight was passed to update and wrong
 
     :return: a `tuple` of (dict body message, 400 http status code)
@@ -58,6 +68,8 @@ def updating_node_validation_error(address=False, port=False, weight=False):
     if weight:
         messages.append("Node weight is invalid. Range is 1-100. "
                         "Please specify a valid weight.")
+    if id:
+        messages.append("Node id field cannot be modified.")
 
     return(
         {
