@@ -441,7 +441,6 @@ class RegionalCLBCollection(object):
                         if k in node_updates}
         node_updates = {k: v for k, v in node_updates.items()
                         if k not in ("address", "port")}
-
         # use the Node.from_json to check the schema - it will raise
         # APIError: invalid schema if anything is wrong
         try:

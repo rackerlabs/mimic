@@ -33,7 +33,7 @@ def considered_immutable_error(clb_state, lb_id):
         422)
 
 
-def updating_node_validation_error(address=True, port=True, weight=True):
+def updating_node_validation_error(address=False, port=False, weight=False):
     """
     Verified 2015-06-16:
 

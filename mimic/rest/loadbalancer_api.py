@@ -298,8 +298,9 @@ class LoadBalancerRegion(object):
         """
         try:
             content = json.loads(request.content.read())
-            assert content.keys() == ["node"]
+            assert isinstance(content, dict) and content.keys() == ["node"]
             content = content["node"]
+            assert isinstance(content, dict)
         except (ValueError, AssertionError):
             resp_body, resp_code = invalid_json_schema()
         else:
