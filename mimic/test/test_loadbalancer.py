@@ -7,9 +7,15 @@ import treq
 
 from twisted.trial.unittest import SynchronousTestCase
 from mimic.canned_responses.loadbalancer import load_balancer_example
+from mimic.model.clb_errors import (
+    invalid_json_schema,
+    load_balancer_not_found,
+    node_not_found,
+    updating_immutable_node_attr_error
+)
 from mimic.test.fixtures import APIMockHelper, TenantAuthentication
 from mimic.rest.loadbalancer_api import LoadBalancerApi, LoadBalancerControlApi
-from mimic.test.helpers import request_with_content, request
+from mimic.test.helpers import json_request, request_with_content, request
 from mimic.util.helper import EMPTY_RESPONSE
 import attr
 
@@ -485,6 +491,18 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         body = self.successResultOf(treq.json_content(response))
         return body['nodes']
 
+    def _update_clb_node(self, lb_id, node_id, update_data):
+        """
+        Return the response for updating a CLB node.
+        """
+        return self.successResultOf(json_request(
+            self, self.helper.root, "PUT",
+            "{0}/loadbalancers/{1}/nodes/{2}".format(
+                self.helper.get_service_endpoint("cloudLoadBalancers"),
+                lb_id, node_id),
+            update_data
+        ))
+
     def test_add_node_to_loadbalancer(self):
         """
         Test to verify :func: `add_node` create a node successfully.
@@ -806,6 +824,131 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         # and the one valid node that we tried to delete is still there
         remaining = [node['id'] for node in self._get_nodes(self.lb_id)]
         self.assertEquals(remaining, [self.node[0]['id']])
+
+    def test_updating_node_invalid_json(self):
+        """
+        When updating a node, if invalid JSON is provided (both actually not
+        valid JSON and also not conforming to the schema), a 400 invalid
+        JSON error will be returned.  This takes precedence over whether or not
+        a load balancer or node actually exists, and precedence over updating
+        immutable attributes.
+        """
+        real_lb_id = self.lb_id
+        real_node_id = self.node[0]['id']
+        fake_lb_id = real_lb_id + 1
+        fake_node_id = real_node_id + 1
+
+        combos = ((real_lb_id, real_node_id),
+                  (real_lb_id, fake_node_id),
+                  (fake_lb_id, fake_node_id))
+
+        invalids = (
+            {"node": {"weight": 1, "hockey": "stick"}},
+            {"node": {"weight": 1}, "other": "garbage"},
+            {"node": []},
+            {"node": 1},
+            {"nodes": {"weight": 1}},
+            [],
+            "not JSON",
+            {"node": {"weight": "not a number", "condition": "ENABLED"}},
+            {"node": {"condition": "INVALID", "weight": 1}},
+            {"node": {"type": "INVALID", "weight": 1}},
+            {"node": {"weight": "not a number", "port": 80}}
+        )
+
+        expected = invalid_json_schema()
+
+        for lb_id, node_id in combos:
+            for invalid in invalids:
+                resp, body = self._update_clb_node(lb_id, node_id, invalid)
+                self.assertEqual(
+                    (body, resp.code), expected,
+                    "{0} should have returned invalid JSON error".format(
+                        invalid))
+
+                self.assertEqual(
+                    self._get_nodes(real_lb_id)["nodes"], self.node)
+
+    def test_updating_node_addr_or_port(self):
+        """
+        When updating a node, if the address or port are provided,
+        a 400 validation error will be returned because those are immutable.
+        This takes precedence over whether or not a load balancer or node
+        actually exists.  The error message also contains a list of the
+        validation failures.
+        """
+        real_lb_id = self.lb_id
+        real_node_id = self.node[0]['id']
+        fake_lb_id = real_lb_id + 1
+        fake_node_id = real_node_id + 1
+
+        combos = ((real_lb_id, real_node_id),
+                  (real_lb_id, fake_node_id),
+                  (fake_lb_id, fake_node_id))
+
+        for lb_id, node_id in combos:
+            for popoff in ("address", "port", "weight", None):
+                data = {"node": {"weight": 1000, "address": "1.1.1.1",
+                                 "port": 80, "type": "PRIMARY"}}
+                if popoff:
+                    del data["node"][popoff]
+
+                resp, body = self._update_clb_node(lb_id, node_id, data)
+                self.assertEqual(
+                    (body, resp.code),
+                    updating_immutable_node_attr_error(
+                        address="address" != popoff,
+                        port="port" != popoff,
+                        weight="weight" != popoff))
+
+                self.assertEqual(
+                    self._get_nodes(real_lb_id)["nodes"], self.node)
+
+    def test_updating_node_checks_for_invalid_loadbalancer_id(self):
+        """
+        If the input is valid, but the load balancer ID does not exist,
+        a 404 error is returned.
+        """
+        data = {"node": {"weight": 1, "address": "1.1.1.1", "port": 80}}
+
+        resp, body = self._update_clb_node(self.lb_id + 1, 1234, data)
+
+        self.assertEqual((body, resp.code), load_balancer_not_found())
+        self.assertEqual(self._get_nodes(self.lb_id)["nodes"], self.node)
+
+    def test_updating_node_checks_for_invalid_node_id(self):
+        """
+        If the input is valid, but the node ID does not exist, a 404 error is
+        returned.
+        """
+        data = {"node": {"weight": 1, "address": "1.1.1.1", "port": 80}}
+
+        resp, body = self._update_clb_node(
+            self.lb_id, self.node[0]["id"] + 1, data)
+
+        self.assertEqual((body, resp.code), node_not_found())
+        self.assertEqual(self._get_nodes(self.lb_id)["nodes"], self.node)
+
+    def test_updating_node_success(self):
+        """
+        Updating a node successfully changes its values.  The response from a
+        successful change is just the values that changed.
+        """
+        original = self.node[0].copy()
+        change = {
+            "condition": "DISABLED",
+            "weight": 100,
+            "type": "SECONDARY"
+        }
+        # sanity check to make sure we're actually changing stuff
+        self.assertTrue(all([change[k] != original[k] for k in change.keys()]))
+        resp, body = self._update_clb_node(self.lb_id, self.node[0]["id"],
+                                           {"node": change})
+        self.assertEqual(resp.code, 202)
+        self.assertEqual(body, {"node": change})
+
+        expected = original.update(change)
+        self.assertEqual(self._get_nodes(self.lb_id)["nodes"][0], expected)
 
 
 class LoadbalancerAPINegativeTests(SynchronousTestCase):
