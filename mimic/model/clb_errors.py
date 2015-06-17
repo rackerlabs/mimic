@@ -33,18 +33,20 @@ def considered_immutable_error(clb_state, lb_id):
         422)
 
 
-def updating_immutable_node_attr_error(address=True, port=True, weight=True):
+def updating_node_validation_error(address=True, port=True, weight=True):
     """
     Verified 2015-06-16:
 
     - when trying to update a CLB node's address and/or port, which are
       immutable.
+    - when trying to update a CLB node's weight to be < 1 or > 100
 
+    At least one of address, port, and weight should be `True` for this error
+    to apply.
 
-    At least one of address, port, should be `True` for this error to apply.
-
-    :param bool address: Whether the address was attempted to be updated
-    :param bool port: Whetehr the portw as attempted to be updated
+    :param bool address: Whether the address was passed to update
+    :param bool port: Whether the port was passed to update
+    :param bool weight: Whether the weight was passed to update and wrong
 
     :return: a `tuple` of (dict body message, 400 http status code)
     """
@@ -54,7 +56,8 @@ def updating_immutable_node_attr_error(address=True, port=True, weight=True):
     if port:
         messages.append("Port field cannot be modified.")
     if weight:
-        messages.append("Node weight is invalid. Range is 1-100. Please specify a valid weight.")
+        messages.append("Node weight is invalid. Range is 1-100. "
+                        "Please specify a valid weight.")
 
     return(
         {

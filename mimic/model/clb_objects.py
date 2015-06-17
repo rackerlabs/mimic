@@ -18,10 +18,31 @@ from mimic.canned_responses.loadbalancer import (load_balancer_example,
                                                  _verify_and_update_lb_state,
                                                  _lb_without_tenant,
                                                  _delete_node)
-from mimic.model.clb_errors import considered_immutable_error
+from mimic.model.clb_errors import (
+    considered_immutable_error,
+    invalid_json_schema,
+    loadbalancer_not_found,
+    node_not_found,
+    updating_node_validation_error
+)
 from mimic.util.helper import (not_found_response, seconds_to_timestamp,
                                EMPTY_RESPONSE,
                                invalid_resource)
+
+
+def _one_of_validator(*items):
+    """
+    Return an :mod:`attr` validator which raises a :class:`TypeError`
+    if the value is not equivalent to one of the provided items.
+
+    :param items: Items to compare against
+    :return: a callable that returns with None or raises :class:`TypeError`
+    """
+    def validate(inst, attribute, value):
+        if value not in items:
+            raise TypeError("{0} must be one of {1}".format(
+                attribute.name, items))
+    return validate
 
 
 @attr.s
@@ -42,11 +63,11 @@ class Node(object):
     """
     address = attr.ib(validator=attr.validators.instance_of(string_types))
     port = attr.ib(validator=attr.validators.instance_of(int))
-    type = attr.ib(validator=lambda _1, _2, t: t in ("PRIMARY", "SECONDARY"),
+    type = attr.ib(validator=_one_of_validator("PRIMARY", "SECONDARY"),
                    default="PRIMARY")
-    weight = attr.ib(validator=lambda _1, _2, w: 1 <= w <= 100, default=1)
+    weight = attr.ib(validator=attr.validators.instance_of(int), default=1)
     condition = attr.ib(
-        validator=lambda _1, _2, c: c in ("ENABLED", "DISABLED", "DRAINING"),
+        validator=_one_of_validator("ENABLED", "DISABLED", "DRAINING"),
         default="ENABLED")
     id = attr.ib(validator=attr.validators.instance_of(int),
                  default=attr.Factory(lambda: randrange(999999)))
@@ -54,29 +75,23 @@ class Node(object):
                      default="ONLINE")
 
     @classmethod
-    def from_json(cls, json_blob, old_node=None):
+    def from_json(cls, json_blob):
         """
         Create a new node from JSON.
 
         :param dict json_blob: the JSON dictionary containing node information
-        :param old_node: If provided, will return a new node containing all
-            the information from the old node, updated with the given JSON
-            information.
 
         :return: a :class:`Node` object
         :raises: :class:`TypeError` or :class:`ValueError` if the values
             are incorrect.
         """
+        # status and ID cannot be in the JSON
+        for k in ("status", "id"):
+            if k in json_blob:
+                raise ValueError("{0} not allowed in the JSON".format(k))
+
         json_blob['port'] = int(json_blob['port'])
-        if 'weight' in json_blob:
-            json_blob['weight'] = int(json_blob['weight'])
-
-        params = json_blob
-        if old_node is not None:
-            params = attr.asdict(old_node)
-            params.update(json_blob)
-
-        return Node(**params)
+        return Node(**json_blob)
 
     def as_json(self):
         """
@@ -403,6 +418,61 @@ class RegionalCLBCollection(object):
             return {"nodes": [node.as_json() for node in nodes]}, 202
 
         return not_found_response("loadbalancer"), 404
+
+    def update_node(self, lb_id, node_id, node_updates, current_timestamp):
+        """
+        Update the weight, condition, or type of a single node.  The IP, port,
+        status, and ID are immutable, and attempting to change them will cause
+        a 400 response to be returned.
+
+        All success and error behavior verified as of 2016-06-16.
+
+        :param str lb_id: the load balancer ID
+        :param str node_id: the node ID to update
+        :param dict node_updates: The JSON dictionary containing node
+            attributes to update
+        :param current_timestamp: What the current time is
+
+        :return: a `tuple` of (json response as a dict, http status code)
+        """
+        # first, store whether address and port were provided - if they were
+        # that's a validation error not a schema error
+        things_wrong = {k: True for k in ("address", "port")
+                        if k in node_updates}
+        node_updates = {k: v for k, v in node_updates.items()
+                        if k not in ("address", "port")}
+
+        # use the Node.from_json to check the schema - it will raise
+        # APIError: invalid schema if anything is wrong
+        try:
+            Node.from_json(dict(address="1.1.1.1", port=80, **node_updates))
+        except (TypeError, ValueError):
+            return invalid_json_schema()
+
+        # handle the possible validation (as opposed to schema) errors
+        if not 1 <= node_updates.get('weight', 1) <= 100:
+            things_wrong["weight"] = True
+        if things_wrong:
+            return updating_node_validation_error(**things_wrong)
+
+        # Now, finally, check if the LB exists and node exists
+        if lb_id in self.lbs:
+            _verify_and_update_lb_state(self, lb_id, False, current_timestamp)
+
+            if self.lbs[lb_id]["status"] != "ACTIVE":
+                return considered_immutable_error(
+                    self.lbs[lb_id]["status"], lb_id)
+
+            for i, node in enumerate(self.lbs[lb_id]["nodes"]):
+                if node.id == node_id:
+                    params = attr.asdict(node)
+                    params.update(node_updates)
+                    self.lbs[lb_id]["nodes"][i] = Node(**params)
+                    return ("", 202)
+
+            return node_not_found()
+
+        return loadbalancer_not_found()
 
     def del_load_balancer(self, lb_id, current_timestamp):
         """

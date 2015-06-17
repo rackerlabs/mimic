@@ -4,7 +4,7 @@ Defines add node and delete node from load balancers
 """
 import json
 from uuid import uuid4
-from six import text_type
+from six import string_types, text_type
 from zope.interface import implementer
 from twisted.web.server import Request
 from twisted.plugin import IPlugin
@@ -13,6 +13,7 @@ from mimic.imimic import IAPIMock
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 
+from mimic.model.clb_errors import invalid_json_schema
 from mimic.model.clb_objects import (
     GlobalCLBCollections, BadKeysError, BadValueError
 )
@@ -287,6 +288,29 @@ class LoadBalancerRegion(object):
         )
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
+
+    @app.route(
+        '/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/nodes/<int:node_id>',
+        methods=['PUT'])
+    def update_node(self, request, tenant_id, lb_id, node_id):
+        """
+        Return a 202 response code to updating a node, if successful.
+        """
+        try:
+            content = json.loads(request.content.read())
+            assert content.keys() == ["node"]
+            content = content["node"]
+        except (ValueError, AssertionError):
+            resp_body, resp_code = invalid_json_schema()
+        else:
+            resp_body, resp_code = self.session(tenant_id).update_node(
+                lb_id, node_id, content,
+                self._session_store.clock.seconds()
+            )
+        request.setResponseCode(resp_code)
+        if isinstance(resp_body, string_types):
+            return resp_body
+        return json.dumps(resp_body)
 
     @app.route('/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/nodes/<int:node_id>',
                methods=['DELETE'])
