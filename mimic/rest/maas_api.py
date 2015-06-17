@@ -115,10 +115,16 @@ class MCache(dict):
 def create_entity(params):
     """
     Returns a dictionary representing an entity
+
+    :return: an Entity model, which is described in `the Rackspace Cloud
+        Monitoring Developer Guide, section 5.4
+        <http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-entities.html>`_
+    :rtype: ``dict`` mapping ``unicode`` to ``unicode``, ``float``,
+        ``bool``, ``dict`` or ``NoneType``.
     """
     params = collections.defaultdict(lambda: '', params)
     newentity = {}
-    newentity['label'] = params[u'label'].encode("utf-8")
+    newentity['label'] = params['label']
     newentity['id'] = 'en' + random_hex_generator(4)
     newentity['agent_id'] = params['agent_id'] or random_hex_generator(12)
     newentity['created_at'] = time.time()
@@ -133,11 +139,14 @@ def create_entity(params):
 def create_check(params):
     """
     Returns a dictionary representing a check
+
+    :return: a Check model, which is described in `the Rackspace Cloud
+        Monitoring Developer Guide, section 5.7
+        <http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-checks.html>`_
+    :rtype: ``dict`` mapping ``unicode`` to ``unicode``, ``float``,
+        ``int``, ``bool``, ``dict`` or ``NoneType``.
     """
     params = collections.defaultdict(lambda: '', params)
-    for k in params.keys():
-        if 'encode' in dir(params[k]):
-            params[k] = params[k].encode('utf-8')
     params['id'] = 'ch' + random_hex_generator(4)
     params['collectors'] = []
     for q in range(3):
@@ -159,11 +168,14 @@ def create_check(params):
 def create_alarm(params):
     """
     Returns a dictionary representing an alarm
+
+    :return: an Alarm model, which is described in `the Rackspace Cloud
+        Monitoring Developer Guide, section 5.12
+        <http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-alarms.html>`_
+    :rtype: ``dict`` mapping ``unicode`` to ``unicode``, ``float``,
+        ``bool``, ``dict``, or ``NoneType``.
     """
     params = collections.defaultdict(lambda: '', params)
-    for k in params.keys():
-        if 'encode' in dir(params[k]):
-            params[k] = params[k].encode('utf-8')
     params['id'] = 'al' + random_hex_generator(4)
     params['confd_hash'] = None
     params['confd_name'] = None
@@ -177,10 +189,13 @@ def create_alarm(params):
 def create_notification_plan(params):
     """
     Creates a notification plan
+
+    :return: a Notification Plan model, which is described in `the
+        Rackspace Cloud Monitoring Developer Guide, section 5.11
+        <http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-notification-plans.html>`_
+    :rtype: ``dict`` mapping ``unicode`` to ``unicode``, ``float``,
+        ``dict`` or ``NoneType``.
     """
-    for k in params.keys():
-        if 'encode' in dir(params[k]):  # because there are integers sometimes.
-            params[k] = params[k].encode('utf-8')
     params['id'] = 'np' + random_hex_generator(4)
     params['critical_state'] = None
     params['warning_state'] = None
@@ -193,11 +208,14 @@ def create_notification_plan(params):
 
 def create_notification(params):
     """
-    Creates a notificatoin target
+    Creates a notification target
+
+    :return: a Notification model, which is described in `the Rackspace
+        Cloud Monitoring Developer Guide, section 5.10
+        <http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-notifications.html>`_
+    :rtype: ``dict`` mapping ``unicode`` to ``unicode``, ``float``,
+        ``dict`` or ``NoneType``.
     """
-    for k in params.keys():
-        if 'encode' in dir(params[k]):  # because there are integers sometimes.
-            params[k] = params[k].encode('utf-8')
     params['id'] = 'nt' + random_hex_generator(4)
     params['created_at'] = time.time()
     params['updated_at'] = time.time()
@@ -208,10 +226,12 @@ def create_notification(params):
 def create_suppression(params):
     """
     Creates a suppression
+
+    :return: a Suppression model, which is described in `the Rackspace
+        Cloud Monitoring Developer Guide, section 5.16
+        <http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-suppressions.html>`_
+    :rtype: ``dict`` mapping ``unicode`` to ``unicode`` or ``list``.
     """
-    for k in params.keys():
-        if 'encode' in dir(params[k]):
-            params[k] = params[k].encode('utf-8')
     params['id'] = 'sp' + random_hex_generator(4)
     if 'notification_plans' not in params:
         params['notification_plans'] = []
@@ -242,9 +262,9 @@ def create_metric_list_from_entity(entity, allchecks):
             metricscheck['metrics'] = []
             for mz in c['monitoring_zones_poll']:
                 metricscheck['metrics'].append(
-                    {'name': mz.encode('utf-8') + '.available', 'unit': 'percent', 'type': 'D'})
+                    {'name': mz + '.available', 'unit': 'percent', 'type': 'D'})
                 metricscheck['metrics'].append(
-                    {'name': mz.encode('utf-8') + '.average', 'unit': 'seconds', 'type': 'D'})
+                    {'name': mz + '.average', 'unit': 'seconds', 'type': 'D'})
             v['checks'].append(metricscheck)
     return v
 
@@ -408,9 +428,7 @@ class MaasMock(object):
         for q in range(len(self._entity_cache_for_tenant(tenant_id).entities_list)):
             if self._entity_cache_for_tenant(tenant_id).entities_list[q]['id'] == entity_id:
                 entity = self._entity_cache_for_tenant(tenant_id).entities_list[q]
-                if 'label' in update:
-                    entity['label'] = update[u'label'].encode("utf-8")
-                for k in ['agent_id', 'managed', 'metadata', 'ip_addresses', 'uri']:
+                for k in ['agent_id', 'managed', 'metadata', 'ip_addresses', 'uri', 'label']:
                     if k in update:
                         entity[k] = update[k]
                 entity['updated_at'] = time.time()
@@ -695,7 +713,8 @@ class MaasMock(object):
                                'message': 'Object does not exist',
                                'details': 'Object "Entity" with key "{0}" does not exist'.format(
                                    entity_id),
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'
+                               })
 
         self._entity_cache_for_tenant(tenant_id).agenthostinfo_querycount[entity_id] += 1
         if self._entity_cache_for_tenant(tenant_id).agenthostinfo_querycount[entity_id] < 5:
@@ -784,7 +803,7 @@ class MaasMock(object):
         """
         postdata = json.loads(request.content.read())
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        newnp = create_notification_plan({'label': postdata[u'label'].encode('utf-8')})
+        newnp = create_notification_plan({'label': postdata['label']})
         self._entity_cache_for_tenant(tenant_id).notificationplans_list.append(newnp)
         request.setResponseCode(201)
         request.setHeader('content-type', 'text/plain')
@@ -837,7 +856,7 @@ class MaasMock(object):
     @app.route('/v1.0/<string:tenant_id>/notification_plans/<string:np_id>', methods=['DELETE'])
     def delete_notification_plan(self, request, tenant_id, np_id):
         """
-        Remove a notifcation plan
+        Remove a notification plan
         """
         allalarms = self._entity_cache_for_tenant(tenant_id).alarms_list
         nplist = self._entity_cache_for_tenant(tenant_id).notificationplans_list
