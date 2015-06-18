@@ -145,17 +145,32 @@ class MaasAPITests(SynchronousTestCase):
         """
         test list entity
         """
-        req = request(self, self.root, "GET", self.uri + '/entities', '')
+        req = request(self, self.root, "GET", self.uri + '/entities')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
         self.assertEquals(data['metadata']['count'], 1)
+        for q in range(1, 101):
+            self.createEntity('Cinnamon' + str(q))
+        for q in range(1, 101):
+            req = request(self, self.root, "GET", self.uri + '/entities/?limit=' + str(q))
+            resp = self.successResultOf(req)
+            self.assertEquals(resp.code, 200)
+            data = self.get_responsebody(resp)
+            self.assertEquals(data['metadata']['count'], q)
+            marker = data['metadata']['next_marker']
+        req = request(self, self.root, "GET", self.uri + '/entities/?marker=' + marker)
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertEquals(data['metadata']['count'], 1)
+        self.assertEquals(data['metadata']['next_marker'], None)
 
     def test_get_entity(self):
         """
         test get entity
         """
-        req = request(self, self.root, "GET", self.uri + '/entities/' + self.entity_id, '')
+        req = request(self, self.root, "GET", self.uri + '/entities/' + self.entity_id)
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -165,7 +180,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         test get entity
         """
-        req = request(self, self.root, "GET", self.uri + '/entities/whatever', '')
+        req = request(self, self.root, "GET", self.uri + '/entities/whatever')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 404)
         data = self.get_responsebody(resp)
@@ -176,7 +191,7 @@ class MaasAPITests(SynchronousTestCase):
         test get check
         """
         req = request(self, self.root, "GET",
-                      self.uri + '/entities/' + self.entity_id + '/checks/' + self.check_id, '')
+                      self.uri + '/entities/' + self.entity_id + '/checks/' + self.check_id)
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -187,7 +202,7 @@ class MaasAPITests(SynchronousTestCase):
         test get check
         """
         req = request(self, self.root, "GET",
-                      self.uri + '/entities/' + self.entity_id + '/checks', '')
+                      self.uri + '/entities/' + self.entity_id + '/checks')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -198,7 +213,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         update entity
         """
-        req = request(self, self.root, "GET", self.uri + '/entities/' + self.entity_id, '')
+        req = request(self, self.root, "GET", self.uri + '/entities/' + self.entity_id)
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -207,7 +222,7 @@ class MaasAPITests(SynchronousTestCase):
                       self.entity_id, json.dumps(data))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
-        req = request(self, self.root, "GET", self.uri + '/entities/' + self.entity_id, '')
+        req = request(self, self.root, "GET", self.uri + '/entities/' + self.entity_id)
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -221,7 +236,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "PUT", self.uri + '/entities/' + self.entity_id, json.dumps(data))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
-        req = request(self, self.root, "GET", self.uri + '/entities/' + self.entity_id, '')
+        req = request(self, self.root, "GET", self.uri + '/entities/' + self.entity_id)
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -233,7 +248,7 @@ class MaasAPITests(SynchronousTestCase):
         update check
         """
         req = request(self, self.root, "GET",
-                      self.uri + '/entities/' + self.entity_id + '/checks/' + self.check_id, '')
+                      self.uri + '/entities/' + self.entity_id + '/checks/' + self.check_id)
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -244,7 +259,7 @@ class MaasAPITests(SynchronousTestCase):
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
         req = request(self, self.root, "GET",
-                      self.uri + '/entities/' + self.entity_id + '/checks/' + self.check_id, '')
+                      self.uri + '/entities/' + self.entity_id + '/checks/' + self.check_id)
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -254,7 +269,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         update alarm
         """
-        req = request(self, self.root, "GET", self.uri + '/views/overview', '')
+        req = request(self, self.root, "GET", self.uri + '/views/overview')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         alarm = self.get_responsebody(resp)['values'][0]['alarms'][0]
@@ -264,7 +279,7 @@ class MaasAPITests(SynchronousTestCase):
                       json.dumps(alarm))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
-        req = request(self, self.root, "GET", self.uri + '/views/overview', '')
+        req = request(self, self.root, "GET", self.uri + '/views/overview')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         alarm2 = self.get_responsebody(resp)['values'][0]['alarms'][0]
@@ -275,10 +290,10 @@ class MaasAPITests(SynchronousTestCase):
         delete alarm
         """
         req = request(self, self.root, "DELETE",
-                      self.uri + '/entities/' + self.entity_id + '/alarms/' + self.alarm_id, '')
+                      self.uri + '/entities/' + self.entity_id + '/alarms/' + self.alarm_id)
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
-        req = request(self, self.root, "GET", self.uri + '/views/overview', '')
+        req = request(self, self.root, "GET", self.uri + '/views/overview')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         self.assertEquals(0, len(self.get_responsebody(resp)['values'][0]['alarms']))
@@ -288,7 +303,7 @@ class MaasAPITests(SynchronousTestCase):
         get all alarms for the entity
         """
         req = request(self, self.root, "GET",
-                      self.uri + '/entities/' + self.entity_id + '/alarms', '')
+                      self.uri + '/entities/' + self.entity_id + '/alarms')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -300,10 +315,10 @@ class MaasAPITests(SynchronousTestCase):
         delete check
         """
         req = request(self, self.root, "DELETE",
-                      self.uri + '/entities/' + self.entity_id + '/checks/' + self.check_id, '')
+                      self.uri + '/entities/' + self.entity_id + '/checks/' + self.check_id)
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
-        req = request(self, self.root, "GET", self.uri + '/views/overview', '')
+        req = request(self, self.root, "GET", self.uri + '/views/overview')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -315,10 +330,10 @@ class MaasAPITests(SynchronousTestCase):
         delete entity
         """
         req = request(self, self.root, "DELETE",
-                      self.uri + '/entities/' + self.entity_id, '')
+                      self.uri + '/entities/' + self.entity_id)
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
-        req = request(self, self.root, "GET", self.uri + '/views/overview', '')
+        req = request(self, self.root, "GET", self.uri + '/views/overview')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -326,7 +341,7 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(0, data['metadata']['count'])
 
     def test_jsonhome(self):
-        req = request(self, self.root, "GET", self.uri + '/__experiments/json_home', '')
+        req = request(self, self.root, "GET", self.uri + '/__experiments/json_home')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -336,7 +351,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         fetch notification plans
         """
-        req = request(self, self.root, "GET", self.uri + '/notification_plans', '')
+        req = request(self, self.root, "GET", self.uri + '/notification_plans')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -376,7 +391,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         fetch agent installer
         """
-        req = request(self, self.root, "POST", self.uri + '/agent_installers', '')
+        req = request(self, self.root, "POST", self.uri + '/agent_installers')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 201)
         xsil = resp.headers.getRawHeaders('x-shell-installer-location')
@@ -387,7 +402,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         get available metrics
         """
-        req = request(self, self.root, "GET", self.uri + '/views/metric_list', '')
+        req = request(self, self.root, "GET", self.uri + '/views/metric_list')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -399,7 +414,7 @@ class MaasAPITests(SynchronousTestCase):
         get datapoints for graph
         """
         metrics = []
-        req = request(self, self.root, "GET", self.uri + '/views/metric_list', '')
+        req = request(self, self.root, "GET", self.uri + '/views/metric_list')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -421,7 +436,7 @@ class MaasAPITests(SynchronousTestCase):
         metrics = []
         squarewave_check_id = self.getXobjectIDfromResponse(self.createCheck('squarewave',
                                                                              self.entity_id))
-        req = request(self, self.root, "GET", self.uri + '/views/metric_list', '')
+        req = request(self, self.root, "GET", self.uri + '/views/metric_list')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -440,7 +455,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         get all notification plans
         """
-        req = request(self, self.root, "GET", self.uri + '/notification_plans', '')
+        req = request(self, self.root, "GET", self.uri + '/notification_plans')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -450,13 +465,13 @@ class MaasAPITests(SynchronousTestCase):
         """
         Get a specific notification plan
         """
-        req = request(self, self.root, "GET", self.uri + '/notification_plans/' + self.np_id, '')
+        req = request(self, self.root, "GET", self.uri + '/notification_plans/' + self.np_id)
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
         self.assertEquals(data['id'], self.np_id)
         req = request(self, self.root, "GET",
-                      self.uri + '/notification_plans/npTechnicalContactsEmail', '')
+                      self.uri + '/notification_plans/npTechnicalContactsEmail')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -466,7 +481,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         Get all notification targets
         """
-        req = request(self, self.root, "GET", self.uri + '/notifications', '')
+        req = request(self, self.root, "GET", self.uri + '/notifications')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -481,7 +496,7 @@ class MaasAPITests(SynchronousTestCase):
                       json.dumps(postdata))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
-        req = request(self, self.root, "GET", self.uri + '/notifications', '')
+        req = request(self, self.root, "GET", self.uri + '/notifications')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -497,10 +512,10 @@ class MaasAPITests(SynchronousTestCase):
         """
         Delete a notification target
         """
-        req = request(self, self.root, "DELETE", self.uri + '/notifications/' + self.nt_id, '')
+        req = request(self, self.root, "DELETE", self.uri + '/notifications/' + self.nt_id)
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
-        req = request(self, self.root, "GET", self.uri + '/notifications', '')
+        req = request(self, self.root, "GET", self.uri + '/notifications')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -520,7 +535,7 @@ class MaasAPITests(SynchronousTestCase):
                       json.dumps(postdata))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
-        req = request(self, self.root, "GET", self.uri + '/notification_plans/' + self.np_id, '')
+        req = request(self, self.root, "GET", self.uri + '/notification_plans/' + self.np_id)
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -530,10 +545,10 @@ class MaasAPITests(SynchronousTestCase):
         """
         Delete a notification plan
         """
-        req = request(self, self.root, "DELETE", self.uri + '/notification_plans/' + self.np_id, '')
+        req = request(self, self.root, "DELETE", self.uri + '/notification_plans/' + self.np_id)
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
-        req = request(self, self.root, "GET", self.uri + '/notification_plans', '')
+        req = request(self, self.root, "GET", self.uri + '/notification_plans')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -548,7 +563,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         Get notification types
         """
-        req = request(self, self.root, "GET", self.uri + '/notification_types', '')
+        req = request(self, self.root, "GET", self.uri + '/notification_types')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -558,7 +573,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         Get a specific suppression
         """
-        req = request(self, self.root, "GET", self.uri + '/suppressions/' + self.sp_id, '')
+        req = request(self, self.root, "GET", self.uri + '/suppressions/' + self.sp_id)
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -572,7 +587,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         Get all the suppressions
         """
-        req = request(self, self.root, "GET", self.uri + '/suppressions', '')
+        req = request(self, self.root, "GET", self.uri + '/suppressions')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -588,7 +603,7 @@ class MaasAPITests(SynchronousTestCase):
                       json.dumps(postdata))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
-        req = request(self, self.root, "GET", self.uri + '/suppressions/' + self.sp_id, '')
+        req = request(self, self.root, "GET", self.uri + '/suppressions/' + self.sp_id)
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -598,10 +613,10 @@ class MaasAPITests(SynchronousTestCase):
         """
         Delete an suppression
         """
-        req = request(self, self.root, "DELETE", self.uri + '/suppressions/' + self.sp_id, '')
+        req = request(self, self.root, "DELETE", self.uri + '/suppressions/' + self.sp_id)
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
-        req = request(self, self.root, "GET", self.uri + '/suppressions', '')
+        req = request(self, self.root, "GET", self.uri + '/suppressions')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -616,7 +631,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         List the monitoring zones
         """
-        req = request(self, self.root, "GET", self.uri + '/monitoring_zones', '')
+        req = request(self, self.root, "GET", self.uri + '/monitoring_zones')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -627,7 +642,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         List the alarm examples
         """
-        req = request(self, self.root, "GET", self.uri + '/alarm_examples', '')
+        req = request(self, self.root, "GET", self.uri + '/alarm_examples')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -638,7 +653,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         test_alarm_count_per_np
         """
-        req = request(self, self.root, "GET", self.uri + '/views/alarmCountsPerNp', '')
+        req = request(self, self.root, "GET", self.uri + '/views/alarmCountsPerNp')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -649,7 +664,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         test_alarms_by_np
         """
-        req = request(self, self.root, "GET", self.uri + '/views/overview', '')
+        req = request(self, self.root, "GET", self.uri + '/views/overview')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         alarm = self.get_responsebody(resp)['values'][0]['alarms'][0]
@@ -659,7 +674,7 @@ class MaasAPITests(SynchronousTestCase):
                       json.dumps(alarm))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
-        req = request(self, self.root, "GET", self.uri + '/views/alarmsByNp/' + self.np_id, '')
+        req = request(self, self.root, "GET", self.uri + '/views/alarmsByNp/' + self.np_id)
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -669,7 +684,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         Cant delete a notificationPlan that's being pointed to by alarms
         """
-        req = request(self, self.root, "GET", self.uri + '/views/overview', '')
+        req = request(self, self.root, "GET", self.uri + '/views/overview')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         alarm = self.get_responsebody(resp)['values'][0]['alarms'][0]
@@ -679,7 +694,7 @@ class MaasAPITests(SynchronousTestCase):
                       json.dumps(alarm))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
-        req = request(self, self.root, "DELETE", self.uri + '/notification_plans/' + self.np_id, '')
+        req = request(self, self.root, "DELETE", self.uri + '/notification_plans/' + self.np_id)
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 403)
         data = self.get_responsebody(resp)
@@ -690,17 +705,17 @@ class MaasAPITests(SynchronousTestCase):
         """
         Reset session, remove all objects
         """
-        req = request(self, self.root, "GET", self.uri + '/entities', '')
+        req = request(self, self.root, "GET", self.uri + '/entities')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
         self.assertEquals(data['metadata']['count'], 1)
 
-        req = request(self, self.root, "GET", self.uri + '/mimic/reset', '')
+        req = request(self, self.root, "GET", self.uri + '/mimic/reset')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
 
-        req = request(self, self.root, "GET", self.uri + '/entities', '')
+        req = request(self, self.root, "GET", self.uri + '/entities')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
