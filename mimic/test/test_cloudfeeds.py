@@ -98,16 +98,22 @@ class TestSerialization(SynchronousTestCase):
         cf.register_product(title="The goober product", href="goober")
         listing = MatchesDict({
             "service": MatchesDict({
-                "workspace": MatchesSetwise({
+                "workspace": MatchesSetwise(
                     MatchesDict({
-                        "href": Equals("hoohaw"),
+                        "collection": MatchesDict({
+                            "href": Equals("hoohaw"),
+                            "title": Equals("The hoohaw product"),
+                        }),
                         "title": Equals("The hoohaw product"),
                     }),
                     MatchesDict({
-                        "href": Equals("goober"),
+                        "collection": MatchesDict({
+                            "href": Equals("goober"),
+                            "title": Equals("The goober product"),
+                        }),
                         "title": Equals("The goober product"),
                     }),
-                }),
+                ),
             })
         })
         self.assertEquals(
