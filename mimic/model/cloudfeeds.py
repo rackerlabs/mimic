@@ -33,6 +33,8 @@ class CloudFeeds(object):
     Models CloudFeeds support at the plugin-level.
     """
     _endpoints = attr.ib(default=attr.Factory(dict))
+    tenant_id = attr.ib(attr.validator.instanceOf(string_types))
+    clock = attr.ib()
 
     def get_product_endpoints(self):
         """

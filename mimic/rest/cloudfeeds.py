@@ -2,16 +2,15 @@
 """
 Defines the control plane API endpoints for the Cloudfeeds Plugin.
 """
-import json
 from uuid import uuid4
 from six import text_type
 from zope.interface import implementer
 from twisted.web.server import Request
 from twisted.plugin import IPlugin
-from mimic.rest.mimicapp import MimicApp
+from mimic.catalog import Endpoint, Entry
 from mimic.imimic import IAPIMock
-from mimic.catalog import Entry
-from mimic.catalog import Endpoint
+from mimic.model.cloudfeeds import CloudFeeds
+from mimic.rest.mimicapp import MimicApp
 
 
 from characteristic import attributes
@@ -70,7 +69,7 @@ class CloudFeedsApi(object):
         """
         return (
             session_store.session_for_tenant_id(tenant_id)
-            .data_for_api(self, lambda: GlobalCLBCollections(
+            .data_for_api(self, lambda: CloudFeeds(
                 tenant_id=tenant_id,
                 clock=session_store.clock
             ))
@@ -163,7 +162,7 @@ class CloudFeedsRegion(object):
         tenant_session = self._session_store.session_for_tenant_id(tenant_id)
         clb_global_collection = tenant_session.data_for_api(
             self._api_mock,
-            lambda: GlobalCLBCollections(
+            lambda: CloudFeeds(
                 tenant_id=tenant_id,
                 clock=self._session_store.clock))
         clb_region_collection = clb_global_collection.collection_for_region(
