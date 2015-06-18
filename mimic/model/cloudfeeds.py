@@ -34,7 +34,7 @@ class CloudFeeds(object):
         """
         Return a list of product endpoints registered with this class.
         """
-        return list(self._endpoints)
+        return dict(self._endpoints)
 
     def register_product(self, title, href):
         """
@@ -56,3 +56,31 @@ class CloudFeeds(object):
         If no such endpoint exists, return None.
         """
         return self._endpoints.get(href, None)
+
+def render_product_dict(the_product):
+    """
+    Return Python dictionary suitable for JSON encoding in requests and
+    responses to/from cloudfeeds.  This dictionary contains a single product
+    endpoint descriptor.
+    """
+    return {
+        "title": the_product.title,
+        "collection": {
+            "title": the_product.title,
+            "href": the_product.href,
+        }
+    }
+
+def render_product_endpoints_dict(the_products):
+    """
+    Return Python dictionary suitable for JSON encoding in requests and
+    responses to/from cloudfeeds.  This dictionary contains the complete set
+    of product endpoints.
+    """
+    return {
+        "service": {
+            "workspace": [
+                render_product_dict(the_products[p]) for p in the_products
+            ],
+        },
+    }
