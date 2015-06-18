@@ -13,12 +13,7 @@ from mimic.imimic import IAPIMock
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 
-from mimic.model.clb_objects import (
-    GlobalCLBCollections, BadKeysError, BadValueError
-)
-from random import randrange
 
-from mimic.util.helper import invalid_resource, json_dump
 from characteristic import attributes
 
 
@@ -50,7 +45,7 @@ class CloudFeedsApi(object):
         return [
             Entry(tenant_id, "rax:feeds", "cloudFeeds",
                   [
-                      Endpoint(tenant_id, region, text_type(uuid4()), prefix="noversion")
+                      Endpoint(tenant_id, region, text_type(uuid4()))
                       for region in self._regions
                   ])
         ]
