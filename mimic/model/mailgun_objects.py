@@ -6,8 +6,8 @@ from characteristic import attributes, Attribute
 
 
 @attributes(["message_id", "to", "msg_from", "subject", "body",
-             Attribute("headers", default_factory=dict)])
-class Messages(object):
+             Attribute("custom_headers", default_factory=dict)])
+class Message(object):
     """
     A :obj:`Message` is a representation of an email in Mailgun.
     It can produce JSON-serializable objects for various pieces of
@@ -79,16 +79,16 @@ class MessageStore(object):
     A collection of message objects.
     """
 
-    def _add_to_message_store(self, **attributes):
+    def add_to_message_store(self, **attributes):
         """
         Create a new Message object and add it to the
         :obj: `message_store`
         """
-        msg = Messages(**attributes)
+        msg = Message(**attributes)
         self.message_store.append(msg)
         return
 
-    def _list_messages(self, filter_by=None):
+    def list_messages(self, filter_by=None):
         """
         List all the messages.
 

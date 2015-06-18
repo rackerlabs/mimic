@@ -57,11 +57,11 @@ class MailGunApi(object):
         message_id = "{0}@samples.mailgun.org".format(
             seconds_to_timestamp(time.time(),
                                  "%Y%m%d%H%M%S.%f"))
-        self.core.message_store._add_to_message_store(
+        self.core.message_store.add_to_message_store(
             message_id=message_id,
             to=content.get('to')[0], msg_from=content.get('from'),
             subject=content.get('subject')[0], body=content.get('html'),
-            headers=headers)
+            custom_headers=headers)
         return json.dumps({
             "message": "Queued. Thank you.",
             "id": message_id})
@@ -74,13 +74,16 @@ class MailGunApi(object):
         """
         filter_by_to = request.args.get("to")
         request.setResponseCode(200)
-        return json.dumps(self.core.message_store._list_messages(filter_by_to))
+        return json.dumps(self.core.message_store.list_messages(filter_by_to))
 
     @app.route('/messages/500s', methods=['GET'])
     def get_messages_500_count(self, request):
         """
         Responds with a 200 and the number of messages resulting in 500s
         i.e. when the `to` address is `bademail@example.com`.
+
+        This API endpoint is not supported by Mailgun and is present for testing
+        purposes.
         """
         request.setResponseCode(200)
         return json.dumps({"count": count})
@@ -90,8 +93,11 @@ class MailGunApi(object):
         """
         Responds with a 200 and returns the headers recieved when the
         message with the given `to` address in the query, was created.
+
+        This API endpoint is not supported by Mailgun and is present for testing
+        purposes.
         """
         request.setResponseCode(200)
         to_addr = request.args.get("to")
         msg = self.core.message_store.filter_message_by_to_address(to_addr)
-        return json.dumps({msg.to: msg.headers})
+        return json.dumps({msg.to: msg.custom_headers})
