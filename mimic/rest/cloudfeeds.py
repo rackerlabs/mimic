@@ -57,24 +57,6 @@ class CloudFeedsApi(object):
         lb_region = CloudFeedsRegion(self, uri_prefix, session_store, region)
         return lb_region.app.resource()
 
-    def _get_session(self, session_store, tenant_id):
-        """
-        Retrieve or create a new CloudFeeds session from a given tenant identifier
-        and :obj:`SessionStore`.
-
-        For use with ``data_for_api``.
-
-        Temporary hack; see this issue
-        https://github.com/rackerlabs/mimic/issues/158
-        """
-        return (
-            session_store.session_for_tenant_id(tenant_id)
-            .data_for_api(self, lambda: CloudFeeds(
-                tenant_id=tenant_id,
-                clock=session_store.clock
-            ))
-        )
-
 
 @implementer(IAPIMock, IPlugin)
 @attributes(["cf_api"])
@@ -116,26 +98,6 @@ class CloudFeedsControlRegion(object):
     """
 
     app = MimicApp()
-
-    def _collection_from_tenant(self, tenant_id):
-        """
-        Retrieve the server collection for this region for the given tenant.
-        """
-        return (self.api_mock.lb_api._get_session(self.session_store, tenant_id)
-                .collection_for_region(self.region))
-
-    @app.route(
-        '/<string:tenant_id>/products',
-        methods=['POST']
-    )
-    def create_product(self, request, tenant_id, clb_id):
-        """
-        If the product endpoint specified in the body of the request exists,
-        take no action (that is, creation is idempotent).  Otherwise, create
-        the product endpoint.
-        """
-        request.setResponseCode(200)
-        return b'Looking good.'
 
 
 class CloudFeedsRegion(object):

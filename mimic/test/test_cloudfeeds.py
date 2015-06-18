@@ -4,30 +4,30 @@ from testtools.matchers import (MatchesSetwise, MatchesDict, Equals)
 
 
 class TestCloudFeeds(SynchronousTestCase):
+    def setUp(self):
+        self.cf = cloudfeeds.CloudFeeds(tenant_id='1234', clock=None)
+
     def test_creation(self):
         """
         A new CloudFeeds plugin should have no products when created.
         """
-        cf = cloudfeeds.CloudFeeds()
-        self.assertEquals(len(cf.get_product_endpoints()), 0)
+        self.assertEquals(len(self.cf.get_product_endpoints()), 0)
 
     def test_product_registration(self):
         """
         Registering a new product should create a new ATOM feed.
         """
-        cf = cloudfeeds.CloudFeeds()
-        cf.register_product(title='The hoohaw product.', href='hoohaw')
-        self.assertEquals(len(cf.get_product_endpoints()), 1)
+        self.cf.register_product(title='The hoohaw product.', href='hoohaw')
+        self.assertEquals(len(self.cf.get_product_endpoints()), 1)
 
     def test_product_reregistration(self):
         """
         Re-registering a new product should do nothing.
         """
-        cf = cloudfeeds.CloudFeeds()
-        cf.register_product(title='The hoohaw product', href='hoohaw')
-        cf.register_product(title='The OTHER hoohaw product', href='hoohaw')
-        self.assertEquals(len(cf.get_product_endpoints()), 1)
-        p = cf.get_product_by_href('hoohaw')
+        self.cf.register_product(title='The hoohaw product', href='hoohaw')
+        self.cf.register_product(title='The OTHER hoohaw product', href='hoohaw')
+        self.assertEquals(len(self.cf.get_product_endpoints()), 1)
+        p = self.cf.get_product_by_href('hoohaw')
         self.assertEquals(p.title, 'The hoohaw product')
 
     def test_get_products(self):
@@ -35,10 +35,9 @@ class TestCloudFeeds(SynchronousTestCase):
         Requesting a list of product endpoints should return a title and an href
         for each endpoint.
         """
-        cf = cloudfeeds.CloudFeeds()
-        cf.register_product(title='The hoohaw product', href='hoohaw')
-        cf.register_product(title='The goober product', href='goober')
-        products = cf.get_product_endpoints()
+        self.cf.register_product(title='The hoohaw product', href='hoohaw')
+        self.cf.register_product(title='The goober product', href='goober')
+        products = self.cf.get_product_endpoints()
         self.assertEquals('hoohaw' in products, True)
         self.assertEquals(products['hoohaw'].title, 'The hoohaw product')
         self.assertEquals(products['goober'].title, 'The goober product')
@@ -93,7 +92,7 @@ class TestSerialization(SynchronousTestCase):
         service object, and a workspace object, and within that, an array of
         product descriptors.
         """
-        cf = cloudfeeds.CloudFeeds()
+        cf = cloudfeeds.CloudFeeds(tenant_id='1234', clock=None)
         cf.register_product(title="The hoohaw product", href="hoohaw")
         cf.register_product(title="The goober product", href="goober")
         listing = MatchesDict({

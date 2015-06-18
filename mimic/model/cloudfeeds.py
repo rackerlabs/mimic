@@ -15,8 +15,8 @@ class CloudFeedsProduct(object):
     Models a single CloudFeed product endpoint and its respective
     functionality.
     """
-    title = attr.ib(attr.validators.instance_of(string_types))
-    href = attr.ib(attr.validators.instance_of(string_types))
+    title = attr.ib(validator=attr.validators.instance_of(string_types))
+    href = attr.ib(validator=attr.validators.instance_of(string_types))
 
     events = attr.ib(default=attr.Factory(list))
 
@@ -32,9 +32,9 @@ class CloudFeeds(object):
     """
     Models CloudFeeds support at the plugin-level.
     """
-    _endpoints = attr.ib(default=attr.Factory(dict))
-    tenant_id = attr.ib(attr.validator.instanceOf(string_types))
+    tenant_id = attr.ib(validator=attr.validators.instance_of(string_types))
     clock = attr.ib()
+    _endpoints = attr.ib(default=attr.Factory(dict))
 
     def get_product_endpoints(self):
         """
