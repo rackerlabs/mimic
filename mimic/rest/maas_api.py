@@ -30,6 +30,16 @@ from mimic.util.helper import random_hex_generator
 Request.defaultContentType = 'application/json'
 
 
+def _find_index_of_id(xs, val):
+    """
+    Finds the index of the first element in the list with the specified id.
+    """
+    for i, x in enumerate(xs):
+        if x['id'] == val:
+            return i
+    raise ValueError('No element with id {0} in list'.format(val))
+
+
 @implementer(IAPIMock, IPlugin)
 class MaasApi(object):
 
@@ -661,15 +671,30 @@ class MaasMock(object):
         """
         serves the overview api call,returns all entities,checks and alarms
         """
-        entities = self._entity_cache_for_tenant(tenant_id).entities_list
+        all_entities = self._entity_cache_for_tenant(tenant_id).entities_list
         checks = self._entity_cache_for_tenant(tenant_id).checks_list
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
-        metadata = {}
-        metadata['count'] = len(entities)
-        metadata['marker'] = None
-        metadata['next_marker'] = None
-        metadata['limit'] = 1000
-        metadata['next_href'] = None
+        page_limit = min(int(request.args.get('limit', [100])[0]), 1000)
+        offset = 0
+        current_marker = request.args.get('marker', [None])[0]
+        if current_marker is not None:
+            try:
+                offset = _find_index_of_id(all_entities, current_marker)
+            except ValueError:
+                offset = 0
+
+        entities = all_entities[offset:offset + page_limit]
+        next_marker = None
+        if offset + page_limit < len(all_entities):
+            next_marker = all_entities[offset + page_limit]['id']
+
+        metadata = {
+            'count': len(entities),
+            'marker': current_marker,
+            'next_marker': next_marker,
+            'limit': page_limit,
+            'next_href': None
+        }
         values = []
         for e in entities:
             v = {}

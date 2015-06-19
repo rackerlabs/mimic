@@ -789,3 +789,32 @@ class MaasAPITests(SynchronousTestCase):
                       json.dumps({'label': u'\u0CA0_\u0CA0'}))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 201)
+
+    def test_overview_pagination(self):
+        """
+        The overview call returns paginated results.
+        """
+        self.createEntity('entity-2')
+        req = request(self, self.root, "GET", self.uri + '/views/overview?limit=1')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertEquals(data['values'][0]['entity']['label'], 'ItsAnEntity')
+
+        req = request(self, self.root, "GET", self.uri +
+                      '/views/overview?marker=' + data['metadata']['next_marker'])
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertEquals(data['values'][0]['entity']['label'], 'entity-2')
+
+    def test_overview_pagination_marker_not_found(self):
+        """
+        If the pagination marker is not present in the entities list,
+        the paginated overview call returns results from the beginning.
+        """
+        req = request(self, self.root, "GET", self.uri + '/views/overview?marker=enDoesNotExist')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertEquals(data['values'][0]['entity']['label'], 'ItsAnEntity')
