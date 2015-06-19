@@ -15,7 +15,7 @@ from mimic.rest.auth_api import (
     base_uri_from_request
 )
 from mimic.rest.noit_api import NoitApi
-from mimic.rest import fastly_api
+from mimic.rest import fastly_api, mailgun_api
 from mimic.util.helper import seconds_to_timestamp
 
 
@@ -61,6 +61,21 @@ class MimicRoot(object):
         service catalog.
         """
         return NoitApi(self.core, self.clock).app.resource()
+
+    @app.route("/sendgrid/mail.send.json", methods=['POST'])
+    def send_grid_api(self, request):
+        """
+        Mock SendGrid api responds with a 200.
+        """
+        request.setResponseCode(200)
+        return b''
+
+    @app.route("/cloudmonitoring.rackspace.com", branch=True)
+    def mailgun_api(self, request):
+        """
+        Mock Mail Gun API.
+        """
+        return mailgun_api.MailGunApi(self.core).app.resource()
 
     @app.route("/fastly", branch=True)
     def get_fastly_api(self, request):
@@ -108,10 +123,10 @@ class MimicRoot(object):
         dynamically-generated UUID for a particular plugin, retrieve the
         resource associated with that service.
         """
-        serviceObject = self.core.service_with_region(
+        service_object = self.core.service_with_region(
             region_name, service_id, base_uri_from_request(request))
 
-        if serviceObject is None:
+        if service_object is None:
             # workaround for https://github.com/twisted/klein/issues/56
             return NoResource()
-        return serviceObject
+        return service_object

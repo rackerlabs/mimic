@@ -13,6 +13,7 @@ from mimic import plugins
 from mimic.imimic import IAPIMock
 from mimic.session import SessionStore
 from mimic.util.helper import random_hex_generator
+from mimic.model.mailgun_objects import MessageStore
 
 
 class MimicCore(object):
@@ -35,6 +36,7 @@ class MimicCore(object):
         """
         self._uuid_to_api = {}
         self.sessions = SessionStore(clock)
+        self.message_store = MessageStore()
 
         for api in apis:
             this_api_id = ((api.__class__.__name__) + '-' +
