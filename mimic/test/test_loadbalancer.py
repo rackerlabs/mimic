@@ -327,7 +327,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
                               "port": 80, "condition": "ENABLED"}
                              for i in range(1, 4)])
         list_resp, list_body = self.successResultOf(json_request(
-            self, self.root,  "GET", self.uri + '/loadbalancers'))
+            self, self.root, "GET", self.uri + '/loadbalancers'))
         self.assertEqual(list_resp.code, 200)
         self.assertEqual(len(list_body['loadBalancers']), 2)
 
