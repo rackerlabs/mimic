@@ -4,7 +4,6 @@ Canned response for add/get/list/delete load balancers and
 add/get/delete/list nodes
 """
 from random import randrange
-from copy import deepcopy
 from mimic.util.helper import (set_resource_status, seconds_to_timestamp)
 from twisted.python import log
 
@@ -44,14 +43,11 @@ def load_balancer_example(lb_info, lb_id, status,
 
 def _delete_node(store, lb_id, node_id):
     """Delete a node by ID."""
-    if store.lbs[lb_id].get("nodes"):
-        for each in store.lbs[lb_id]["nodes"]:
+    if store.lbs[lb_id].nodes:
+        for each in store.lbs[lb_id].nodes:
             if each.id == node_id:
-                index = store.lbs[lb_id]["nodes"].index(each)
-                del store.lbs[lb_id]["nodes"][index]
-                if not store.lbs[lb_id]["nodes"]:
-                    del store.lbs[lb_id]["nodes"]
-                store.lbs[lb_id].update({"nodeCount": len(store.lbs[lb_id].get("nodes", []))})
+                index = store.lbs[lb_id].nodes.index(each)
+                del store.lbs[lb_id].nodes[index]
                 return True
     return False
 
@@ -65,18 +61,6 @@ def _format_meta(metadata_list):
         each.update({"id": randrange(999)})
         meta.append(each)
     return meta
-
-
-def _lb_without_tenant(store, lb_id):
-    """
-    returns a copy of the store for the given lb_id, without
-    tenant_id
-    """
-    new_lb = deepcopy(store.lbs[lb_id])
-    new_lb["nodes"] = [node.as_json() for node in store.lbs[lb_id]["nodes"]]
-    del new_lb["tenant_id"]
-    del new_lb["nodeCount"]
-    return new_lb
 
 
 def _verify_and_update_lb_state(store, lb_id, set_state=True,
