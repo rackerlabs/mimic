@@ -9,7 +9,6 @@ from twisted.web.server import Request
 from twisted.plugin import IPlugin
 from mimic.catalog import Endpoint, Entry
 from mimic.imimic import IAPIMock
-from mimic.model.cloudfeeds import CloudFeeds
 from mimic.rest.mimicapp import MimicApp
 
 
