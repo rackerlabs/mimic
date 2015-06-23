@@ -111,25 +111,37 @@ class LoadbalancerAPITests(SynchronousTestCase):
         self.root = self.helper.root
         self.uri = self.helper.uri
 
-    def _create_loadbalancer(self, name=None, api_helper=None):
+    def _create_loadbalancer(self, name=None, api_helper=None, nodes=None):
         """
-        Helper method to create a load balancer and return the lb_id
+        Helper method to create a load balancer and return the lb_id.
+
+        :param str name: The name fo the load balancer, defaults to 'test_lb'
+        :param api_helper: An instance of :class:`APIMockHelper` - defaults to
+            the one created by setup, but if different regions need to be
+            created, for instance, your test may make a different helper, and
+            so that helper can be passed here.
+        :param list nodes: A list of nodes to create the load balancer with -
+            defaults to creating a load balancer with no nodes.
+
+        :return: Load balancer ID
+        :rtype: int
         """
         api_helper = api_helper or self.helper
+        lb_body = {
+            "loadBalancer": {
+                "name": name or "test_lb",
+                "protocol": "HTTP",
+                "virtualIps": [{"type": "PUBLIC"}]
+            }
+        }
+        if nodes is not None:
+            lb_body['loadBalancer']['nodes'] = nodes
 
-        create_lb = request(
+        resp, body = self.successResultOf(json_request(
             self, api_helper.root, "POST", api_helper.uri + '/loadbalancers',
-            json.dumps({
-                "loadBalancer": {
-                    "name": name or "test_lb",
-                    "protocol": "HTTP",
-                    "virtualIps": [{"type": "PUBLIC"}]
-                }
-            })
-        )
-        create_lb_response = self.successResultOf(create_lb)
-        create_lb_response_body = self.successResultOf(treq.json_content(create_lb_response))
-        return create_lb_response_body['loadBalancer']['id']
+            lb_body
+        ))
+        return body['loadBalancer']['id']
 
     def _patch_attributes_request(
         self, lb_id_offset=0, status_key=None, status_val=None
@@ -233,23 +245,24 @@ class LoadbalancerAPITests(SynchronousTestCase):
 
     def test_add_load_balancer(self):
         """
-        Test to verify :func:`add_load_balancer` on ``POST /v1.0/<tenant_id>/loadbalancers``
+        If created without nodes, no node information appears in the response
+        when making a request to ``POST /v1.0/<tenant_id>/loadbalancers``.
         """
         lb_name = 'mimic_lb'
-        create_lb = request(
+        resp, body = self.successResultOf(json_request(
             self, self.root, "POST", self.uri + '/loadbalancers',
-            json.dumps({
+            {
                 "loadBalancer": {
                     "name": lb_name,
                     "protocol": "HTTP",
                     "virtualIps": [{"type": "PUBLIC"}]
                 }
-            })
-        )
-        create_lb_response = self.successResultOf(create_lb)
-        create_lb_response_body = self.successResultOf(treq.json_content(create_lb_response))
-        self.assertEqual(create_lb_response.code, 202)
-        self.assertEqual(create_lb_response_body['loadBalancer']['name'], lb_name)
+            }
+        ))
+        self.assertEqual(resp.code, 202)
+        self.assertEqual(body['loadBalancer']['name'], lb_name)
+        self.assertNotIn("nodeCount", body["loadBalancer"])
+        self.assertNotIn("nodes", body["loadBalancer"])
 
     def test_add_load_balancer_request_with_no_body_causes_bad_request(self):
         """
@@ -269,13 +282,13 @@ class LoadbalancerAPITests(SynchronousTestCase):
 
     def test_add_load_balancer_with_nodes(self):
         """
-        Test to verify :func:`add_load_balancer` on ``POST /v1.0/<tenant_id>/loadbalancers``,
-        with nodes
+        Making a request to ``POST /v1.0/<tenant_id>/loadbalancers`` with
+        nodes adds the nodes to the load balancer.
         """
         lb_name = 'mimic_lb'
-        create_lb = request(
+        resp, body = self.successResultOf(json_request(
             self, self.root, "POST", self.uri + '/loadbalancers',
-            json.dumps({
+            {
                 "loadBalancer": {
                     "name": lb_name,
                     "protocol": "HTTP",
@@ -289,12 +302,11 @@ class LoadbalancerAPITests(SynchronousTestCase):
                                "condition": "ENABLED",
                                "type": "SECONDARY"}]
                 }
-            })
-        )
-        create_lb_response = self.successResultOf(create_lb)
-        create_lb_response_body = self.successResultOf(treq.json_content(create_lb_response))
-        self.assertEqual(create_lb_response.code, 202)
-        self.assertEqual(len(create_lb_response_body['loadBalancer']['nodes']), 2)
+            }
+        ))
+        self.assertEqual(resp.code, 202)
+        self.assertNotIn("nodeCount", body['loadBalancer'])
+        self.assertEqual(len(body['loadBalancer']['nodes']), 2)
 
     def test_list_loadbalancers(self):
         """
@@ -312,6 +324,28 @@ class LoadbalancerAPITests(SynchronousTestCase):
         self.assertTrue(list_lb_response_body['loadBalancers'][1]['id'] in [test1_id, test2_id])
         self.assertTrue(list_lb_response_body['loadBalancers'][0]['id'] !=
                         list_lb_response_body['loadBalancers'][1]['id'])
+
+    def test_list_loadbalancers_have_no_nodes(self):
+        """
+        When listing load balancers, nodes do not appear even if the load
+        balanacer has nodes.  "nodeCount" is present for all the load
+        balancers, whether or not there are nodes on the load balancer.
+        """
+        self._create_loadbalancer('no_nodes')
+        self._create_loadbalancer(
+            '3nodes', nodes=[{"address": "1.1.1.{0}".format(i),
+                              "port": 80, "condition": "ENABLED"}
+                             for i in range(1, 4)])
+        list_resp, list_body = self.successResultOf(json_request(
+            self, self.root, "GET", self.uri + '/loadbalancers'))
+        self.assertEqual(list_resp.code, 200)
+        self.assertEqual(len(list_body['loadBalancers']), 2)
+
+        for lb in list_body['loadBalancers']:
+            self.assertNotIn("nodes", lb)
+            self.assertEqual(
+                lb['nodeCount'],
+                0 if lb['name'] == 'no_nodes' else 3)
 
     def test_delete_loadbalancer(self):
         """
@@ -336,17 +370,34 @@ class LoadbalancerAPITests(SynchronousTestCase):
         self.assertTrue(len(list_lb_response_body['loadBalancers']), 1)
         self.assertTrue(list_lb_response_body['loadBalancers'][0]['id'] == test2_id)
 
-    def test_get_loadbalancer(self):
+    def test_get_loadbalancer_with_nodes(self):
         """
-        Test to verify :func:`get_load_balancers` with on
-        ``GET /v1.0/<tenant_id>/loadbalancers\<loadbalancer_id``
+        If there are nodes on the load balancer, "nodes" (but not "nodeCount")
+        appears in the response when making a request to
+        ``GET /v1.0/<tenant_id>/loadbalancers/<loadbalancer_id>``.
+        """
+        lb_id = self._create_loadbalancer(
+            nodes=[{"address": "1.2.3.4", "port": 80, "condition": "ENABLED"}])
+        resp, body = self.successResultOf(json_request(
+            self, self.root, "GET", self.uri + '/loadbalancers/' + str(lb_id)))
+        self.assertEqual(resp.code, 200)
+        self.assertEqual(body['loadBalancer']['id'], lb_id)
+        self.assertNotIn('nodeCount', body['loadBalancer'])
+        self.assertEqual(len(body['loadBalancer']['nodes']), 1)
+
+    def test_get_loadbalancer_no_nodes(self):
+        """
+        If there are no nodes on the load balancer, then neither "nodeCount"
+        nor "nodes" appear in the response when making a request to
+        ``GET /v1.0/<tenant_id>/loadbalancers/<loadbalancer_id>``
         """
         lb_id = self._create_loadbalancer()
-        get_lb = request(self, self.root, "GET", self.uri + '/loadbalancers/' + str(lb_id))
-        get_lb_response = self.successResultOf(get_lb)
-        get_lb_response_body = self.successResultOf(treq.json_content(get_lb_response))
-        self.assertEqual(get_lb_response.code, 200)
-        self.assertEqual(get_lb_response_body['loadBalancer']['id'], lb_id)
+        resp, body = self.successResultOf(json_request(
+            self, self.root, "GET", self.uri + '/loadbalancers/' + str(lb_id)))
+        self.assertEqual(resp.code, 200)
+        self.assertEqual(body['loadBalancer']['id'], lb_id)
+        self.assertNotIn('nodeCount', body['loadBalancer'])
+        self.assertNotIn('nodes', body['loadBalancer'])
 
     def test_get_non_existant_loadbalancer(self):
         """
@@ -719,6 +770,13 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
             + str(self.node[0]["id"]))
         delete_node_response = self.successResultOf(delete_nodes)
         self.assertEqual(delete_node_response.code, 202)
+
+        # assert that it lists correctly after
+        list_nodes_resp, list_nodes_body = self.successResultOf(json_request(
+            self, self.root, "GET", self.uri + '/loadbalancers/' +
+            str(self.lb_id) + '/nodes'))
+        self.assertEqual(list_nodes_resp.code, 200)
+        self.assertEqual(len(list_nodes_body["nodes"]), 0)
 
     def test_delete_node_on_non_existant_loadbalancer(self):
         """
