@@ -5,7 +5,6 @@ Defines the control plane API endpoints for the Cloudfeeds Plugin.
 from uuid import uuid4
 from six import text_type
 from zope.interface import implementer
-from twisted.web.server import Request
 from twisted.plugin import IPlugin
 from mimic.catalog import Endpoint, Entry
 from mimic.imimic import IAPIMock
@@ -13,9 +12,6 @@ from mimic.rest.mimicapp import MimicApp
 
 
 from characteristic import attributes
-
-
-Request.defaultContentType = 'application/json'
 
 
 @implementer(IAPIMock, IPlugin)
@@ -72,7 +68,7 @@ class CloudFeedsControlApi(object):
             Entry(
                 tenant_id, "rax:feeds", "cloudFeedsControl",
                 [
-                    Endpoint(tenant_id, region, text_type(uuid4()), prefix="noversion")
+                    Endpoint(tenant_id, region, text_type(uuid4()))
                     for region in self.cf_api._regions
                 ]
             )
