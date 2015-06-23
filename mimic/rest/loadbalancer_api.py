@@ -72,7 +72,6 @@ class LoadBalancerApi(object):
         return (
             session_store.session_for_tenant_id(tenant_id)
             .data_for_api(self, lambda: GlobalCLBCollections(
-                tenant_id=tenant_id,
                 clock=session_store.clock
             ))
         )
@@ -195,7 +194,6 @@ class LoadBalancerRegion(object):
         clb_global_collection = tenant_session.data_for_api(
             self._api_mock,
             lambda: GlobalCLBCollections(
-                tenant_id=tenant_id,
                 clock=self._session_store.clock))
         clb_region_collection = clb_global_collection.collection_for_region(
             self.region_name)
@@ -215,8 +213,7 @@ class LoadBalancerRegion(object):
 
         lb_id = randrange(99999)
         response_data = self.session(tenant_id).add_load_balancer(
-            tenant_id, content['loadBalancer'], lb_id,
-            self._session_store.clock.seconds()
+            content['loadBalancer'], lb_id
         )
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
@@ -226,10 +223,7 @@ class LoadBalancerRegion(object):
         """
         Returns a list of all load balancers created using mimic with response code 200
         """
-        response_data = self.session(tenant_id).get_load_balancers(
-            lb_id,
-            self._session_store.clock.seconds()
-        )
+        response_data = self.session(tenant_id).get_load_balancers(lb_id)
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
@@ -238,10 +232,7 @@ class LoadBalancerRegion(object):
         """
         Returns a list of all load balancers created using mimic with response code 200
         """
-        response_data = self.session(tenant_id).list_load_balancers(
-            tenant_id,
-            self._session_store.clock.seconds()
-        )
+        response_data = self.session(tenant_id).list_load_balancers()
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
@@ -251,9 +242,7 @@ class LoadBalancerRegion(object):
         Creates a load balancer and adds it to the load balancer store.
         Returns the newly created load balancer with response code 200
         """
-        response_data = self.session(tenant_id).del_load_balancer(
-            lb_id, self._session_store.clock.seconds()
-        )
+        response_data = self.session(tenant_id).del_load_balancer(lb_id)
         request.setResponseCode(response_data[1])
         return json_dump(response_data[0])
 
@@ -269,10 +258,7 @@ class LoadBalancerRegion(object):
             return json.dumps(invalid_resource("Invalid JSON request body"))
 
         node_list = content['nodes']
-        response_data = self.session(tenant_id).add_node(
-            node_list, lb_id,
-            self._session_store.clock.seconds()
-        )
+        response_data = self.session(tenant_id).add_node(node_list, lb_id)
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
@@ -282,10 +268,7 @@ class LoadBalancerRegion(object):
         """
         Returns a 200 response code and list of nodes on the load balancer
         """
-        response_data = self.session(tenant_id).get_nodes(
-            lb_id, node_id,
-            self._session_store.clock.seconds()
-        )
+        response_data = self.session(tenant_id).get_nodes(lb_id, node_id)
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
@@ -305,8 +288,7 @@ class LoadBalancerRegion(object):
             resp_body, resp_code = invalid_json_schema()
         else:
             resp_body, resp_code = self.session(tenant_id).update_node(
-                lb_id, node_id, content,
-                self._session_store.clock.seconds()
+                lb_id, node_id, content
             )
         request.setResponseCode(resp_code)
         if isinstance(resp_body, string_types):
@@ -319,10 +301,7 @@ class LoadBalancerRegion(object):
         """
         Returns a 204 response code, for any load balancer created using the mocks
         """
-        response_data = self.session(tenant_id).delete_node(
-            lb_id, node_id,
-            self._session_store.clock.seconds()
-        )
+        response_data = self.session(tenant_id).delete_node(lb_id, node_id)
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
@@ -333,9 +312,7 @@ class LoadBalancerRegion(object):
         Deletes multiple nodes from a LB.
         """
         node_ids = map(int, request.args.get('id', []))
-        response_data = self.session(tenant_id).delete_nodes(
-            lb_id, node_ids,
-            self._session_store.clock.seconds())
+        response_data = self.session(tenant_id).delete_nodes(lb_id, node_ids)
         request.setResponseCode(response_data[1])
         return json_dump(response_data[0])
 
@@ -345,8 +322,6 @@ class LoadBalancerRegion(object):
         """
         Returns a 200 response code and list of nodes on the load balancer
         """
-        response_data = self.session(tenant_id).list_nodes(
-            lb_id,
-            self._session_store.clock.seconds())
+        response_data = self.session(tenant_id).list_nodes(lb_id)
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
