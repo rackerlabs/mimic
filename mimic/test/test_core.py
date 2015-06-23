@@ -6,7 +6,7 @@ from twisted.trial.unittest import SynchronousTestCase
 from mimic.core import MimicCore
 from mimic.plugins import (nova_plugin, loadbalancer_plugin, swift_plugin,
                            queue_plugin, maas_plugin, rackconnect_v3_plugin,
-                           glance_plugin)
+                           glance_plugin, cloudfeeds_plugin)
 
 
 class CoreBuildingTests(SynchronousTestCase):
@@ -39,6 +39,8 @@ class CoreBuildingTests(SynchronousTestCase):
             queue_plugin.queue,
             rackconnect_v3_plugin.rackconnect,
             swift_plugin.swift,
+            cloudfeeds_plugin.cloudfeeds,
+            cloudfeeds_plugin.cloudfeeds_control,
         ))
         self.assertEqual(
             plugin_apis,
