@@ -4,6 +4,7 @@ Balancer API docs
 <http://docs.rackspace.com/loadbalancers/api/v1.0/clb-devguide/content/API_Operations.html>`
  for more information.
 """
+from copy import deepcopy
 from random import randrange
 
 import attr
@@ -16,7 +17,6 @@ from twisted.python import log
 
 from mimic.canned_responses.loadbalancer import (load_balancer_example,
                                                  _verify_and_update_lb_state,
-                                                 _lb_without_tenant,
                                                  _delete_node)
 from mimic.model.clb_errors import (
     considered_immutable_error,
@@ -106,6 +106,63 @@ class Node(object):
         return self.address == other.address and self.port == other.port
 
 
+@attr.s
+class CLB(object):
+    """
+    An object representing a load balancer.  Currently just takes the JSON
+    as an attribute, and provides __getitem__ and __setitem__ to access it.
+
+    These should be moved to real attributes as soon as possible.
+    """
+    _json = attr.ib()
+    nodes = attr.ib(default=attr.Factory(list))
+
+    def __getitem__(self, key):
+        """
+        Convenience function during the full conversion to the object model
+        to access JSON keys.
+        """
+        return self._json[key]
+
+    def __setitem__(self, key, value):
+        """
+        Convenience function during the full conversion to the object model
+        to set JSON keys.
+        """
+        self._json[key] = value
+
+    def update(self, new_json_dict):
+        """
+        Convenience function during the full conversion to the object model
+        to update all JSON keys.
+        """
+        self._json.update(new_json_dict)
+
+    def short_json(self):
+        """
+        :return: a short JSON dict representation of this object to be used
+        when listing load balancers.  Does not include the node list, but does
+        include a "nodeCount" attribute, even if there are no nodes.
+        """
+        entries = ('name', 'protocol', 'id', 'port', 'algorithm', 'status',
+                   'timeout', 'created', 'virtualIps', 'updated')
+        result = dict((entry, self._json[entry]) for entry in entries)
+        result['nodeCount'] = len(self.nodes)
+        return result
+
+    def full_json(self):
+        """
+        :return: a longer, detailed JSON dict reprentation of this object that
+        includes all the nodes, if there are any present.  Does not include
+        a "nodeCount" attribute.
+        """
+        result = deepcopy(self._json)
+        del result['tenant_id']
+        if len(self.nodes) > 0:
+            result["nodes"] = [node.as_json() for node in self.nodes]
+        return result
+
+
 @attributes(["keys"])
 class BadKeysError(Exception):
     """
@@ -120,21 +177,6 @@ class BadValueError(Exception):
     When trying to alter the settings of a load balancer, this exception will
     be raised if you attempt to set a valid attribute to an invalid setting.
     """
-
-
-def _prep_for_list(lb_list):
-    """
-    Removes tenant id and changes the nodes list to 'nodeCount' set to the
-    number of node on the LB
-    """
-    entries_to_keep = ('name', 'protocol', 'id', 'port', 'algorithm', 'status', 'timeout',
-                       'created', 'virtualIps', 'updated', 'nodeCount')
-    filtered_lb_list = []
-    for each in lb_list:
-        filtered_lb_list.append(
-            dict((entry, each[entry]) for entry in entries_to_keep)
-        )
-    return filtered_lb_list
 
 
 class RegionalCLBCollection(object):
@@ -183,20 +225,15 @@ class RegionalCLBCollection(object):
         if "lb_building" in self.meta[lb_id]:
             status = "BUILD"
 
-        # Add tenant_id and nodeCount to self.lbs
+        # Add tenant_id to self.lbs
         current_timestring = seconds_to_timestamp(current_timestamp)
-        self.lbs[lb_id] = load_balancer_example(lb_info, lb_id, status,
-                                                current_timestring)
+        self.lbs[lb_id] = CLB(load_balancer_example(lb_info, lb_id, status,
+                                                    current_timestring))
         self.lbs[lb_id].update({"tenant_id": tenant_id})
-        self.lbs[lb_id]["nodes"] = [
+        self.lbs[lb_id].nodes = [
             Node.from_json(blob) for blob in lb_info.get("nodes", [])]
 
-        self.lbs[lb_id].update({"nodeCount": len(self.lbs[lb_id]["nodes"])})
-
-        # and remove before returning response for add lb
-        new_lb = _lb_without_tenant(self, lb_id)
-
-        return {'loadBalancer': new_lb}, 202
+        return {'loadBalancer': self.lbs[lb_id].full_json()}, 202
 
     def set_attributes(self, lb_id, kvpairs):
         """
@@ -234,8 +271,7 @@ class RegionalCLBCollection(object):
         if lb_id in self.lbs:
             _verify_and_update_lb_state(self, lb_id, False, current_timestamp)
             log.msg(self.lbs[lb_id]["status"])
-            new_lb = _lb_without_tenant(self, lb_id)
-            return {'loadBalancer': new_lb}, 200
+            return {'loadBalancer': self.lbs[lb_id].full_json()}, 200
         return not_found_response("loadbalancer"), 404
 
     def get_nodes(self, lb_id, node_id, current_timestamp):
@@ -251,7 +287,7 @@ class RegionalCLBCollection(object):
                         "The loadbalancer is marked as deleted.", 410),
                     410)
 
-            for each in self.lbs[lb_id]["nodes"]:
+            for each in self.lbs[lb_id].nodes:
                 if node_id == each.id:
                     return {"node": each.as_json()}, 200
 
@@ -268,18 +304,12 @@ class RegionalCLBCollection(object):
 
         :return: A 2-tuple, containing the HTTP response and code, in that order.
         """
-        response = dict(
-            (k, v) for (k, v) in self.lbs.items()
-            if tenant_id == v['tenant_id']
-        )
-        for each in response:
+        for each in self.lbs:
             _verify_and_update_lb_state(self, each, False, current_timestamp)
             log.msg(self.lbs[each]["status"])
-        updated_resp = dict(
-            (k, v) for (k, v) in self.lbs.items()
-            if tenant_id == v['tenant_id']
-        )
-        return {'loadBalancers': _prep_for_list(updated_resp.values()) or []}, 200
+        return (
+            {'loadBalancers': [lb.short_json() for lb in self.lbs.values()]},
+            200)
 
     def list_nodes(self, lb_id, current_timestamp):
         """
@@ -294,7 +324,7 @@ class RegionalCLBCollection(object):
                 return invalid_resource("The loadbalancer is marked as deleted.", 410), 410
 
             node_list = [node.as_json()
-                         for node in self.lbs[lb_id]["nodes"]]
+                         for node in self.lbs[lb_id].nodes]
 
             return {"nodes": node_list}, 200
         else:
@@ -347,7 +377,7 @@ class RegionalCLBCollection(object):
 
         # We need to verify all the deletions up front, and only allow it through
         # if all of them are valid.
-        all_ids = [node.id for node in self.lbs[lb_id].get("nodes", [])]
+        all_ids = [node.id for node in self.lbs[lb_id].nodes]
         non_nodes = set(node_ids).difference(all_ids)
         if non_nodes:
             nodes = ','.join(map(str, non_nodes))
@@ -393,7 +423,7 @@ class RegionalCLBCollection(object):
 
             nodes = [Node.from_json(blob) for blob in node_list]
 
-            for existing_node in self.lbs[lb_id]["nodes"]:
+            for existing_node in self.lbs[lb_id].nodes:
                 for new_node in nodes:
                     if existing_node.same_as(new_node):
                         resource = invalid_resource(
@@ -402,10 +432,9 @@ class RegionalCLBCollection(object):
                         return (resource, 413)
 
             # If there were no duplicates
-            new_nodeCount = self.lbs[lb_id]["nodeCount"] + len(nodes)
+            new_nodeCount = len(self.lbs[lb_id].nodes) + len(nodes)
             if new_nodeCount <= self.node_limit:
-                self.lbs[lb_id]["nodes"] = self.lbs[lb_id]["nodes"] + nodes
-                self.lbs[lb_id]["nodeCount"] = new_nodeCount
+                self.lbs[lb_id].nodes = self.lbs[lb_id].nodes + nodes
             else:
                 resource = invalid_resource(
                     "Nodes must not exceed {0} "
@@ -460,11 +489,11 @@ class RegionalCLBCollection(object):
                 return considered_immutable_error(
                     self.lbs[lb_id]["status"], lb_id)
 
-            for i, node in enumerate(self.lbs[lb_id]["nodes"]):
+            for i, node in enumerate(self.lbs[lb_id].nodes):
                 if node.id == node_id:
                     params = attr.asdict(node)
                     params.update(node_updates)
-                    self.lbs[lb_id]["nodes"][i] = Node(**params)
+                    self.lbs[lb_id].nodes[i] = Node(**params)
                     return ("", 202)
 
             return node_not_found()
