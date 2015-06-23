@@ -236,7 +236,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
         """
         Test to verify :func:`add_load_balancer` on
         ``POST /v1.0/<tenant_id>/loadbalancers``.  If created without nodes,
-        no node informatino appears in the response.
+        no node information appears in the response.
         """
         lb_name = 'mimic_lb'
         resp, body = self.successResultOf(json_request(
@@ -272,8 +272,8 @@ class LoadbalancerAPITests(SynchronousTestCase):
 
     def test_add_load_balancer_with_nodes(self):
         """
-        Test to verify :func:`add_load_balancer` on
-        ``POST /v1.0/<tenant_id>/loadbalancers`` with nodes.
+        Making a request to ``POST /v1.0/<tenant_id>/loadbalancers`` with
+        nodes adds the nodes to the load balancer.
         """
         lb_name = 'mimic_lb'
         resp, body = self.successResultOf(json_request(
@@ -317,9 +317,9 @@ class LoadbalancerAPITests(SynchronousTestCase):
 
     def test_list_loadbalancers_have_no_nodes(self):
         """
-        Test to verify that nodes does not appear on the load balancers when
-        listing, even if they do have nodes.  "nodeCount" is present for all
-        the load balancers, though.
+        When listing load balancers, nodes do not appear even if the load
+        balanacer has nodes.  "nodeCount" is present for all the load
+        balancers, whether or not there are nodes on the load balancer.
         """
         self._create_loadbalancer('no_nodes')
         self._create_loadbalancer(
@@ -360,12 +360,11 @@ class LoadbalancerAPITests(SynchronousTestCase):
         self.assertTrue(len(list_lb_response_body['loadBalancers']), 1)
         self.assertTrue(list_lb_response_body['loadBalancers'][0]['id'] == test2_id)
 
-    def test_get_loadbalancer_no_nodes(self):
+    def test_get_loadbalancer_with_nodes(self):
         """
-        Test to verify :func:`get_load_balancers` with on
-        ``GET /v1.0/<tenant_id>/loadbalancers\<loadbalancer_id>``.  If there
-        are no nodes on the load balancer, "nodes" but not "nodeCount"
-        appears in the response.
+        If there are nodes on the load balancer, "nodes" (but not "nodeCount")
+        appears in the response when making a request to
+        ``GET /v1.0/<tenant_id>/loadbalancers/<loadbalancer_id>``.
         """
         lb_id = self._create_loadbalancer(
             nodes=[{"address": "1.2.3.4", "port": 80, "condition": "ENABLED"}])
@@ -376,19 +375,19 @@ class LoadbalancerAPITests(SynchronousTestCase):
         self.assertNotIn('nodeCount', body['loadBalancer'])
         self.assertEqual(len(body['loadBalancer']['nodes']), 1)
 
-    def test_get_loadbalancer_with_nodes(self):
+    def test_get_loadbalancer_no_nodes(self):
         """
-        Test to verify :func:`get_load_balancers` with on
-        ``GET /v1.0/<tenant_id>/loadbalancers\<loadbalancer_id`>`  If there
-        are nodes on the load balancer, then both "ndoeCount" and "nodes"
-        appear in the response.
+        If there are no nodes on the load balancer, then neither "nodeCount"
+        nor "nodes" appear in the response when making a request to
+        ``GET /v1.0/<tenant_id>/loadbalancers/<loadbalancer_id>``
         """
         lb_id = self._create_loadbalancer()
-        get_lb = request(self, self.root, "GET", self.uri + '/loadbalancers/' + str(lb_id))
-        get_lb_response = self.successResultOf(get_lb)
-        get_lb_response_body = self.successResultOf(treq.json_content(get_lb_response))
-        self.assertEqual(get_lb_response.code, 200)
-        self.assertEqual(get_lb_response_body['loadBalancer']['id'], lb_id)
+        resp, body = self.successResultOf(json_request(
+            self, self.root, "GET", self.uri + '/loadbalancers/' + str(lb_id)))
+        self.assertEqual(resp.code, 200)
+        self.assertEqual(body['loadBalancer']['id'], lb_id)
+        self.assertNotIn('nodeCount', body['loadBalancer'])
+        self.assertNotIn('nodes', body['loadBalancer'])
 
     def test_get_non_existant_loadbalancer(self):
         """
