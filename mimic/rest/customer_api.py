@@ -30,4 +30,5 @@ class CustomerApi(object):
         Note: The control plane for the customer api allows one to set specific
         conatact details for a tenant that will be returned by this `GET` call.
         """
-        return json.dumps({"tenant_id": tenant_id})
+        response = self.core.contacts_store.list_contacts_for_tenant('11111')
+        return json.dumps(response)

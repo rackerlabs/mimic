@@ -1,13 +1,12 @@
 """
 Customet Contacts storage object
 """
-import time
 from characteristic import attributes, Attribute
 
 
 @attributes(["tenant_id", "email_address", "role",
-             Attribute("firstName", default_value="Test FirstName"),
-             Attribute("lastName", default_value="Test LastName")])
+             Attribute("first_name", default_value="Test FirstName"),
+             Attribute("last_name", default_value="Test LastName")])
 class Contact(object):
     """
     A :obj:`Contact` is a representation for each contact for a tenant.
@@ -46,11 +45,29 @@ class Contact(object):
         ]
     }
 
-    def generate_contacts(self, tenant_id):
+    def generate_contacts(self):
         """
-
+        Long-form JSON-serializable object representation of this contact, as
+        returned by a GET.
         """
-        pass
+        template = self.static_defaults.copy()
+        template.update({
+            "firstName": self.first_name,
+            "lastName": self.last_name,
+            "customerAccountNumber": self.tenant_id,
+            "roles": {
+                "role": [self.role]
+            },
+            "emailAddresses": {
+                "emailAddress": [
+                    {
+                        "primary": True,
+                        "address": self.email_address
+                    }
+                ]
+            }
+        })
+        return template
 
 
 @attributes([Attribute("contacts_store", default_factory=dict)])
@@ -65,7 +82,8 @@ class ContactsStore(object):
         and append it to :obj: `ContactsStore` of the tenant
         """
         self.contacts_store[tenant_id] = [
-            Contact(each_contact) for each_contact in contact_list]
+            Contact(tenant_id=each_contact[0], email_address=each_contact[1],
+                    role=each_contact[2]) for each_contact in contact_list]
         return
 
     def list_contacts_for_tenant(self, tenant_id):
@@ -73,12 +91,19 @@ class ContactsStore(object):
         Returns the list of contacts for a tenent
         """
         if tenant_id in self.contacts_store:
-            return {
-                "link": [
-                    {
-                        "rel": "next",
-                        "href": "http://link-to-nothing-in-the-customer-api"
-                    }
-                ],
-                "contact": Contact.generate_contacts(tenant_id)
-            }
+            return
+        default_contact_list = [(tenant_id, 'example@example.com', 'TEST'),
+                                (tenant_id, 'example2@example.com', 'TECHNICAL')]
+        self.add_to_contacts_store(tenant_id, default_contact_list)
+        contacts = [each.generate_contacts()
+                    for each in self.contacts_store[tenant_id]]
+
+        return {
+            "link": [
+                {
+                    "rel": "next",
+                    "href": "http://link-to-nothing-in-the-customer-api"
+                }
+            ],
+            "contact": contacts
+        }

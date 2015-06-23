@@ -3,7 +3,7 @@ from twisted.internet.task import Clock
 
 from mimic.core import MimicCore
 from mimic.resource import MimicRoot
-from mimic.test.helpers import json_request, request
+from mimic.test.helpers import json_request
 
 
 class CustomerAPITests(SynchronousTestCase):
@@ -35,4 +35,9 @@ class CustomerAPITests(SynchronousTestCase):
         The ``GET \contacts`` call returns a list of default contacts
         for a tenant with the response code 200.
         """
-        self.get_contacts(self.root, "111111")
+        response = self.get_contacts(self.root, "111111")
+        self.assertEqual(len(response["contact"]), 2)
+        default_emails = [each_contact["emailAddresses"]["emailAddress"][0]["address"]
+                          for each_contact in response["contact"]]
+        self.assertTrue("example@example.com" in default_emails)
+        self.assertTrue("example2@example.com" in default_emails)
