@@ -113,7 +113,18 @@ class LoadbalancerAPITests(SynchronousTestCase):
 
     def _create_loadbalancer(self, name=None, api_helper=None, nodes=None):
         """
-        Helper method to create a load balancer and return the lb_id
+        Helper method to create a load balancer and return the lb_id.
+
+        :param str name: The name fo the load balancer, defaults to 'test_lb'
+        :param api_helper: An instance of :class:`APIMockHelper` - defaults to
+            the one created by setup, but if different regions need to be
+            created, for instance, your test may make a different helper, and
+            so that helper can be passed here.
+        :param list nodes: A list of nodes to create the load balancer with -
+            defaults to creating a load balancer with no nodes.
+
+        :return: Load balancer ID
+        :rtype: int
         """
         api_helper = api_helper or self.helper
         lb_body = {
@@ -234,9 +245,8 @@ class LoadbalancerAPITests(SynchronousTestCase):
 
     def test_add_load_balancer(self):
         """
-        Test to verify :func:`add_load_balancer` on
-        ``POST /v1.0/<tenant_id>/loadbalancers``.  If created without nodes,
-        no node information appears in the response.
+        If created without nodes, no node information appears in the response
+        when making a request to ``POST /v1.0/<tenant_id>/loadbalancers``.
         """
         lb_name = 'mimic_lb'
         resp, body = self.successResultOf(json_request(
