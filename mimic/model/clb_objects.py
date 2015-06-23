@@ -13,6 +13,7 @@ from characteristic import attributes, Attribute
 
 from six import string_types
 
+from twisted.internet.interfaces import IReactorTime
 from twisted.python import log
 
 from mimic.canned_responses.loadbalancer import (load_balancer_example,
@@ -157,7 +158,6 @@ class CLB(object):
         a "nodeCount" attribute.
         """
         result = deepcopy(self._json)
-        del result['tenant_id']
         if len(self.nodes) > 0:
             result["nodes"] = [node.as_json() for node in self.nodes]
         return result
@@ -179,17 +179,16 @@ class BadValueError(Exception):
     """
 
 
+@attr.s
 class RegionalCLBCollection(object):
     """
     A collection of CloudLoadBalancers, in a given region, for a given tenant.
     """
-    def __init__(self):
-        """
-        There are two stores - the lb info, and the metadata info
-        """
-        self.lbs = {}
-        self.meta = {}
-        self.node_limit = 25
+    clock = attr.ib(validator=attr.validators.provides(IReactorTime))
+    node_limit = attr.ib(default=25,
+                         validator=attr.validators.instance_of(int))
+    lbs = attr.ib(default=attr.Factory(dict))
+    meta = attr.ib(default=attr.Factory(dict))
 
     def lb_in_region(self, clb_id):
         """
@@ -198,18 +197,13 @@ class RegionalCLBCollection(object):
         """
         return clb_id in self.lbs
 
-    def add_load_balancer(self, tenant_id, lb_info, lb_id, current_timestamp):
+    def add_load_balancer(self, lb_info, lb_id):
         """
         Returns response of a newly created load balancer with
         response code 202, and adds the new lb to the store's lbs.
-        Note: ``store.lbs`` has tenant_id added as an extra key in comparison
-        to the lb_example.
-        :param string tenant_id: Tenant ID who will own this load balancer.
         :param dict lb_info: Configuration for the load balancer.  See
             Openstack docs for creating CLBs.
         :param string lb_id: Unique ID for this load balancer.
-        :param float current_timestamp: The time since epoch when the CLB is
-            created, measured in seconds.
         """
         status = "ACTIVE"
 
@@ -225,13 +219,11 @@ class RegionalCLBCollection(object):
         if "lb_building" in self.meta[lb_id]:
             status = "BUILD"
 
-        # Add tenant_id to self.lbs
-        current_timestring = seconds_to_timestamp(current_timestamp)
+        current_timestring = seconds_to_timestamp(self.clock.seconds())
         self.lbs[lb_id] = CLB(load_balancer_example(lb_info, lb_id, status,
-                                                    current_timestring))
-        self.lbs[lb_id].update({"tenant_id": tenant_id})
-        self.lbs[lb_id].nodes = [
-            Node.from_json(blob) for blob in lb_info.get("nodes", [])]
+                                                    current_timestring),
+                              nodes=[Node.from_json(blob)
+                                     for blob in lb_info.get("nodes", [])])
 
         return {'loadBalancer': self.lbs[lb_id].full_json()}, 202
 
@@ -263,23 +255,25 @@ class RegionalCLBCollection(object):
 
         self.lbs[lb_id].update(kvpairs)
 
-    def get_load_balancers(self, lb_id, current_timestamp):
+    def get_load_balancers(self, lb_id):
         """
         Returns the load balancers with the given lb id, with response
         code 200. If no load balancers are found returns 404.
         """
         if lb_id in self.lbs:
-            _verify_and_update_lb_state(self, lb_id, False, current_timestamp)
+            _verify_and_update_lb_state(self, lb_id, False,
+                                        self.clock.seconds())
             log.msg(self.lbs[lb_id]["status"])
             return {'loadBalancer': self.lbs[lb_id].full_json()}, 200
         return not_found_response("loadbalancer"), 404
 
-    def get_nodes(self, lb_id, node_id, current_timestamp):
+    def get_nodes(self, lb_id, node_id):
         """
         Returns the node on the load balancer
         """
         if lb_id in self.lbs:
-            _verify_and_update_lb_state(self, lb_id, False, current_timestamp)
+            _verify_and_update_lb_state(self, lb_id, False,
+                                        self.clock.seconds())
 
             if self.lbs[lb_id]["status"] == "DELETED":
                 return (
@@ -295,28 +289,28 @@ class RegionalCLBCollection(object):
 
         return not_found_response("loadbalancer"), 404
 
-    def list_load_balancers(self, tenant_id, current_timestamp):
+    def list_load_balancers(self):
         """
         Returns the list of load balancers with the given tenant id with response
         code 200. If no load balancers are found returns empty list.
-        :param string tenant_id: The tenant which owns the load balancers.
-        :param float current_timestamp: The current time, in seconds since epoch.
 
         :return: A 2-tuple, containing the HTTP response and code, in that order.
         """
         for each in self.lbs:
-            _verify_and_update_lb_state(self, each, False, current_timestamp)
+            _verify_and_update_lb_state(self, each, False,
+                                        self.clock.seconds())
             log.msg(self.lbs[each]["status"])
         return (
             {'loadBalancers': [lb.short_json() for lb in self.lbs.values()]},
             200)
 
-    def list_nodes(self, lb_id, current_timestamp):
+    def list_nodes(self, lb_id):
         """
         Returns the list of nodes remaining on the load balancer
         """
         if lb_id in self.lbs:
-            _verify_and_update_lb_state(self, lb_id, False, current_timestamp)
+            _verify_and_update_lb_state(self, lb_id, False,
+                                        self.clock.seconds())
             if lb_id not in self.lbs:
                 return not_found_response("loadbalancer"), 404
 
@@ -330,11 +324,12 @@ class RegionalCLBCollection(object):
         else:
             return not_found_response("loadbalancer"), 404
 
-    def delete_node(self, lb_id, node_id, current_timestamp):
+    def delete_node(self, lb_id, node_id):
         """
         Determines whether the node to be deleted exists in the session store,
         deletes the node, and returns the response code.
         """
+        current_timestamp = self.clock.seconds()
         if lb_id in self.lbs:
 
             _verify_and_update_lb_state(self, lb_id, False, current_timestamp)
@@ -354,7 +349,7 @@ class RegionalCLBCollection(object):
 
         return not_found_response("loadbalancer"), 404
 
-    def delete_nodes(self, lb_id, node_ids, current_timestamp):
+    def delete_nodes(self, lb_id, node_ids):
         """
         Bulk-delete multiple LB nodes.
         """
@@ -367,6 +362,7 @@ class RegionalCLBCollection(object):
         if lb_id not in self.lbs:
             return not_found_response("loadbalancer"), 404
 
+        current_timestamp = self.clock.seconds()
         _verify_and_update_lb_state(self, lb_id, False, current_timestamp)
 
         if self.lbs[lb_id]["status"] != "ACTIVE":
@@ -401,7 +397,7 @@ class RegionalCLBCollection(object):
                                     current_timestamp=current_timestamp)
         return EMPTY_RESPONSE, 202
 
-    def add_node(self, node_list, lb_id, current_timestamp):
+    def add_node(self, node_list, lb_id):
         """
         Add one or more nodes to a load balancer.  Fails if one or more of the
         nodes provided has the same address/port as an existing node.  Also
@@ -414,7 +410,7 @@ class RegionalCLBCollection(object):
         :return: a `tuple` of (json response as a dict, http status code)
         """
         if lb_id in self.lbs:
-
+            current_timestamp = self.clock.seconds()
             _verify_and_update_lb_state(self, lb_id, False, current_timestamp)
 
             if self.lbs[lb_id]["status"] != "ACTIVE":
@@ -447,7 +443,7 @@ class RegionalCLBCollection(object):
 
         return not_found_response("loadbalancer"), 404
 
-    def update_node(self, lb_id, node_id, node_updates, current_timestamp):
+    def update_node(self, lb_id, node_id, node_updates):
         """
         Update the weight, condition, or type of a single node.  The IP, port,
         status, and ID are immutable, and attempting to change them will cause
@@ -483,7 +479,8 @@ class RegionalCLBCollection(object):
 
         # Now, finally, check if the LB exists and node exists
         if lb_id in self.lbs:
-            _verify_and_update_lb_state(self, lb_id, False, current_timestamp)
+            _verify_and_update_lb_state(self, lb_id, False,
+                                        self.clock.seconds())
 
             if self.lbs[lb_id]["status"] != "ACTIVE":
                 return considered_immutable_error(
@@ -500,7 +497,7 @@ class RegionalCLBCollection(object):
 
         return loadbalancer_not_found()
 
-    def del_load_balancer(self, lb_id, current_timestamp):
+    def del_load_balancer(self, lb_id):
         """
         Returns response for a load balancer
          is in building status for 20
@@ -509,6 +506,7 @@ class RegionalCLBCollection(object):
         status until a nightly job(maybe?)
         """
         if lb_id in self.lbs:
+            current_timestamp = self.clock.seconds()
 
             if self.lbs[lb_id]["status"] == "PENDING-DELETE":
                 msg = ("Must provide valid load balancers: {0} are immutable and "
@@ -537,7 +535,7 @@ class RegionalCLBCollection(object):
         return not_found_response("loadbalancer"), 404
 
 
-@attributes(["tenant_id", "clock",
+@attributes(["clock",
              Attribute("regional_collections", default_factory=dict)])
 class GlobalCLBCollections(object):
     """
@@ -554,6 +552,6 @@ class GlobalCLBCollections(object):
         """
         if region_name not in self.regional_collections:
             self.regional_collections[region_name] = (
-                RegionalCLBCollection()
+                RegionalCLBCollection(self.clock)
             )
         return self.regional_collections[region_name]
