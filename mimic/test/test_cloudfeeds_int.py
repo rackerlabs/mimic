@@ -1,3 +1,4 @@
+import treq
 from mimic.rest.cloudfeeds import (CloudFeedsApi, CloudFeedsControlApi)
 from mimic.test.fixtures import APIMockHelper
 from mimic.test.helpers import request
@@ -26,7 +27,9 @@ class TestCloudFeedsAPI(SynchronousTestCase):
             self, self.root, "GET", self.uri,
         )
         resp = self.successResultOf(r)
-        self.assertEquals(resp.code, 404)
+        body = self.successResultOf(treq.json_content(resp))
+        self.assertEquals(resp.code, 200)
+        print(body)
 
     def test_control_plane_access_should_404(self):
         """

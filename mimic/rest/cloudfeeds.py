@@ -2,6 +2,7 @@
 """
 Defines the control plane API endpoints for the Cloudfeeds Plugin.
 """
+import json
 from uuid import uuid4
 from six import text_type
 from zope.interface import implementer
@@ -9,6 +10,7 @@ from twisted.plugin import IPlugin
 from mimic.catalog import Endpoint, Entry
 from mimic.imimic import IAPIMock
 from mimic.rest.mimicapp import MimicApp
+from mimic.model import cloudfeeds
 
 
 from characteristic import attributes
@@ -49,7 +51,12 @@ class CloudFeedsApi(object):
         Get an :obj:`twisted.web.iweb.IResource` for the given URI prefix;
         implement :obj:`IAPIMock`.
         """
-        lb_region = CloudFeedsRegion(self, uri_prefix, session_store, region)
+        lb_region = CloudFeedsRegion(
+            api_mock=self,
+            uri_prefix=uri_prefix,
+            session_store=session_store,
+            region=region
+        )
         return lb_region.app.resource()
 
 
@@ -95,6 +102,7 @@ class CloudFeedsControlRegion(object):
     app = MimicApp()
 
 
+@attributes(["api_mock", "uri_prefix", "session_store", "region"])
 class CloudFeedsRegion(object):
     """
     Klein routes for cloud feeds API methods within a particular region.
@@ -102,11 +110,25 @@ class CloudFeedsRegion(object):
 
     app = MimicApp()
 
-    def __init__(self, api_mock, uri_prefix, session_store, region_name):
+    def session(self, tenant_id):
         """
-        Fetches the cloud feeds id for a failure, invalid scenarios, etc.
+        Gets a session for a particular tenant, creating one if there isn't
+        one.
         """
-        self.uri_prefix = uri_prefix
-        self.region_name = region_name
-        self._api_mock = api_mock
-        self._session_store = session_store
+        tenant_session = self.session_store.session_for_tenant_id(tenant_id)
+        feeds = tenant_session.data_for_api(
+            self.api_mock,
+            lambda: cloudfeeds.CloudFeeds(
+                tenant_id=tenant_id, clock=self.session_store.clock)
+            )
+        return feeds
+
+    @app.route('/<string:tenant_id>', methods=['GET'])
+    def get_feeds_catalog(self, request, tenant_id):
+        """Produce list of cloud feed product endpoints."""
+        feeds = self.session(tenant_id)
+        endpoints = feeds.get_product_endpoints()
+        request.setResponseCode(200)
+        return json.dumps(cloudfeeds.render_product_endpoints_dict(
+            feeds.get_product_endpoints()
+        ))
