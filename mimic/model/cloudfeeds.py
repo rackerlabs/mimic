@@ -27,7 +27,6 @@ class CloudFeedsProduct(object):
         self.events.append(event)
 
 
-@attr.s
 class CloudFeeds(object):
     """
     Models CloudFeeds support at the plugin-level.
@@ -35,6 +34,17 @@ class CloudFeeds(object):
     tenant_id = attr.ib(validator=attr.validators.instance_of(string_types))
     clock = attr.ib()
     _endpoints = attr.ib(default=attr.Factory(dict))
+
+    def __init__(self, tenant_id, clock):
+        """
+        Create default products.
+        """
+        self.tenant_id = tenant_id
+        self.clock = clock
+        self._endpoints = dict()
+        print "__INIT__ CALLED"
+        self.register_product("title", "href")
+        self.register_product("title2", "href2")
 
     def get_product_endpoints(self):
         """
