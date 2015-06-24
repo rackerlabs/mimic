@@ -393,11 +393,11 @@ class MaasMock(object):
             if e['id'] == entity_id:
                 entity_label = e['label']
                 break
-        if entity_label == "CPU OK":
+        if "CPU OK" in entity_label:
             my_state = "OK"
-        elif entity_label == "CPU WARNING":
+        elif "CPU WARNING" in entity_label:
             my_state = "WARNING"
-        elif entity_label == "CPU CRITICAL":
+        elif "CPU CRITICAL" in entity_label:
             my_state = "CRITICAL"
         request.setResponseCode(200)
         return json.dumps([{
