@@ -30,14 +30,21 @@ from mimic.util.helper import random_hex_generator
 Request.defaultContentType = 'application/json'
 
 
-def _find_index_of_id(xs, val):
+class _MatchesID(object):
     """
-    Finds the index of the first element in the list with the specified id.
+    Class for implementing equality based on the id field.
     """
-    for i, x in enumerate(xs):
-        if x['id'] == val:
-            return i
-    raise ValueError('No element with id {0} in list'.format(val))
+    def __init__(self, id):
+        """
+        Set id on self so that other objects can be compared against this one.
+        """
+        self.id = id
+
+    def __eq__(self, other):
+        """
+        Implements the == comparison based on the id field (and nothing else).
+        """
+        return other['id'] == self.id
 
 
 @implementer(IAPIMock, IPlugin)
@@ -679,7 +686,7 @@ class MaasMock(object):
         current_marker = request.args.get('marker', [None])[0]
         if current_marker is not None:
             try:
-                offset = _find_index_of_id(all_entities, current_marker)
+                offset = all_entities.index(_MatchesID(current_marker))
             except ValueError:
                 offset = 0
 
