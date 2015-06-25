@@ -27,8 +27,22 @@ class CustomerApi(object):
         """
         Responds with code 200 and returns a list of contacts for the given tenant.
 
-        Note: The control plane for the customer api allows one to set specific
-        conatact details for a tenant that will be returned by this `GET` call.
+        Until the contacts are set by the `POST` call, this returns the default
+        contacts for a tenant.
         """
         response = self.core.contacts_store.list_contacts_for_tenant(tenant_id)
         return json.dumps(response)
+
+    @app.route('/<string:tenant_id>/contacts', methods=['POST'])
+    def add_customer_contacts_for_tenant(self, request, tenant_id):
+        """
+        Adds new contacts to a tenant and responds with a 200.
+
+        Note: If there is a GET on the tenant before this `POST` call, the default
+        contacts would have been listed. This POST will overwrite the existing conatacts
+        and only set the contacts provided.
+        """
+        content = json.loads(request.content.read())
+        contact_list = [(each_contact["email"], each_contact["role"]) for each_contact in content]
+        self.core.contacts_store.add_to_contacts_store(tenant_id, contact_list)
+        return b''

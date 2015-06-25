@@ -78,11 +78,14 @@ class ContactsStore(object):
     def add_to_contacts_store(self, tenant_id, contact_list):
         """
         Create a new Contact object for each contact in `contact_list`
-        and append it to :obj: `ContactsStore` of the tenant
+        and append it to :obj: `ContactsStore` of the tenant.
+
+        The :obj: `contact_list` is a list of tuple containing the email address,
+        and the role for the email address
         """
         self.contacts_store[tenant_id] = [
-            Contact(tenant_id=each_contact[0], email_address=each_contact[1],
-                    role=each_contact[2]) for each_contact in contact_list]
+            Contact(tenant_id=tenant_id, email_address=each_contact[0],
+                    role=each_contact[1]) for each_contact in contact_list]
         return
 
     def list_contacts_for_tenant(self, tenant_id):
@@ -90,8 +93,8 @@ class ContactsStore(object):
         Returns the list of contacts for a tenent
         """
         if tenant_id not in self.contacts_store:
-            default_contact_list = [(tenant_id, 'example@example.com', 'TEST'),
-                                    (tenant_id, 'example2@example.com', 'TECHNICAL')]
+            default_contact_list = [('example@example.com', 'TECHNICAL'),
+                                    ('example2@example.com', 'TECHNICAL')]
             self.add_to_contacts_store(tenant_id, default_contact_list)
 
         contacts = [each.generate_contacts()
