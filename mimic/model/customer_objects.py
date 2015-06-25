@@ -15,7 +15,6 @@ class Contact(object):
     static_defaults = {
         "firstName": "Pat",
         "lastName": "Example",
-        # "customerAccountNumber": req.params.tenantId,
         "customerAccountType": "CLOUD",
         "contactNumber": "RPN-994-758-811",
         "rcn": "RCN-348-367-072",
@@ -90,11 +89,11 @@ class ContactsStore(object):
         """
         Returns the list of contacts for a tenent
         """
-        if tenant_id in self.contacts_store:
-            return
-        default_contact_list = [(tenant_id, 'example@example.com', 'TEST'),
-                                (tenant_id, 'example2@example.com', 'TECHNICAL')]
-        self.add_to_contacts_store(tenant_id, default_contact_list)
+        if tenant_id not in self.contacts_store:
+            default_contact_list = [(tenant_id, 'example@example.com', 'TEST'),
+                                    (tenant_id, 'example2@example.com', 'TECHNICAL')]
+            self.add_to_contacts_store(tenant_id, default_contact_list)
+
         contacts = [each.generate_contacts()
                     for each in self.contacts_store[tenant_id]]
 
