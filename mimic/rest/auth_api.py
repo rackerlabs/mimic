@@ -240,7 +240,7 @@ class AuthApi(object):
             username[0], "test")
         return json.dumps(dict(user={
             "RAX-AUTH:domainId": session.tenant_id,
-            "id": random_hex_generator(4),
+            "id": session.user_id,
             "enabled": True,
             "username": session.username,
             "email": "thisisrandom@email.com",

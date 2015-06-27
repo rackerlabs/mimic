@@ -1042,6 +1042,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
             self, root, tenant_id="12345")
         self.assertEqual(response.code, 200)
         username = json_body["access"]["user"]["name"]
+        user_id = json_body["access"]["user"]["id"]
 
         (response, json_body) = self.successResultOf(json_request(
             self, root, "GET",
@@ -1050,6 +1051,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         self.assertEqual(200, response.code)
         self.assertEqual(json_body['user']['RAX-AUTH:domainId'], "12345")
         self.assertEqual(json_body['user']['username'], username)
+        self.assertEqual(json_body['user']['id'], user_id)
 
 
 class AuthIntegrationTests(SynchronousTestCase):
