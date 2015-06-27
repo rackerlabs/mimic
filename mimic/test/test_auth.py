@@ -735,6 +735,19 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         self.assertEqual(200, response.code)
         self.assertTrue(json_body['access']['token']['id'])
 
+    def test_impersonation_without_expires_in_seconds_attribute(self):
+        """
+        Test to verify :func: `get_impersonation_token` when the `expire-in-seconds`
+        is not provided.
+        """
+        core, root = core_and_root([ExampleAPI()])
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "POST", "http://mybase/identity/v2.0/RAX-AUTH/impersonation-tokens",
+            {"RAX-AUTH:impersonation": {"user": {"username": "user-test"}}}))
+        self.assertEqual(200, response.code)
+        self.assertTrue(json_body['access']['token']['id'])
+
     def test_impersonation_request_with_no_body_causes_http_bad_request(self):
         """
         The response for empty body request is bad_request.
@@ -1082,7 +1095,8 @@ class AuthIntegrationTests(SynchronousTestCase):
         core, root = core_and_root([ExampleAPI()])
         tenant_id = "123456"
 
-        response, json_body = authenticate_with_api_key(self, root, tenant_id=tenant_id)
+        response, json_body = authenticate_with_api_key(
+            self, root, tenant_id=tenant_id)
         self.assertEqual(200, response.code)
         username_from_api_key = json_body["access"]["user"]["name"]
 
