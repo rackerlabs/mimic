@@ -27,7 +27,6 @@ from mimic.rest.mimicapp import MimicApp
 from mimic.session import NonMatchingTenantError
 from mimic.util.helper import (
     invalid_resource,
-    random_hex_generator,
     seconds_to_timestamp)
 
 from mimic.model.behaviors import (
