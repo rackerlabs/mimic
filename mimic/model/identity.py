@@ -232,7 +232,7 @@ class ImpersonationCredentials(object):
 
         :return: a class:`ImpersonationCredentials` object
         """
-        expires_in = json_blob[cls.type_key]['expire-in-seconds']
+        expires_in = json_blob[cls.type_key].get('expire-in-seconds', 86400)
         username = json_blob[cls.type_key]['user']['username']
         return cls(impersonator_token=auth_token,
                    impersonated_username=username,
