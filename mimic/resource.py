@@ -15,7 +15,7 @@ from mimic.rest.auth_api import (
     base_uri_from_request
 )
 from mimic.rest.noit_api import NoitApi
-from mimic.rest import fastly_api, mailgun_api
+from mimic.rest import fastly_api, mailgun_api, customer_api
 from mimic.util.helper import seconds_to_timestamp
 
 
@@ -83,6 +83,13 @@ class MimicRoot(object):
         Get the Fastly API ...
         """
         return fastly_api.FastlyApi(self.core).app.resource()
+
+    @app.route("/v1/customer_accounts/CLOUD", branch=True)
+    def get_customer_api(self, request):
+        """
+        Adds support for the Customer API
+        """
+        return customer_api.CustomerApi(self.core).app.resource()
 
     @app.route('/mimic/v1.0/presets', methods=['GET'])
     def get_mimic_presets(self, request):
