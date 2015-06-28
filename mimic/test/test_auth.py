@@ -1033,6 +1033,39 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         self.assertEqual(json_body["access"]["user"]["roles"][1]["description"],
                          "Global Observer Role.")
 
+    def test_response_for_list_users(self):
+        """
+        Test to verify :func: `get_users_details`.
+        """
+        core, root = core_and_root([ExampleAPI()])
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "GET",
+            "http://mybase/identity/v2.0/users?name=random_user"
+        ))
+        self.assertEqual(200, response.code)
+        self.assertTrue(json_body['user']['RAX-AUTH:domainId'])
+
+    def test_response_for_list_users_after_authentication(self):
+        """
+        Test to verify :func: `get_users_details`.
+        """
+        core, root = core_and_root([ExampleAPI()])
+        (response, json_body) = authenticate_with_token(
+            self, root, tenant_id="12345")
+        self.assertEqual(response.code, 200)
+        username = json_body["access"]["user"]["name"]
+        user_id = json_body["access"]["user"]["id"]
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, "GET",
+            "http://mybase/identity/v2.0/users?name={0}".format(username)
+        ))
+        self.assertEqual(200, response.code)
+        self.assertEqual(json_body['user']['RAX-AUTH:domainId'], "12345")
+        self.assertEqual(json_body['user']['username'], username)
+        self.assertEqual(json_body['user']['id'], user_id)
+
 
 class AuthIntegrationTests(SynchronousTestCase):
     """

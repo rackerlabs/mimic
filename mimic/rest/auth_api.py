@@ -3,6 +3,7 @@
 Defines get token, impersonation
 """
 import json
+import time
 
 import attr
 
@@ -24,7 +25,9 @@ from mimic.model.identity import (
     TokenCredentials)
 from mimic.rest.mimicapp import MimicApp
 from mimic.session import NonMatchingTenantError
-from mimic.util.helper import invalid_resource
+from mimic.util.helper import (
+    invalid_resource,
+    seconds_to_timestamp)
 
 from mimic.model.behaviors import (
     BehaviorRegistryCollection,
@@ -224,6 +227,27 @@ class AuthApi(object):
         session = self.core.sessions.session_for_tenant_id(tenant_id)
         return json.dumps(dict(user=dict(id=session.username)))
 
+    @app.route('/v2.0/users', methods=['GET'])
+    def get_users_details(self, request):
+        """
+        Returns response with  detailed account information about each user
+        including email, name, user ID, account configuration and status
+        information.
+        """
+        username = request.args.get("name")
+        session = self.core.sessions.session_for_username_password(
+            username[0], "test")
+        return json.dumps(dict(user={
+            "RAX-AUTH:domainId": session.tenant_id,
+            "id": session.user_id,
+            "enabled": True,
+            "username": session.username,
+            "email": "thisisrandom@email.com",
+            "RAX-AUTH:defaultRegion": "ORD",
+            "created": seconds_to_timestamp(time.time()),
+            "updated": seconds_to_timestamp(time.time())
+        }))
+
     @app.route('/v2.0/users/<string:user_id>/OS-KSADM/credentials/RAX-KSKEY:apiKeyCredentials',
                methods=['GET'])
     def rax_kskey_apikeycredentials(self, request, user_id):
@@ -234,7 +258,7 @@ class AuthApi(object):
             username = self.core.sessions._userid_to_session[user_id].username.decode('ascii')
             apikey = '7fc56270e7a70fa81a5935b72eacbe29'  # echo -n A | md5sum
             return json.dumps({'RAX-KSKEY:apiKeyCredentials': {'username': username,
-                               'apiKey': apikey}})
+                                                               'apiKey': apikey}})
         else:
             request.setResponseCode(404)
             return json.dumps({'itemNotFound':
