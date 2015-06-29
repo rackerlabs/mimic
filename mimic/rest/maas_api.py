@@ -1069,6 +1069,23 @@ class MaasMock(object):
         request.setResponseCode(200)
         return json.dumps({'values': values, 'metadata': metadata})
 
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/<string:alarm_id>',
+    methods=['GET'])
+    def get_alarm(self, request, tenant_id, entity_id, alarm_id):
+        allalarms = self._entity_cache_for_tenant(tenant_id).alarms_list
+        found = False
+        for alarm in allalarms:
+            if alarm['id'] == alarm_id and alarm['entityId'] == entity_id:
+                found = True
+                targetAlarm = alarm
+                break
+        if not found:
+            request.setResponseCode(404)
+            return "Alarm not found"
+        else:
+            request.setResponseCode(200)
+            return json.dumps(alarm)
+
     @app.route('/v1.0/<string:tenant_id>/notification_types', methods=['GET'])
     def get_notification_types(self, request, tenant_id):
         """
