@@ -42,7 +42,7 @@ class CustomerAPITests(SynchronousTestCase):
         Validate that contacts in the `response` is same as the
         `expected_contacts`
         """
-        self.assertEqual(len(response["contact"]), 2)
+        self.assertEqual(len(response["contact"]), len(expected_contacts))
         contact_emails = [each_contact["emailAddresses"]["emailAddress"][0]["address"]
                           for each_contact in response["contact"]]
         self.assertTrue(expected_contacts[0]["email"] in contact_emails)
@@ -100,3 +100,17 @@ class CustomerAPITests(SynchronousTestCase):
         self.assertEqual(200, response.code)
         response = self.get_contacts(self.root, "555555")
         self.validate_contact_list(response, expected_contacts)
+
+    def test_set_contacts_to_be_null(self):
+        """
+        The ``POST /contacts`` call adds empty contacts to a tenant, which
+        is then listed by the ``GET /contacts`` calls
+        """
+        expected_contacts = []
+        response = self.successResultOf(request(
+            self, self.root, "POST",
+            "/v1/customer_accounts/CLOUD/77777/contacts",
+            json.dumps(expected_contacts)))
+        self.assertEqual(200, response.code)
+        response = self.get_contacts(self.root, "77777")
+        self.assertEqual(len(response["contact"]), 0)

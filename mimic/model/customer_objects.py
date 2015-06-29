@@ -83,6 +83,9 @@ class ContactsStore(object):
         The :obj: `contact_list` is a list of tuple containing the email address,
         and the role for the email address
         """
+        if not contact_list:
+            self.contacts_store[tenant_id] = []
+            return
         self.contacts_store[tenant_id] = [
             Contact(tenant_id=tenant_id, email_address=each_contact[0],
                     role=each_contact[1]) for each_contact in contact_list]
@@ -99,7 +102,6 @@ class ContactsStore(object):
 
         contacts = [each.generate_contacts()
                     for each in self.contacts_store[tenant_id]]
-
         return {
             "link": [
                 {
