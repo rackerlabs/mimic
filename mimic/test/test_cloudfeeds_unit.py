@@ -17,7 +17,7 @@ class TestCloudFeeds(SynchronousTestCase):
         """
         Registering a new product should create a new ATOM feed.
         """
-	nEndpoints = len(self.cf.get_product_endpoints())
+        nEndpoints = len(self.cf.get_product_endpoints())
         self.cf.register_product(title='The hoohaw product.', href='hoohaw')
         self.assertEquals(len(self.cf.get_product_endpoints()), nEndpoints + 1)
 
@@ -25,7 +25,7 @@ class TestCloudFeeds(SynchronousTestCase):
         """
         Re-registering a new product should do nothing.
         """
-	nEndpoints = len(self.cf.get_product_endpoints())
+        nEndpoints = len(self.cf.get_product_endpoints())
         self.cf.register_product(title='The hoohaw product', href='hoohaw')
         self.cf.register_product(title='The OTHER hoohaw product', href='hoohaw')
         self.assertEquals(len(self.cf.get_product_endpoints()), nEndpoints + 1)

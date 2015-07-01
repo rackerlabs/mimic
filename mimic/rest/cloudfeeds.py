@@ -127,7 +127,6 @@ class CloudFeedsRegion(object):
     def get_feeds_catalog(self, request, tenant_id):
         """Produce list of cloud feed product endpoints."""
         feeds = self.session(tenant_id)
-        endpoints = feeds.get_product_endpoints()
         request.setResponseCode(200)
         return json.dumps(cloudfeeds.render_product_endpoints_dict(
             feeds.get_product_endpoints()
