@@ -42,9 +42,7 @@ class CloudFeeds(object):
         self.tenant_id = tenant_id
         self.clock = clock
         self._endpoints = dict()
-        print "__INIT__ CALLED"
-        self.register_product("title", "href")
-        self.register_product("title2", "href2")
+        self.register_product("autoscale_events", "autoscale")
 
     def get_product_endpoints(self):
         """

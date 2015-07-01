@@ -9,24 +9,26 @@ class TestCloudFeeds(SynchronousTestCase):
 
     def test_creation(self):
         """
-        A new CloudFeeds plugin should have no products when created.
+        A new CloudFeeds plugin should have a basic set of services pre-registered.
         """
-        self.assertEquals(len(self.cf.get_product_endpoints()), 0)
+        self.assertEquals(len(self.cf.get_product_endpoints()) > 0, True)
 
     def test_product_registration(self):
         """
         Registering a new product should create a new ATOM feed.
         """
+	nEndpoints = len(self.cf.get_product_endpoints())
         self.cf.register_product(title='The hoohaw product.', href='hoohaw')
-        self.assertEquals(len(self.cf.get_product_endpoints()), 1)
+        self.assertEquals(len(self.cf.get_product_endpoints()), nEndpoints + 1)
 
     def test_product_reregistration(self):
         """
         Re-registering a new product should do nothing.
         """
+	nEndpoints = len(self.cf.get_product_endpoints())
         self.cf.register_product(title='The hoohaw product', href='hoohaw')
         self.cf.register_product(title='The OTHER hoohaw product', href='hoohaw')
-        self.assertEquals(len(self.cf.get_product_endpoints()), 1)
+        self.assertEquals(len(self.cf.get_product_endpoints()), nEndpoints + 1)
         p = self.cf.get_product_by_href('hoohaw')
         self.assertEquals(p.title, 'The hoohaw product')
 
@@ -111,6 +113,13 @@ class TestSerialization(SynchronousTestCase):
                             "title": Equals("The goober product"),
                         }),
                         "title": Equals("The goober product"),
+                    }),
+                    MatchesDict({
+                        "collection": MatchesDict({
+                            "href": Equals("autoscale"),
+                            "title": Equals("autoscale_events"),
+                        }),
+                        "title": Equals("autoscale_events"),
                     }),
                 ),
             })
