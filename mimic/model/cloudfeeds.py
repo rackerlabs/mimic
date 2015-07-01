@@ -7,6 +7,7 @@ for more details.
 
 import attr
 from six import string_types
+from twisted.internet.interfaces import IReactorTime
 
 
 @attr.s
@@ -32,7 +33,8 @@ class CloudFeeds(object):
     Models CloudFeeds support at the plugin-level.
     """
     tenant_id = attr.ib(validator=attr.validators.instance_of(string_types))
-    clock = attr.ib()
+    clock = attr.ib(validator=attr.validators.instance_of(IReactorTime))
+    uri_prefix = attr.ib(validator=attr.validators.instance_of(string_types))
     _endpoints = attr.ib(default=attr.Factory(dict))
 
     def __init__(self, tenant_id, clock):
@@ -64,6 +66,8 @@ class CloudFeeds(object):
         :param str href: This provides the unique component of an HTTP reference
             URL that a client can use to talk to this specific feed.
         """
+        # Cloud feeds has a bit of a weird URL structure.
+        href = "{}/{}/events/{}".format(str(self.uri_prefix), href, self.tenant_id)
         if not self.get_product_by_href(href):
             self._endpoints[href] = CloudFeedsProduct(title=title, href=href)
 
