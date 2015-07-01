@@ -119,8 +119,10 @@ class CloudFeedsRegion(object):
         feeds = tenant_session.data_for_api(
             self.api_mock,
             lambda: cloudfeeds.CloudFeeds(
-                tenant_id=tenant_id, clock=self.session_store.clock)
+                tenant_id=tenant_id, clock=self.session_store.clock,
+                uri_prefix=self.uri_prefix
             )
+        )
         return feeds
 
     @app.route('/<string:tenant_id>', methods=['GET'])

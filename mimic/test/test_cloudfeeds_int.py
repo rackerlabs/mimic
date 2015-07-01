@@ -3,7 +3,7 @@ from mimic.rest.cloudfeeds import (CloudFeedsApi, CloudFeedsControlApi)
 from mimic.test.fixtures import APIMockHelper
 from mimic.test.helpers import request
 from twisted.trial.unittest import SynchronousTestCase
-from testtools.matchers import (MatchesDict, MatchesSetwise, Equals)
+from testtools.matchers import (MatchesDict, MatchesSetwise, MatchesRegex, Equals)
 
 
 class TestCloudFeedsAPI(SynchronousTestCase):
@@ -30,7 +30,7 @@ class TestCloudFeedsAPI(SynchronousTestCase):
                 "workspace": MatchesSetwise(
                     MatchesDict({
                         "collection": MatchesDict({
-                            "href": Equals("autoscale"),
+                            "href": MatchesRegex(r"^http:\/\/.*\/autoscale\/.*"),
                             "title": Equals("autoscale_events"),
                         }),
                         "title": Equals("autoscale_events"),
@@ -43,6 +43,7 @@ class TestCloudFeedsAPI(SynchronousTestCase):
         )
         resp = self.successResultOf(r)
         body = self.successResultOf(treq.json_content(resp))
+        print(body)
         self.assertEquals(resp.code, 200)
         self.assertEquals(listing.match(body), None)
 

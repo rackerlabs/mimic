@@ -1,6 +1,6 @@
 from mimic.model import cloudfeeds
 from twisted.trial.unittest import SynchronousTestCase
-from testtools.matchers import (MatchesSetwise, MatchesDict, Equals)
+from testtools.matchers import (MatchesSetwise, MatchesDict, MatchesRegex, Equals)
 
 
 class TestCloudFeeds(SynchronousTestCase):
@@ -40,6 +40,7 @@ class TestCloudFeeds(SynchronousTestCase):
         self.cf.register_product(title='The hoohaw product', href='hoohaw')
         self.cf.register_product(title='The goober product', href='goober')
         products = self.cf.get_product_endpoints()
+        print products
         self.assertEquals('hoohaw' in products, True)
         self.assertEquals(products['hoohaw'].title, 'The hoohaw product')
         self.assertEquals(products['goober'].title, 'The goober product')
@@ -102,21 +103,21 @@ class TestSerialization(SynchronousTestCase):
                 "workspace": MatchesSetwise(
                     MatchesDict({
                         "collection": MatchesDict({
-                            "href": Equals("hoohaw"),
+                            "href": MatchesRegex(r"hoohaw"),
                             "title": Equals("The hoohaw product"),
                         }),
                         "title": Equals("The hoohaw product"),
                     }),
                     MatchesDict({
                         "collection": MatchesDict({
-                            "href": Equals("goober"),
+                            "href": MatchesRegex(r"goober"),
                             "title": Equals("The goober product"),
                         }),
                         "title": Equals("The goober product"),
                     }),
                     MatchesDict({
                         "collection": MatchesDict({
-                            "href": Equals("autoscale"),
+                            "href": MatchesRegex(r"^http:\/\/.*\/autoscale\/.*"),
                             "title": Equals("autoscale_events"),
                         }),
                         "title": Equals("autoscale_events"),
