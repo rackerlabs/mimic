@@ -1,7 +1,7 @@
 klein==15.0.0
-cryptography==0.9
+cryptography==0.9.3
 twisted==15.2.1
-jsonschema==2.4.0
+jsonschema==2.5.1
 treq==15.0.0
 characteristic==14.3.0
 six==1.9.0
