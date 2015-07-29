@@ -798,6 +798,18 @@ class RegionalServerCollection(object):
         server.update_status(u"DELETED")
         return b''
 
+    def action(self, http_action_request, server_id):
+        action_json = loads(http_action_request.content.read())
+        server = self.server_by_id(server_id)
+        if server is None:
+            http_action_request.setResponseCode(500)
+            return b''
+        if 'resize' in action_json:
+            flavor = action_json['resize']['flavorRef']
+            server.flavor_ref = flavor
+            http_action_request.setResponseCode(202)
+            return b''
+
 
 @attributes(["tenant_id", "clock",
              Attribute("regional_collections", default_factory=dict)])
