@@ -799,6 +799,9 @@ class RegionalServerCollection(object):
         return b''
 
     def action(self, http_action_request, server_id):
+        """
+        Perform the requested action on the provided server
+        """
         action_json = loads(http_action_request.content.read())
         server = self.server_by_id(server_id)
         if server is None:
