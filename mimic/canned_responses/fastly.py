@@ -220,6 +220,128 @@ class FastlyResponse(object):
         self.fastly_cache[service_id]['origin_list'].append(create_backend)
         return create_backend
 
+    def create_condition(self, url_data, service_id, service_version):
+        """
+        Returns create_condition response json.
+
+        :return: a JSON-serializable dictionary matching the format of the JSON
+                 response for fastly_client.create_condition()
+                 ("/service/<service_id>/version/<service_version>/condition")
+                 request.
+        """
+        request_dict = dict((k, v[0]) for k, v in url_data)
+
+        create_condition = {
+            u"type": "REQUEST",
+            u"comment": "",
+            u"name": "condition",
+            u"version": service_version,
+            u"service_id": service_id,
+            u"statement": request_dict['statement'],
+            u"priority": request_dict['priority']
+        }
+
+        if 'condition_list' not in self.fastly_cache[service_id]:
+            self.fastly_cache[service_id]['condition_list'] = []
+
+        self.fastly_cache[service_id][
+            'condition_list'].append(create_condition)
+        return create_condition
+
+    def create_cache_settings(self, url_data, service_id, service_version):
+        """
+        Returns create_cache_settings response json.
+
+        :return: a JSON-serializable dictionary matching the format of the JSON
+                 response for fastly_client.create_cache_settings()
+                 ("/service/<service_id>/version/<service_version>/cache_settings")
+                 request.
+        """
+        request_dict = dict((k, v[0]) for k, v in url_data)
+
+        create_cache_settings = {
+            "stale_ttl": request_dict.get("stale_ttl", 0),
+            "ttl": request_dict.get("ttl", 0),
+            "action": request_dict.get("action", ""),
+            "cache_condition": "",
+            "name": "cache_setting",
+            "version": service_version,
+            "service_id": service_id
+        }
+
+        if 'cache_settings_list' not in self.fastly_cache[service_id]:
+            self.fastly_cache[service_id]['cache_settings_list'] = []
+
+        self.fastly_cache[service_id][
+            'cache_settings_list'].append(create_cache_settings)
+        return create_cache_settings
+
+    def create_response_object(self, url_data, service_id, service_version):
+        """
+        Returns response_object response json.
+
+        :return: a JSON-serializable dictionary matching the format of the JSON
+                 response for fastly_client.create_response_object()
+                 ("/service/<service_id>/version/<service_version>/response_object)
+                 request.
+        """
+        request_dict = dict((k, v[0]) for k, v in url_data)
+
+        create_response_object = {
+            "status": request_dict["status"],
+            "response": request_dict["response"],
+            "cache_condition": request_dict["cache_condition"],
+            "request_condition": request_dict["request_condition"],
+            "name": request_dict["name"],
+            "version": service_version,
+            "content": request_dict["content"],
+            "content_type": "text/plain",
+            "service_id": service_id
+        }
+
+        if 'response_object_list' not in self.fastly_cache[service_id]:
+            self.fastly_cache[service_id]['response_object_list'] = []
+
+        self.fastly_cache[service_id][
+            'response_object_list'].append(create_response_object)
+        return create_response_object
+
+    def create_settings(self, url_data, service_id, service_version):
+        """
+        Returns settings response json.
+
+        :return: a JSON-serializable dictionary matching the format of the JSON
+                 response for fastly_client.create_settings()
+                 ("/service/<service_id>/version/<service_version>/settings)
+                 request.
+        """
+        request_dict = dict((k, v[0]) for k, v in url_data)
+
+        create_settings = {
+            "service_id": service_id,
+            "version": service_version,
+            "general.default_ttl": request_dict.get("general.default_ttl", 0),
+            "general.default_host": request_dict.get("general.default_host", "")
+        }
+
+        if 'settings_list' not in self.fastly_cache[service_id]:
+            self.fastly_cache[service_id]['settings_list'] = []
+
+        self.fastly_cache[service_id][
+            'settings_list'].append(create_settings)
+        return create_settings
+
+    def list_conditions(self, url_data, service_id, service_version):
+        """
+        Returns conditions response json.
+
+        :return: a JSON-serializable dictionary matching the format of the JSON
+                 response for fastly_client.list_condition()
+                 ("/service/<service_id>/version/<service_version>/condition")
+                 request.
+        """
+        return self.fastly_cache[service_id]['condition_list']
+
     def list_versions(self, service_id):
         """
         Returns GET list_versions with response json.

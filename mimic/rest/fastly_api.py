@@ -14,6 +14,7 @@ Request.defaultContentType = 'application/json'
 
 
 class FastlyApi(object):
+
     """
     Rest endpoints for mocked Fastly api.
     """
@@ -107,6 +108,54 @@ class FastlyApi(object):
         url_data = request.args.items()
         response = self.fastly_response.create_backend(url_data,
                                                        service_id, version_id)
+        return json.dumps(response)
+
+    @app.route(
+        '/service/<string:service_id>/version/<string:version_id>/condition',
+        methods=['POST'])
+    def create_condition(self, request, service_id, version_id):
+        """
+        Returns Create Condition Response.
+        """
+        url_data = request.args.items()
+        response = self.fastly_response.create_condition(url_data,
+                                                         service_id, version_id)
+        return json.dumps(response)
+
+    @app.route(
+        '/service/<string:service_id>/version/<string:version_id>/create_cache_settings',
+        methods=['POST'])
+    def create_cache_settings(self, request, service_id, version_id):
+        """
+        Returns Create Cache Settings Response.
+        """
+        url_data = request.args.items()
+        response = self.fastly_response.create_cache_settings(url_data,
+                                                              service_id, version_id)
+        return json.dumps(response)
+
+    @app.route(
+        '/service/<string:service_id>/version/<string:version_id>/response_object',
+        methods=['POST'])
+    def create_response_object(self, request, service_id, version_id):
+        """
+        Returns Create Cache Settings Response.
+        """
+        url_data = request.args.items()
+        response = self.fastly_response.create_cache_settings(url_data,
+                                                              service_id, version_id)
+        return json.dumps(response)
+
+    @app.route(
+        '/service/<string:service_id>/version/<string:version_id>/settings',
+        methods=['PUT'])
+    def create_settings(self, request, service_id, version_id):
+        """
+        Returns Settings Response.
+        """
+        url_data = request.args.items()
+        response = self.fastly_response.create_settings(url_data,
+                                                        service_id, version_id)
         return json.dumps(response)
 
     @app.route('/service/<string:service_id>/version', methods=['GET'])
