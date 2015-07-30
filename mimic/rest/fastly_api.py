@@ -123,7 +123,7 @@ class FastlyApi(object):
         return json.dumps(response)
 
     @app.route(
-        '/service/<string:service_id>/version/<string:version_id>/create_cache_settings',
+        '/service/<string:service_id>/version/<string:version_id>/cache_settings',
         methods=['POST'])
     def create_cache_settings(self, request, service_id, version_id):
         """

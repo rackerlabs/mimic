@@ -383,10 +383,15 @@ class FastlyResponse(object):
         """
         version_details = self.fastly_cache[service_id]['service_details']
         service_details = {
-            u'comment': '',
+            u'id': service_id,
             u'name': self.fastly_cache[service_id]['service_name'],
-            u'versions': [version_details],
-            u'active_version': {u'number': 1}}
+            u'customer_id': "hTE5dRlSBICGPJxJwCH4M",
+            u'comment': "",
+            u"updated_at": "2012-06-14T21:20:19+00:00",
+            u"created_at": "2012-06-14T21:20:19+00:00",
+            u"publish_key": "xgdbdd93h5066f8d330c276fDe00f9d293abfex7",
+            u'versions': [version_details]}
+
         return service_details
 
     def delete_service(self, service_id):
