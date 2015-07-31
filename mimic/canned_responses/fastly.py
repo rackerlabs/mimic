@@ -331,17 +331,6 @@ class FastlyResponse(object):
             'settings_list'].append(create_settings)
         return create_settings
 
-    def list_conditions(self, url_data, service_id, service_version):
-        """
-        Returns conditions response json.
-
-        :return: a JSON-serializable dictionary matching the format of the JSON
-                 response for fastly_client.list_condition()
-                 ("/service/<service_id>/version/<service_version>/condition")
-                 request.
-        """
-        return self.fastly_cache[service_id]['condition_list']
-
     def list_versions(self, service_id):
         """
         Returns GET list_versions with response json.
