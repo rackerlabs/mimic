@@ -1,11 +1,23 @@
 """
 Cannned responses for glance images
 """
-from mimic.canned_responses.images_json import images
+import json
+import os
+
+
+#  Pull this out and put in util/helper.py
+def _location():
+    return os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+
+
+def _get_json(file_name):
+    f = open(os.path.join(_location(), file_name))
+    data = f.read()
+    return json.loads(data)
 
 
 def get_images():
     """
     Canned response for glance images list call
     """
-    return images
+    return _get_json("json/glance/glance_images_json.py")
