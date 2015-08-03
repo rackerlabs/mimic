@@ -50,6 +50,7 @@ def _nova_error_message(msg_type, message, status_code, request):
 
     :return: dictionary representing the error body
     """
+    print "^^^^^^^^^^^^^^^^^^^^^^^^^IN _NOVA_ERROR"
     request.setResponseCode(status_code)
     return {
         msg_type: {
@@ -802,16 +803,18 @@ class RegionalServerCollection(object):
         """
         Perform the requested action on the provided server
         """
-        action_json = loads(http_action_request.content.read())
         server = self.server_by_id(server_id)
         if server is None:
-            http_action_request.setResponseCode(500)
-            return b''
+            return dumps(not_found("Instance " + server_id + " could not be found",
+                                   http_action_request))
+        action_json = loads(http_action_request.content.read())
         if 'resize' in action_json:
             flavor = action_json['resize']['flavorRef']
             server.flavor_ref = flavor
             http_action_request.setResponseCode(202)
             return b''
+        else:
+            return dumps("Only server resize is currently supported")
 
 
 @attributes(["tenant_id", "clock",
