@@ -123,7 +123,7 @@ class FastlyAPITests(SynchronousTestCase):
 
     def test_check_domains(self):
         """
-        ``GET/service/{service_id}/version/{version_id}/domain/check_all' against
+        ``GET/service/{service_id}/version/{version_id}/domain/check_all`` against
         Fastly mock returns an array with the status of all domain DNS records
         for a service version.
         """
@@ -149,7 +149,7 @@ class FastlyAPITests(SynchronousTestCase):
 
     def test_create_backend(self):
         """
-        ``POST /service/{service_id}/version/{version_id}/backend' against
+        ``POST /service/{service_id}/version/{version_id}/backend`` against
         Fastly mock creates a backend(origin) for a particular service and
         version and returns JSON-serialized response.
         """
@@ -172,7 +172,7 @@ class FastlyAPITests(SynchronousTestCase):
 
     def test_create_condition(self):
         """
-        ``POST /service/{service_id}/version/{version_id}/condition' against
+        ``POST /service/{service_id}/version/{version_id}/condition`` against
         Fastly mock creates a condition (rule) for a particular service and
         version and returns JSON-serialized response.
         """
@@ -198,7 +198,7 @@ class FastlyAPITests(SynchronousTestCase):
 
     def test_create_cache_settings(self):
         """
-        ``POST /service/{service_id}/version/{version_id}/cache_settings' against
+        ``POST /service/{service_id}/version/{version_id}/cache_settings`` against
         Fastly mock creates a caching setting (rule) for a particular service and
         version and returns JSON-serialized response.
         """
@@ -225,7 +225,7 @@ class FastlyAPITests(SynchronousTestCase):
 
     def test_create_response_object(self):
         """
-        ``POST /service/{service_id}/version/{version_id}/response_object' against
+        ``POST /service/{service_id}/version/{version_id}/response_object`` against
         Fastly mock creates a response_object for a particular service and
         version and returns JSON-serialized response.
         """
@@ -257,7 +257,7 @@ class FastlyAPITests(SynchronousTestCase):
 
     def test_create_settings(self):
         """
-        ``POST /service/{service_id}/version/{version_id}/settings' against
+        ``POST /service/{service_id}/version/{version_id}/settings`` against
         Fastly mock creates a settings object for a particular service and
         version and returns JSON-serialized response.
         """
