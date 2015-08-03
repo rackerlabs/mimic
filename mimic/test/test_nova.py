@@ -582,20 +582,22 @@ class NovaAPITests(SynchronousTestCase):
         })
 
         existing_server = request(
-           self, self.root, "POST", self.uri + '/servers/' + self.server_id + '/action', resize_request)
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', resize_request)
         existing_server_response = self.successResultOf(existing_server)
         self.assertEqual(existing_server_response.code, 202)
 
         get_resized_server = request(
-           self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
         get_server_response = self.successResultOf(get_resized_server)
         get_server_response_body = self.successResultOf(
-           treq.json_content(get_server_response))
+            treq.json_content(get_server_response))
         self.assertEqual(get_server_response_body['server']['flavor']['id'], '2')
 
         no_resize_request = json.dumps({"non_supported_action": {"flavorRef": "2"}})
         response, body = self.successResultOf(json_request(
-            self, self.root, "POST", self.uri + '/servers/' + self.server_id + '/action', no_resize_request))
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', no_resize_request))
         self.assertEqual(response.code, 400)
         self.assertEqual(body, {
             "badRequest": {
