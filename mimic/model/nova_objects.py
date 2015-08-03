@@ -50,7 +50,6 @@ def _nova_error_message(msg_type, message, status_code, request):
 
     :return: dictionary representing the error body
     """
-    print "^^^^^^^^^^^^^^^^^^^^^^^^^IN _NOVA_ERROR"
     request.setResponseCode(status_code)
     return {
         msg_type: {
@@ -799,7 +798,7 @@ class RegionalServerCollection(object):
         server.update_status(u"DELETED")
         return b''
 
-    def action(self, http_action_request, server_id):
+    def request_action(self, http_action_request, server_id):
         """
         Perform the requested action on the provided server
         """
@@ -814,7 +813,7 @@ class RegionalServerCollection(object):
             http_action_request.setResponseCode(202)
             return b''
         else:
-            return dumps("Only server resize is currently supported")
+            return dumps(bad_request("There is no such action currently supported", http_action_request))
 
 
 @attributes(["tenant_id", "clock",
