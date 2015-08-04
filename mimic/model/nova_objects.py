@@ -808,7 +808,11 @@ class RegionalServerCollection(object):
                                    http_action_request))
         action_json = loads(http_action_request.content.read())
         if 'resize' in action_json:
-            flavor = action_json['resize']['flavorRef']
+            try:
+                flavor = action_json['resize']['flavorRef']
+            except KeyError:
+                return dumps(bad_request("Resize requests require 'flavorRef' attribute", http_action_request))
+
             server.flavor_ref = flavor
             http_action_request.setResponseCode(202)
             return b''
