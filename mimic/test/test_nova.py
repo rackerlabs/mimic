@@ -438,6 +438,18 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(
             get_server_flavor_response_body['flavor']['id'], 'test-flavor-id')
 
+    def test_get_flavor_list(self):
+        """
+        Test to verify :func:`get_flavor_list` on ``GET /v2.0/<tenant_id>/flavors``
+        """
+        get_flavor_list = request(
+            self, self.root, "GET", self.uri + '/flavors')
+        get_flavor_list_response = self.successResultOf(get_flavor_list)
+        get_flavor_list_response_body = self.successResultOf(
+            treq.json_content(get_flavor_list_response))
+        self.assertEqual(get_flavor_list_response.code, 200)
+        self.assertTrue(len(get_flavor_list_response_body['flavors']['id']) > 1)
+
     def test_get_server_limits(self):
         """
         Test to verify :func:`get_limit` on ``GET /v2.0/<tenant_id>/limits``
