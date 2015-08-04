@@ -576,6 +576,48 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(status, "ERROR")
         self.assertEqual(second_status, "BUILD")
 
+    def test_server_resize(self):
+        """
+        Resizing a server that does not exist should respond with a 404 and
+        resizing a server that does exist should respond with a 202 and the server
+        should have an updated flavor
+        """
+        resize_request = json.dumps({"resize": {"flavorRef": "2"}})
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST", self.uri + '/servers/nothing/action', resize_request))
+        self.assertEqual(response.code, 404)
+        self.assertEqual(body, {
+            "itemNotFound": {
+                "message": "Instance nothing could not be found",
+                "code": 404
+            }
+        })
+
+        existing_server = request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', resize_request)
+        existing_server_response = self.successResultOf(existing_server)
+        self.assertEqual(existing_server_response.code, 202)
+
+        get_resized_server = request(
+            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+        get_server_response = self.successResultOf(get_resized_server)
+        get_server_response_body = self.successResultOf(
+            treq.json_content(get_server_response))
+        self.assertEqual(get_server_response_body['server']['flavor']['id'], '2')
+
+        no_resize_request = json.dumps({"non_supported_action": {"flavorRef": "2"}})
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', no_resize_request))
+        self.assertEqual(response.code, 400)
+        self.assertEqual(body, {
+            "badRequest": {
+                "message": "There is no such action currently supported",
+                "code": 400
+            }
+        })
+
 
 class NovaAPIChangesSinceTests(SynchronousTestCase):
     """

@@ -123,7 +123,7 @@ class FastlyAPITests(SynchronousTestCase):
 
     def test_check_domains(self):
         """
-        ``GET/service/{service_id}/version/{version_id}/domain/check_all' against
+        ``GET/service/{service_id}/version/{version_id}/domain/check_all`` against
         Fastly mock returns an array with the status of all domain DNS records
         for a service version.
         """
@@ -149,7 +149,7 @@ class FastlyAPITests(SynchronousTestCase):
 
     def test_create_backend(self):
         """
-        ``POST /service/{service_id}/version/{version_id}/backend' against
+        ``POST /service/{service_id}/version/{version_id}/backend`` against
         Fastly mock creates a backend(origin) for a particular service and
         version and returns JSON-serialized response.
         """
@@ -169,6 +169,116 @@ class FastlyAPITests(SynchronousTestCase):
 
         self.assertEqual(200, response.code)
         self.assertEqual(sorted(json_body), sorted(domain_details))
+
+    def test_create_condition(self):
+        """
+        ``POST /service/{service_id}/version/{version_id}/condition`` against
+        Fastly mock creates a condition (rule) for a particular service and
+        version and returns JSON-serialized response.
+        """
+        uri = self.uri + '/service/{0}/version/{1}/condition' \
+            '?name=testcondition&statement=req.url~+"index.html"&priority=10'.format(
+                self.service_id, self.version_id)
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, self.root, "POST", uri))
+
+        url_data = [
+            ('name', ['testcondition']),
+            ('statement', ['req.url~+"index.html"']),
+            ('priority', [10])
+        ]
+        condition = self.fastly_response.create_condition(
+            url_data=url_data,
+            service_id=self.service_id,
+            service_version=self.version_id)
+
+        self.assertEqual(200, response.code)
+        self.assertEqual(sorted(json_body), sorted(condition))
+
+    def test_create_cache_settings(self):
+        """
+        ``POST /service/{service_id}/version/{version_id}/cache_settings`` against
+        Fastly mock creates a caching setting (rule) for a particular service and
+        version and returns JSON-serialized response.
+        """
+        uri = self.uri + '/service/{0}/version/{1}/cache_settings' \
+            '?name=testcache&stale_ttl=1000&ttl=1000&action=cache'.format(
+                self.service_id, self.version_id)
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, self.root, "POST", uri))
+
+        url_data = [
+            ('name', ['testcache']),
+            ('stale_ttl', ['1000']),
+            ('ttl', ['1000']),
+            ('action', ['cache'])
+        ]
+        cache_settings = self.fastly_response.create_cache_settings(
+            url_data=url_data,
+            service_id=self.service_id,
+            service_version=self.version_id)
+
+        self.assertEqual(200, response.code)
+        self.assertEqual(sorted(json_body), sorted(cache_settings))
+
+    def test_create_response_object(self):
+        """
+        ``POST /service/{service_id}/version/{version_id}/response_object`` against
+        Fastly mock creates a response_object for a particular service and
+        version and returns JSON-serialized response.
+        """
+        uri = self.uri + '/service/{0}/version/{1}/response_object' \
+            '?status=200&response=Ok&name=testresponse&content=this+message+means+all+is+okay'.format(
+                self.service_id, self.version_id)
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, self.root, "POST", uri))
+
+        url_data = [
+            ('status', ['200']),
+            ('response', ['Ok']),
+            ('cache_condition', [""]),
+            ('request_condition', [""]),
+            ('name', ['testresponse']),
+            ('content', ['this+message+means+all+is+okay']),
+            ('content_type', ["text/plain"]),
+            ('service_id', [self.service_id])
+        ]
+
+        response_object = self.fastly_response.create_response_object(
+            url_data=url_data,
+            service_id=self.service_id,
+            service_version=self.version_id)
+
+        self.assertEqual(200, response.code)
+        self.assertEqual(sorted(json_body), sorted(response_object))
+
+    def test_create_settings(self):
+        """
+        ``POST /service/{service_id}/version/{version_id}/settings`` against
+        Fastly mock creates a settings object for a particular service and
+        version and returns JSON-serialized response.
+        """
+        uri = self.uri + '/service/{0}/version/{1}/settings' \
+            '?general.default_ttl=4242&general.default_host=www.mydomain.com'.format(
+                self.service_id, self.version_id)
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, self.root, "PUT", uri))
+
+        url_data = [
+            ('general.default_ttl', ['4242']),
+            ('general.default_host', ['www.mydomain.com'])
+        ]
+        settings = self.fastly_response.create_settings(
+            url_data=url_data,
+            service_id=self.service_id,
+            service_version=self.version_id)
+
+        self.assertEqual(200, response.code)
+        self.assertEqual(sorted(json_body), sorted(settings))
 
     def test_list_versions(self):
         """
