@@ -16,7 +16,8 @@ from twisted.python.urlpath import URLPath
 from twisted.plugin import IPlugin
 from twisted.web.http import CREATED, BAD_REQUEST
 
-from mimic.canned_responses.nova import get_limit, get_image, get_flavor
+from mimic.canned_responses.nova import (get_limit, get_image,
+                                         get_flavor, get_flavor_list)
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
@@ -308,6 +309,15 @@ class NovaRegion(object):
         Returns a get flavor response, for any given flavorid
         """
         response_data = get_flavor(flavor_id)
+        request.setResponseCode(response_data[1])
+        return json.dumps(response_data[0])
+
+    @app.route('/v2/<string:tenant_id>/flavors', methods=['GET'])
+    def get_flavor_list(self, request, tenant_id):
+        """
+        Returns a list of flavor with the response code 200.
+        """
+        response_data = get_flavor_list()
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
