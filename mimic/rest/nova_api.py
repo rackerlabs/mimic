@@ -18,7 +18,7 @@ from twisted.python.urlpath import URLPath
 from twisted.plugin import IPlugin
 from twisted.web.http import CREATED, BAD_REQUEST
 
-from mimic.canned_responses.nova import get_limit, get_image, get_flavor
+from mimic.canned_responses.nova import get_limit, get_image, get_flavor, get_flavor_details, get_key_pairs, get_networks, get_os_volume_attachments
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
@@ -38,7 +38,7 @@ class NovaApi(object):
     Rest endpoints for mocked Nova Api.
     """
 
-    def __init__(self, regions=["ORD"]):
+    def __init__(self, regions=["ORD", "DFW", "IAD"]):
         """
         Create a NovaApi with an empty region cache, no servers or tenants yet.
         """
@@ -100,7 +100,7 @@ class NovaControlApi(object):
         """
         return [
             Entry(
-                tenant_id, "compute", "cloudServersBehavior",
+                tenant_id, "computeBehavior", "cloudServersBehavior",
                 [
                     Endpoint(tenant_id, region, text_type(uuid4()),
                              prefix="v2")
@@ -286,8 +286,7 @@ class NovaRegion(object):
             )
         )
 
-    @app.route('/v2/<string:tenant_id>/servers/<string:server_id>',
-               methods=['DELETE'])
+    @app.route('/v2/<string:tenant_id>/servers/<string:server_id>', methods=['DELETE'])
     def delete_server(self, request, tenant_id, server_id):
         """
         Returns a 204 response code, for any server id'
@@ -302,18 +301,22 @@ class NovaRegion(object):
         """
         Returns a get image response, for any given imageid
         """
-        response_data = get_image(image_id)
-        request.setResponseCode(response_data[1])
-        return json.dumps(response_data[0])
+        # response_data = get_image(image_id)
+        # request.setResponseCode(response_data[1])
+        # return json.dumps(response_data[0])
+        request.setResponseCode(200)
+        return json.dumps(get_image(image_id))
 
     @app.route('/v2/<string:tenant_id>/flavors/<string:flavor_id>', methods=['GET'])
     def get_flavor(self, request, tenant_id, flavor_id):
         """
         Returns a get flavor response, for any given flavorid
         """
-        response_data = get_flavor(flavor_id)
-        request.setResponseCode(response_data[1])
-        return json.dumps(response_data[0])
+        # response_data = get_flavor(flavor_id)
+        # request.setResponseCode(response_data[1])
+        # return json.dumps(response_data[0])
+        request.setResponseCode(200)
+        return json.dumps(get_flavor(flavor_id))
 
     @app.route('/v2/<string:tenant_id>/limits', methods=['GET'])
     def get_limit(self, request, tenant_id):
@@ -328,11 +331,37 @@ class NovaRegion(object):
         """
         Returns the IP addresses for the specified server.
         """
-        return (
-            self._region_collection_for_tenant(tenant_id).request_ips(
-                request, server_id
-            )
-        )
+        return (self._region_collection_for_tenant(tenant_id).
+                request_ips(request, server_id))
+
+
+    @app.route('/v2/<string:tenant_id>/flavors/detail', methods=['GET'])
+    def get_flavor_details(self, request, tenant_id):
+        """
+        Returns the flavor details
+        """
+        return json.dumps(get_flavor_details())
+
+    @app.route('/v2/<string:tenant_id>/os-networksv2', methods=['GET'])
+    def get_networks(self, request, tenant_id):
+        """
+        Returns networks
+        """
+        return json.dumps(get_networks())
+
+    @app.route('/v2/<string:tenant_id>/servers/<string:server_id>/os-volume_attachments', methods=['GET'])
+    def get_volume_attachments(self, request, tenant_id, server_id):
+        """
+        Returns volume attachments
+        """
+        return json.dumps(get_os_volume_attachments())
+
+    @app.route('/v2/<string:tenant_id>/os-keypairs', methods=['GET'])
+    def get_key_pairs(self, request, tenant_id):
+        """
+        Returns key pairs
+        """
+        return json.dumps(get_key_pairs())
 
     @app.route('/v2/<string:tenant_id>/servers/<string:server_id>/metadata',
                branch=True)
