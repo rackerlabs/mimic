@@ -1,7 +1,7 @@
 """
 Cannned responses for glance images
 """
-from mimic.canned_responses.images_json import images
+from mimic.canned_responses.json.glance.glance_images_json import images
 
 
 def get_images():
