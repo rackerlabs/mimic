@@ -349,6 +349,13 @@ class NovaRegion(object):
 
         return ServerMetadata(server).app.resource()
 
+    @app.route('/v2/<string:tenant_id>/servers/<string:server_id>/action', methods=['POST'])
+    def perform_action(self, request, tenant_id, server_id):
+        """
+        Perform the requested action on the server
+        """
+        return self._region_collection_for_tenant(tenant_id).request_action(request, server_id)
+
 
 class ServerMetadata(object):
 
