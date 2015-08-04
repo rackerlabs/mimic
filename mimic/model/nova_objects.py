@@ -798,6 +798,25 @@ class RegionalServerCollection(object):
         server.update_status(u"DELETED")
         return b''
 
+    def request_action(self, http_action_request, server_id):
+        """
+        Perform the requested action on the provided server
+        """
+        server = self.server_by_id(server_id)
+        if server is None:
+            return dumps(not_found("Instance " + server_id + " could not be found",
+                                   http_action_request))
+        action_json = loads(http_action_request.content.read())
+        if 'resize' in action_json:
+            flavor = action_json['resize'].get('flavorRef')
+            if not flavor:
+                return dumps(bad_request("Resize requests require 'flavorRef' attribute", http_action_request))
+            server.flavor_ref = flavor
+            http_action_request.setResponseCode(202)
+            return b''
+        else:
+            return dumps(bad_request("There is no such action currently supported", http_action_request))
+
 
 @attributes(["tenant_id", "clock",
              Attribute("regional_collections", default_factory=dict)])
