@@ -641,7 +641,8 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(response.code, 409)
         self.assertEqual(body, {
             "conflictingRequest": {
-                "message": "Cannot 'revertResize' instance " + self.server_id + " while it is in vm_state active",
+                "message": "Cannot 'revertResize' instance " + self.server_id +
+                           " while it is in vm_state active",
                 "code": 409
             }
         })
@@ -666,7 +667,6 @@ class NovaAPITests(SynchronousTestCase):
             treq.json_content(resized_server_response))
         self.assertEqual(resized_server_response_body['server']['flavor']['id'], '10')
 
-
         revert = request(
             self, self.root, "POST",
             self.uri + '/servers/' + self.server_id + '/action', revert_request)
@@ -679,6 +679,7 @@ class NovaAPITests(SynchronousTestCase):
         reverted_server_response_body = self.successResultOf(
             treq.json_content(reverted_server_response))
         self.assertEqual(reverted_server_response_body['server']['flavor']['id'], '2')
+
 
 class NovaAPIChangesSinceTests(SynchronousTestCase):
     """
