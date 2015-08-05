@@ -606,6 +606,18 @@ class NovaAPITests(SynchronousTestCase):
             }
         })
 
+        no_flavorref_request = json.dumps({"resize": {"missingflavorRef": "5"}})
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', no_flavorref_request))
+        self.assertEqual(response.code, 400)
+        self.assertEqual(body, {
+            "badRequest": {
+                "message": "Resize requests require 'flavorRef' attribute",
+                "code": 400
+            }
+        })
+
 
 class NovaAPIChangesSinceTests(SynchronousTestCase):
     """
