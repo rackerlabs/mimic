@@ -564,6 +564,122 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(status, "ERROR")
         self.assertEqual(second_status, "BUILD")
 
+    def test_server_resize(self):
+        """
+        Resizing a server that does not exist should respond with a 404 and
+        resizing a server that does exist should respond with a 202 and the server
+        should have an updated flavor
+        """
+        resize_request = json.dumps({"resize": {"flavorRef": "2"}})
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST", self.uri + '/servers/nothing/action', resize_request))
+        self.assertEqual(response.code, 404)
+        self.assertEqual(body, {
+            "itemNotFound": {
+                "message": "Instance nothing could not be found",
+                "code": 404
+            }
+        })
+
+        existing_server = request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', resize_request)
+        existing_server_response = self.successResultOf(existing_server)
+        self.assertEqual(existing_server_response.code, 202)
+
+        get_resized_server = request(
+            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+        get_server_response = self.successResultOf(get_resized_server)
+        get_server_response_body = self.successResultOf(
+            treq.json_content(get_server_response))
+        self.assertEqual(get_server_response_body['server']['flavor']['id'], '2')
+
+        no_resize_request = json.dumps({"non_supported_action": {"flavorRef": "2"}})
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', no_resize_request))
+        self.assertEqual(response.code, 400)
+        self.assertEqual(body, {
+            "badRequest": {
+                "message": "There is no such action currently supported",
+                "code": 400
+            }
+        })
+
+        no_flavorref_request = json.dumps({"resize": {"missingflavorRef": "5"}})
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', no_flavorref_request))
+        self.assertEqual(response.code, 400)
+        self.assertEqual(body, {
+            "badRequest": {
+                "message": "Resize requests require 'flavorRef' attribute",
+                "code": 400
+            }
+        })
+
+    def test_confirm_and_revert_server_resize(self):
+        """
+        After a server finishes resizing, the size must be confirmed or reverted
+        A confirmation action should make the server ACTIVE and return a 204
+        A revert action should change the flavor and return a 202
+        Attempting to revert or confirm that is not in VERIFY_RESIZE state returns a 409
+        """
+        confirm_request = json.dumps({"confirmResize": "null"})
+        revert_request = json.dumps({"revertResize": "null"})
+        resize_request = json.dumps({"resize": {"flavorRef": "2"}})
+
+        confirm_resize = request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', confirm_request)
+        confirm_request_response = self.successResultOf(confirm_resize)
+        self.assertEqual(confirm_request_response.code, 409)
+
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', revert_request))
+        self.assertEqual(response.code, 409)
+        self.assertEqual(body, {
+            "conflictingRequest": {
+                "message": "Cannot 'revertResize' instance " + self.server_id + " while it is in vm_state active",
+                "code": 409
+            }
+        })
+
+        request(self, self.root, "POST",
+                self.uri + '/servers/' + self.server_id + '/action', resize_request)
+        confirm = request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', confirm_request)
+        confirm_response = self.successResultOf(confirm)
+        self.assertEqual(confirm_response.code, 204)
+
+        resize_request = json.dumps({"resize": {"flavorRef": "10"}})
+
+        request(self, self.root, "POST",
+                self.uri + '/servers/' + self.server_id + '/action', resize_request)
+
+        resized_server = request(
+            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+        resized_server_response = self.successResultOf(resized_server)
+        resized_server_response_body = self.successResultOf(
+            treq.json_content(resized_server_response))
+        self.assertEqual(resized_server_response_body['server']['flavor']['id'], '10')
+
+
+        revert = request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', revert_request)
+        revert_response = self.successResultOf(revert)
+        self.assertEqual(revert_response.code, 202)
+
+        reverted_server = request(
+            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+        reverted_server_response = self.successResultOf(reverted_server)
+        reverted_server_response_body = self.successResultOf(
+            treq.json_content(reverted_server_response))
+        self.assertEqual(reverted_server_response_body['server']['flavor']['id'], '2')
+
 
 class NovaAPIChangesSinceTests(SynchronousTestCase):
     """
