@@ -841,7 +841,7 @@ class RegionalServerCollection(object):
                 http_action_request.setResponseCode(202)
                 return b''
             else:
-                return dumps(conflicting("Cannot 'revertResize' instance " + server_id +
+                return dumps(conflicting("Cannot '" + action_json.keys()[0] + "' instance " + server_id +
                                          " while it is in vm_state active", http_action_request))
         else:
             return dumps(bad_request("There is no such action currently supported", http_action_request))
