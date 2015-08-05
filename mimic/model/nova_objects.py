@@ -20,7 +20,7 @@ from mimic.util.helper import (
 from mimic.model.behaviors import (
     BehaviorRegistryCollection, EventDescription, Criterion, regexp_predicate
 )
-from twisted.web.http import ACCEPTED, BAD_REQUEST, FORBIDDEN, NOT_FOUND
+from twisted.web.http import ACCEPTED, BAD_REQUEST, FORBIDDEN, NOT_FOUND, CONFLICT
 
 
 @attributes(['nova_message'])
@@ -83,6 +83,18 @@ def not_found(message, request):
     :return: dictionary representing the error body.
     """
     return _nova_error_message("itemNotFound", message, NOT_FOUND, request)
+
+
+def conflicting(message, request):
+    """
+    Return a 409 error body associated with a Nova conflicting request error.
+
+    :param str message: The message to include in the bad request body.
+    :param request: The request on which to set the response code.
+
+    :return: dictionary representing the error body.
+    """
+    return _nova_error_message("conflictingRequest", message, 409, request)
 
 
 def forbidden(message, request):
@@ -811,9 +823,26 @@ class RegionalServerCollection(object):
             flavor = action_json['resize'].get('flavorRef')
             if not flavor:
                 return dumps(bad_request("Resize requests require 'flavorRef' attribute", http_action_request))
+
+            server.status = 'VERIFY_RESIZE'
+            server.oldFlavor = server.flavor_ref
             server.flavor_ref = flavor
             http_action_request.setResponseCode(202)
             return b''
+
+        elif 'confirmResize' in action_json or 'revertResize' in action_json:
+            if server.status == 'VERIFY_RESIZE' and 'confirmResize' in action_json:
+                server.status = 'ACTIVE'
+                http_action_request.setResponseCode(204)
+                return b''
+            elif server.status == 'VERIFY_RESIZE' and 'revertResize' in action_json:
+                server.status = 'ACTIVE'
+                server.flavor_ref = server.oldFlavor
+                http_action_request.setResponseCode(202)
+                return b''
+            else:
+                return dumps(conflicting("Cannot 'revertResize' instance " + server_id +
+                                         " while it is in vm_state active", http_action_request))
         else:
             return dumps(bad_request("There is no such action currently supported", http_action_request))
 
