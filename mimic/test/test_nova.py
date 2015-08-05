@@ -569,6 +569,7 @@ class NovaAPITests(SynchronousTestCase):
         Resizing a server that does not exist should respond with a 404 and
         resizing a server that does exist should respond with a 202 and the server
         should have an updated flavor
+        http://docs.rackspace.com/servers/api/v2/cs-devguide/cs-devguide-20150727.pdf
         """
         resize_request = json.dumps({"resize": {"flavorRef": "2"}})
         response, body = self.successResultOf(json_request(
@@ -624,16 +625,23 @@ class NovaAPITests(SynchronousTestCase):
         A confirmation action should make the server ACTIVE and return a 204
         A revert action should change the flavor and return a 202
         Attempting to revert or confirm that is not in VERIFY_RESIZE state returns a 409
+        http://docs.rackspace.com/servers/api/v2/cs-devguide/cs-devguide-20150727.pdf
         """
         confirm_request = json.dumps({"confirmResize": "null"})
         revert_request = json.dumps({"revertResize": "null"})
         resize_request = json.dumps({"resize": {"flavorRef": "2"}})
 
-        confirm_resize = request(
+        response, body = self.successResultOf(json_request(
             self, self.root, "POST",
-            self.uri + '/servers/' + self.server_id + '/action', confirm_request)
-        confirm_request_response = self.successResultOf(confirm_resize)
-        self.assertEqual(confirm_request_response.code, 409)
+            self.uri + '/servers/' + self.server_id + '/action', confirm_request))
+        self.assertEqual(response.code, 409)
+        self.assertEqual(body, {
+            "conflictingRequest": {
+                "message": "Cannot 'confirmResize' instance " + self.server_id +
+                           " while it is in vm_state active",
+                "code": 409
+            }
+        })
 
         response, body = self.successResultOf(json_request(
             self, self.root, "POST",
