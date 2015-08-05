@@ -448,7 +448,10 @@ class NovaAPITests(SynchronousTestCase):
         get_flavor_list_response_body = self.successResultOf(
             treq.json_content(get_flavor_list_response))
         self.assertEqual(get_flavor_list_response.code, 200)
-        self.assertTrue(len(get_flavor_list_response_body['flavors']['id']) > 1)
+        flavor_list = get_flavor_list_response_body['flavors']
+        self.assertTrue(len(flavor_list) > 1)
+        for each_flavor in flavor_list:
+            self.assertEqual(sorted(each_flavor.keys()), sorted(['id', 'name', 'links']))
 
     def test_get_server_limits(self):
         """
