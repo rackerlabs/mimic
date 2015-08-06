@@ -11,8 +11,6 @@ from six import text_type
 
 from zope.interface import implementer
 
-from twisted.web.server import Request
-
 from twisted.python.urlpath import URLPath
 
 from twisted.plugin import IPlugin
@@ -27,8 +25,6 @@ from mimic.model.behaviors import make_behavior_api
 from mimic.model.nova_objects import (
     BadRequestError, GlobalServerCollections, LimitError, Server,
     bad_request, forbidden, not_found, server_creation)
-
-Request.defaultContentType = 'application/json'
 
 
 @implementer(IAPIMock, IPlugin)

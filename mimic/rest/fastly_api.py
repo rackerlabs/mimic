@@ -5,12 +5,8 @@ Defines get current customer
 
 import json
 
-from twisted.web.server import Request
-
 from mimic.rest.mimicapp import MimicApp
 from mimic.canned_responses import fastly
-
-Request.defaultContentType = 'application/json'
 
 
 class FastlyApi(object):

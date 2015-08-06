@@ -242,7 +242,6 @@ class RequestTests(SynchronousTestCase):
         """
         The default content type of all Mimic responses is application/json.
         """
-        self.patch(helpers, 'Site', get_site)
         response, _ = self.make_request_to_site()
         self.assertEqual(['application/json'],
                          response.headers.getRawHeaders('content-type'))
@@ -252,7 +251,7 @@ class RequestTests(SynchronousTestCase):
         If verbose logging is turned on, the full request and response is
         logged.
         """
-        self.patch(helpers, 'Site', partial(get_site, logging=True))
+        self.patch(helpers, 'get_site', partial(get_site, logging=True))
         logged_events = []
         addObserver(logged_events.append)
         self.addCleanup(removeObserver, logged_events.append)

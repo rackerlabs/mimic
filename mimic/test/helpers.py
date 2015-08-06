@@ -17,7 +17,6 @@ from twisted.internet.error import ConnectionDone
 from twisted.internet.defer import succeed
 
 from twisted.web.client import Agent
-from twisted.web.server import Site
 from twisted.web.http_headers import Headers
 from twisted.web.iweb import IBodyProducer
 from twisted.python.urlpath import URLPath
@@ -25,6 +24,8 @@ from twisted.python.urlpath import URLPath
 from twisted.python.failure import Failure
 
 import treq
+
+from mimic.resource import get_site
 
 
 class AbortableStringTransport(StringTransport):
@@ -90,7 +91,7 @@ class RequestTraversalAgent(object):
 
         # Now time for the server to do its job.  Ask it to build an HTTP
         # channel.
-        channel = Site(self._rootResource).buildProtocol(None)
+        channel = get_site(self._rootResource).buildProtocol(None)
 
         # Connect the channel to another in-memory transport so we can collect
         # the response.

@@ -13,7 +13,6 @@ from six import text_type
 
 from zope.interface import implementer
 
-from twisted.web.server import Request
 from twisted.plugin import IPlugin
 
 from mimic.catalog import Entry
@@ -25,9 +24,6 @@ from mimic.canned_responses.maas_agent_info import agent_info
 from mimic.canned_responses.maas_monitoring_zones import monitoring_zones
 from mimic.canned_responses.maas_alarm_examples import alarm_examples
 from mimic.util.helper import random_hex_generator
-
-
-Request.defaultContentType = 'application/json'
 
 
 class _MatchesID(object):
