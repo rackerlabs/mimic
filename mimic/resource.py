@@ -150,7 +150,7 @@ class MimicRoot(object):
         return service_object
 
 
-class MimicRequest(Request):
+class MimicRequest(Request, object):
     """
     Mimic requests by default are of content type application/json.
     """
