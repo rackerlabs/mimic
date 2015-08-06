@@ -820,7 +820,7 @@ class RegionalServerCollection(object):
         """
         Creates a random list of 10 flavors.
         """
-        for each in range(2):
+        for each in range(10):
             flavor_id = choice([str(each), "onmetal-" + str(each),
                                 "mimic" + str(each)])
             flavor_name = "{0}GB Instance".format(flavor_id)
