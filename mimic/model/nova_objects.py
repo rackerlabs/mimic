@@ -624,6 +624,36 @@ def active_then_error(parameters):
     return fail_later
 
 
+@server_creation.declare_behavior_creator("soft-reboot-then-active")
+def soft_reboot_then_active(parameters):
+
+    duration = parameters["duration"]
+
+    @default_with_hook
+    def reboot_to_active_later(server):
+        server.update_status(u"REBOOT")
+        server.collection.clock.callLater(
+            duration,
+            server.update_status,
+            u"ACTIVE")
+    return reboot_to_active_later
+
+
+@server_creation.declare_behavior_creator("hard-reboot-then-active")
+def hard_reboot_then_active(parameters):
+
+    duration = parameters["duration"]
+
+    @default_with_hook
+    def hard_reboot_to_active_later(server):
+        server.update_status(u"HARD_REBOOT")
+        server.collection.clock.callLater(
+            duration,
+            server.update_status,
+            u"ACTIVE")
+    return hard_reboot_to_active_later
+
+
 def metadata_to_creation_behavior(metadata):
     """
     Examine the metadata given to a server creation request, and return a
@@ -844,6 +874,38 @@ class RegionalServerCollection(object):
             else:
                 return dumps(conflicting("Cannot '" + action_json.keys()[0] + "' instance " + server_id +
                                          " while it is in vm_state active", http_action_request))
+
+        elif 'reboot' in action_json:
+            reboot_type = action_json['reboot'].get('type')
+            if not reboot_type:
+                # This response is an educated guess.
+                return dumps(bad_request("Reboot requests require 'type' attribute",
+                                         http_action_request))
+            if reboot_type == 'HARD':
+                # When the reboot action POSTS, the server status is set to HARD_REBOOT
+                # and a response code of 202 with no response body is returned
+
+                # After some amount of time, the server will finish rebooting
+                # and the status get set to ACTIVE (polling the server details
+                # will expose the updated status)
+
+                hard_reboot_then_active({"duration": 6.0})
+
+                http_action_request.setResponseCode(202)
+                return b''
+
+            if reboot_type == 'SOFT':
+                # When the reboot action POSTS, the server status is set to REBOOT
+                # and a response code of 202 with no response body is returned
+
+                # After some amount of time, the server will finish rebooting
+                # and the status gets set to ACTIVE (polling the server details
+                # will expose the updated status)
+
+                soft_reboot_then_active({"duration": 3.0})
+
+                http_action_request.setResponseCode(202)
+                return b''
         else:
             return dumps(bad_request("There is no such action currently supported", http_action_request))
 
