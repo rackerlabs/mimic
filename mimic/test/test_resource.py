@@ -6,6 +6,8 @@ from functools import partial
 from twisted.internet.task import Clock
 from twisted.trial.unittest import SynchronousTestCase
 
+# We can just import from twisted.logger once mimic drops support for
+# twisted < 15.2.0
 try:
     from twisted.logger.globalLogPublisher import addObserver, removeObserver
 except ImportError:
