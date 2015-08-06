@@ -441,6 +441,7 @@ class NovaAPITests(SynchronousTestCase):
     def test_get_flavor_list(self):
         """
         Test to verify :func:`get_flavor_list` on ``GET /v2.0/<tenant_id>/flavors``
+        http://docs.rackspace.com/servers/api/v2/cs-devguide/content/List_Flavors-d1e4188.html
         """
         get_flavor_list = request(
             self, self.root, "GET", self.uri + '/flavors')
@@ -452,6 +453,44 @@ class NovaAPITests(SynchronousTestCase):
         self.assertTrue(len(flavor_list) > 1)
         for each_flavor in flavor_list:
             self.assertEqual(sorted(each_flavor.keys()), sorted(['id', 'name', 'links']))
+
+    def test_get_flavor_list_with_details(self):
+        """
+        Test to verify :func:`test_get_flavor_list_with_details` on
+        ``GET /v2.0/<tenant_id>/flavors/details``
+        """
+        get_flavor_list = request(
+            self, self.root, "GET", self.uri + '/flavors/details')
+        get_flavor_list_response = self.successResultOf(get_flavor_list)
+        self.assertEqual(get_flavor_list_response.code, 200)
+        get_flavor_list_response_body = self.successResultOf(
+            treq.json_content(get_flavor_list_response))
+        flavor_list = get_flavor_list_response_body['flavors']
+        self.assertTrue(len(flavor_list) > 1)
+        for each_flavor in flavor_list:
+            self.assertEqual(
+                sorted(each_flavor.keys()),
+                sorted(['id', 'name', 'links', 'ram', 'OS-FLV-WITH-EXT-SPECS:extra_specs',
+                        'vcpus', 'swap', 'rxtx_factor', 'OS-FLV-EXT-DATA:ephemeral', 'disk']))
+
+    def test_get_flavor_list_with_details_is_consistent(self):
+        """
+        Test to verify ``GET /v2.0/<tenant_id>/flavors/details`` returns
+        consistent data on mutiple list calls
+        """
+        get_flavor_list = request(
+            self, self.root, "GET", self.uri + '/flavors/details')
+        get_flavor_list_response = self.successResultOf(get_flavor_list)
+        self.assertEqual(get_flavor_list_response.code, 200)
+        get_flavor_list_response_body = self.successResultOf(
+            treq.json_content(get_flavor_list_response))
+        get_flavor_list2 = request(
+            self, self.root, "GET", self.uri + '/flavors/details')
+        get_flavor_list2_response = self.successResultOf(get_flavor_list2)
+        self.assertEqual(get_flavor_list2_response.code, 200)
+        get_flavor_list2_response_body = self.successResultOf(
+            treq.json_content(get_flavor_list2_response))
+        self.assertEqual(get_flavor_list_response_body, get_flavor_list2_response_body)
 
     def test_get_server_limits(self):
         """
