@@ -1,3 +1,4 @@
+import json
 import re
 
 from functools import partial
@@ -262,20 +263,22 @@ class RequestTests(SynchronousTestCase):
         self.assertTrue(all([not event['isError'] for event in logged_events]))
 
         messages = [get_log_message(event) for event in logged_events]
-        header_pattern = (
-            'Headers: \{{("\S+": \[".+"\], )*{0}(, "\S+": \[".+"\])*\}}')
-        request_regex = re.compile("\n".join([
-            "^Received request: GET {0}".format(url),
-            header_pattern.format('"One": \["two"\]'),
-            "\s*$"
-        ]))
-        response_regex = re.compile("\n".join([
-            "^Responding with 200 for: GET {0}".format(url),
-            header_pattern.format('"Content-Type": \["application/json"\]'),
-            "\nresponse\!\s*$"
-        ]))
 
-        self.assertNotEqual(None, request_regex.match(messages[0]),
-                            messages[0])
-        self.assertNotEqual(None, response_regex.match(messages[1]),
-                            messages[1])
+        request_match = re.compile(
+            "^Received request: GET (?P<url>.+)\n"
+            "Headers: (?P<headers>\{.+\})\n\s*$"
+        ).match(messages[0])
+        self.assertNotEqual(None, request_match)
+        self.assertEqual(url, request_match.group('url'))
+        headers = json.loads(request_match.group('headers'))
+        self.assertEqual(['two'], headers.get('One'))
+
+        response_match = re.compile(
+            "^Responding with 200 for: GET (?P<url>.+)\n"
+            "Headers: (?P<headers>\{.+\})\n"
+            "\nresponse\!\n\s*$"
+        ).match(messages[1])
+        self.assertNotEqual(None, response_match)
+        self.assertEqual(url, response_match.group('url'))
+        headers = json.loads(response_match.group('headers'))
+        self.assertEqual(['application/json'], headers.get('Content-Type'))
