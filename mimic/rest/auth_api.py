@@ -7,7 +7,6 @@ import time
 
 import attr
 
-from twisted.web.server import Request
 from twisted.python.urlpath import URLPath
 
 from mimic.canned_responses.auth import (
@@ -35,8 +34,6 @@ from mimic.model.behaviors import (
     EventDescription,
     regexp_predicate
 )
-
-Request.defaultContentType = 'application/json'
 
 authentication = EventDescription()
 """
