@@ -5,7 +5,7 @@ Model objects for the Nova mimic.
 import re
 
 from characteristic import attributes, Attribute
-from random import randrange
+from random import randrange, choice, randint
 from json import loads, dumps
 from urllib import urlencode
 
@@ -16,7 +16,7 @@ from mimic.util.helper import (
     random_string,
     timestamp_to_seconds
 )
-
+from mimic.model.flavor_objects import Flavor
 from mimic.model.behaviors import (
     BehaviorRegistryCollection, EventDescription, Criterion, regexp_predicate
 )
@@ -643,6 +643,7 @@ def metadata_to_creation_behavior(metadata):
 @attributes(
     ["tenant_id", "region_name", "clock",
      Attribute("servers", default_factory=list),
+     Attribute("flavors_store", default_factory=list),
      Attribute(
          "behavior_registry_collection",
          default_factory=lambda: BehaviorRegistryCollection())]
@@ -846,6 +847,38 @@ class RegionalServerCollection(object):
                                          " while it is in vm_state active", http_action_request))
         else:
             return dumps(bad_request("There is no such action currently supported", http_action_request))
+
+    def _create_random_list_of_flavors(self):
+        """
+        Creates a random list of 10 flavors.
+        """
+        for each in range(2):
+            flavor_id = choice([str(each), "onmetal-" + str(each),
+                                "mimic" + str(each)])
+            flavor_name = "{0}GB Instance".format(flavor_id)
+            ram = choice([32768, 131072, 524288, 65536,
+                          randint(1000, 9999)])
+            flavor = Flavor(flavor_id=flavor_id, name=flavor_name,
+                            ram=ram, tenant_id=self.tenant_id)
+            self.flavors_store.append(flavor)
+
+    def list_flavors(self, include_details, absolutize_url):
+        """
+        Return a list of flavors with details.
+        Creates a random list of 10 flavors if flavors were not created.
+        :param str tenant_id: The tenant_id to return the flavors for.
+        :return: a `list` of flavors
+        """
+        if not self.flavors_store:
+            self._create_random_list_of_flavors()
+        result = {
+            "flavors": [
+                flavor.brief_json(absolutize_url) if not include_details
+                else flavor.detailed_json(absolutize_url)
+                for flavor in self.flavors_store
+            ]
+        }
+        return dumps(result)
 
 
 @attributes(["tenant_id", "clock",
