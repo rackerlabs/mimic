@@ -8,6 +8,7 @@ from characteristic import attributes, Attribute
 from random import randrange
 from json import loads, dumps
 from urllib import urlencode
+from time import sleep
 
 from six import string_types
 
@@ -574,10 +575,13 @@ def create_building_behavior(parameters):
     seconds.
     """
     duration = parameters["duration"]
-
+    print "*******************************"
+    print str(duration)
+    print "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& BEFORE SET BUILDING"
     @default_with_hook
     def set_building(server):
-        server.update_status(u"BUILD")
+        print "**************************************DO I GET IN BEHAVIOR"
+        server.update_status(u"HARD_REBOOT")
         server.collection.clock.callLater(
             duration,
             server.update_status,
@@ -843,6 +847,29 @@ class RegionalServerCollection(object):
             else:
                 return dumps(conflicting("Cannot '" + action_json.keys()[0] + "' instance " + server_id +
                                          " while it is in vm_state active", http_action_request))
+
+        elif 'reboot' in action_json:
+            reboot_type = action_json['reboot'].get('type')
+            if not reboot_type:
+                return dumps(bad_request("Reboot requests require 'type' attribute",
+                                         http_action_request))
+            if reboot_type == 'HARD':
+                server.status = 'HARD_REBOOT'
+                http_action_request.setResponseCode(202)
+                server.collection.clock.callLater(
+                    6.0,
+                    server.update_status,
+                    u"ACTIVE")
+                return b''
+            if reboot_type == 'SOFT':
+                server.status = 'REBOOT'
+                http_action_request.setResponseCode(202)
+                server.collection.clock.callLater(
+                    3.0,
+                    server.update_status,
+                    u"ACTIVE")
+                return b''
+
         else:
             return dumps(bad_request("There is no such action currently supported", http_action_request))
 
