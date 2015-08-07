@@ -624,36 +624,6 @@ def active_then_error(parameters):
     return fail_later
 
 
-@server_creation.declare_behavior_creator("soft-reboot-then-active")
-def soft_reboot_then_active(parameters):
-
-    duration = parameters["duration"]
-
-    @default_with_hook
-    def reboot_to_active_later(server):
-        server.update_status(u"REBOOT")
-        server.collection.clock.callLater(
-            duration,
-            server.update_status,
-            u"ACTIVE")
-    return reboot_to_active_later
-
-
-@server_creation.declare_behavior_creator("hard-reboot-then-active")
-def hard_reboot_then_active(parameters):
-
-    duration = parameters["duration"]
-
-    @default_with_hook
-    def hard_reboot_to_active_later(server):
-        server.update_status(u"HARD_REBOOT")
-        server.collection.clock.callLater(
-            duration,
-            server.update_status,
-            u"ACTIVE")
-    return hard_reboot_to_active_later
-
-
 def metadata_to_creation_behavior(metadata):
     """
     Examine the metadata given to a server creation request, and return a
