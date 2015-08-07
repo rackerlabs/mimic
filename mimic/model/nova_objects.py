@@ -575,13 +575,9 @@ def create_building_behavior(parameters):
     seconds.
     """
     duration = parameters["duration"]
-    print "*******************************"
-    print str(duration)
-    print "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& BEFORE SET BUILDING"
     @default_with_hook
     def set_building(server):
-        print "**************************************DO I GET IN BEHAVIOR"
-        server.update_status(u"HARD_REBOOT")
+        server.update_status(u"BUILD")
         server.collection.clock.callLater(
             duration,
             server.update_status,
@@ -851,7 +847,7 @@ class RegionalServerCollection(object):
         elif 'reboot' in action_json:
             reboot_type = action_json['reboot'].get('type')
             if not reboot_type:
-                return dumps(bad_request("Reboot requests require 'type' attribute",
+                return dumps(bad_request("Missing argument 'type' for reboot",
                                          http_action_request))
             if reboot_type == 'HARD':
                 server.status = 'HARD_REBOOT'
