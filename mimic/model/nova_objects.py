@@ -878,38 +878,24 @@ class RegionalServerCollection(object):
         elif 'reboot' in action_json:
             reboot_type = action_json['reboot'].get('type')
             if not reboot_type:
-                # This response is an educated guess.
-                return dumps(bad_request("Reboot requests require 'type' attribute",
+                return dumps(bad_request("Missing argument 'type' for reboot",
                                          http_action_request))
             if reboot_type == 'HARD':
-                # When the reboot action POSTS, the server status is set to HARD_REBOOT
-                # and a response code of 202 with no response body is returned
-
-                # After some amount of time, the server will finish rebooting
-                # and the status get set to ACTIVE (polling the server details
-                # will expose the updated status)
-
-                hard_reboot_then_active({"duration": 6.0})
-
+                server.status = 'HARD_REBOOT'
                 http_action_request.setResponseCode(202)
+                server.collection.clock.callLater(
+                    6.0,
+                    server.update_status,
+                    u"ACTIVE")
                 return b''
-
             if reboot_type == 'SOFT':
-                # When the reboot action POSTS, the server status is set to REBOOT
-                # and a response code of 202 with no response body is returned
-
-                # After some amount of time, the server will finish rebooting
-                # and the status gets set to ACTIVE (polling the server details
-                # will expose the updated status)
-
-                soft_reboot_then_active({"duration": 3.0})
-
+                server.status = 'REBOOT'
                 http_action_request.setResponseCode(202)
+                server.collection.clock.callLater(
+                    3.0,
+                    server.update_status,
+                    u"ACTIVE")
                 return b''
-
-            else:
-                return dumps(bad_request("Argument 'type' for reboot is not HARD or SOFT",
-                                         http_action_request))
         else:
             return dumps(bad_request("There is no such action currently supported", http_action_request))
 
