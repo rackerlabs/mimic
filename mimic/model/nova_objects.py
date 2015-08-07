@@ -843,6 +843,29 @@ class RegionalServerCollection(object):
             else:
                 return dumps(conflicting("Cannot '" + action_json.keys()[0] + "' instance " + server_id +
                                          " while it is in vm_state active", http_action_request))
+
+        elif 'reboot' in action_json:
+            reboot_type = action_json['reboot'].get('type')
+            if not reboot_type:
+                return dumps(bad_request("Missing argument 'type' for reboot",
+                                         http_action_request))
+            if reboot_type == 'HARD':
+                server.status = 'HARD_REBOOT'
+                http_action_request.setResponseCode(202)
+                server.collection.clock.callLater(
+                    6.0,
+                    server.update_status,
+                    u"ACTIVE")
+                return b''
+            if reboot_type == 'SOFT':
+                server.status = 'REBOOT'
+                http_action_request.setResponseCode(202)
+                server.collection.clock.callLater(
+                    3.0,
+                    server.update_status,
+                    u"ACTIVE")
+                return b''
+
         else:
             return dumps(bad_request("There is no such action currently supported", http_action_request))
 
