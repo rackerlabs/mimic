@@ -10,6 +10,7 @@ from six import text_type
 from twisted.web.resource import NoResource
 from twisted.web.server import Request, Site
 
+# Just import from twisted.logger if mimic drops support for twisted < 15.2.0
 try:
     from twisted.logger import Logger
 except ImportError:
@@ -149,7 +150,7 @@ class MimicRoot(object):
         return service_object
 
 
-class MimicRequest(Request):
+class MimicRequest(Request, object):
     """
     Mimic requests by default are of content type application/json.
     """
