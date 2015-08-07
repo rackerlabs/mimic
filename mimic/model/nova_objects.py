@@ -858,7 +858,7 @@ class RegionalServerCollection(object):
                     server.update_status,
                     u"ACTIVE")
                 return b''
-            if reboot_type == 'SOFT':
+            elif reboot_type == 'SOFT':
                 server.status = 'REBOOT'
                 http_action_request.setResponseCode(202)
                 server.collection.clock.callLater(
