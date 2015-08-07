@@ -689,6 +689,19 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(reverted_server_response_body['server']['flavor']['id'], '2')
 
     def test_reboot_server(self):
+        """
+        A hard reboot of a server sets the server status to HARD_REBOOT and returns a 202
+        A soft reboot of a server sets the server status to REBOOT and returns a 202
+        After some amount of time the server will go back to ACTIVE state
+        The clock is being used to advance time and verify that status changes from the
+            a reboot state to active.  The current time interval being used in hardcoded
+            in the route for now. In the future we need to refactor to allow different
+            durations to be set including a zero duration which would allow the server to
+            skip the intermediary state of HARD_REBOOT or REBOOT and go straight to ACTIVE
+        If the 'type' attribute is left out of the request, a response body is returned
+            with code of 400
+        http://docs.rackspace.com/servers/api/v2/cs-devguide/content/Reboot_Server-d1e3371.html
+        """
         no_reboot_type_request = json.dumps({"reboot": {"missing_type": "SOFT"}})
         response, body = self.successResultOf(json_request(
             self, self.root, "POST",
