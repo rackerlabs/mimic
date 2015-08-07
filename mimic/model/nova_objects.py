@@ -8,7 +8,6 @@ from characteristic import attributes, Attribute
 from random import randrange
 from json import loads, dumps
 from urllib import urlencode
-from time import sleep
 
 from six import string_types
 
@@ -575,6 +574,7 @@ def create_building_behavior(parameters):
     seconds.
     """
     duration = parameters["duration"]
+
     @default_with_hook
     def set_building(server):
         server.update_status(u"BUILD")
