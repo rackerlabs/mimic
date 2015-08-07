@@ -714,6 +714,18 @@ class NovaAPITests(SynchronousTestCase):
             }
         })
 
+        wrong_reboot_type_request = json.dumps({"reboot": {"type": "FIRM"}})
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', wrong_reboot_type_request))
+        self.assertEqual(response.code, 400)
+        self.assertEqual(body, {
+            "badRequest": {
+                "message": "Argument 'type' for reboot is not HARD or SOFT",
+                "code": 400
+            }
+        })
+
         # Soft reboot tests
         soft_reboot_request = json.dumps({"reboot": {"type": "SOFT"}})
         soft_reboot = request(

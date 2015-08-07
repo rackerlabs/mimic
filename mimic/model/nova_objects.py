@@ -857,7 +857,7 @@ class RegionalServerCollection(object):
                     server.update_status,
                     u"ACTIVE")
                 return b''
-            if reboot_type == 'SOFT':
+            elif reboot_type == 'SOFT':
                 server.status = 'REBOOT'
                 http_action_request.setResponseCode(202)
                 server.collection.clock.callLater(
@@ -865,6 +865,9 @@ class RegionalServerCollection(object):
                     server.update_status,
                     u"ACTIVE")
                 return b''
+            else:
+                return dumps(bad_request("Argument 'type' for reboot is not HARD or SOFT",
+                                         http_action_request))
 
         else:
             return dumps(bad_request("There is no such action currently supported", http_action_request))
