@@ -16,7 +16,7 @@ from twisted.python.urlpath import URLPath
 from twisted.plugin import IPlugin
 from twisted.web.http import CREATED, BAD_REQUEST
 
-from mimic.canned_responses.nova import get_limit, get_image, get_flavor
+from mimic.canned_responses.nova import get_limit, get_flavor
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
@@ -298,9 +298,30 @@ class NovaRegion(object):
         """
         Returns a get image response, for any given imageid
         """
-        response_data = get_image(image_id)
-        request.setResponseCode(response_data[1])
-        return json.dumps(response_data[0])
+        return (
+            self._region_collection_for_tenant(tenant_id)
+            .get_image(request, image_id, absolutize_url=self.url)
+        )
+
+    @app.route('/v2/<string:tenant_id>/images/detail', methods=['GET'])
+    def get_server_image_list_with_details(self, request, tenant_id):
+        """
+        Returns a image list.
+        """
+        return (
+            self._region_collection_for_tenant(tenant_id)
+            .list_server_image(include_details=True, absolutize_url=self.url)
+        )
+
+    @app.route('/v2/<string:tenant_id>/images', methods=['GET'])
+    def get_server_image_list(self, request, tenant_id):
+        """
+        Returns a image list.
+        """
+        return (
+            self._region_collection_for_tenant(tenant_id)
+            .list_server_image(include_details=False, absolutize_url=self.url)
+        )
 
     @app.route('/v2/<string:tenant_id>/flavors/<string:flavor_id>', methods=['GET'])
     def get_flavor(self, request, tenant_id, flavor_id):

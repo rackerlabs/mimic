@@ -14,19 +14,6 @@ from mimic.canned_responses.mimic_presets import get_presets
 from mimic.util.helper import not_found_response
 
 
-def get_image(image_id):
-    """
-    Canned response for get image.  The image id provided is substituted in the
-    response, if not one of the invalid image ids specified in mimic_presets.
-    """
-    if (
-            image_id in get_presets['servers']['invalid_image_ref'] or
-            image_id.endswith('Z')
-    ):
-        return not_found_response('images'), 404
-    return {'image': {'status': 'ACTIVE', 'id': image_id, 'name': 'mimic-test-image'}}, 200
-
-
 def get_flavor(flavor_id):
     """
     Canned response for get flavor.
