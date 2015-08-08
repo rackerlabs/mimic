@@ -5,7 +5,7 @@ Model objects for the Nova mimic.
 import re
 
 from characteristic import attributes, Attribute
-from random import randrange, choice, randint
+from random import randrange
 from json import loads, dumps
 from urllib import urlencode
 
@@ -850,14 +850,16 @@ class RegionalServerCollection(object):
 
     def _create_random_list_of_flavors(self):
         """
-        Creates a random list of 10 flavors.
+        Creates a list of flavors.
         """
-        for each in range(10):
-            flavor_id = choice([str(each), "onmetal-" + str(each),
-                                "mimic" + str(each)])
-            flavor_name = "{0}GB Instance".format(flavor_id)
-            ram = choice([32768, 131072, 524288, 65536,
-                          randint(1000, 9999)])
+        flavors = {"onmetal-compute1": 32768, "onmetal-io1": 131072,
+                   "onmetal-memory1": 524288, "2": 512, "compute1-15": 15360,
+                   "general1-1": 1024, "io1-120": 122880, "memory1-120": 122880,
+                   "performance1-1": 1024}
+        for each_id, each_ram in flavors.iteritems():
+            flavor_id = each_id
+            flavor_name = each_id.replace("-", " ") + "Mimic Instance"
+            ram = each_ram
             flavor = Flavor(flavor_id=flavor_id, name=flavor_name,
                             ram=ram, tenant_id=self.tenant_id)
             self.flavors_store.append(flavor)
@@ -865,7 +867,7 @@ class RegionalServerCollection(object):
     def list_flavors(self, include_details, absolutize_url):
         """
         Return a list of flavors with details.
-        Creates a random list of 10 flavors if flavors were not created.
+        Creates a random list of flavors if flavors were not created.
         :param str tenant_id: The tenant_id to return the flavors for.
         :return: a `list` of flavors
         """

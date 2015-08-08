@@ -315,6 +315,7 @@ class NovaRegion(object):
     def get_flavor_list(self, request, tenant_id):
         """
         Returns a list of flavor with the response code 200.
+        docs: http://bit.ly/1eXTSDC
         TO DO: The length of flavor list can be set using the control plane.
                Also be able to set different flavor types in the future.
         """
@@ -323,10 +324,10 @@ class NovaRegion(object):
             .list_flavors(include_details=False, absolutize_url=self.url)
         )
 
-    @app.route('/v2/<string:tenant_id>/flavors/details', methods=['GET'])
+    @app.route('/v2/<string:tenant_id>/flavors/detail', methods=['GET'])
     def get_flavor_list_with_details(self, request, tenant_id):
         """
-        Returns a list of flavor with the response code 200.
+        Returns a list of flavor details with the response code 200.
         TO DO: The length of flavor list can be set using the control plane.
                Also be able to set different flavor types in the future.
         """

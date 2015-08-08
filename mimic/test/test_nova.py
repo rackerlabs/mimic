@@ -460,7 +460,7 @@ class NovaAPITests(SynchronousTestCase):
         ``GET /v2.0/<tenant_id>/flavors/details``
         """
         get_flavor_list = request(
-            self, self.root, "GET", self.uri + '/flavors/details')
+            self, self.root, "GET", self.uri + '/flavors/detail')
         get_flavor_list_response = self.successResultOf(get_flavor_list)
         self.assertEqual(get_flavor_list_response.code, 200)
         get_flavor_list_response_body = self.successResultOf(
