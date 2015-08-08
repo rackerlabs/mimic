@@ -27,19 +27,6 @@ def get_image(image_id):
     return {'image': {'status': 'ACTIVE', 'id': image_id, 'name': 'mimic-test-image'}}, 200
 
 
-def get_flavor(flavor_id):
-    """
-    Canned response for get flavor.
-    The flavor id provided is substituted in the response
-    """
-    if flavor_id in get_presets['servers']['invalid_flavor_ref']:
-        return not_found_response('flavors'), 404
-    return ({'flavor': {'name': '512MB Standard Instance',
-                        'id': flavor_id,
-                        'name': 'mimic-test-flavor'}},
-            200)
-
-
 def get_limit():
     """
     Canned response for limits for servers. Returns only the absolute limits

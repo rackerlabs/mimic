@@ -17,6 +17,7 @@ from mimic.util.helper import (
     timestamp_to_seconds
 )
 from mimic.model.flavor_objects import Flavor
+from mimic.canned_responses.mimic_presets import get_presets
 from mimic.model.behaviors import (
     BehaviorRegistryCollection, EventDescription, Criterion, regexp_predicate
 )
@@ -661,6 +662,14 @@ class RegionalServerCollection(object):
             if server.server_id == server_id and server.status != u"DELETED":
                 return server
 
+    def flavor_by_id(self, flavor_id):
+        """
+        Retrieve a :obj:`Flavor` object by its ID.
+        """
+        for flavor in self.flavors_store:
+            if flavor.flavor_id == flavor_id:
+                return flavor
+
     def request_creation(self, creation_http_request, creation_json,
                          absolutize_url):
         """
@@ -850,29 +859,28 @@ class RegionalServerCollection(object):
 
     def _create_random_list_of_flavors(self):
         """
-        Creates a list of flavors.
+        Creates a list of flavors and adds them to :obj: `flavors_store`.
         """
         flavors = {"onmetal-compute1": 32768, "onmetal-io1": 131072,
                    "onmetal-memory1": 524288, "2": 512, "compute1-15": 15360,
                    "general1-1": 1024, "io1-120": 122880, "memory1-120": 122880,
                    "performance1-1": 1024}
         for each_id, each_ram in flavors.iteritems():
-            flavor_id = each_id
-            flavor_name = each_id.replace("-", " ") + "Mimic Instance"
-            ram = each_ram
-            flavor = Flavor(flavor_id=flavor_id, name=flavor_name,
-                            ram=ram, tenant_id=self.tenant_id)
-            self.flavors_store.append(flavor)
+            if not self.flavor_by_id(each_id):
+                flavor_id = each_id
+                flavor_name = each_id.replace("-", " ") + "Mimic Instance"
+                ram = each_ram
+                flavor = Flavor(flavor_id=flavor_id, name=flavor_name,
+                                ram=ram, tenant_id=self.tenant_id)
+                self.flavors_store.append(flavor)
 
     def list_flavors(self, include_details, absolutize_url):
         """
         Return a list of flavors with details.
         Creates a random list of flavors if flavors were not created.
-        :param str tenant_id: The tenant_id to return the flavors for.
-        :return: a `list` of flavors
         """
-        # Only creates a random list of flavors as there is no support to
-        # add flavors yet.
+        # Creates a random list of flavors and adds them to the
+        # flavor_store.
         self._create_random_list_of_flavors()
         result = {
             "flavors": [
@@ -882,6 +890,24 @@ class RegionalServerCollection(object):
             ]
         }
         return dumps(result)
+
+    def get_flavor(self, http_get_request, flavor_id, absolutize_url):
+        """
+        Return a flavor object if one exists from the list `/flavors` api,
+        else creates and adds the flavor to the :obj: `flavors_store`.
+        If the `flavor_id` is listed in `mimic.canned_responses.mimic_presets`,
+        then will return 404.
+        """
+        if flavor_id in get_presets['servers']['invalid_flavor_ref']:
+            return dumps(not_found("The resource could not be found.",
+                                   http_get_request))
+        flavor = self.flavor_by_id(flavor_id)
+        if flavor is None:
+            flavor = Flavor(flavor_id=flavor_id,
+                            name=flavor_id + "Mimic Test Instance",
+                            ram=01, tenant_id=self.tenant_id)
+            self.flavors_store.append(flavor)
+        return dumps({"flavor": flavor.detailed_json(absolutize_url)})
 
 
 @attributes(["tenant_id", "clock",
