@@ -839,8 +839,9 @@ class RegionalServerCollection(object):
         :param str tenant_id: The tenant_id to return the flavors for.
         :return: a `list` of flavors
         """
-        if not self.flavors_store:
-            self._create_random_list_of_flavors()
+        # Only creates a random list of flavors as there is no support to
+        # add flavors yet.
+        self._create_random_list_of_flavors()
         result = {
             "flavors": [
                 flavor.brief_json(absolutize_url) if not include_details
