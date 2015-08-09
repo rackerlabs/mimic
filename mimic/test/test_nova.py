@@ -425,8 +425,6 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(
             get_server_image_response_body['image']['status'], 'ACTIVE')
 
-
-
     def test_get_server_limits(self):
         """
         Test to verify :func:`get_limit` on ``GET /v2.0/<tenant_id>/limits``
@@ -1446,7 +1444,6 @@ class NovaAPINegativeTests(SynchronousTestCase):
                                    '/images/test-image-idZ')
         get_server_image_response = self.successResultOf(get_server_image)
         self.assertEqual(get_server_image_response.code, 404)
-
 
     def test_create_server_failure_using_behaviors(self):
         """
