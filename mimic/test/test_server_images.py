@@ -63,6 +63,8 @@ class NovaAPIImagesTests(SynchronousTestCase):
             '/images/test-image-id')
         self.assertEqual(
             get_server_image_response_body['image']['id'], 'test-image-id')
+        self.assertEqual(
+            get_server_image_response_body['image']['status'], 'ACTIVE')
 
     def test_get_image_list(self):
         """
