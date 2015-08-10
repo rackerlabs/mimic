@@ -304,8 +304,13 @@ class NovaRegion(object):
         # response_data = get_image(image_id)
         # request.setResponseCode(response_data[1])
         # return json.dumps(response_data[0])
-        request.setResponseCode(200)
-        return json.dumps(get_image(image_id))
+        image = get_image(image_id)
+        if not image:
+            request.setResponseCode(404)
+            return b''
+        else:
+            request.setResponseCode(200)
+            return json.dumps(get_image(image_id))
 
     @app.route('/v2/<string:tenant_id>/images/detail', methods=['GET'])
     def get_image_details(self, request, tenant_id):
@@ -323,8 +328,13 @@ class NovaRegion(object):
         # response_data = get_flavor(flavor_id)
         # request.setResponseCode(response_data[1])
         # return json.dumps(response_data[0])
-        request.setResponseCode(200)
-        return json.dumps(get_flavor(flavor_id))
+        flavor = get_flavor(flavor_id)
+        if not flavor:
+            request.setResponseCode(404)
+            return b''
+        else:
+            request.setResponseCode(200)
+            return json.dumps(get_flavor(flavor_id))
 
     @app.route('/v2/<string:tenant_id>/limits', methods=['GET'])
     def get_limit(self, request, tenant_id):
