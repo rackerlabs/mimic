@@ -688,6 +688,57 @@ class NovaAPITests(SynchronousTestCase):
             treq.json_content(reverted_server_response))
         self.assertEqual(reverted_server_response_body['server']['flavor']['id'], '2')
 
+    def test_rescue(self):
+        metadata = {"server_error": "1"}
+        server_id = quick_create_server(self.helper, metadata=metadata)
+
+        rescue_request = json.dumps({"rescue": "none"})
+
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + server_id + '/action', rescue_request))
+        self.assertEqual(response.code, 409)
+        self.assertEqual(body, {
+            "conflictingRequest": {
+                "message": "Cannot 'rescue' instance " + server_id +
+                           " while it is in task state other than active",
+                "code": 409
+            }
+        })
+
+        rescue = request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', rescue_request)
+        rescue_response = self.successResultOf(rescue)
+        rescue_response_body = self.successResultOf(treq.json_content(rescue_response))
+        self.assertEqual(rescue_response.code, 200)
+        self.assertTrue('"adminPass":' in json.dumps(rescue_response_body))
+
+    def test_unrescue(self):
+        rescue_request = json.dumps({"rescue": "none"})
+        unrescue_request = json.dumps({"unrescue": "null"})
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', unrescue_request))
+        self.assertEqual(response.code, 409)
+        self.assertEqual(body, {
+            "conflictingRequest": {
+                "message": "Cannot 'unrescue' instance " + self.server_id +
+                           " while it is in vm_state active",
+                "code": 409
+            }
+        })
+
+        # Put a server in rescue status
+        request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', rescue_request)
+
+        unrescue = request(self, self.root, "POST",
+                           self.uri + '/servers/' + self.server_id + '/action', unrescue_request)
+        unrescue_response = self.successResultOf(unrescue)
+        self.assertEqual(unrescue_response.code, 200)
+
 
 class NovaAPIChangesSinceTests(SynchronousTestCase):
     """

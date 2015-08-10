@@ -844,6 +844,25 @@ class RegionalServerCollection(object):
             else:
                 return dumps(conflicting("Cannot '" + action_json.keys()[0] + "' instance " + server_id +
                                          " while it is in vm_state active", http_action_request))
+        elif 'rescue' in action_json:
+            if server.status != 'ACTIVE':
+                return dumps(conflicting("Cannot 'rescue' instance " + server_id +
+                                         " while it is in task state other than active",
+                                         http_action_request))
+            else:
+                server.status = 'RESCUE'
+                http_action_request.setResponseCode(200)
+                password = random_string(12)
+                return dumps({"adminPass": password})
+
+        elif 'unrescue' in action_json:
+            if server.status == 'ACTIVE':
+                return dumps(conflicting("Cannot '" + action_json.keys()[0] + "' instance " + server_id +
+                                         " while it is in vm_state active", http_action_request))
+            if server.status == 'RESCUE':
+                server.status = 'ACTIVE'
+                http_action_request.setResponseCode(200)
+                return b''
         else:
             return dumps(bad_request("There is no such action currently supported", http_action_request))
 
