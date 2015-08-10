@@ -856,13 +856,14 @@ class RegionalServerCollection(object):
                 return dumps({"adminPass": password})
 
         elif 'unrescue' in action_json:
-            if server.status == 'ACTIVE':
-                return dumps(conflicting("Cannot '" + action_json.keys()[0] + "' instance " + server_id +
-                                         " while it is in vm_state active", http_action_request))
             if server.status == 'RESCUE':
                 server.status = 'ACTIVE'
                 http_action_request.setResponseCode(200)
                 return b''
+            else:
+                return dumps(conflicting("Cannot 'unrescue' instance " + server_id +
+                                         " while it is in task state other than rescue",
+                                         http_action_request))
         else:
             return dumps(bad_request("There is no such action currently supported", http_action_request))
 

@@ -724,11 +724,10 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(body, {
             "conflictingRequest": {
                 "message": "Cannot 'unrescue' instance " + self.server_id +
-                           " while it is in vm_state active",
+                           " while it is in task state other than rescue",
                 "code": 409
             }
         })
-
         # Put a server in rescue status
         request(
             self, self.root, "POST",
