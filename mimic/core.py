@@ -12,7 +12,7 @@ from mimic import plugins
 
 from mimic.imimic import IAPIMock
 from mimic.session import SessionStore
-from mimic.util.helper import random_hex_generator
+# from mimic.util.helper import random_hex_generator
 from mimic.model.mailgun_objects import MessageStore
 
 

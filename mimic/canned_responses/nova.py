@@ -12,8 +12,9 @@ can be generated, and are therefore not really fully implemented.
 
 import json
 import os
-from mimic.canned_responses.mimic_presets import get_presets
-from mimic.util.helper import not_found_response
+# from mimic.canned_responses.mimic_presets import get_presets
+# from mimic.util.helper import not_found_response
+
 
 def _location():
     return os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
