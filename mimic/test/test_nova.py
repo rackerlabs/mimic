@@ -787,7 +787,8 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(response.code, 409)
         self.assertEqual(body, {
             "conflictingRequest": {
-                "message": "Cannot 'rescue' instance " + server_id + " while it is in task state other than active",
+                "message": "Cannot 'rescue' instance " + server_id +
+                           " while it is in task state other than active",
                 "code": 409
             }
         })
@@ -809,7 +810,8 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(response.code, 409)
         self.assertEqual(body, {
             "conflictingRequest": {
-                "message": "Cannot 'unrescue' instance " + self.server_id + ' while it is in vm_state active',
+                "message": "Cannot 'unrescue' instance " + self.server_id +
+                           " while it is in vm_state active",
                 "code": 409
             }
         })

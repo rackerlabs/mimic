@@ -872,7 +872,8 @@ class RegionalServerCollection(object):
         elif 'rescue' in action_json:
             if server.status != 'ACTIVE':
                 return dumps(conflicting("Cannot 'rescue' instance " + server_id +
-                                         " while it is in task state other than active", http_action_request))
+                                         " while it is in task state other than active",
+                                         http_action_request))
             else:
                 server.status = 'RESCUE'
                 http_action_request.setResponseCode(200)
