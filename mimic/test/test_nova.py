@@ -416,28 +416,28 @@ class NovaAPITests(SynchronousTestCase):
         Test to verify :func:`get_image` on ``GET /v2.0/<tenant_id>/images/<image_id>``
         """
         get_server_image = request(
-            self, self.root, "GET", self.uri + '/images/test-image-id')
+            self, self.root, "GET", self.uri + '/images/45a01744-2bcf-4a23-ae88-63317f768a2f')
         get_server_image_response = self.successResultOf(get_server_image)
         get_server_image_response_body = self.successResultOf(
             treq.json_content(get_server_image_response))
         self.assertEqual(get_server_image_response.code, 200)
         self.assertEqual(
-            get_server_image_response_body['image']['id'], 'test-image-id')
+            get_server_image_response_body['id'], '45a01744-2bcf-4a23-ae88-63317f768a2f')
         self.assertEqual(
-            get_server_image_response_body['image']['status'], 'ACTIVE')
+            get_server_image_response_body['status'], 'ACTIVE')
 
     def test_get_server_flavor(self):
         """
         Test to verify :func:`get_image` on ``GET /v2.0/<tenant_id>/flavors/<flavor_id>``
         """
         get_server_flavor = request(
-            self, self.root, "GET", self.uri + '/flavors/test-flavor-id')
+            self, self.root, "GET", self.uri + '/flavors/2')
         get_server_flavor_response = self.successResultOf(get_server_flavor)
         get_server_flavor_response_body = self.successResultOf(
             treq.json_content(get_server_flavor_response))
         self.assertEqual(get_server_flavor_response.code, 200)
         self.assertEqual(
-            get_server_flavor_response_body['flavor']['id'], 'test-flavor-id')
+            get_server_flavor_response_body['flavor']['id'], '2')
 
     def test_get_server_limits(self):
         """
