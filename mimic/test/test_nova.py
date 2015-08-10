@@ -825,7 +825,6 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(unrescue_response.code, 200)
 
 
-
 class NovaAPIChangesSinceTests(SynchronousTestCase):
     """
     Tests for listing servers with changes-since filter
