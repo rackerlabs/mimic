@@ -818,9 +818,8 @@ class NovaAPITests(SynchronousTestCase):
             self, self.root, "POST",
             self.uri + '/servers/' + self.server_id + '/action', rescue_request)
 
-        unrescue = request(
-                self, self.root, "POST",
-                self.uri + '/servers/' + self.server_id + '/action', unrescue_request)
+        unrescue = request(self, self.root, "POST",
+                           self.uri + '/servers/' + self.server_id + '/action', unrescue_request)
         unrescue_response = self.successResultOf(unrescue)
         self.assertEqual(unrescue_response.code, 200)
 
