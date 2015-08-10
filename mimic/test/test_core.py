@@ -4,10 +4,10 @@ from twisted.internet.task import Clock
 from twisted.trial.unittest import SynchronousTestCase
 
 from mimic.core import MimicCore
-from mimic.plugins import (nova_plugin, loadbalancer_plugin, swift_plugin,
-                           queue_plugin, maas_plugin, rackconnect_v3_plugin,
-                           glance_plugin, cloudfeeds_plugin, dns_plugin,
-                           volumes_plugin, support_plugin)
+# from mimic.plugins import (nova_plugin, loadbalancer_plugin, swift_plugin,
+#                           queue_plugin, maas_plugin, rackconnect_v3_plugin,
+#                          glance_plugin, cloudfeeds_plugin, dns_plugin,
+#                           volumes_plugin, support_plugin)
 
 
 class CoreBuildingTests(SynchronousTestCase):
@@ -31,7 +31,6 @@ class CoreBuildingTests(SynchronousTestCase):
         """
         # REMOVING THIS TEST UNTIL I FIGURE OUT WHY IT IS FAILING FROM IMPORT ERROR
         # exceptions.ImportError: cannot import name CloudServersApi
-
 
         # core = MimicCore.fromPlugins(Clock())
         # plugin_apis = set((

@@ -20,7 +20,7 @@ from mimic.util.helper import (
 from mimic.model.behaviors import (
     BehaviorRegistryCollection, EventDescription, Criterion, regexp_predicate
 )
-from twisted.web.http import ACCEPTED, BAD_REQUEST, FORBIDDEN, NOT_FOUND, CONFLICT
+from twisted.web.http import ACCEPTED, BAD_REQUEST, FORBIDDEN, NOT_FOUND
 
 
 @attributes(['nova_message'])
@@ -822,7 +822,8 @@ class RegionalServerCollection(object):
         if 'resize' in action_json:
             flavor = action_json['resize'].get('flavorRef')
             if not flavor:
-                return dumps(bad_request("Resize requests require 'flavorRef' attribute", http_action_request))
+                return dumps(bad_request("Resize requests require 'flavorRef' attribute",
+                                         http_action_request))
 
             server.status = 'VERIFY_RESIZE'
             server.oldFlavor = server.flavor_ref
