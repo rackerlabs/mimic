@@ -63,7 +63,7 @@ def get_images():
 
 def get_os_volume_attachments():
     """
-    Return get_os_volume_attachments()
+    Return volume empty attachments
     """
     return {"volumeAttachments": []}
 
