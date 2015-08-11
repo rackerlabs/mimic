@@ -785,7 +785,6 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(rescue_response.code, 200)
         self.assertTrue('"adminPass":' in json.dumps(rescue_response_body))
 
-
         metadata = {"server_error": "1"}
         server_id = quick_create_server(self.helper, metadata=metadata)
         response, body = self.successResultOf(json_request(
@@ -799,7 +798,6 @@ class NovaAPITests(SynchronousTestCase):
                 "code": 409
             }
         })
-
 
     def test_unrescue(self):
         rescue_request = json.dumps({"rescue": "none"})
