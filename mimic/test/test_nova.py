@@ -826,6 +826,41 @@ class NovaAPITests(SynchronousTestCase):
         unrescue_response = self.successResultOf(unrescue)
         self.assertEqual(unrescue_response.code, 200)
 
+    def test_change_password(self):
+        password_request = json.dumps({"changePassword": {"adminPass": "password"}})
+        bad_password_request = json.dumps({"changePassword": {"Pass": "password"}})
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', bad_password_request))
+        self.assertEqual(response.code, 400)
+        self.assertEqual(body, {
+            "badRequest": {
+                "message": "No adminPass was specified",
+                "code": 400
+            }
+        })
+        password_reset = request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', password_request)
+        password_reset_response = self.successResultOf(password_reset)
+        self.assertEqual(password_reset_response.code, 202)
+
+        # Create server in error state and test response when changing password
+        # in state other than ACTIVE
+        metadata = {"server_error": "1"}
+        server_id = quick_create_server(self.helper, metadata=metadata)
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + server_id + '/action', password_request))
+        self.assertEqual(response.code, 409)
+        self.assertEqual(body, {
+            "conflictingRequest": {
+                "message": "Cannot 'changePassword' instance " + server_id +
+                           " while it is in task state other than active",
+                "code": 409
+            }
+        })
+
 
 class NovaAPIChangesSinceTests(SynchronousTestCase):
     """
