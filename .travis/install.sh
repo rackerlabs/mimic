@@ -42,7 +42,7 @@ else
     source ~/.venv/bin/activate
     pip install wheel
     pip wheel cryptography lxml
-    pip install codecov
+    pip install tox codecov
     tox --recreate --notest
 
     # If "installdeps" fails, "tox" exits with an error, and the "set -e" above
