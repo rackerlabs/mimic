@@ -33,7 +33,7 @@ from mimic.rest.auth_api import (
     base_uri_from_request
 )
 from mimic.rest.noit_api import NoitApi
-from mimic.rest import fastly_api, mailgun_api
+from mimic.rest import fastly_api, mailgun_api, ironic_api
 from mimic.util.helper import seconds_to_timestamp
 
 
@@ -101,6 +101,13 @@ class MimicRoot(object):
         Get the Fastly API ...
         """
         return fastly_api.FastlyApi(self.core).app.resource()
+
+    @app.route("/ironic/v1", branch=True)
+    def ironic_api(self, request):
+        """
+        Mock Ironic API.
+        """
+        return ironic_api.IronicApi(self.core).app.resource()
 
     @app.route('/mimic/v1.0/presets', methods=['GET'])
     def get_mimic_presets(self, request):
