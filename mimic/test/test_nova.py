@@ -776,11 +776,18 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(rebooted_server_response_body['server']['status'], 'ACTIVE')
 
     def test_rescue(self):
+        rescue_request = json.dumps({"rescue": "none"})
+        rescue = request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', rescue_request)
+        rescue_response = self.successResultOf(rescue)
+        rescue_response_body = self.successResultOf(treq.json_content(rescue_response))
+        self.assertEqual(rescue_response.code, 200)
+        self.assertTrue('"adminPass":' in json.dumps(rescue_response_body))
+
+
         metadata = {"server_error": "1"}
         server_id = quick_create_server(self.helper, metadata=metadata)
-
-        rescue_request = json.dumps({"rescue": "none"})
-
         response, body = self.successResultOf(json_request(
             self, self.root, "POST",
             self.uri + '/servers/' + server_id + '/action', rescue_request))
@@ -793,13 +800,6 @@ class NovaAPITests(SynchronousTestCase):
             }
         })
 
-        rescue = request(
-            self, self.root, "POST",
-            self.uri + '/servers/' + self.server_id + '/action', rescue_request)
-        rescue_response = self.successResultOf(rescue)
-        rescue_response_body = self.successResultOf(treq.json_content(rescue_response))
-        self.assertEqual(rescue_response.code, 200)
-        self.assertTrue('"adminPass":' in json.dumps(rescue_response_body))
 
     def test_unrescue(self):
         rescue_request = json.dumps({"rescue": "none"})
@@ -811,7 +811,7 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(body, {
             "conflictingRequest": {
                 "message": "Cannot 'unrescue' instance " + self.server_id +
-                           " while it is in vm_state active",
+                           " while it is in task state other than active",
                 "code": 409
             }
         })
