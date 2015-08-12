@@ -169,6 +169,7 @@ class NovaAPITests(SynchronousTestCase):
             self, [nova_api, NovaControlApi(nova_api=nova_api)]
         )
         self.root = self.helper.root
+        self.clock = self.helper.clock
         self.uri = self.helper.uri
         self.server_name = 'test_server'
 
@@ -687,6 +688,90 @@ class NovaAPITests(SynchronousTestCase):
         reverted_server_response_body = self.successResultOf(
             treq.json_content(reverted_server_response))
         self.assertEqual(reverted_server_response_body['server']['flavor']['id'], '2')
+
+    def test_reboot_server(self):
+        """
+        A hard reboot of a server sets the server status to HARD_REBOOT and returns a 202
+        A soft reboot of a server sets the server status to REBOOT and returns a 202
+        After some amount of time the server will go back to ACTIVE state
+        The clock is being used to advance time and verify that status changes from the
+            a reboot state to active.  The current time interval being used in hardcoded
+            in the route for now. In the future we need to refactor to allow different
+            durations to be set including a zero duration which would allow the server to
+            skip the intermediary state of HARD_REBOOT or REBOOT and go straight to ACTIVE
+        If the 'type' attribute is left out of the request, a response body is returned
+            with code of 400
+        http://docs.rackspace.com/servers/api/v2/cs-devguide/content/Reboot_Server-d1e3371.html
+        """
+        no_reboot_type_request = json.dumps({"reboot": {"missing_type": "SOFT"}})
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', no_reboot_type_request))
+        self.assertEqual(response.code, 400)
+        self.assertEqual(body, {
+            "badRequest": {
+                "message": "Missing argument 'type' for reboot",
+                "code": 400
+            }
+        })
+
+        wrong_reboot_type_request = json.dumps({"reboot": {"type": "FIRM"}})
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', wrong_reboot_type_request))
+        self.assertEqual(response.code, 400)
+        self.assertEqual(body, {
+            "badRequest": {
+                "message": "Argument 'type' for reboot is not HARD or SOFT",
+                "code": 400
+            }
+        })
+
+        # Soft reboot tests
+        soft_reboot_request = json.dumps({"reboot": {"type": "SOFT"}})
+        soft_reboot = request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', soft_reboot_request)
+
+        soft_reboot_response = self.successResultOf(soft_reboot)
+        self.assertEqual(soft_reboot_response.code, 202)
+
+        response, body = self.successResultOf(json_request(
+            self, self.root, "GET", self.uri + '/servers/' + self.server_id))
+        self.assertEqual(body['server']['status'], 'REBOOT')
+
+        # Advance the clock 3 seconds and check status
+        self.clock.advance(3)
+        rebooted_server = request(
+            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+        rebooted_server_response = self.successResultOf(rebooted_server)
+        rebooted_server_response_body = self.successResultOf(
+            treq.json_content(rebooted_server_response))
+        self.assertEqual(rebooted_server_response_body['server']['status'], 'ACTIVE')
+
+        # Hard Reboot Tests
+        hard_reboot_request = json.dumps({"reboot": {"type": "HARD"}})
+        hard_reboot = request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', hard_reboot_request)
+        hard_reboot_response = self.successResultOf(hard_reboot)
+        self.assertEqual(hard_reboot_response.code, 202)
+
+        hard_reboot_server = request(
+            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+        hard_reboot_server_response = self.successResultOf(hard_reboot_server)
+        hard_reboot_server_response_body = self.successResultOf(
+            treq.json_content(hard_reboot_server_response))
+        self.assertEqual(hard_reboot_server_response_body['server']['status'], 'HARD_REBOOT')
+
+        # Advance clock 6 seconds and check server status
+        self.clock.advance(6)
+        rebooted_server = request(
+            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+        rebooted_server_response = self.successResultOf(rebooted_server)
+        rebooted_server_response_body = self.successResultOf(
+            treq.json_content(rebooted_server_response))
+        self.assertEqual(rebooted_server_response_body['server']['status'], 'ACTIVE')
 
 
 class NovaAPIChangesSinceTests(SynchronousTestCase):
