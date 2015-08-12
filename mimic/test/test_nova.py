@@ -690,6 +690,12 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(reverted_server_response_body['server']['flavor']['id'], '2')
 
     def test_rescue(self):
+        """
+        Attempting to rescue a server that is not in ACTIVE state
+            returns conflictingRequest with response code 409.
+        If the server is in ACTIVE state, then a new password is returned
+            for the server with a response code of 200.
+        """
         metadata = {"server_error": "1"}
         server_id = quick_create_server(self.helper, metadata=metadata)
 
@@ -716,6 +722,11 @@ class NovaAPITests(SynchronousTestCase):
         self.assertTrue('"adminPass":' in json.dumps(rescue_response_body))
 
     def test_unrescue(self):
+        """
+        Attempting to unrescue a server that is not in RESCUE state a response body
+            of conflicting request and response code of 409
+        Unsrescuing a server that is in ACTIVE state, returns a 200.
+        """
         rescue_request = json.dumps({"rescue": "none"})
         unrescue_request = json.dumps({"unrescue": "null"})
         response, body = self.successResultOf(json_request(
