@@ -732,15 +732,13 @@ class NovaAPITests(SynchronousTestCase):
         soft_reboot = request(
             self, self.root, "POST",
             self.uri + '/servers/' + self.server_id + '/action', soft_reboot_request)
+
         soft_reboot_response = self.successResultOf(soft_reboot)
         self.assertEqual(soft_reboot_response.code, 202)
 
-        soft_reboot_server = request(
-            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
-        soft_reboot_server_response = self.successResultOf(soft_reboot_server)
-        soft_reboot_server_response_body = self.successResultOf(
-            treq.json_content(soft_reboot_server_response))
-        self.assertEqual(soft_reboot_server_response_body['server']['status'], 'REBOOT')
+        response, body = self.successResultOf(json_request(
+            self, self.root, "GET", self.uri + '/servers/' + self.server_id))
+        self.assertEqual(body['server']['status'], 'REBOOT')
 
         # Advance the clock 3 seconds and check status
         self.clock.advance(3)
