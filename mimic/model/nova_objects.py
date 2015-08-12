@@ -864,6 +864,31 @@ class RegionalServerCollection(object):
                 return dumps(conflicting("Cannot 'unrescue' instance " + server_id +
                                          " while it is in task state other than rescue",
                                          http_action_request))
+
+        elif 'reboot' in action_json:
+            reboot_type = action_json['reboot'].get('type')
+            if not reboot_type:
+                return dumps(bad_request("Missing argument 'type' for reboot",
+                                         http_action_request))
+            if reboot_type == 'HARD':
+                server.status = 'HARD_REBOOT'
+                http_action_request.setResponseCode(202)
+                server.collection.clock.callLater(
+                    6.0,
+                    server.update_status,
+                    u"ACTIVE")
+                return b''
+            elif reboot_type == 'SOFT':
+                server.status = 'REBOOT'
+                http_action_request.setResponseCode(202)
+                server.collection.clock.callLater(
+                    3.0,
+                    server.update_status,
+                    u"ACTIVE")
+                return b''
+            else:
+                return dumps(bad_request("Argument 'type' for reboot is not HARD or SOFT",
+                                         http_action_request))
         else:
             return dumps(bad_request("There is no such action currently supported", http_action_request))
 
