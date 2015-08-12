@@ -695,6 +695,7 @@ class NovaAPITests(SynchronousTestCase):
             returns conflictingRequest with response code 409.
         If the server is in ACTIVE state, then a new password is returned
             for the server with a response code of 200.
+        http://docs.rackspace.com/servers/api/v2/cs-devguide/content/rescue_mode.html
         """
         metadata = {"server_error": "1"}
         server_id = quick_create_server(self.helper, metadata=metadata)
@@ -726,6 +727,7 @@ class NovaAPITests(SynchronousTestCase):
         Attempting to unrescue a server that is not in RESCUE state a response body
             of conflicting request and response code of 409
         Unsrescuing a server that is in ACTIVE state, returns a 200.
+        http://docs.rackspace.com/servers/api/v2/cs-devguide/content/exit_rescue_mode.html
         """
         rescue_request = json.dumps({"rescue": "none"})
         unrescue_request = json.dumps({"unrescue": "null"})
