@@ -7,6 +7,21 @@ from twisted.internet.task import Clock
 from mimic.core import MimicCore
 from mimic.resource import MimicRoot
 from mimic.test.helpers import json_request, request
+from mimic.model.ironic_objects import IronicNodeStore, Node
+
+
+class IronicNodeStoreUnitTests(SynchronousTestCase):
+    """
+    Unit test for `node_by_id` in :obj:`IronicNodeStore`
+    """
+
+    def test_node_by_id(self):
+        """
+        Test for :func:`node_by_id`
+        """
+        node_list = [Node(node_id=str(uuid4())) for each in range(2)]
+        node_store = IronicNodeStore(ironic_node_store=node_list)
+        self.assertFalse(node_store.node_by_id('111'))
 
 
 class IronicAPITests(SynchronousTestCase):
