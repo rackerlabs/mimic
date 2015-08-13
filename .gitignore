@@ -8,5 +8,6 @@ twistd.pid
 docs/_build
 _tmp
 _trial_temp
+_htmlcov
 .tox
 *.egg-info
