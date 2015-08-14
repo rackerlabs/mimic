@@ -320,7 +320,7 @@ class NovaRegion(object):
         """
         request.setResponseCode(200)
         return json.dumps(get_images_detail())
-    #
+
     @app.route('/v2/<string:tenant_id>/images', methods=['GET'])
     def get_images(self, request, tenant_id):
         """

@@ -880,25 +880,23 @@ class NovaAPITests(SynchronousTestCase):
             }
         })
 
-    # def test_rebuild(self):
-    #     rebuild_request = json.dumps({"rebuild": {"imageRef": "d5f916f8-03a4-4392-9ec2-cc6e5ad41cf0"}})
-    #     # Create server in error state and test response when an attempt to
-    #     # rebuild the server when it is in state other than ACTIVE
-    #     metadata = {"server_error": "1"}
-    #     server_id = quick_create_server(self.helper, metadata=metadata)
-    #     response, body = self.successResultOf(json_request(
-    #         self, self.root, "POST",
-    #         self.uri + '/servers/' + server_id + '/action', rebuild_request))
-    #     self.assertEqual(response.code, 409)
-    #     self.assertEqual(body, {
-    #         "conflictingRequest": {
-    #             "message": "Cannot 'rebuild' instance " + server_id +
-    #                        " while it is in task state other than active",
-    #             "code": 409
-    #         }
-    #     })
-
-
+    def test_rebuild(self):
+        rebuild_request = json.dumps({"rebuild": {"imageRef": "d5f916f8-03a4-4392-9ec2-cc6e5ad41cf0"}})
+        # Create server in error state and test response when an attempt to
+        # rebuild the server when it is in state other than ACTIVE
+        metadata = {"server_error": "1"}
+        server_id = quick_create_server(self.helper, metadata=metadata)
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + server_id + '/action', rebuild_request))
+        self.assertEqual(response.code, 409)
+        self.assertEqual(body, {
+            "conflictingRequest": {
+                "message": "Cannot 'rebuild' instance " + server_id +
+                           " while it is in task state other than active",
+                "code": 409
+            }
+        })
 
 
 class NovaAPIChangesSinceTests(SynchronousTestCase):
