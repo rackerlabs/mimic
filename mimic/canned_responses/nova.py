@@ -54,11 +54,11 @@ def get_networks():
     return _get_json("json/nova/networks_json.py")
 
 
-def get_images():
+def get_images_detail():
     """
-    Return images from servers endpoint
+    Returns all images with details from compute
     """
-    return _get_json("json/nova/images_json.py")
+    return _get_json("json/nova/images_details_json.py")
 
 
 def get_os_volume_attachments():
@@ -73,10 +73,10 @@ def get_image(image_id):
     Canned response for get image.  The image id provided is substituted in the
     response, if not one of the invalid image ids specified in mimic_presets.
     """
-    images_data = _get_json("json/nova/images_json.py")['images']
+    images_data = _get_json("json/nova/images_details_json.py")['images']
     for image in images_data:
         if image['id'] == image_id:
-            return image
+            return {"image": image}
 
             # if (
             #                 image_id in get_presets['servers']['invalid_image_ref'] or
@@ -101,3 +101,11 @@ def get_flavor(flavor_id):
     for flavor in flavors_data:
         if flavor['id'] == flavor_id:
             return {"flavor": flavor}
+
+
+def get_images():
+    """
+    Returns all images without details from compute
+    """
+    images = _get_json("json/nova/images_json.py")
+    return {"images": images}

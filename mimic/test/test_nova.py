@@ -422,9 +422,9 @@ class NovaAPITests(SynchronousTestCase):
             treq.json_content(get_server_image_response))
         self.assertEqual(get_server_image_response.code, 200)
         self.assertEqual(
-            get_server_image_response_body['id'], '45a01744-2bcf-4a23-ae88-63317f768a2f')
+            get_server_image_response_body['image']['id'], '45a01744-2bcf-4a23-ae88-63317f768a2f')
         self.assertEqual(
-            get_server_image_response_body['status'], 'ACTIVE')
+            get_server_image_response_body['image']['status'], 'ACTIVE')
 
     def test_get_server_flavor(self):
         """
@@ -875,6 +875,53 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(body, {
             "conflictingRequest": {
                 "message": "Cannot 'changePassword' instance " + server_id +
+                           " while it is in task state other than active",
+                "code": 409
+            }
+        })
+
+    def test_rebuild(self):
+        rebuild_request = json.dumps({"rebuild": {"imageRef": "d5f916f8-03a4-4392-9ec2-cc6e5ad41cf0"}})
+        no_imageRef_request = json.dumps({"rebuild": {"name": "new_server"}})
+
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', no_imageRef_request))
+        self.assertEqual(response.code, 400)
+        self.assertEqual(body, {
+            "badRequest": {
+                "message": "Could not parse imageRef from request.",
+                "code": 400
+            }
+        })
+
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', rebuild_request))
+        self.assertEqual(response.code, 202)
+        self.assertTrue('adminPass' in json.dumps(body))
+        self.assertEqual(body['server']['id'], self.server_id)
+        self.assertEqual(body['server']['status'], 'REBUILD')
+
+        self.clock.advance(5)
+        rebuilt_server = request(
+            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+        rebuilt_server_response = self.successResultOf(rebuilt_server)
+        rebuilt_server_response_body = self.successResultOf(
+            treq.json_content(rebuilt_server_response))
+        self.assertEqual(rebuilt_server_response_body['server']['status'], 'ACTIVE')
+
+        # Create server in error state and test response when an attempt to
+        # rebuild the server when it is in state other than ACTIVE
+        metadata = {"server_error": "1"}
+        server_id = quick_create_server(self.helper, metadata=metadata)
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + server_id + '/action', rebuild_request))
+        self.assertEqual(response.code, 409)
+        self.assertEqual(body, {
+            "conflictingRequest": {
+                "message": "Cannot 'rebuild' instance " + server_id +
                            " while it is in task state other than active",
                 "code": 409
             }
