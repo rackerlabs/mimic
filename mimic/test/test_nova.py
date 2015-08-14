@@ -882,6 +882,36 @@ class NovaAPITests(SynchronousTestCase):
 
     def test_rebuild(self):
         rebuild_request = json.dumps({"rebuild": {"imageRef": "d5f916f8-03a4-4392-9ec2-cc6e5ad41cf0"}})
+        no_imageRef_request = json.dumps({"rebuild": {"name": "new_server"}})
+
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', no_imageRef_request))
+        self.assertEqual(response.code, 400)
+        self.assertEqual(body, {
+            "badRequest": {
+                "message": "Could not parse imageRef from request.",
+                "code": 400
+            }
+        })
+
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', rebuild_request))
+        self.assertEqual(response.code, 202)
+        self.assertTrue('adminPass' in json.dumps(body))
+        self.assertEqual(body['server']['id'], self.server_id)
+        self.assertEqual(body['server']['status'], 'REBUILD')
+
+        self.clock.advance(5)
+        rebuilt_server = request(
+            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+        rebuilt_server_response = self.successResultOf(rebuilt_server)
+        rebuilt_server_response_body = self.successResultOf(
+            treq.json_content(rebuilt_server_response))
+        self.assertEqual(rebuilt_server_response_body['server']['status'], 'ACTIVE')
+
+
         # Create server in error state and test response when an attempt to
         # rebuild the server when it is in state other than ACTIVE
         metadata = {"server_error": "1"}
