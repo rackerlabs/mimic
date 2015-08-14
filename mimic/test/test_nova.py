@@ -911,7 +911,6 @@ class NovaAPITests(SynchronousTestCase):
             treq.json_content(rebuilt_server_response))
         self.assertEqual(rebuilt_server_response_body['server']['status'], 'ACTIVE')
 
-
         # Create server in error state and test response when an attempt to
         # rebuild the server when it is in state other than ACTIVE
         metadata = {"server_error": "1"}
