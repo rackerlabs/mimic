@@ -19,7 +19,7 @@ from twisted.plugin import IPlugin
 from twisted.web.http import CREATED, BAD_REQUEST
 
 from mimic.canned_responses.nova import get_limit, get_image, get_flavor, get_flavor_details,\
-    get_key_pairs, get_networks, get_os_volume_attachments, get_images
+    get_key_pairs, get_networks, get_os_volume_attachments, get_images_detail, get_images
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
@@ -319,6 +319,14 @@ class NovaRegion(object):
         Returns details
         """
         request.setResponseCode(200)
+        return json.dumps(get_images_detail())
+    #
+    @app.route('/v2/<string:tenant_id>/images', methods=['GET'])
+    def get_images(self, request, tenant_id):
+        """
+        Return images
+        """
+        request.setResponseCode(200)
         return json.dumps(get_images())
 
     @app.route('/v2/<string:tenant_id>/flavors/<string:flavor_id>', methods=['GET'])
@@ -402,7 +410,7 @@ class NovaRegion(object):
         """
         Perform the requested action on the server
         """
-        return self._region_collection_for_tenant(tenant_id).request_action(request, server_id)
+        return self._region_collection_for_tenant(tenant_id).request_action(request, server_id, self.url)
 
 
 class ServerMetadata(object):
