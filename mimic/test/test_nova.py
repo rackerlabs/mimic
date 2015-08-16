@@ -426,6 +426,19 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(
             get_server_image_response_body['image']['status'], 'ACTIVE')
 
+    def test_get_server_images(self):
+        get_server_images = request(
+            self, self.root, "GET", self.uri + '/images')
+        get_server_images_response = self.successResultOf(get_server_images)
+        self.assertEqual(get_server_images_response.code, 200)
+
+    def test_get_server_images_detail(self):
+        get_server_images_detail = request(
+            self, self.root, "GET", self.uri + '/images/detail')
+        get_server_images_detail_response = self.successResultOf(get_server_images_detail)
+        self.assertEqual(get_server_images_detail_response.code, 200)
+
+
     def test_get_server_flavor(self):
         """
         Test to verify :func:`get_image` on ``GET /v2.0/<tenant_id>/flavors/<flavor_id>``
