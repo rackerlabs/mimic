@@ -82,6 +82,9 @@ class GlanceAdminAPITests(SynchronousTestCase):
         """
         content = self.list_images()
         self.assertEqual(len(random_image_list), len(content['images']))
+        actual_image_names = [image['name'] for image in content['images']]
+        expected_image_names = [each['name'] for each in random_image_list]
+        self.assertEqual(sorted(actual_image_names), sorted(expected_image_names))
 
     def test_list_images_for_admin_consistently(self):
         """
