@@ -9,6 +9,7 @@ from mimic.util.helper import random_hex_generator
 
 
 @attributes(["node_id",
+             Attribute("flavor_id", default_value="onmetal-io1"),
              Attribute("power_state", default_value="power on"),
              Attribute("provision_state", default_value="available"),
              Attribute("instance_uuid", default_value=None),
@@ -37,22 +38,7 @@ class Node(object):
         "last_error": None,
         "console_enabled": False,
         "extra": {
-            "hardware/inventory/disks/0/size": "31016853504",
-            "hardware/interfaces/0/switch_port_id": "Mimic0/01",
-            "rackid": "Mimic_rackid",
-            "hardware/interfaces/1/switch_chassis_id": "mimic-chassis1",
-            "core_id": "565499",
-            "hardware/inventory/disks/2/size": "1861817990000",
-            "uutsn": "Mimic-uutsn",
-            "hardware/inventory/disks/1/size": "1861817990000",
-            "hardware/inventory/cpu/count": "40",
-            "hardware/inventory/memory/total": "135234740224",
-            "hardware/inventory/disks/2/rotational": "False",
-            "hardware/inventory/disks/0/rotational": "False",
-            "hardware/inventory/disks/1/rotational": "False",
-            "racklocation": "Mimic00",
-            "hardware/interfaces/1/switch_port_id": "Mimic1/10",
-            "hardware/interfaces/0/switch_chassis_id": "mimic-chassis1"
+
         },
         "driver": "agent_ipmitool",
         "maintenance_reason": None,
@@ -140,7 +126,26 @@ class Node(object):
             "maintenance": self.maintenance,
             "provision_state": self.provision_state,
             "power_state": self.power_state,
-            "ports": self.port_links_json()
+            "ports": self.port_links_json(),
+            "extra": {
+                "flavor": self.flavor_id,
+                "hardware/inventory/disks/0/size": "31016853504",
+                "hardware/interfaces/0/switch_port_id": "Mimic0/01",
+                "rackid": "Mimic_rackid",
+                "hardware/interfaces/1/switch_chassis_id": "mimic-chassis1",
+                "core_id": "00000",
+                "hardware/inventory/disks/2/size": "1861817990000",
+                "uutsn": "Mimic-uutsn",
+                "hardware/inventory/disks/1/size": "1861817990000",
+                "hardware/inventory/cpu/count": "40",
+                "hardware/inventory/memory/total": "135234740224",
+                "hardware/inventory/disks/2/rotational": "False",
+                "hardware/inventory/disks/0/rotational": "False",
+                "hardware/inventory/disks/1/rotational": "False",
+                "racklocation": "Mimic00",
+                "hardware/interfaces/1/switch_port_id": "Mimic1/10",
+                "hardware/interfaces/0/switch_chassis_id": "mimic-chassis1"
+            }
         })
         if self.instance_uuid:
             template["instance_info"] = self.static_instance_info
@@ -155,6 +160,7 @@ class IronicNodeStore(object):
     """
     A collection of ironic :obj:`Node` objects.
     """
+
     def node_not_found(self, node_id):
         """
         Error returned by the API calls when the node the action is
@@ -187,14 +193,24 @@ class IronicNodeStore(object):
     def list_nodes(self, include_details):
         """
         List Ironic nodes.
+        If no nodes were added to the :obj:`ironic_node_store`, then adds nodes
+        of different onmetal flavors.
+
         Supports both:
         http://docs.openstack.org/developer/ironic/webapi/v1.html#get--v1-nodes and
         http://docs.openstack.org/developer/ironic/webapi/v1.html#get--v1-nodes-detail
         """
         if not self.ironic_node_store:
-            for each in range(6):
-                self.add_to_ironic_node_store(node_id=str(uuid4()))
-            for each in range(4):
+            for each in range(3):
+                self.add_to_ironic_node_store(node_id=str(uuid4()),
+                                              flavor_id="onmetal-io1")
+            for each in range(3):
+                self.add_to_ironic_node_store(node_id=str(uuid4()),
+                                              flavor_id="onmetal-compute1")
+            for each in range(3):
+                self.add_to_ironic_node_store(node_id=str(uuid4()),
+                                              flavor_id="onmetal-memory1")
+            for each in range(2):
                 self.add_to_ironic_node_store(node_id=str(uuid4()),
                                               instance_uuid=str(uuid4()))
         result = {
