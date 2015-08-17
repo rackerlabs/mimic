@@ -91,7 +91,7 @@ class NovaAPIImagesTests(SynchronousTestCase):
                         'OS-DCF:diskConfig', 'OS-EXT-IMG-SIZE:size', 'metadata',
                         'flavor_classes', 'disk_format', 'ssh_user', 'min_disk',
                         'auto_disk_config', 'virtual_size', 'created', 'updated',
-                        'schema']))
+                        'schema', 'visibility']))
 
     def test_get_image_list_with_details_is_consistent(self):
         """

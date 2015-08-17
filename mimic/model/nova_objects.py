@@ -8,7 +8,6 @@ from characteristic import attributes, Attribute
 from random import randrange
 from json import loads, dumps
 from urllib import urlencode
-from uuid import uuid4
 
 from six import string_types
 
@@ -18,7 +17,7 @@ from mimic.util.helper import (
     timestamp_to_seconds
 )
 from mimic.canned_responses.mimic_presets import get_presets
-from mimic.model.glance_objects import Image
+from mimic.model.glance_objects import Image, random_image_list
 from mimic.model.behaviors import (
     BehaviorRegistryCollection, EventDescription, Criterion, regexp_predicate
 )
@@ -931,20 +930,7 @@ class RegionalServerCollection(object):
         """
         Creates a list of images.
         """
-        images = [{"id": str(uuid4()), "name": "OnMetal - CentOS 6", "distro": "linux"},
-                  {"id": str(uuid4()), "name": "OnMetal - CentOS 7", "distro": "linux"},
-                  {"id": str(uuid4()), "name": "OnMetal - CoreOS (Alpha)", "distro": "linux"},
-                  {"id": str(uuid4()), "name": "OnMetal - CoreOS (Beta)", "distro": "linux"},
-                  {"id": str(uuid4()), "name": "OnMetal - Debian 7 (Wheezy)", "distro": "linux"},
-                  {"id": str(uuid4()), "name": "OnMetal - Debian 8 (Jessie)", "distro": "linux"},
-                  {"id": str(uuid4()), "name": "OnMetal - Fedora 21", "distro": "linux"},
-                  {"id": str(uuid4()), "name": "OnMetal - Fedora 22", "distro": "linux"},
-                  {"id": str(uuid4()), "name": "OnMetal - Ubuntu 12.04 LTS (Precise Pangolin)",
-                   "distro": "linux"},
-                  {"id": str(uuid4()), "name": "Ubuntu 14.04 LTS (Trusty Tahr)", "distro": "linux"},
-                  {"id": str(uuid4()), "name": "Ubuntu 15.04 (Vivid Vervet)", "distro": "linux"},
-                  {"id": str(uuid4()), "name": "Windows Server 2012 R2", "distro": "windows"}]
-        for each_image in images:
+        for each_image in random_image_list:
             if not self.image_by_name(each_image['name']):
                 image = Image(image_id=each_image['id'], name=each_image['name'],
                               distro=each_image['distro'], tenant_id=self.tenant_id)

@@ -2,9 +2,27 @@
 Model objects for the Glance mimic.
 """
 from characteristic import attributes, Attribute
+from uuid import uuid4
+
+random_image_list = [
+    {"id": str(uuid4()), "name": "OnMetal - CentOS 6", "distro": "linux"},
+    {"id": str(uuid4()), "name": "OnMetal - CentOS 7", "distro": "linux"},
+    {"id": str(uuid4()), "name": "OnMetal - CoreOS (Alpha)", "distro": "linux"},
+    {"id": str(uuid4()), "name": "OnMetal - CoreOS (Beta)", "distro": "linux"},
+    {"id": str(uuid4()), "name": "OnMetal - Debian 7 (Wheezy)", "distro": "linux"},
+    {"id": str(uuid4()), "name": "OnMetal - Debian 8 (Jessie)", "distro": "linux"},
+    {"id": str(uuid4()), "name": "OnMetal - Fedora 21", "distro": "linux"},
+    {"id": str(uuid4()), "name": "OnMetal - Fedora 22", "distro": "linux"},
+    {"id": str(uuid4()), "name": "OnMetal - Ubuntu 12.04 LTS (Precise Pangolin)",
+     "distro": "linux"},
+    {"id": str(uuid4()), "name": "Ubuntu 14.04 LTS (Trusty Tahr)", "distro": "linux"},
+    {"id": str(uuid4()), "name": "Ubuntu 15.04 (Vivid Vervet)", "distro": "linux"},
+    {"id": str(uuid4()), "name": "Windows Server 2012 R2", "distro": "windows"}
+]
 
 
-@attributes(["image_id", "name", "distro", "tenant_id",
+@attributes(["image_id", "name", "distro",
+             Attribute("tenant_id", default_value=None),
              Attribute("status", default_value='ACTIVE')])
 class Image(object):
     """
@@ -19,15 +37,12 @@ class Image(object):
         "auto_disk_config": "disabled",
         "min_disk": 00,
         "virtual_size": None,
-        "created": "1972-01-01_15-59-11",
-        "updated": "1972-01-01_15-59-11"
+        "visibility": "public"
     }
 
     static_metadata = {
         "com.rackspace__1__build_rackconnect": "1",
         "com.rackspace__1__options": "0",
-        "flavor_classes": "*",
-        "vm_mode": "xen",
         "com.rackspace__1__release_id": "000",
         "com.rackspace__1__build_core": "1",
         "image_type": "base",
@@ -85,7 +100,9 @@ class Image(object):
             "progress": 100,
             "OS-DCF:diskConfig": "AUTO",
             "OS-EXT-IMG-SIZE:size": 100000,
-            "metadata": self.static_metadata
+            "metadata": self.static_metadata,
+            "created": "1972-01-01_15-59-11",
+            "updated": "1972-01-01_15-59-11"
         })
         if self.distro != "windows":
             template["metadata"]["os_distro"] = self.distro
@@ -100,3 +117,74 @@ class Image(object):
             "id": self.image_id,
             "links": self.links_json(absolutize_url)
         }
+
+    static_image_defaults = {
+        "container_format": "mimic",
+        "owner": 00000,
+        "size": 10000,
+        "tags": [],
+        "visibility": "public",
+        "checksum": 0000,
+        "protected": False
+    }
+
+    def get_image_json(self):
+        """
+        JSON-serializable object representation of this image, as
+        returned by either a GET on this individual image or a member in the
+        list returned by the list-details request.
+        """
+        template = self.common_static_defaults.copy()
+        template.update(self.static_image_defaults)
+        template.update(self.static_metadata)
+        template.update({
+            "id": self.image_id,
+            "name": self.name,
+            "status": self.status,
+            "created_at": "1972-01-01_15-59-11",
+            "updated_at": "1972-01-01_15-59-11",
+            "file": "/v2/images/{0}/file".format(self.image_id),
+            "self": "/v2/images/" + self.image_id,
+            "org.openstack__1__os_distro": "mimic." + self.distro,
+            "os_type": self.distro,
+            "vm_mode": "onmetal"
+        })
+        if self.distro != "windows":
+            template.update({
+                "os_distro": self.distro
+            })
+        if "OnMetal" in self.name:
+            template.update({
+                "vm_mode": "metal",
+                "flavor_classes": "onmetal"
+            })
+        return template
+
+
+@attributes([Attribute("glance_admin_image_store", default_factory=list)])
+class GlanceAdminImageStore(object):
+    """
+    A collection of :obj:`Image`.
+    """
+
+    def add_to_glance_admin_image_store(self, **attributes):
+        """
+        Create a new Image object and add it to the
+        :obj: `glance_admin_image_store`
+        """
+        msg = Image(**attributes)
+        self.glance_admin_image_store.append(msg)
+        return
+
+    def list_images(self):
+        """
+        List all the images for the Glance Admin API.
+        """
+        if not self.glance_admin_image_store:
+            for each_image in random_image_list:
+                self.add_to_glance_admin_image_store(
+                    image_id=each_image['id'],
+                    name=each_image['name'],
+                    distro=each_image['distro'])
+        return {"images": [image.get_image_json()
+                           for image in self.glance_admin_image_store]}

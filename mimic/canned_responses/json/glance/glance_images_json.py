@@ -49,3 +49,174 @@ images = {
     "schema": "/v2/schemas/images",
     "first": "/v2/images?limit=1000"
 }
+
+
+image_schema = {
+    "additionalProperties": {
+        "type": "string"
+    },
+    "name": "image",
+    "links": [
+        {
+            "href": "{self}",
+            "rel": "self"
+        },
+        {
+            "href": "{file}",
+            "rel": "enclosure"
+        },
+        {
+            "href": "{schema}",
+            "rel": "describedby"
+        }
+    ],
+    "properties": {
+        "status": {
+            "enum": [
+                "queued",
+                "saving",
+                "active",
+                "killed",
+                "deleted",
+                "pending_delete"
+            ],
+            "type": "string",
+            "description": "Status of the image (READ-ONLY)"
+        },
+        "schema": {
+            "type": "string",
+            "description": "(READ-ONLY)"
+        },
+        "file": {
+            "type": "string",
+            "description": "(READ-ONLY)"
+        },
+        "direct_url": {
+            "type": "string",
+            "description": "URL to access the image file kept in external store (READ-ONLY)"
+        },
+        "name": {
+            "type": ["null",
+                     "string"],
+            "description": "Descriptive name for the image",
+            "maxLength": 255},
+        "tags": {
+            "items": {
+                "type": "string",
+                "maxLength": 255},
+            "type": "array",
+            "description": "List of strings related to the image"
+        },
+        "locations": {
+            "items": {
+                "required": ["url",
+                             "metadata"],
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "maxLength": 255},
+                    "metadata": {
+                        "type": "object"
+                    }}},
+            "type": "array",
+            "description": "A set of URLs to access the image file kept in external store"
+        },
+        "checksum": {
+            "type": [
+                "null",
+                "string"
+            ],
+            "description": "md5 hash of image contents. (READ-ONLY)",
+            "maxLength": 32
+        },
+        "created_at": {
+            "type": "string",
+            "description": "Date and time of image registration (READ-ONLY)"
+        },
+        "disk_format": {
+            "enum": [
+                None,
+                "ami",
+                "ari",
+                "aki",
+                "vhd",
+                "vmdk",
+                "raw",
+                "qcow2",
+                "vdi",
+                "iso"
+            ],
+            "type": [
+                "null",
+                "string"
+            ],
+            "description": "Format of the disk"
+        },
+        "updated_at": {
+            "type": "string",
+            "description": "Date and time of the last image modification (READ-ONLY)"
+        },
+        "visibility": {
+            "enum": [
+                "public",
+                "private"
+            ],
+            "type": "string",
+            "description": "Scope of image accessibility"
+        },
+        "self": {
+            "type": "string",
+            "description": "(READ-ONLY)"
+        },
+        "min_disk": {
+            "type": "integer",
+            "description": "Amount of disk space (in GB) required to boot image."
+        },
+        "protected": {
+            "type": "boolean",
+            "description": "If true, image will not be deletable."
+        },
+        "min_ram": {
+            "type": "integer",
+            "description": "Amount of ram (in MB) required to boot image."
+        },
+        "container_format": {
+            "enum": [
+                None,
+                "ami",
+                "ari",
+                "aki",
+                "bare",
+                "ovf",
+                "ova"
+            ],
+            "type": [
+                "null",
+                "string"
+            ],
+            "description": "Format of the container"
+        },
+        "owner": {
+            "type": ["null",
+                     "string"],
+            "description": "Owner of the image",
+            "maxLength": 255},
+        "virtual_size": {
+            "type": ["null",
+                     "integer"],
+            "description": "Virtual size of image in bytes (READ-ONLY)"
+        },
+        "id": {
+            "pattern": "^([0-9a-fA-F]){8}-([0-9a-fA-F]){4}-([0-9a-fA-F]){4}-([0-9a-fA-F])" +
+                       "{4}-([0-9a-fA-F]){12}$",
+            "type": "string",
+            "description": "An identifier for the image"
+        },
+        "size": {
+            "type": [
+                "null",
+                "integer"
+            ],
+            "description": "Size of image file in bytes (READ-ONLY)"
+        }}}
