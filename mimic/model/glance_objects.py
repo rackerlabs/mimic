@@ -23,7 +23,7 @@ random_image_list = [
 
 @attributes(["image_id", "name", "distro",
              Attribute("tenant_id", default_value=None),
-             Attribute("status", default_value='ACTIVE')])
+             Attribute("status", default_value='active')])
 class Image(object):
     """
     A Image object
@@ -31,7 +31,7 @@ class Image(object):
     common_static_defaults = {
         "min_ram": 256,
         "flavor_classes": "*",
-        "disk_format": "mimic",
+        "disk_format": None,
         "ssh_user": "mimic",
         "schema": "/v2/schemas/image",
         "auto_disk_config": "disabled",
@@ -119,12 +119,12 @@ class Image(object):
         }
 
     static_image_defaults = {
-        "container_format": "mimic",
-        "owner": 00000,
+        "container_format": None,
+        "owner": "00000",
         "size": 10000,
         "tags": [],
         "visibility": "public",
-        "checksum": 0000,
+        "checksum": "0000",
         "protected": False
     }
 
