@@ -14,7 +14,9 @@ from mimic.util.helper import random_hex_generator
              Attribute("provision_state", default_value="available"),
              Attribute("instance_uuid", default_value=None),
              Attribute("maintenance", default_value=False),
-             Attribute("cache_image_id", default_value=None)])
+             Attribute("cache_image_id", default_value=None),
+             Attribute("memory_mb", default_value=131072)
+             ])
 class Node(object):
     """
     A :obj:`Node` is a representation of all the state associated with a ironic
@@ -37,13 +39,10 @@ class Node(object):
         "updated_at": "2015-08-09T04:30:05+00:00",
         "last_error": None,
         "console_enabled": False,
-        "extra": {
-
-        },
         "driver": "agent_ipmitool",
         "maintenance_reason": None,
         "properties": {
-            "memory_mb": 131072,
+            "memory_mb": None,
             "cpu_arch": "amd64",
             "local_gb": 32,
             "cpus": 40
@@ -145,8 +144,15 @@ class Node(object):
                 "racklocation": "Mimic00",
                 "hardware/interfaces/1/switch_port_id": "Mimic1/10",
                 "hardware/interfaces/0/switch_chassis_id": "mimic-chassis1"
+            },
+            "properties": {
+                "memory_mb": self.memory_mb,
+                "cpu_arch": "amd64",
+                "local_gb": 32,
+                "cpus": 40
             }
         })
+        template["properties"]["memory_mb"] = self.memory_mb
         if self.instance_uuid:
             template["instance_info"] = self.static_instance_info
             template["provision_state"] = "active"
@@ -204,13 +210,16 @@ class IronicNodeStore(object):
         if not self.ironic_node_store:
             for each in range(3):
                 self.add_to_ironic_node_store(node_id=str(uuid4()),
-                                              flavor_id="onmetal-io1")
+                                              flavor_id="onmetal-io1",
+                                              memory_mb=131072)
             for each in range(3):
                 self.add_to_ironic_node_store(node_id=str(uuid4()),
-                                              flavor_id="onmetal-compute1")
+                                              flavor_id="onmetal-compute1",
+                                              memory_mb=32768)
             for each in range(3):
                 self.add_to_ironic_node_store(node_id=str(uuid4()),
-                                              flavor_id="onmetal-memory1")
+                                              flavor_id="onmetal-memory1",
+                                              memory_mb=524288)
             for each in range(2):
                 self.add_to_ironic_node_store(node_id=str(uuid4()),
                                               instance_uuid=str(uuid4()))

@@ -107,6 +107,19 @@ class IronicAPITests(SynchronousTestCase):
             sorted(content.keys()),
             sorted(self.node_details_attributes))
 
+    def test_list_node_details_for_onmetal_flavors(self):
+        """
+        Test ``/nodes/detail`` to return response code 200 and validate the
+        onmetal flavors have the corresponding memory associated on a node.
+        """
+        expected_flavor_memory = {"onmetal-io1": 131072, "onmetal-compute1": 32768,
+                                  "onmetal-memory1": 524288}
+        content = self.get_nodes('/detail')
+        for each in content['nodes']:
+            self.assertTrue(
+                (each['extra']['flavor'] in expected_flavor_memory.keys()) and
+                (each['properties']['memory_mb'] == expected_flavor_memory[each['extra']['flavor']]))
+
     def test_setting_provision_state(self):
         """
         Test ``/nodes/<node-id>/states/provision`` returns a 200 and
