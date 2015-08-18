@@ -149,6 +149,7 @@ class Node(object):
         })
         if self.instance_uuid:
             template["instance_info"] = self.static_instance_info
+            template["provision_state"] = "active"
         if self.cache_image_id:
             template['driver_info']['cache_image_id'] = self.cache_image_id
             template['driver_info']['cache_status'] = 'cached'
