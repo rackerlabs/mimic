@@ -889,6 +889,20 @@ class RegionalServerCollection(object):
             else:
                 return dumps(bad_request("Argument 'type' for reboot is not HARD or SOFT",
                                          http_action_request))
+
+        elif 'changePassword' in action_json:
+            password = action_json['changePassword'].get('adminPass')
+            if not password:
+                return dumps(bad_request("No adminPass was specified",
+                                         http_action_request))
+            if server.status == 'ACTIVE':
+                http_action_request.setResponseCode(202)
+                return b''
+            else:
+                return dumps(conflicting("Cannot 'changePassword' instance " + server_id +
+                                         " while it is in task state other than active",
+                                         http_action_request))
+
         else:
             return dumps(bad_request("There is no such action currently supported", http_action_request))
 
