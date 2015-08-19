@@ -216,3 +216,32 @@ class IronicAPITests(SynchronousTestCase):
         content = self.get_nodes('/' + str(node_id))
         self.assertEqual(content['driver_info']['cache_image_id'], image_id)
         self.assertEqual(content['driver_info']['cache_status'], 'cached')
+
+    def test_vendor_passthru_cache_image_list_nodes(self):
+        """
+        Test ``/nodes/<node-id>/vendor_passthru/cache_image`` returns a 202 and
+        sets the cache_image_id and cache_status on the node, and not the other nodes.
+        """
+        content1 = self.get_nodes('/detail')
+        node_id = content1['nodes'].pop()['uuid']
+
+        image_id = str(uuid4())
+        body = {"image_info": {"id": image_id}}
+        url = "/ironic/v1/nodes/{0}/vendor_passthru/cache_image".format(node_id)
+        response = self.successResultOf(request(
+            self, self.root, "POST", url, body=json.dumps(body)))
+        self.assertEqual(response.code, 202)
+
+        # GET node and verify the cache attributes on `driver_info`
+        content = self.get_nodes('/' + str(node_id))
+        self.assertEqual(content['driver_info']['cache_image_id'], image_id)
+        self.assertEqual(content['driver_info']['cache_status'], 'cached')
+
+        # verify the other nodes are not cached
+        content2 = self.get_nodes('/detail')
+        self.assertTrue(content1, content2)
+        non_cached_nodes = [each for each in content2['nodes']]
+        non_cached_nodes.pop()
+        for each in non_cached_nodes:
+            self.assertFalse(each['driver_info']['cache_image_id'])
+            self.assertFalse(each['driver_info']['cache_status'])

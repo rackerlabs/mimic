@@ -26,15 +26,6 @@ class Node(object):
 
     static_defaults = {
         "target_power_state": None,
-        "driver_info": {
-            "hardware_manager_version": None,
-            "ipmi_username": "USERID",
-            "ipmi_address": "127.0.0.0",
-            "decommission_target_state": None,
-            "ipmi_password": "******",
-            "agent_url": "http://127.0.0.1:9999",
-            "agent_last_heartbeat": 1427727371
-        },
         "target_provision_state": None,
         "updated_at": "2015-08-09T04:30:05+00:00",
         "last_error": None,
@@ -150,15 +141,23 @@ class Node(object):
                 "cpu_arch": "amd64",
                 "local_gb": 32,
                 "cpus": 40
+            },
+            "driver_info": {
+                "hardware_manager_version": None,
+                "ipmi_username": "USERID",
+                "ipmi_address": "127.0.0.0",
+                "decommission_target_state": None,
+                "ipmi_password": "******",
+                "agent_url": "http://127.0.0.1:9999",
+                "agent_last_heartbeat": 1427727371,
+                "cache_image_id": self.cache_image_id,
+                "cache_status": 'cached' if self.cache_image_id else None
             }
         })
         template["properties"]["memory_mb"] = self.memory_mb
         if self.instance_uuid:
             template["instance_info"] = self.static_instance_info
             template["provision_state"] = "active"
-        if self.cache_image_id:
-            template['driver_info']['cache_image_id'] = self.cache_image_id
-            template['driver_info']['cache_status'] = 'cached'
         return template
 
 
