@@ -16,7 +16,7 @@ from twisted.python.urlpath import URLPath
 from twisted.plugin import IPlugin
 from twisted.web.http import CREATED, BAD_REQUEST
 
-from mimic.canned_responses.nova import get_limit, get_flavor
+from mimic.canned_responses.nova import get_limit
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
@@ -324,13 +324,39 @@ class NovaRegion(object):
         )
 
     @app.route('/v2/<string:tenant_id>/flavors/<string:flavor_id>', methods=['GET'])
-    def get_flavor(self, request, tenant_id, flavor_id):
+    def get_flavor_details(self, request, tenant_id, flavor_id):
         """
         Returns a get flavor response, for any given flavorid
         """
-        response_data = get_flavor(flavor_id)
-        request.setResponseCode(response_data[1])
-        return json.dumps(response_data[0])
+        return (
+            self._region_collection_for_tenant(tenant_id)
+            .get_flavor(request, flavor_id, absolutize_url=self.url)
+        )
+
+    @app.route('/v2/<string:tenant_id>/flavors', methods=['GET'])
+    def get_flavor_list(self, request, tenant_id):
+        """
+        Returns a list of flavor with the response code 200.
+        docs: http://bit.ly/1eXTSDC
+        TO DO: The length of flavor list can be set using the control plane.
+               Also be able to set different flavor types in the future.
+        """
+        return (
+            self._region_collection_for_tenant(tenant_id)
+            .list_flavors(include_details=False, absolutize_url=self.url)
+        )
+
+    @app.route('/v2/<string:tenant_id>/flavors/detail', methods=['GET'])
+    def get_flavor_list_with_details(self, request, tenant_id):
+        """
+        Returns a list of flavor details with the response code 200.
+        TO DO: The length of flavor list can be set using the control plane.
+               Also be able to set different flavor types in the future.
+        """
+        return (
+            self._region_collection_for_tenant(tenant_id)
+            .list_flavors(include_details=True, absolutize_url=self.url)
+        )
 
     @app.route('/v2/<string:tenant_id>/limits', methods=['GET'])
     def get_limit(self, request, tenant_id):

@@ -1,31 +1,7 @@
 # -*- test-case-name: mimic.test.test_nova -*-
 """
-Canned responses for nova.
-
-This is a *bad* example of how you might implement generating a response to a
-request.  The better example is split between :obj:`mimic.rest.nova_api` for
-routing and HTTP protocol logic and :obj:`mimic.model.nova_objects` for
-application-domain objects describing servers.  At this point this module
-contains only those responses for which no live / dynamic / stateful responses
-can be generated, and are therefore not really fully implemented.
+Canned responses for nova's GET limits API
 """
-
-from mimic.canned_responses.mimic_presets import get_presets
-from mimic.util.helper import not_found_response
-
-
-def get_flavor(flavor_id):
-    """
-    Canned response for get flavor.
-    The flavor id provided is substituted in the response
-    """
-    if flavor_id in get_presets['servers']['invalid_flavor_ref']:
-        return not_found_response('flavors'), 404
-    return ({'flavor': {'name': '512MB Standard Instance',
-                        'id': flavor_id,
-                        'name': 'mimic-test-flavor'}},
-            200)
-
 
 def get_limit():
     """

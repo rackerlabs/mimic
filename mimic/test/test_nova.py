@@ -411,19 +411,6 @@ class NovaAPITests(SynchronousTestCase):
         delete_server_response = self.successResultOf(delete_server)
         self.assertEqual(delete_server_response.code, 404)
 
-    def test_get_server_flavor(self):
-        """
-        Test to verify :func:`get_image` on ``GET /v2.0/<tenant_id>/flavors/<flavor_id>``
-        """
-        get_server_flavor = request(
-            self, self.root, "GET", self.uri + '/flavors/test-flavor-id')
-        get_server_flavor_response = self.successResultOf(get_server_flavor)
-        get_server_flavor_response_body = self.successResultOf(
-            treq.json_content(get_server_flavor_response))
-        self.assertEqual(get_server_flavor_response.code, 200)
-        self.assertEqual(
-            get_server_flavor_response_body['flavor']['id'], 'test-flavor-id')
-
     def test_get_server_limits(self):
         """
         Test to verify :func:`get_limit` on ``GET /v2.0/<tenant_id>/limits``
@@ -1623,16 +1610,6 @@ class NovaAPINegativeTests(SynchronousTestCase):
             self, self.root, "GET", self.uri + '/servers/' + server_id)
         get_server_response = self.successResultOf(get_server)
         self.assertEquals(get_server_response.code, 404)
-
-    def test_get_server_flavor(self):
-        """
-        Test to verify :func:`get_flavor` when invalid flavor from the
-        :obj: `mimic_presets` is provided.
-        """
-        get_server_flavor = request(self, self.root, "GET", self.uri +
-                                    '/flavors/1')
-        get_server_flavor_response = self.successResultOf(get_server_flavor)
-        self.assertEqual(get_server_flavor_response.code, 404)
 
     def test_create_server_failure_using_behaviors(self):
         """
