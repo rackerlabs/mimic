@@ -905,7 +905,7 @@ class RegionalServerCollection(object):
         if flavor is None:
             flavor = Flavor(flavor_id=flavor_id,
                             name=flavor_id + "Mimic Test Instance",
-                            ram=01, tenant_id=self.tenant_id)
+                            ram=1, tenant_id=self.tenant_id)
             self.flavors_store.append(flavor)
         return dumps({"flavor": flavor.detailed_json(absolutize_url)})
 
