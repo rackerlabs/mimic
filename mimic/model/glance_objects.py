@@ -13,7 +13,7 @@ random_image_list = [
     {"id": str(uuid4()), "name": "OnMetal - Debian 8 (Jessie)", "distro": "linux"},
     {"id": str(uuid4()), "name": "OnMetal - Fedora 21", "distro": "linux"},
     {"id": str(uuid4()), "name": "OnMetal - Fedora 22", "distro": "linux"},
-    {"id": str(uuid4()), "name": "Ubuntu 14.04 LTS (Trusty Tahr)", "distro": "linux"},
+    {"id": str(uuid4()), "name": "OnMetal - Ubuntu 14.04 LTS (Trusty Tahr)", "distro": "linux"},
     {"id": str(uuid4()), "name": "OnMetal - CoreOS (Stable)", "distro": "linux"},
     {"id": str(uuid4()), "name": "OnMetal - Ubuntu 12.04 LTS (Precise Pangolin)",
      "distro": "linux"},
