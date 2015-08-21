@@ -167,7 +167,6 @@ class Node(object):
                 "cache_status": 'cached' if self.cache_image_id else None
             }
         })
-        template["properties"]["memory_mb"] = self.memory_mb
         if self.instance_uuid:
             template["instance_info"] = self.static_instance_info
             template["provision_state"] = "active"
