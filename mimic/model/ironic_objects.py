@@ -15,7 +15,8 @@ from mimic.util.helper import random_hex_generator
              Attribute("instance_uuid", default_value=None),
              Attribute("maintenance", default_value=False),
              Attribute("cache_image_id", default_value=None),
-             Attribute("memory_mb", default_value=131072)
+             Attribute("memory_mb", default_value=131072),
+             Attribute("name", default_value=None)
              ])
 class Node(object):
     """
@@ -99,7 +100,8 @@ class Node(object):
             "links": self.links_json(),
             "maintenance": self.maintenance,
             "provision_state": self.provision_state,
-            "power_state": self.power_state
+            "power_state": self.power_state,
+            "name": self.name
         }
 
     def detail_json(self):
@@ -111,6 +113,7 @@ class Node(object):
         template = self.static_defaults.copy()
         template.update({
             "instance_uuid": self.instance_uuid,
+            "name": self.name,
             "uuid": self.node_id,
             "links": self.links_json(),
             "maintenance": self.maintenance,

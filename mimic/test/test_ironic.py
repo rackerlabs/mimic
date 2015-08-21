@@ -42,7 +42,7 @@ class IronicAPITests(SynchronousTestCase):
             "last_error", "console_enabled", "extra", "driver", "links",
             "maintenance_reason", "updated_at", "provision_updated_at",
             "maintenance", "provision_state", "reservation", "created_at",
-            "power_state", "instance_info", "ports"
+            "power_state", "instance_info", "ports", "name"
         ]
 
     def get_nodes(self, postfix=None):
@@ -67,7 +67,7 @@ class IronicAPITests(SynchronousTestCase):
             self.assertEqual(
                 sorted(each_node.keys()),
                 sorted(['instance_uuid', 'uuid', 'links', 'maintenance',
-                        'provision_state', 'power_state']))
+                        'provision_state', 'power_state', 'name']))
 
     def test_list_nodes_with_details(self):
         """
