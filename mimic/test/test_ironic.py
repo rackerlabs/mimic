@@ -42,7 +42,8 @@ class IronicAPITests(SynchronousTestCase):
             "last_error", "console_enabled", "extra", "driver", "links",
             "maintenance_reason", "updated_at", "provision_updated_at",
             "maintenance", "provision_state", "reservation", "created_at",
-            "power_state", "instance_info", "ports", "name"
+            "power_state", "instance_info", "ports", "name", "driver_internal_info",
+            "inspection_finished_at", "inspection_started_at", "clean_step"
         ]
 
     def get_nodes(self, postfix=None):

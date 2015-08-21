@@ -33,16 +33,26 @@ class Node(object):
         "console_enabled": False,
         "driver": "agent_ipmitool",
         "maintenance_reason": None,
-        "properties": {
-            "memory_mb": None,
-            "cpu_arch": "amd64",
-            "local_gb": 32,
-            "cpus": 40
-        },
         "provision_updated_at": "2015-08-07T06:57:24+00:00",
         "reservation": None,
         "created_at": "2014-09-26T18:56:03+00:00",
-        "instance_info": None
+        "instance_info": None,
+        "inspection_finished_at": None,
+        "inspection_started_at": None,
+        "clean_step": {},
+        "driver_internal_info": {
+            "clean_steps": None,
+            "hardware_manager_version":
+            {
+                "generic_hardware_manager": "1",
+                "onmetal_hardware_manager": "1"
+            },
+                "is_whole_disk_image": True,
+                "agent_erase_devices_iterations": 1,
+                "agent_url": "http://127.0.0.1:8900",
+                "cleaning_reboot": True,
+                "agent_last_heartbeat": 1440117499
+        }
     }
 
     static_instance_info = {
