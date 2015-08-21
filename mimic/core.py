@@ -15,6 +15,7 @@ from mimic.session import SessionStore
 from mimic.util.helper import random_hex_generator
 from mimic.model.mailgun_objects import MessageStore
 from mimic.model.ironic_objects import IronicNodeStore
+from mimic.model.glance_objects import GlanceAdminImageStore
 
 
 class MimicCore(object):
@@ -39,6 +40,7 @@ class MimicCore(object):
         self.sessions = SessionStore(clock)
         self.message_store = MessageStore()
         self.ironic_node_store = IronicNodeStore()
+        self.glance_admin_image_store = GlanceAdminImageStore()
 
         for api in apis:
             this_api_id = ((api.__class__.__name__) + '-' +
