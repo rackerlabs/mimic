@@ -3,6 +3,7 @@
 Canned responses for nova's GET limits API
 """
 
+
 def get_limit():
     """
     Canned response for limits for servers. Returns only the absolute limits
