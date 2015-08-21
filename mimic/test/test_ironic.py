@@ -144,24 +144,24 @@ class IronicAPITests(SynchronousTestCase):
 
     def test_setting_provision_state_fails(self):
         """
-        Test ``/nodes/<node-id>/states/provision`` returns a 400 when
+        Test ``/nodes/<node-id>/states/provision`` returns a 404 when
         the node does not exist
         """
         url = "/ironic/v1/nodes/111/states/provision"
         (response, content) = self.successResultOf(json_request(
             self, self.root, "PUT", url, body=json.dumps({'target': 'active'})))
-        self.assertEqual(response.code, 400)
+        self.assertEqual(response.code, 404)
         self.assertTrue('111' in content['error_message']['faultstring'])
 
     def test_vendor_passthru_cache_image_fails_when_node_not_found(self):
         """
-        Test ``/nodes/<node-id>/vendor_passthru/cache_image`` returns a 400 when
+        Test ``/nodes/<node-id>/vendor_passthru/cache_image`` returns a 404 when
         the node does not exist
         """
         url = "/ironic/v1/nodes/222/vendor_passthru/cache_image"
         (response, content) = self.successResultOf(json_request(
             self, self.root, "POST", url, body=json.dumps({})))
-        self.assertEqual(response.code, 400)
+        self.assertEqual(response.code, 404)
         self.assertTrue('222' in content['error_message']['faultstring'])
 
     def test_vendor_passthru_cache_image_fails_when_method_not_found(self):
@@ -180,7 +180,7 @@ class IronicAPITests(SynchronousTestCase):
 
     def test_vendor_passthru_cache_image_fails_when_args_invalid(self):
         """
-        Test ``/nodes/<node-id>/vendor_passthru/cache_image`` returns a 404 when
+        Test ``/nodes/<node-id>/vendor_passthru/cache_image`` returns a 400 when
         the body for the request is invalid
         """
         node_id = uuid4()
@@ -193,7 +193,7 @@ class IronicAPITests(SynchronousTestCase):
             url = "/ironic/v1/nodes/{0}/vendor_passthru/cache_image".format(node_id)
             response = self.successResultOf(request(
                 self, self.root, "POST", url, body=json.dumps(each)))
-            self.assertEqual(response.code, 404)
+            self.assertEqual(response.code, 400)
 
     def test_vendor_passthru_cache_image(self):
         """

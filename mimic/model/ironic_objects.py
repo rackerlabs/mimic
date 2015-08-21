@@ -258,7 +258,7 @@ class IronicNodeStore(object):
     def set_node_provision_state(self, http_put_request, node_id):
         """
         Sets the provision state on the node and returns 202.
-        If the `node_id` does not exist returns 400.
+        If the `node_id` does not exist returns 404.
         Docs: http://bit.ly/1ElELdU
         """
         content = loads(http_put_request.content.read())
@@ -267,7 +267,7 @@ class IronicNodeStore(object):
             node.provision_state = content.get('target', 'available')
             http_put_request.setResponseCode(202)
             return b''
-        http_put_request.setResponseCode(400)
+        http_put_request.setResponseCode(404)
         return self.node_not_found(node_id)
 
     def cache_image_using_vendor_passthru(self, http_request, node_id, method):
@@ -277,7 +277,7 @@ class IronicNodeStore(object):
         content = loads(http_request.content.read())
         node = self.node_by_id(node_id)
         if not node:
-            http_request.setResponseCode(400)
+            http_request.setResponseCode(404)
             return self.node_not_found(node_id)
         if method != 'cache_image':
             http_request.setResponseCode(400)
@@ -286,5 +286,5 @@ class IronicNodeStore(object):
             node.cache_image_id = content['image_info']['id']
             http_request.setResponseCode(202)
             return b''
-        http_request.setResponseCode(404)
+        http_request.setResponseCode(400)
         return b''
