@@ -63,6 +63,8 @@ class GlanceAdminAPITests(SynchronousTestCase):
         (response, content) = self.successResultOf(json_request(
             self, self.root, "GET", uri))
         self.assertEqual(200, response.code)
+        for each in content['images']:
+            self.assertEqual(each["status"], "active")
         return content
 
     def test_list_image_schema(self):

@@ -64,7 +64,7 @@ class NovaAPIImagesTests(SynchronousTestCase):
         self.assertEqual(
             get_server_image_response_body['image']['id'], 'test-image-id')
         self.assertEqual(
-            get_server_image_response_body['image']['status'], 'active')
+            get_server_image_response_body['image']['status'], 'ACTIVE')
 
     def test_get_image_list(self):
         """
@@ -87,11 +87,9 @@ class NovaAPIImagesTests(SynchronousTestCase):
         for each_image in image_list:
             self.assertEqual(
                 sorted(each_image.keys()),
-                sorted(['id', 'name', 'links', 'status', 'progress', 'min_ram',
+                sorted(['id', 'name', 'links', 'status', 'progress', 'minRam',
                         'OS-DCF:diskConfig', 'OS-EXT-IMG-SIZE:size', 'metadata',
-                        'flavor_classes', 'disk_format', 'ssh_user', 'min_disk',
-                        'auto_disk_config', 'virtual_size', 'created', 'updated',
-                        'schema', 'visibility']))
+                        'minDisk', 'created', 'updated']))
 
     def test_get_image_list_with_details_is_consistent(self):
         """

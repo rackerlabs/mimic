@@ -30,14 +30,27 @@ class Image(object):
     """
     A Image object
     """
-    common_static_defaults = {
-        "min_ram": 256,
+
+    static_server_image_defaults = {
+        "minRam": 256,
+        "minDisk": 00,
+    }
+
+    static_glance_defaults = {
         "flavor_classes": "*",
+        "min_ram": 256,
+        "min_disk": 00,
+        "container_format": None,
+        "owner": "00000",
+        "size": 10000,
+        "tags": [],
+        "visibility": "public",
+        "checksum": "0000",
+        "protected": False,
         "disk_format": None,
         "ssh_user": "mimic",
         "schema": "/v2/schemas/image",
         "auto_disk_config": "disabled",
-        "min_disk": 00,
         "virtual_size": None,
         "visibility": "public"
     }
@@ -62,16 +75,6 @@ class Image(object):
         "auto_disk_config": "True",
         "com.rackspace__1__source": "kickstart",
         "com.rackspace__1__ui_default_show": "True"
-    }
-
-    static_image_defaults = {
-        "container_format": None,
-        "owner": "00000",
-        "size": 10000,
-        "tags": [],
-        "visibility": "public",
-        "checksum": "0000",
-        "protected": False
     }
 
     def links_json(self, absolutize_url):
@@ -103,11 +106,11 @@ class Image(object):
         returned by either a GET on this individual image through the
         servers api.
         """
-        template = self.common_static_defaults.copy()
+        template = self.static_server_image_defaults.copy()
         template.update({
             "id": self.image_id,
             "name": self.name,
-            "status": self.status,
+            "status": self.status.upper(),
             "links": self.links_json(absolutize_url),
             "progress": 100,
             "OS-DCF:diskConfig": "AUTO",
@@ -136,8 +139,7 @@ class Image(object):
         returned by either a GET on this individual image or a member in the
         list returned by the list-details request.
         """
-        template = self.common_static_defaults.copy()
-        template.update(self.static_image_defaults)
+        template = self.static_glance_defaults.copy()
         template.update(self.static_metadata)
         template.update({
             "id": self.image_id,
