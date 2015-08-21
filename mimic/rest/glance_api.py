@@ -8,7 +8,7 @@ from uuid import uuid4
 from six import text_type
 from zope.interface import implementer
 from twisted.plugin import IPlugin
-from mimic.canned_responses.glance import get_images
+from mimic.canned_responses.glance import get_images, get_image_schema
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
@@ -71,3 +71,32 @@ class GlanceMock(object):
         """
         request.setResponseCode(200)
         return json.dumps(get_images())
+
+
+class GlanceAdminApi(object):
+    """
+    Rest endpoints for mocked Glance Admin API.
+    """
+
+    app = MimicApp()
+
+    def __init__(self, core):
+        """
+        :param MimicCore core: The core to which this Glance Admin API will be
+        communicating.
+        """
+        self.core = core
+
+    @app.route('/v2/images', methods=['GET'])
+    def get_images_for_admin(self, request):
+        """
+        Returns a list of glance images.
+        """
+        return json.dumps(self.core.glance_admin_image_store.list_images())
+
+    @app.route('/v2/schemas/image', methods=['GET'])
+    def get_image_schema_for_admin(self, request):
+        """
+        Returns the glance image schema.
+        """
+        return json.dumps(get_image_schema())

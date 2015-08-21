@@ -33,7 +33,7 @@ from mimic.rest.auth_api import (
     base_uri_from_request
 )
 from mimic.rest.noit_api import NoitApi
-from mimic.rest import fastly_api, mailgun_api
+from mimic.rest import fastly_api, mailgun_api, glance_api
 from mimic.util.helper import seconds_to_timestamp
 
 
@@ -148,6 +148,13 @@ class MimicRoot(object):
             # workaround for https://github.com/twisted/klein/issues/56
             return NoResource()
         return service_object
+
+    @app.route("/glance", branch=True)
+    def glance_admin_api(self, request):
+        """
+        Mock got the glance admin api
+        """
+        return glance_api.GlanceAdminApi(self.core).app.resource()
 
 
 class MimicRequest(Request, object):
