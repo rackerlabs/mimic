@@ -64,6 +64,16 @@ class Image(object):
         "com.rackspace__1__ui_default_show": "True"
     }
 
+    static_image_defaults = {
+        "container_format": None,
+        "owner": "00000",
+        "size": 10000,
+        "tags": [],
+        "visibility": "public",
+        "checksum": "0000",
+        "protected": False
+    }
+
     def links_json(self, absolutize_url):
         """
         Create a JSON-serializable data structure describing the links to this
@@ -119,16 +129,6 @@ class Image(object):
             "id": self.image_id,
             "links": self.links_json(absolutize_url)
         }
-
-    static_image_defaults = {
-        "container_format": None,
-        "owner": "00000",
-        "size": 10000,
-        "tags": [],
-        "visibility": "public",
-        "checksum": "0000",
-        "protected": False
-    }
 
     def get_image_json(self):
         """
