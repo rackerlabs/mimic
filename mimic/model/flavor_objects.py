@@ -114,6 +114,7 @@ class ComputeFlavor(Flavor):
             "policy_class": "compute_flavor"
         }
 
+
 @attributes(['flavor_id', 'tenant_id', 'name', 'ram', 'vcpus', 'rxtx', 'disk'])
 class GeneralFlavor(Flavor):
 
@@ -131,6 +132,7 @@ class GeneralFlavor(Flavor):
             "class": "general1",
             "policy_class": "general_flavor"
         }
+
 
 @attributes(['flavor_id', 'tenant_id', 'name', 'ram', 'vcpus', 'rxtx', 'disk'])
 class IOFlavor(Flavor):
@@ -150,6 +152,7 @@ class IOFlavor(Flavor):
             "class": "io1",
             "policy_class": "io_flavor"
         }
+
 
 @attributes(['flavor_id', 'tenant_id', 'name', 'ram', 'vcpus', 'rxtx', 'disk'])
 class MemoryFlavor(Flavor):
@@ -198,7 +201,6 @@ class Performance1Flavor(Flavor):
                "4 GB Performance": {"ram": 4096, "vcpus": 4, "rxtx_factor": 800, "disk": 40},
                "8 GB Performance": {"ram": 8192, "vcpus": 8, "rxtx_factor": 1600, "disk": 40}}
 
-
     def extra_specs_json(self):
         """
         Create a JSON-serializable data structure describing
@@ -209,6 +211,7 @@ class Performance1Flavor(Flavor):
             "policy_class": "performance_flavor"
         }
 
+
 @attributes(['flavor_id', 'tenant_id', 'name', 'ram', 'vcpus', 'rxtx', 'disk'])
 class Performance2Flavor(Flavor):
 
@@ -217,7 +220,6 @@ class Performance2Flavor(Flavor):
                "60 GB Performance": {"ram": 61440, "vcpus": 16, "rxtx_factor": 5000, "disk": 40},
                "90 GB Performance": {"ram": 92160, "vcpus": 24, "rxtx_factor": 7500, "disk": 40},
                "120 GB Performance": {"ram": 122880, "vcpus": 32, "rxtx_factor": 10000, "disk": 40}}
-
 
     def extra_specs_json(self):
         """

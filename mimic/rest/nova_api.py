@@ -18,8 +18,8 @@ from twisted.python.urlpath import URLPath
 from twisted.plugin import IPlugin
 from twisted.web.http import CREATED, BAD_REQUEST
 
-from mimic.canned_responses.nova import get_limit, get_image, get_flavor, get_flavor_details,\
-    get_key_pairs, get_networks, get_os_volume_attachments, get_images_detail, get_images
+from mimic.canned_responses.nova import get_limit, get_image, get_key_pairs,\
+    get_networks, get_os_volume_attachments, get_images_detail, get_images
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
