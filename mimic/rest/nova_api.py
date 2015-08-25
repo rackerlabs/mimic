@@ -334,13 +334,6 @@ class NovaRegion(object):
         """
         Returns a get flavor response, for any given flavorid
         """
-        # flavor = get_flavor(flavor_id)
-        # if not flavor:
-        #     request.setResponseCode(404)
-        #     return b''
-        # else:
-        #     request.setResponseCode(200)
-        #     return json.dumps(get_flavor(flavor_id))
         return(self._region_collection_for_tenant(tenant_id)
                .get_flavor(request, flavor_id, absolutize_url=self.url))
 
@@ -349,8 +342,6 @@ class NovaRegion(object):
         """
         Returns a list of flavor with the response code 200.
         docs: http://bit.ly/1eXTSDC
-        TO DO: The length of flavor list can be set using the control plane.
-               Also be able to set different flavor types in the future.
         """
         return (self._region_collection_for_tenant(tenant_id)
                 .list_flavors(include_details=False, absolutize_url=self.url))
@@ -359,8 +350,6 @@ class NovaRegion(object):
     def get_flavor_list_with_details(self, request, tenant_id):
         """
         Returns a list of flavor details with the response code 200.
-        TO DO: The length of flavor list can be set using the control plane.
-               Also be able to set different flavor types in the future.
         """
         return (self._region_collection_for_tenant(tenant_id)
                 .list_flavors(include_details=True, absolutize_url=self.url))
@@ -380,13 +369,6 @@ class NovaRegion(object):
         """
         return (self._region_collection_for_tenant(tenant_id).
                 request_ips(request, server_id))
-
-    # @app.route('/v2/<string:tenant_id>/flavors/detail', methods=['GET'])
-    # def get_flavor_details(self, request, tenant_id):
-    #     """
-    #     Returns the flavor details
-    #     """
-    #     return json.dumps(get_flavor_details())
 
     @app.route('/v2/<string:tenant_id>/os-networksv2', methods=['GET'])
     def get_networks(self, request, tenant_id):

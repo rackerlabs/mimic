@@ -20,7 +20,6 @@ from mimic.model.flavor_objects import (
     Flavor, StandardFlavor, ComputeFlavor, MemoryFlavor, OnMetalFlavor, IOFlavor, GeneralFlavor,
     Performance1Flavor, Performance2Flavor)
 
-
 from mimic.canned_responses.mimic_presets import get_presets
 from mimic.model.behaviors import (
     BehaviorRegistryCollection, EventDescription, Criterion, regexp_predicate
@@ -941,26 +940,9 @@ class RegionalServerCollection(object):
         else:
             return dumps(bad_request("There is no such action currently supported", http_action_request))
 
-    # def _create_random_list_of_flavors(self):
-    #     """
-    #     Creates a list of flavors and adds them to :obj: `flavors_store`.
-    #     """
-    #     flavors = {"512MB Standard Instance": 512, "1 GB Standard Instance": 1024,
-    #                "2GB Standard Instance": 2048, "4GB Standard Instance": 4096,
-    #                "8GB Standard Instance": 8192, "15GB Standard Instance": 15360,
-    #                "30GB Standard Instance": 30720}
-    #     for each_id, each_ram in flavors.iteritems():
-    #         if not self.flavor_by_id(each_id):
-    #             flavor_id = each_id
-    #             flavor_name = each_id
-    #             ram = each_ram
-    #             flavor = Flavor(flavor_id=flavor_id, name=flavor_name,
-    #                             ram=ram, tenant_id=self.tenant_id)
-    #             self.flavors_store.append(flavor)
-
     def _create_list_of_flavors(self):
         """
-        Comment
+        Creates a list of flavors and stores them in the flavors store
         """
         flavors = [StandardFlavor, ComputeFlavor, Performance1Flavor, OnMetalFlavor,
                    Performance2Flavor, MemoryFlavor, IOFlavor, GeneralFlavor]
@@ -968,7 +950,7 @@ class RegionalServerCollection(object):
 
     def _generate_flavors_info(self, flavor_classes):
         """
-        Comment
+        Generates the data for each flavor in each flavor class
         """
         for flavor_class in flavor_classes:
             for flavor, flavor_spec in flavor_class.flavors.iteritems():
