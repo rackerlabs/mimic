@@ -397,7 +397,7 @@ class NovaRegion(object):
         """
         Perform the requested action on the server
         """
-        return self._region_collection_for_tenant(tenant_id).request_action(request, server_id)
+        return self._region_collection_for_tenant(tenant_id).request_action(request, server_id, self.url)
 
 
 class ServerMetadata(object):
