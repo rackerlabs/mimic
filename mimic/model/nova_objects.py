@@ -18,7 +18,10 @@ from mimic.util.helper import (
 )
 from mimic.canned_responses.mimic_presets import get_presets
 from mimic.model.glance_objects import Image, random_image_list
-from mimic.model.flavor_objects import Flavor
+from mimic.model.flavor_objects import (
+    Flavor, RackspaceStandardFlavor, RackspaceComputeFlavor, RackspaceMemoryFlavor,
+    RackspaceOnMetalFlavor, RackspaceIOFlavor, RackspaceGeneralFlavor,
+    RackspacePerformance1Flavor, RackspacePerformance2Flavor)
 from mimic.model.behaviors import (
     BehaviorRegistryCollection, EventDescription, Criterion, regexp_predicate
 )
@@ -960,36 +963,39 @@ class RegionalServerCollection(object):
         }
         return dumps(result)
 
-    def _create_random_list_of_flavors(self):
+    def _generate_flavors_info(self, flavor_classes):
         """
-        Creates a list of flavors and adds them to :obj: `flavors_store`.
+        Generates the data for each flavor in each flavor class
         """
-        flavors = {"onmetal-compute1": 32768, "onmetal-io1": 131072,
-                   "onmetal-memory1": 524288, "2": 512, "compute1-15": 15360,
-                   "general1-1": 1024, "io1-120": 122880, "memory1-120": 122880,
-                   "performance1-1": 1024}
-        for each_id, each_ram in flavors.iteritems():
-            if not self.flavor_by_id(each_id):
-                flavor_id = each_id
-                flavor_name = each_id.replace("-", " ") + "Mimic Instance"
-                ram = each_ram
-                flavor = Flavor(flavor_id=flavor_id, name=flavor_name,
-                                ram=ram, tenant_id=self.tenant_id)
-                self.flavors_store.append(flavor)
+        for flavor_class in flavor_classes:
+            for flavor, flavor_spec in flavor_class.flavors.iteritems():
+                if not self.flavor_by_id(flavor):
+                    flavor_name = flavor
+                    flavor_id = flavor
+                    ram = flavor_spec['ram']
+                    vcpus = flavor_spec['vcpus']
+                    network = flavor_spec['rxtx_factor']
+                    disk = flavor_spec['disk']
+                    tenant_id = self.tenant_id
+                    flavor = flavor_class(flavor_id=flavor_id, tenant_id=tenant_id,
+                                          name=flavor_name, ram=ram, vcpus=vcpus,
+                                          rxtx=network, disk=disk)
+                    yield flavor
 
     def list_flavors(self, include_details, absolutize_url):
         """
         Return a list of flavors with details.
         Creates a random list of flavors if flavors were not created.
         """
-        # Creates a random list of flavors and adds them to the
-        # flavor_store.
-        self._create_random_list_of_flavors()
+        flavors = [RackspaceStandardFlavor, RackspaceComputeFlavor, RackspacePerformance1Flavor,
+                   RackspaceOnMetalFlavor, RackspacePerformance2Flavor, RackspaceMemoryFlavor,
+                   RackspaceIOFlavor, RackspaceGeneralFlavor]
+        flavor_store = self._generate_flavors_info(flavors)
         result = {
             "flavors": [
                 flavor.brief_json(absolutize_url) if not include_details
                 else flavor.detailed_json(absolutize_url)
-                for flavor in self.flavors_store
+                for flavor in flavor_store
             ]
         }
         return dumps(result)
