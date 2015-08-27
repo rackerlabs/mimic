@@ -48,6 +48,8 @@ class NovaAPIFlavorsTests(SynchronousTestCase):
     def test_get_server_flavor(self):
         """
         Test to verify :func:`get_image` on ``GET /v2.0/<tenant_id>/flavors/<flavor_id>``
+        This test should go away in the future, Rackspace does not support adding your
+        own falvors.
         """
         get_server_flavor_response_body = self.get_server_flavor(
             '/flavors/test-flavor-id')
