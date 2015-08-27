@@ -40,13 +40,6 @@ def get_limit():
     return _get_json("json/nova/limits_json.py")
 
 
-def get_flavor_details():
-    """
-    Return flavor details
-    """
-    return _get_json("json/nova/flavor_details_json.py")
-
-
 def get_networks():
     """
     Return networks
@@ -84,23 +77,6 @@ def get_image(image_id):
             # ):
             #     return not_found_response('images'), 404
             # return {'image': {'status': 'ACTIVE', 'id': image_id, 'name': 'mimic-test-image'}}, 200
-
-
-def get_flavor(flavor_id):
-    """
-    Canned response for get flavor.
-    The flavor id provided is substituted in the response
-    """
-    # if flavor_id in get_presets['servers']['invalid_flavor_ref']:
-    #     return not_found_response('flavors'), 404
-    # return ({'flavor': {'name': '512MB Standard Instance',
-    #                     'id': flavor_id,
-    #                     'name': 'mimic-test-flavor'}},
-    #         200)
-    flavors_data = _get_json("json/nova/flavor_details_json.py")['flavors']
-    for flavor in flavors_data:
-        if flavor['id'] == flavor_id:
-            return {"flavor": flavor}
 
 
 def get_images():
