@@ -18,8 +18,8 @@ from twisted.python.urlpath import URLPath
 from twisted.plugin import IPlugin
 from twisted.web.http import CREATED, BAD_REQUEST
 
-from mimic.canned_responses.nova import get_limit, get_image, get_flavor, get_flavor_details,\
-    get_key_pairs, get_networks, get_os_volume_attachments, get_images_detail, get_images
+from mimic.canned_responses.nova import get_limit, get_image, get_key_pairs,\
+    get_networks, get_os_volume_attachments, get_images_detail, get_images
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
@@ -330,20 +330,29 @@ class NovaRegion(object):
         return json.dumps(get_images())
 
     @app.route('/v2/<string:tenant_id>/flavors/<string:flavor_id>', methods=['GET'])
-    def get_flavor(self, request, tenant_id, flavor_id):
+    def get_flavor_details(self, request, tenant_id, flavor_id):
         """
         Returns a get flavor response, for any given flavorid
         """
-        # response_data = get_flavor(flavor_id)
-        # request.setResponseCode(response_data[1])
-        # return json.dumps(response_data[0])
-        flavor = get_flavor(flavor_id)
-        if not flavor:
-            request.setResponseCode(404)
-            return b''
-        else:
-            request.setResponseCode(200)
-            return json.dumps(get_flavor(flavor_id))
+        return(self._region_collection_for_tenant(tenant_id)
+               .get_flavor(request, flavor_id, absolutize_url=self.url))
+
+    @app.route('/v2/<string:tenant_id>/flavors', methods=['GET'])
+    def get_flavor_list(self, request, tenant_id):
+        """
+        Returns a list of flavor with the response code 200.
+        docs: http://bit.ly/1eXTSDC
+        """
+        return (self._region_collection_for_tenant(tenant_id)
+                .list_flavors(include_details=False, absolutize_url=self.url))
+
+    @app.route('/v2/<string:tenant_id>/flavors/detail', methods=['GET'])
+    def get_flavor_list_with_details(self, request, tenant_id):
+        """
+        Returns a list of flavor details with the response code 200.
+        """
+        return (self._region_collection_for_tenant(tenant_id)
+                .list_flavors(include_details=True, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/limits', methods=['GET'])
     def get_limit(self, request, tenant_id):
@@ -360,13 +369,6 @@ class NovaRegion(object):
         """
         return (self._region_collection_for_tenant(tenant_id).
                 request_ips(request, server_id))
-
-    @app.route('/v2/<string:tenant_id>/flavors/detail', methods=['GET'])
-    def get_flavor_details(self, request, tenant_id):
-        """
-        Returns the flavor details
-        """
-        return json.dumps(get_flavor_details())
 
     @app.route('/v2/<string:tenant_id>/os-networksv2', methods=['GET'])
     def get_networks(self, request, tenant_id):
