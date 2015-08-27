@@ -17,8 +17,9 @@ from mimic.util.helper import (
     timestamp_to_seconds
 )
 from mimic.model.flavor_objects import (
-    Flavor, StandardFlavor, ComputeFlavor, MemoryFlavor, OnMetalFlavor, IOFlavor, GeneralFlavor,
-    Performance1Flavor, Performance2Flavor)
+    Flavor, RackspaceStandardFlavor, RackspaceComputeFlavor, RackspaceMemoryFlavor,
+    RackspaceOnMetalFlavor, RackspaceIOFlavor, RackspaceGeneralFlavor,
+    RackspacePerformance1Flavor, RackspacePerformance2Flavor)
 
 from mimic.canned_responses.mimic_presets import get_presets
 from mimic.model.behaviors import (
@@ -940,23 +941,15 @@ class RegionalServerCollection(object):
         else:
             return dumps(bad_request("There is no such action currently supported", http_action_request))
 
-    def _create_list_of_flavors(self):
-        """
-        Creates a list of flavors and stores them in the flavors store
-        """
-        flavors = [StandardFlavor, ComputeFlavor, Performance1Flavor, OnMetalFlavor,
-                   Performance2Flavor, MemoryFlavor, IOFlavor, GeneralFlavor]
-        self._generate_flavors_info(flavors)
-
-    def _generate_flavors_info(self, flavor_classes):
+    def create_flavors_list(self, flavor_classes):
         """
         Generates the data for each flavor in each flavor class
         """
         for flavor_class in flavor_classes:
             for flavor, flavor_spec in flavor_class.flavors.iteritems():
-                if not self.flavor_by_id(flavor):
+                if not self.flavor_by_id(flavor_spec['id']):
                     flavor_name = flavor
-                    flavor_id = flavor
+                    flavor_id = flavor_spec['id']
                     ram = flavor_spec['ram']
                     vcpus = flavor_spec['vcpus']
                     network = flavor_spec['rxtx_factor']
@@ -965,7 +958,6 @@ class RegionalServerCollection(object):
                     flavor = flavor_class(flavor_id=flavor_id, tenant_id=tenant_id,
                                           name=flavor_name, ram=ram, vcpus=vcpus,
                                           rxtx=network, disk=disk)
-
                     self.flavors_store.append(flavor)
 
     def list_flavors(self, include_details, absolutize_url):
@@ -973,7 +965,10 @@ class RegionalServerCollection(object):
         Return a list of flavors with details.
         Creates a random list of flavors if flavors were not created.
         """
-        self._create_list_of_flavors()
+        flavors = [RackspaceStandardFlavor, RackspaceComputeFlavor, RackspacePerformance1Flavor,
+                   RackspaceOnMetalFlavor, RackspacePerformance2Flavor, RackspaceMemoryFlavor,
+                   RackspaceIOFlavor, RackspaceGeneralFlavor]
+        self.create_flavors_list(flavors)
         result = {
             "flavors": [
                 flavor.brief_json(absolutize_url) if not include_details
@@ -997,7 +992,7 @@ class RegionalServerCollection(object):
         if flavor is None:
             flavor = Flavor(flavor_id=flavor_id,
                             name=flavor_id + "Mimic Test Instance",
-                            ram=1, tenant_id=self.tenant_id)
+                            ram=1, tenant_id=self.tenant_id, vcpus=2, rxtx=200, disk=3)
             self.flavors_store.append(flavor)
         return dumps({"flavor": flavor.detailed_json(absolutize_url)})
 
