@@ -219,19 +219,19 @@ class IronicNodeStore(object):
         http://docs.openstack.org/developer/ironic/webapi/v1.html#get--v1-nodes-detail
         """
         if not self.ironic_node_store:
-            for each in range(3):
+            for _ in range(30):
                 self.add_to_ironic_node_store(node_id=str(uuid4()),
                                               flavor_id="onmetal-io1",
                                               memory_mb=131072)
-            for each in range(3):
+            for _ in range(30):
                 self.add_to_ironic_node_store(node_id=str(uuid4()),
                                               flavor_id="onmetal-compute1",
                                               memory_mb=32768)
-            for each in range(3):
+            for _ in range(30):
                 self.add_to_ironic_node_store(node_id=str(uuid4()),
                                               flavor_id="onmetal-memory1",
                                               memory_mb=524288)
-            for each in range(2):
+            for _ in range(2):
                 self.add_to_ironic_node_store(node_id=str(uuid4()),
                                               instance_uuid=str(uuid4()))
         result = {
