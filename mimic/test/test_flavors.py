@@ -5,7 +5,7 @@ Tests for :mod:`nova_api` and :mod:`nova_objects` for flavors.
 from twisted.trial.unittest import SynchronousTestCase
 
 from mimic.test.helpers import json_request, request
-from mimic.rest.nova_api import NovaApi, NovaControlApi
+from mimic.rest.nova_api import NovaApi
 from mimic.test.fixtures import APIMockHelper
 from mimic.model.flavor_objects import RackspaceOnMetalFlavor
 
