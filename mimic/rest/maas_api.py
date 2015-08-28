@@ -11,6 +11,7 @@ from uuid import uuid4
 
 from six import text_type
 
+from characteristic import attributes
 from zope.interface import implementer
 
 from twisted.plugin import IPlugin
@@ -58,7 +59,7 @@ class MaasApi(object):
 
     def catalog_entries(self, tenant_id):
         """
-        List catalog entries for the Nova API.
+        List catalog entries for the MaaS API.
         """
         return [
             Entry(
@@ -1264,3 +1265,42 @@ class MaasMock(object):
         request.setResponseCode(200)
         self._audit('rollups', request, tenant_id, status, content)
         return json.dumps({'metrics': metrics_replydata})
+
+
+@implementer(IAPIMock, IPlugin)
+@attributes(["maas_api"])
+class MaasControlApi(object):
+    """
+    This class registers the MaaS controller API in the service catalog.
+    """
+    def catalog_entries(self, tenant_id):
+        """
+        List catalog entries for the MaaS API.
+        """
+        return [
+            Entry(
+                tenant_id, "rax: monitor", "cloudMonitoringControl",
+                [
+                    Endpoint(tenant_id, region, text_type(uuid4()),
+                             "v1.0")
+                    for region in self.maas_api._regions
+                ]
+            )
+        ]
+
+    def resource_for_region(self, region, uri_prefix, session_store):
+        """
+        Get an :obj:`twisted.web.iweb.IResource` for the given URI prefix;
+        implement :obj:`IAPIMock`.
+        """
+        maas_controller = MaasController(api_mock=self)
+        return maas_controller.app.resource()
+
+
+@attributes(["api_mock"])
+class MaasController(object):
+    """
+    Klein routes for MaaS control API.
+    """
+
+    app = MimicApp()
