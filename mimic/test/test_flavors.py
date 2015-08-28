@@ -66,6 +66,20 @@ class NovaAPIFlavorsTests(SynchronousTestCase):
         for each_flavor in flavor_list:
             self.assertEqual(sorted(each_flavor.keys()), sorted(['id', 'name', 'links']))
 
+    def test_get_flavor_list_with_OnMetal(self):
+        """
+        Test to verify :func:`get_flavor_list` on ``GET /v2.0/<tenant_id>/flavors``
+        """
+        nova_api = NovaApi(["IAD"])
+        self.helper = APIMockHelper(
+            self, [nova_api, NovaControlApi(nova_api=nova_api)]
+        )
+        self.root = self.helper.root
+        self.uri = self.helper.uri
+        get_flavor_list_response_body = self.get_server_flavor('/flavors')
+        flavor_list = get_flavor_list_response_body['flavors']
+        self.assertTrue(len(flavor_list) == 38)
+
     def test_get_flavor_list_with_details(self):
         """
         Test to verify :func:`test_get_flavor_list_with_details` on
