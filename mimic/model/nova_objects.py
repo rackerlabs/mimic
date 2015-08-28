@@ -969,24 +969,15 @@ class RegionalServerCollection(object):
                    RackspaceOnMetalFlavor, RackspacePerformance2Flavor, RackspaceMemoryFlavor,
                    RackspaceIOFlavor, RackspaceGeneralFlavor]
         self.create_flavors_list(flavors)
-        if self.region_name == 'IAD':
-            result = {
-                "flavors": [
-                    flavor.brief_json(absolutize_url) if not include_details
-                    else flavor.detailed_json(absolutize_url)
-                    for flavor in self.flavors_store
-                ]
-            }
-        else:
-            flavors = []
-            for flavor in self.flavors_store:
-                if isinstance(flavor, RackspaceOnMetalFlavor):
+        flavors = []
+        for flavor in self.flavors_store:
+            if self.region_name != "IAD" and isinstance(flavor, RackspaceOnMetalFlavor):
                     continue
-                elif include_details:
-                    flavors.append(flavor.detailed_json(absolutize_url))
-                else:
-                    flavors.append(flavor.brief_json(absolutize_url))
-            result = {"flavors": flavors}
+            if include_details:
+                flavors.append(flavor.detailed_json(absolutize_url))
+            else:
+                flavors.append(flavor.brief_json(absolutize_url))
+        result = {"flavors": flavors}
 
         return dumps(result)
 
