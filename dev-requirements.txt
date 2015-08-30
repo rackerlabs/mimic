@@ -1,13 +1,13 @@
-cffi==1.1.2
+cffi==1.2.1
 coverage==3.7.1
-cryptography==0.9.3
+cryptography==1.0
 doc8==0.6.0
 docutils==0.12
 enum34==1.0.4
 flake8==2.4.1
 Jinja2==2.8
 MarkupSafe==0.23
-pbr==1.4.0
+pbr==1.6.0
 mccabe==0.3.1
 pep257==0.6.0
 pep8==1.6.2
