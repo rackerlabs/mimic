@@ -45,18 +45,39 @@ class IronicAPITests(SynchronousTestCase):
             "power_state", "instance_info", "ports", "name", "driver_internal_info",
             "inspection_finished_at", "inspection_started_at", "clean_step"
         ]
+        self.url = "/ironic/v1/nodes"
 
     def get_nodes(self, postfix=None):
         """
         Get nodes and return content
         """
-        url = "/ironic/v1/nodes"
+        url = self.url
         if postfix:
-            url = "/ironic/v1/nodes" + postfix
+            url = self.url + postfix
         (response, content) = self.successResultOf(json_request(
             self, self.root, "GET", url))
         self.assertEqual(200, response.code)
         return content
+
+    def test_create_node(self):
+        """
+        Create node returns 201 and adds the created node to the
+        :obj: `ironic_node_store`.
+        """
+        create_request = {
+            "chassis_uuid": str(uuid4()),
+            "driver": "fake",
+            "driver_info": {},
+            "name": "test_node",
+            "properties": {
+                "cpus": "1",
+                "local_gb": "10",
+                "memory_mb": "1024"
+            }
+        }
+        (response, content) = self.successResultOf(json_request(
+            self, self.root, "POST", self.url, body=json.dumps(create_request)))
+        self.assertEqual(response.code, 201)
 
     def test_list_nodes(self):
         """
@@ -133,7 +154,7 @@ class IronicAPITests(SynchronousTestCase):
         self.assertEqual(provision_state, 'available')
 
         # Change the provision_state to 'active'
-        url = "/ironic/v1/nodes/{0}/states/provision".format(node_id)
+        url = self.url + "/{0}/states/provision".format(node_id)
         response = self.successResultOf(request(
             self, self.root, "PUT", url, body=json.dumps({'target': 'active'})))
         self.assertEqual(response.code, 202)
@@ -147,7 +168,7 @@ class IronicAPITests(SynchronousTestCase):
         Test ``/nodes/<node-id>/states/provision`` returns a 404 when
         the node does not exist
         """
-        url = "/ironic/v1/nodes/111/states/provision"
+        url = self.url + "/111/states/provision"
         (response, content) = self.successResultOf(json_request(
             self, self.root, "PUT", url, body=json.dumps({'target': 'active'})))
         self.assertEqual(response.code, 404)
@@ -158,7 +179,7 @@ class IronicAPITests(SynchronousTestCase):
         Test ``/nodes/<node-id>/vendor_passthru/cache_image`` returns a 404 when
         the node does not exist
         """
-        url = "/ironic/v1/nodes/222/vendor_passthru/cache_image"
+        url = self.url + "/222/vendor_passthru/cache_image"
         (response, content) = self.successResultOf(json_request(
             self, self.root, "POST", url, body=json.dumps({})))
         self.assertEqual(response.code, 404)
@@ -173,7 +194,7 @@ class IronicAPITests(SynchronousTestCase):
         # GET node essentially creates the node with the given node_id
         self.get_nodes('/' + str(node_id))
 
-        url = "/ironic/v1/nodes/{0}/vendor_passthru/not_cache_image".format(node_id)
+        url = self.url + "/{0}/vendor_passthru/not_cache_image".format(node_id)
         response = self.successResultOf(request(
             self, self.root, "POST", url, body=json.dumps({})))
         self.assertEqual(response.code, 400)
@@ -208,7 +229,7 @@ class IronicAPITests(SynchronousTestCase):
 
         image_id = str(uuid4())
         body = {"image_info": {"id": image_id}}
-        url = "/ironic/v1/nodes/{0}/vendor_passthru/cache_image".format(node_id)
+        url = self.url + "/{0}/vendor_passthru/cache_image".format(node_id)
         response = self.successResultOf(request(
             self, self.root, "POST", url, body=json.dumps(body)))
         self.assertEqual(response.code, 202)
@@ -228,7 +249,7 @@ class IronicAPITests(SynchronousTestCase):
 
         image_id = str(uuid4())
         body = {"image_info": {"id": image_id}}
-        url = "/ironic/v1/nodes/{0}/vendor_passthru/cache_image".format(node_id)
+        url = self.url + "/{0}/vendor_passthru/cache_image".format(node_id)
         response = self.successResultOf(request(
             self, self.root, "POST", url, body=json.dumps(body)))
         self.assertEqual(response.code, 202)
