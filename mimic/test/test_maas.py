@@ -186,6 +186,48 @@ class MaasAPITests(SynchronousTestCase):
         data = self.get_responsebody(resp)
         self.assertEquals({}, data)
 
+    def test_list_audits(self):
+        """
+        Test getting the audit log.
+        """
+        req = request(self, self.root, "GET", self.uri + '/audits?limit=2')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertEquals(data['metadata']['count'], 2)
+        self.assertEquals(data['values'][0]['app'], 'entities')
+
+        req = request(self, self.root, "GET", self.uri +
+                      '/audits?marker=' + data['metadata']['next_marker'])
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertEquals(data['metadata']['count'], 4)
+        self.assertEquals(data['values'][0]['app'], 'alarms')
+
+    def test_list_audits_reverse(self):
+        """
+        Test getting the audit log with `reverse` set to True.
+        """
+        req = request(self, self.root, "GET", self.uri + '/audits?limit=2&reverse=true')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertEquals(data['metadata']['count'], 2)
+        self.assertEquals(data['values'][0]['app'], 'suppressions')
+
+    def test_list_audits_marker_not_found(self):
+        """
+        If the marker is not found, the audit log returns results from the
+        beginning.
+        """
+        req = request(self, self.root, "GET", self.uri +
+                      '/audits?marker=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertEquals(data['values'][0]['app'], 'entities')
+
     def test_get_check(self):
         """
         test get check
