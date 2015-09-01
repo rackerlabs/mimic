@@ -822,7 +822,7 @@ class RegionalServerCollection(object):
         server.update_status(u"DELETED")
         return b''
 
-    def request_action(self, http_action_request, server_id):
+    def request_action(self, http_action_request, server_id, absolutize_url):
         """
         Perform the requested action on the provided server
         """
@@ -912,6 +912,26 @@ class RegionalServerCollection(object):
                 return b''
             else:
                 return dumps(conflicting("Cannot 'changePassword' instance " + server_id +
+                                         " while it is in task state other than active",
+                                         http_action_request))
+
+        elif 'rebuild' in action_json:
+            image_ref = action_json['rebuild'].get('imageRef')
+            if not image_ref:
+                return dumps(bad_request("Could not parse imageRef from request.", http_action_request))
+            if server.status == 'ACTIVE':
+                server.image_ref = image_ref
+                server.status = 'REBUILD'
+                http_action_request.setResponseCode(202)
+                server.collection.clock.callLater(
+                    5.0,
+                    server.update_status,
+                    u"ACTIVE")
+                server_details = server.detail_json(absolutize_url)
+                server_details['adminPass'] = 'password'
+                return dumps({"server": server_details})
+            else:
+                return dumps(conflicting("Cannot 'rebuild' instance " + server_id +
                                          " while it is in task state other than active",
                                          http_action_request))
 
