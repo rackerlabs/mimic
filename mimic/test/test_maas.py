@@ -1,7 +1,7 @@
 import json
 import treq
 from twisted.trial.unittest import SynchronousTestCase
-from mimic.rest.maas_api import MaasApi
+from mimic.rest.maas_api import MaasApi, MaasControlApi
 from mimic.test.helpers import request
 from mimic.test.fixtures import APIMockHelper
 
@@ -108,9 +108,11 @@ class MaasAPITests(SynchronousTestCase):
         """
         Setup MaasApi helper object & uri 'n stuff
         """
-        helper = APIMockHelper(self, [MaasApi(["ORD"])])
+        maas = MaasApi(["ORD"])
+        helper = APIMockHelper(self, [maas, MaasControlApi(maas_api=maas)])
         self.root = helper.root
         self.uri = helper.uri
+        self.ctl_uri = helper.auth.get_service_endpoint("cloudMonitoringControl", "ORD")
         self.entity_id = self.getXobjectIDfromResponse(self.createEntity('ItsAnEntity'))
         self.check_id = self.getXobjectIDfromResponse(self.createCheck('ItsAcheck',
                                                                        self.entity_id))
@@ -399,6 +401,42 @@ class MaasAPITests(SynchronousTestCase):
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         self.assertEquals(0, len(self.get_responsebody(resp)['values'][0]['alarms']))
+
+    def test_test_alarm_400s_when_empty_queue(self):
+        """
+        The test-alarm API should return a 400 when no simulated responses
+        have been created yet.
+        """
+        req = request(self, self.root, "POST",
+                      self.uri + '/entities/' + self.entity_id + '/test-alarm',
+                      json.dumps({'criteria': 'return new AlarmStatus(OK);',
+                                  'check_data': [{}]}))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 400)
+        data = self.get_responsebody(resp)
+        self.assertEquals('No configured test-alarm responses', data['message'])
+
+    def test_test_alarm(self):
+        """
+        Test test-alarm API in normal operation.
+        """
+        req = request(self, self.root, "POST",
+                      self.ctl_uri + '/entities/' + self.entity_id + '/alarms/test_responses',
+                      json.dumps({'state': 'OK',
+                                  'status': 'test-alarm working OK'}))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 201)
+        req = request(self, self.root, "POST",
+                      self.uri + '/entities/' + self.entity_id + '/test-alarm',
+                      json.dumps({'criteria': 'return new AlarmStatus(OK);',
+                                  'check_data': [{}]}))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertEquals(1, len(data))
+        self.assertEquals('OK', data[0]['state'])
+        self.assertEquals('test-alarm working OK', data[0]['status'])
+        self.assertIn('timestamp', data[0])
 
     def test_get_alarms_for_entity(self):
         """

@@ -127,6 +127,7 @@ class MCache(object):
                                                                   code (E.164 format)'}]}]
         self.suppressions_list = []
         self.audits_list = []
+        self.test_alarm_responses = collections.defaultdict(lambda: [])
 
 
 def create_entity(clock, params):
@@ -721,6 +722,29 @@ class MaasMock(object):
         self._audit('alarms', request, tenant_id, status)
         return ''
 
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/test-alarm', methods=['POST'])
+    def test_alarm(self, request, tenant_id, entity_id):
+        """
+        Test an alarm, pulling responses from the simulated test-alarm queue.
+        """
+        payload = json.loads(request.content.read())
+        n_tests = len(payload['check_data'])
+        test_responses = self._entity_cache_for_tenant(tenant_id).test_alarm_responses[entity_id]
+        if len(test_responses) < n_tests:
+            request.setResponseCode(400)
+            return json.dumps({'type': 'badRequest',
+                               'code': 400,
+                               'message': 'No configured test-alarm responses'})
+        response_payload = []
+        for _ in xrange(n_tests):
+            ith_test_response = test_responses.pop(0)
+            response_payload.append({'timestamp': int(time.time() * 1000),
+                                     'state': ith_test_response['state'],
+                                     'status': ith_test_response.get(
+                                         'status', 'Matched default return statement')})
+        request.setResponseCode(200)
+        return json.dumps(response_payload)
+
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms', methods=['GET'])
     def get_alarms_for_entity(self, request, tenant_id, entity_id):
         """
@@ -1293,14 +1317,41 @@ class MaasControlApi(object):
         Get an :obj:`twisted.web.iweb.IResource` for the given URI prefix;
         implement :obj:`IAPIMock`.
         """
-        maas_controller = MaasController(api_mock=self)
+        maas_controller = MaasController(api_mock=self,
+                                         session_store=session_store,
+                                         region=region)
         return maas_controller.app.resource()
 
 
-@attributes(["api_mock"])
+@attributes(["api_mock", "session_store", "region"])
 class MaasController(object):
     """
     Klein routes for MaaS control API.
     """
 
+    def _entity_cache_for_tenant(self, tenant_id):
+        """
+        Retrieve the M_cache object containing all objects created so far
+        """
+        return (self.session_store.session_for_tenant_id(tenant_id)
+                .data_for_api(self.api_mock.maas_api,
+                              lambda: collections.defaultdict(MCache))[self.region])
+
     app = MimicApp()
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/test_responses',
+               methods=['POST'])
+    def push_test_alarm_response(self, request, tenant_id, entity_id):
+        """
+        Puts a test-alarm response into the response queue.
+
+        When the MaaS user runs a test-alarm call, test responses will be pulled
+        from the queue in FIFO order and returned. test-alarm responses must have
+        a state field for the simulated alarm state, and may have a status field
+        containing the status message returned to the user.
+        """
+        test_responses = self._entity_cache_for_tenant(tenant_id).test_alarm_responses
+        dummy_response = json.loads(request.content.read())
+        test_responses[entity_id].append(dummy_response)
+        request.setResponseCode(201)
+        return ''
