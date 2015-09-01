@@ -9,6 +9,10 @@ from mimic.util.helper import random_hex_generator
 
 
 @attributes(["node_id",
+             Attribute("chassis_uuid", default_value=None),
+             Attribute("driver", default_value=None),
+             Attribute("driver_info", default_value=None),
+             Attribute("properties", default_value=None),
              Attribute("flavor_id", default_value="onmetal-io1"),
              Attribute("power_state", default_value="power on"),
              Attribute("provision_state", default_value="available"),
@@ -31,7 +35,6 @@ class Node(object):
         "updated_at": "2015-08-09T04:30:05+00:00",
         "last_error": None,
         "console_enabled": False,
-        "driver": "agent_ipmitool",
         "maintenance_reason": None,
         "provision_updated_at": "2015-08-07T06:57:24+00:00",
         "reservation": None,
@@ -123,6 +126,7 @@ class Node(object):
         template = self.static_defaults.copy()
         template.update({
             "instance_uuid": self.instance_uuid,
+            "chassis_uuid": self.chassis_uuid or str(uuid4()),
             "name": self.name,
             "uuid": self.node_id,
             "links": self.links_json(),
@@ -149,13 +153,14 @@ class Node(object):
                 "hardware/interfaces/1/switch_port_id": "Mimic1/10",
                 "hardware/interfaces/0/switch_chassis_id": "mimic-chassis1"
             },
-            "properties": {
+            "properties": self.properties or {
                 "memory_mb": self.memory_mb,
                 "cpu_arch": "amd64",
                 "local_gb": 32,
                 "cpus": 40
             },
-            "driver_info": {
+            "driver": self.driver or "agent_ipmitool",
+            "driver_info": self.driver_info or {
                 "hardware_manager_version": None,
                 "ipmi_username": "USERID",
                 "ipmi_address": "127.0.0.0",
@@ -178,6 +183,11 @@ class IronicNodeStore(object):
     """
     A collection of ironic :obj:`Node` objects.
     """
+
+    memory_to_flavor_map = {131072: "onmetal-io1",
+                            32768: "onmetal-compute1",
+                            524288: "onmetal-memory1"
+                            }
 
     def node_not_found(self, node_id):
         """
@@ -204,9 +214,34 @@ class IronicNodeStore(object):
         Create a new Node object and add it to the
         :obj: `ironic_node_store`
         """
+        if (attributes.get("flavor_id", None) is None and
+                attributes.get("memory_mb")):
+            attributes['flavor_id'] = self.memory_to_flavor_map.get(
+                attributes['memory_mb'], "onmetal-mimic")
         node = Node(**attributes)
         self.ironic_node_store.append(node)
-        return b''
+        return node
+
+    def create_node(self, http_create_request):
+        """
+        Create a node
+        http://bit.ly/1N0O9KM
+        """
+        content = loads(http_create_request.content.read())
+        try:
+            node = self.add_to_ironic_node_store(
+                node_id=str(uuid4()),
+                memory_mb=content['properties']['memory_mb'],
+                chassis_uuid=content.get('chassis_uuid'),
+                driver=content.get('driver'),
+                properties=content.get('properties'),
+                driver_info=content.get('driver_info'),
+                name=content.get('name'))
+            http_create_request.setResponseCode(201)
+            return dumps(node.detail_json())
+        except:
+            http_create_request.setResponseCode(400)
+            return b''
 
     def list_nodes(self, include_details):
         """
@@ -221,15 +256,12 @@ class IronicNodeStore(object):
         if not self.ironic_node_store:
             for _ in range(30):
                 self.add_to_ironic_node_store(node_id=str(uuid4()),
-                                              flavor_id="onmetal-io1",
                                               memory_mb=131072)
             for _ in range(30):
                 self.add_to_ironic_node_store(node_id=str(uuid4()),
-                                              flavor_id="onmetal-compute1",
                                               memory_mb=32768)
             for _ in range(30):
                 self.add_to_ironic_node_store(node_id=str(uuid4()),
-                                              flavor_id="onmetal-memory1",
                                               memory_mb=524288)
             for _ in range(2):
                 self.add_to_ironic_node_store(node_id=str(uuid4()),

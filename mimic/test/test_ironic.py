@@ -37,7 +37,7 @@ class IronicAPITests(SynchronousTestCase):
         self.core = MimicCore(Clock(), [])
         self.root = MimicRoot(self.core).app.resource()
         self.node_details_attributes = [
-            "instance_uuid", "target_power_state",
+            "instance_uuid", "target_power_state", "chassis_uuid",
             "properties", "uuid", "driver_info", "target_provision_state",
             "last_error", "console_enabled", "extra", "driver", "links",
             "maintenance_reason", "updated_at", "provision_updated_at",
@@ -61,13 +61,13 @@ class IronicAPITests(SynchronousTestCase):
 
     def test_create_node(self):
         """
-        Create node returns 201 and adds the created node to the
-        :obj: `ironic_node_store`.
+        Create node returns 201 and the newly created node.
         """
         create_request = {
             "chassis_uuid": str(uuid4()),
             "driver": "fake",
-            "driver_info": {},
+            "driver_info": {"cache_image_id": None,
+                            "cache_status": None},
             "name": "test_node",
             "properties": {
                 "cpus": "1",
@@ -78,6 +78,17 @@ class IronicAPITests(SynchronousTestCase):
         (response, content) = self.successResultOf(json_request(
             self, self.root, "POST", self.url, body=json.dumps(create_request)))
         self.assertEqual(response.code, 201)
+        for key in create_request.keys():
+            self.assertEqual(create_request[key], content[key])
+
+    def test_create_node_failure(self):
+        """
+        Create node returns 400 if the request json is not
+        as expected.
+        """
+        response = self.successResultOf(request(
+            self, self.root, "POST", self.url, body=json.dumps({})))
+        self.assertEqual(response.code, 400)
 
     def test_list_nodes(self):
         """

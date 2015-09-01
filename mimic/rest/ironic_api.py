@@ -21,6 +21,13 @@ class IronicApi(object):
         """
         self.core = core
 
+    @app.route('/nodes', methods=['POST'])
+    def create_node(self, request):
+        """
+        Responds with response code 200 with the newly created node.
+        """
+        return self.core.ironic_node_store.create_node(request)
+
     @app.route('/nodes', methods=['GET'])
     def list_nodes(self, request):
         """
