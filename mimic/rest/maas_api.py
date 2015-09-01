@@ -782,7 +782,8 @@ class MaasMock(object):
         """
         Gets the user's audit logs.
         """
-        all_audits = self._entity_cache_for_tenant(tenant_id).audits_list
+        ordering = -1 if request.args.get('reverse', False) else 1
+        all_audits = self._entity_cache_for_tenant(tenant_id).audits_list[::ordering]
         page_limit = min(int(request.args.get('limit', [100])[0]), 1000)
         offset = 0
         current_marker = request.args.get('marker', [None])[0]
