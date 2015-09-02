@@ -46,6 +46,28 @@ class IronicAPITests(SynchronousTestCase):
             "inspection_finished_at", "inspection_started_at", "clean_step"
         ]
         self.url = "/ironic/v1/nodes"
+        self.create_request = {
+            "chassis_uuid": str(uuid4()),
+            "driver": "fake",
+            "driver_info": {"cache_image_id": None,
+                            "cache_status": None},
+            "name": "test_node",
+            "properties": {
+                "cpus": "1",
+                "local_gb": "10",
+                "memory_mb": "1024"
+            }
+        }
+
+    def create_node(self, create_request=None):
+        """
+        Create a new node and return node.
+        """
+        request = create_request or self.create_request
+        (response, content) = self.successResultOf(json_request(
+            self, self.root, "POST", self.url, body=json.dumps(request)))
+        self.assertEqual(response.code, 201)
+        return content
 
     def get_nodes(self, postfix=None):
         """
@@ -63,23 +85,9 @@ class IronicAPITests(SynchronousTestCase):
         """
         Create node returns 201 and the newly created node.
         """
-        create_request = {
-            "chassis_uuid": str(uuid4()),
-            "driver": "fake",
-            "driver_info": {"cache_image_id": None,
-                            "cache_status": None},
-            "name": "test_node",
-            "properties": {
-                "cpus": "1",
-                "local_gb": "10",
-                "memory_mb": "1024"
-            }
-        }
-        (response, content) = self.successResultOf(json_request(
-            self, self.root, "POST", self.url, body=json.dumps(create_request)))
-        self.assertEqual(response.code, 201)
-        for key in create_request.keys():
-            self.assertEqual(create_request[key], content[key])
+        new_node = self.create_node()
+        for key in self.create_request.keys():
+            self.assertEqual(self.create_request[key], new_node[key])
 
     def test_create_node_failure(self):
         """
@@ -89,6 +97,61 @@ class IronicAPITests(SynchronousTestCase):
         response = self.successResultOf(request(
             self, self.root, "POST", self.url, body=json.dumps({})))
         self.assertEqual(response.code, 400)
+
+    def test_delete_node_when_node_does_not_exist(self):
+        """
+        Delete node returns 404 when the given node_id
+        does not exist.
+        """
+        response = self.successResultOf(request(
+            self, self.root, "DELETE", self.url + "/1234"))
+        self.assertEqual(response.code, 404)
+
+    def test_delete_node(self):
+        """
+        Delete node returns 204 deletes the given node_id.
+        """
+        # create node
+        content = self.create_node()
+        node_id = str(content['uuid'])
+
+        # delete node
+        response = self.successResultOf(request(
+            self, self.root, "DELETE", self.url + '/' + node_id))
+        self.assertEqual(response.code, 204)
+
+        # get node
+        response = self.successResultOf(request(
+            self, self.root, "GET", self.url + '/' + node_id))
+        self.assertEqual(404, response.code)
+
+    def test_create_then_get_node(self):
+        """
+        Test create node then get the node and verify attributes
+        """
+        # create node
+        content = self.create_node({"properties": {"memory_mb": 32768}})
+        node_id = str(content['uuid'])
+
+        # get node
+        (response, get_content) = self.successResultOf(json_request(
+            self, self.root, "GET", self.url + '/' + node_id))
+        self.assertEqual(200, response.code)
+        self.assertEqual(content, get_content)
+
+    def test_create_then_get_node_2(self):
+        """
+        Test create node then get the node and verify attributes
+        """
+        # create node
+        content = self.create_node()
+        node_id = str(content['uuid'])
+
+        # get node
+        (response, get_content) = self.successResultOf(json_request(
+            self, self.root, "GET", self.url + '/' + node_id))
+        self.assertEqual(200, response.code)
+        self.assertEqual(content, get_content)
 
     def test_list_nodes(self):
         """
@@ -134,7 +197,11 @@ class IronicAPITests(SynchronousTestCase):
         Test ``/nodes/<node_id>`` to return response code 200 and validate the
         attributes of the json response body
         """
-        node_id = uuid4()
+        # create a node
+        content = self.create_node()
+        node_id = content['uuid']
+
+        # get node
         content = self.get_nodes('/' + str(node_id))
         self.assertEqual(
             sorted(content.keys()),
@@ -158,9 +225,10 @@ class IronicAPITests(SynchronousTestCase):
         Test ``/nodes/<node-id>/states/provision`` returns a 200 and
         sets the `provision_state` on the node.
         """
-        node_id = uuid4()
-        # GET node essentially creates a node
-        content = self.get_nodes('/' + str(node_id))
+        # create a node
+        content = self.create_node()
+        node_id = content['uuid']
+
         provision_state = content['provision_state']
         self.assertEqual(provision_state, 'available')
 
@@ -201,9 +269,9 @@ class IronicAPITests(SynchronousTestCase):
         Test ``/nodes/<node-id>/vendor_passthru/cache_image`` returns a 400 when
         the the method is not `cache_image`
         """
-        node_id = uuid4()
-        # GET node essentially creates the node with the given node_id
-        self.get_nodes('/' + str(node_id))
+        # create node
+        new_node = self.create_node()
+        node_id = new_node['uuid']
 
         url = self.url + "/{0}/vendor_passthru/not_cache_image".format(node_id)
         response = self.successResultOf(request(
@@ -215,9 +283,9 @@ class IronicAPITests(SynchronousTestCase):
         Test ``/nodes/<node-id>/vendor_passthru/cache_image`` returns a 400 when
         the body for the request is invalid
         """
-        node_id = uuid4()
-        # GET node essentially creates the node with the given node_id
-        self.get_nodes('/' + str(node_id))
+        # create node
+        new_node = self.create_node()
+        node_id = new_node['uuid']
 
         body_list = [{"image_info": {}}, {"image": {"id": "111"}},
                      {"image_invalid": {"inv": None}}, {"image_info": {"id": None}}]
@@ -232,11 +300,12 @@ class IronicAPITests(SynchronousTestCase):
         Test ``/nodes/<node-id>/vendor_passthru/cache_image`` returns a 202 and
         sets the cache_image_id and cache_status on the node
         """
-        node_id = uuid4()
-        # GET node essentially creates the node with the given node_id
-        content = self.get_nodes('/' + str(node_id))
-        self.assertFalse(content['driver_info'].get('cache_image_id'))
-        self.assertFalse(content['driver_info'].get('cache_status'))
+        # create node
+        new_node = self.create_node({'properties': {'memory_mb': 131072}})
+        node_id = new_node['uuid']
+
+        self.assertFalse(new_node['driver_info'].get('cache_image_id'))
+        self.assertFalse(new_node['driver_info'].get('cache_status'))
 
         image_id = str(uuid4())
         body = {"image_info": {"id": image_id}}
