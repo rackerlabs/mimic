@@ -24,6 +24,7 @@ from mimic.canned_responses.maas_json_home import json_home
 from mimic.canned_responses.maas_agent_info import agent_info
 from mimic.canned_responses.maas_monitoring_zones import monitoring_zones
 from mimic.canned_responses.maas_alarm_examples import alarm_examples
+from mimic.model.maas_objects import get_test_check_response_by_type
 from mimic.util.helper import random_hex_generator
 
 
@@ -128,6 +129,7 @@ class MCache(object):
         self.suppressions_list = []
         self.audits_list = []
         self.test_alarm_responses = collections.defaultdict(lambda: [])
+        self.test_check_responses = {}
 
 
 def create_entity(clock, params):
@@ -630,6 +632,23 @@ class MaasMock(object):
         request.setHeader('content-type', 'text/plain')
         self._audit('checks', request, tenant_id, status)
         return ''
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/test-check', methods=['POST'])
+    def test_check(self, request, tenant_id, entity_id):
+        """
+        Tests a check
+        """
+        content = request.content.read()
+        test_config = json.loads(content)
+        check_type = test_config['type']
+        check_responses = self._entity_cache_for_tenant(tenant_id).test_check_responses
+        if (entity_id, check_type) not in check_responses:
+            check_responses[(entity_id, check_type)] = get_test_check_response_by_type(check_type)
+
+        response_code, response_body = check_responses[(entity_id, check_type)].get_response()
+        request.setResponseCode(response_code)
+        self._audit('checks', request, tenant_id, response_code, content)
+        return json.dumps(response_body)
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms', methods=['POST'])
     def create_alarm(self, request, tenant_id, entity_id):
@@ -1354,4 +1373,46 @@ class MaasController(object):
         dummy_response = json.loads(request.content.read())
         test_responses[entity_id].append(dummy_response)
         request.setResponseCode(201)
+        return ''
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks' +
+               '/test_responses/<string:check_type>', methods=['PUT'])
+    def set_test_check_overrides(self, request, tenant_id, entity_id, check_type):
+        """
+        Sets overriding behavior on the test-check handler for a given
+        entity ID and check type.
+        """
+        test_responses = self._entity_cache_for_tenant(tenant_id).test_check_responses
+        request_body = json.loads(request.content.read())
+        if (entity_id, check_type) not in test_responses:
+            test_responses[(entity_id, check_type)] = get_test_check_response_by_type(check_type)
+
+        overriding_response = test_responses[(entity_id, check_type)]
+        if 'available' in request_body:
+            overriding_response.available = request_body['available']
+        if 'status' in request_body:
+            overriding_response.status = request_body['status']
+        metrics_dict = request_body.get('metrics', {})
+        for metric_name in metrics_dict:
+            test_check_metric = overriding_response.get_metric_by_name(metric_name)
+            test_check_metric.set_override(metrics_dict[metric_name]['data'])
+        request.setResponseCode(204)
+        return ''
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks' +
+               '/test_responses/<string:check_type>', methods=['DELETE'])
+    def clear_test_check_overrides(self, request, tenant_id, entity_id, check_type):
+        """
+        Clears overriding behavior on a test-check handler.
+        """
+        test_responses = self._entity_cache_for_tenant(tenant_id).test_check_responses
+        if (entity_id, check_type) in test_responses:
+            overriding_response = test_responses[(entity_id, check_type)]
+            overriding_response.available = True
+            overriding_response.status = "code=200,rt=0.4s,bytes=99"
+
+            for metric in overriding_response.metrics:
+                metric.clear_override()
+
+        request.setResponseCode(204)
         return ''

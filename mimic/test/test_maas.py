@@ -1,9 +1,34 @@
 import json
 import treq
 from twisted.trial.unittest import SynchronousTestCase
+from mimic.model.maas_objects import TestCheckMetric, TestCheckData
 from mimic.rest.maas_api import MaasApi, MaasControlApi
 from mimic.test.helpers import request
 from mimic.test.fixtures import APIMockHelper
+
+
+class MaasObjectsTests(SynchronousTestCase):
+    """
+    Tests for maas objects, cases that aren't hit by the broader API test.
+    """
+    def test_test_check_metric_unknown_type_value_errors(self):
+        """
+        Known types for TestCheckMetric are 'i', 'n', and 's'. Other types
+        raise ValueError.
+        """
+        metric = TestCheckMetric('whuut', 'z')
+        with self.assertRaises(ValueError):
+            metric.get_value()
+
+    def test_test_check_data_missing_metric_name_errors(self):
+        """
+        If you query a TestCheckData for a metric it doesn't have, you get
+        NameError.
+        """
+        test_check_data = TestCheckData([
+            TestCheckMetric('that_metric', 'i', 'count')])
+        with self.assertRaises(NameError):
+            test_check_data.get_metric_by_name('not_that_metric')
 
 
 class MaasAPITests(SynchronousTestCase):
@@ -401,6 +426,100 @@ class MaasAPITests(SynchronousTestCase):
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         self.assertEquals(0, len(self.get_responsebody(resp)['values'][0]['alarms']))
+
+    def test_test_check(self):
+        """
+        The test-check API should return fake test-check results.
+        """
+        req = request(self, self.root, "POST",
+                      self.uri + '/entities/' + self.entity_id + '/test-check',
+                      json.dumps({'type': 'agent.cpu'}))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertEquals(1, len(data))
+        self.assertIn('usage_average', data[0]['metrics'])
+
+    def test_test_check_setting_available(self):
+        """
+        The test-check control API can set available=False.
+        """
+        req = request(self, self.root, "PUT",
+                      '{0}/entities/{1}/checks/test_responses/{2}'.format(
+                          self.ctl_uri, self.entity_id, 'agent.load_average'),
+                      json.dumps({'available': False}))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 204)
+        req = request(self, self.root, "POST",
+                      self.uri + '/entities/' + self.entity_id + '/test-check',
+                      json.dumps({'type': 'agent.load_average'}))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertEquals(False, data[0]['available'])
+
+    def test_test_check_setting_status(self):
+        """
+        The test-check control API can set the status message.
+        """
+        req = request(self, self.root, "PUT",
+                      '{0}/entities/{1}/checks/test_responses/{2}'.format(
+                          self.ctl_uri, self.entity_id, 'agent.cpu'),
+                      json.dumps({'status': 'whuuut'}))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 204)
+        req = request(self, self.root, "POST",
+                      self.uri + '/entities/' + self.entity_id + '/test-check',
+                      json.dumps({'type': 'agent.cpu'}))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertEquals('whuuut', data[0]['status'])
+
+    def test_test_check_setting_metrics(self):
+        """
+        The test-check control API can set metrics.
+        """
+        req = request(self, self.root, "PUT",
+                      '{0}/entities/{1}/checks/test_responses/{2}'.format(
+                          self.ctl_uri, self.entity_id, 'agent.cpu'),
+                      json.dumps({'metrics': {'usage_average': {'data': 31}}}))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 204)
+        req = request(self, self.root, "POST",
+                      self.uri + '/entities/' + self.entity_id + '/test-check',
+                      json.dumps({'type': 'agent.cpu'}))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertEquals(31, data[0]['metrics']['usage_average']['data'])
+
+    def test_test_check_clears_metrics(self):
+        """
+        The test-check control API can clear metrics.
+
+        NB: Randomly generated string metrics are between 12 and 30
+        characters long.
+        """
+        options = {'data': 'really great forty-three character sentence'}
+        req = request(self, self.root, "PUT",
+                      '{0}/entities/{1}/checks/test_responses/{2}'.format(
+                          self.ctl_uri, self.entity_id, 'agent.filesystem'),
+                      json.dumps({'metrics': {'options': options}}))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 204)
+        req = request(self, self.root, "DELETE",
+                      '{0}/entities/{1}/checks/test_responses/{2}'.format(
+                          self.ctl_uri, self.entity_id, 'agent.filesystem'))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 204)
+        req = request(self, self.root, "POST",
+                      self.uri + '/entities/' + self.entity_id + '/test-check',
+                      json.dumps({'type': 'agent.filesystem'}))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertTrue(len(data[0]['metrics']['options']['data']) < 43)
 
     def test_test_alarm_400s_when_empty_queue(self):
         """
