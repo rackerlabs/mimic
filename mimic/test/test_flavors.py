@@ -94,9 +94,8 @@ class NovaAPIFlavorsTests(SynchronousTestCase):
         """
         flavor_list = self.get_server_flavor('/flavors')['flavors']
         for each_flavor in flavor_list:
-            get_server_flavor_response_body = self.get_server_flavor(
-                '/flavors/' + each_flavor['id'])
-            self.assertEqual(each_flavor['id'],
-                             get_server_flavor_response_body['flavor']['id'])
-            self.assertEqual(each_flavor['name'],
-                             get_server_flavor_response_body['flavor']['name'])
+            flavor_id = each_flavor['id']
+            name = each_flavor['name']
+            get_server_flavor_response_body = self.get_server_flavor('/flavors/' + flavor_id)
+            self.assertEqual(flavor_id, get_server_flavor_response_body['flavor']['id'])
+            self.assertEqual(name, get_server_flavor_response_body['flavor']['name'])
