@@ -128,7 +128,7 @@ class MCache(object):
                                                                   code (E.164 format)'}]}]
         self.suppressions_list = []
         self.audits_list = []
-        self.test_alarm_responses = collections.defaultdict(lambda: [])
+        self.test_alarm_responses = {}
         self.test_check_responses = {}
 
 
@@ -746,22 +746,28 @@ class MaasMock(object):
         """
         Test an alarm, pulling responses from the simulated test-alarm queue.
         """
-        payload = json.loads(request.content.read())
+        content = request.content.read()
+        payload = json.loads(content)
         n_tests = len(payload['check_data'])
-        test_responses = self._entity_cache_for_tenant(tenant_id).test_alarm_responses[entity_id]
-        if len(test_responses) < n_tests:
-            request.setResponseCode(400)
-            return json.dumps({'type': 'badRequest',
-                               'code': 400,
-                               'message': 'No configured test-alarm responses'})
+        test_responses = self._entity_cache_for_tenant(tenant_id).test_alarm_responses
         response_payload = []
-        for _ in xrange(n_tests):
-            ith_test_response = test_responses.pop(0)
-            response_payload.append({'timestamp': int(time.time() * 1000),
-                                     'state': ith_test_response['state'],
-                                     'status': ith_test_response.get(
-                                         'status', 'Matched default return statement')})
-        request.setResponseCode(200)
+        if entity_id in test_responses:
+            n_responses = len(test_responses[entity_id])
+            for i in xrange(n_tests):
+                test_response = test_responses[entity_id][i % n_responses]
+                response_payload.append({'state': test_response['state'],
+                                         'status': test_response.get(
+                                             'status', 'Matched default return statement'),
+                                         'timestamp': int(time.time() * 1000)})
+        else:
+            for i in xrange(n_tests):
+                response_payload.append({'state': random.choice(['OK', 'WARNING', 'CRITICAL']),
+                                         'status': random.choice(['cats', 'dogs', 'chickens']),
+                                         'timestamp': int(time.time() * 1000)})
+
+        status = 200
+        request.setResponseCode(status)
+        self._audit('alarms', request, tenant_id, status, content)
         return json.dumps(response_payload)
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms', methods=['GET'])
@@ -1358,21 +1364,32 @@ class MaasController(object):
 
     app = MimicApp()
 
-    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/test_responses',
-               methods=['POST'])
-    def push_test_alarm_response(self, request, tenant_id, entity_id):
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/test_response',
+               methods=['PUT'])
+    def set_test_alarm_response(self, request, tenant_id, entity_id):
         """
-        Puts a test-alarm response into the response queue.
-
-        When the MaaS user runs a test-alarm call, test responses will be pulled
-        from the queue in FIFO order and returned. test-alarm responses must have
-        a state field for the simulated alarm state, and may have a status field
-        containing the status message returned to the user.
+        Sets the test-alarm response for a given entity.
         """
         test_responses = self._entity_cache_for_tenant(tenant_id).test_alarm_responses
         dummy_response = json.loads(request.content.read())
-        test_responses[entity_id].append(dummy_response)
-        request.setResponseCode(201)
+        test_responses[entity_id] = []
+        for response_block in dummy_response:
+            ith_response = {'state': response_block['state']}
+            if 'status' in response_block:
+                ith_response['status'] = response_block['status']
+            test_responses[entity_id].append(ith_response)
+        request.setResponseCode(204)
+        return ''
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/test_response',
+               methods=['DELETE'])
+    def clear_test_alarm_response(self, request, tenant_id, entity_id):
+        """
+        Clears the test-alarm response and restores normal behavior.
+        """
+        test_responses = self._entity_cache_for_tenant(tenant_id).test_alarm_responses
+        del test_responses[entity_id]
+        request.setResponseCode(204)
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks' +
