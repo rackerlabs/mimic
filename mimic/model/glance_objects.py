@@ -73,11 +73,12 @@ class GlanceImage(object):
                     minDisk = image_spec['minDisk']
                     image_size = image_spec['OS-EXT-IMG-SIZE:size']
                     image = image_class(image_id=image_id, tenant_id=33333, name=image_name,
-                                        minRam=minRam, minDisk=minDisk, image_size=image_size
-                                        )
+                                        minRam=minRam, minDisk=minDisk, image_size=image_size)
                     if 'com.rackspace__1__ui_default_show' in image_spec:
                         image.set_is_default()
                     self.images_store.append(image)
+                else:
+                    continue
 
     def list_images(self, region_name, include_details):
         """
@@ -112,3 +113,4 @@ class GlanceImage(object):
         for image in self.images_store:
             if image.image_id == image_id:
                 return image
+        return None
