@@ -176,7 +176,7 @@ class Node(object):
             template["instance_info"] = self.static_instance_info
             template["provision_state"] = "active"
         if not self.driver:
-            template["driver"] = "agent_ipmitool"
+            template["driver"] = "fake"
         return template
 
 

@@ -48,7 +48,7 @@ class IronicAPITests(SynchronousTestCase):
         self.url = "/ironic/v1/nodes"
         self.create_request = {
             "chassis_uuid": str(uuid4()),
-            "driver": "fake",
+            "driver": "agent_ipmitool",
             "driver_info": {"cache_image_id": None,
                             "cache_status": None},
             "name": "test_node",
@@ -111,7 +111,6 @@ class IronicAPITests(SynchronousTestCase):
         """
         Delete node returns 204 deletes the given node_id.
         """
-        # create node
         content = self.create_node()
         node_id = str(content['uuid'])
 
@@ -129,7 +128,6 @@ class IronicAPITests(SynchronousTestCase):
         """
         Test create node then get the node and verify attributes
         """
-        # create node
         content = self.create_node({"properties": {"memory_mb": 32768}})
         node_id = str(content['uuid'])
 
@@ -139,11 +137,10 @@ class IronicAPITests(SynchronousTestCase):
         self.assertEqual(200, response.code)
         self.assertEqual(content, get_content)
 
-    def test_create_then_get_node_2(self):
+    def test_create_then_get_node_with_default_attributes(self):
         """
         Test create node then get the node and verify attributes
         """
-        # create node
         content = self.create_node()
         node_id = str(content['uuid'])
 
@@ -269,7 +266,6 @@ class IronicAPITests(SynchronousTestCase):
         Test ``/nodes/<node-id>/vendor_passthru/cache_image`` returns a 400 when
         the the method is not `cache_image`
         """
-        # create node
         new_node = self.create_node()
         node_id = new_node['uuid']
 
@@ -283,7 +279,6 @@ class IronicAPITests(SynchronousTestCase):
         Test ``/nodes/<node-id>/vendor_passthru/cache_image`` returns a 400 when
         the body for the request is invalid
         """
-        # create node
         new_node = self.create_node()
         node_id = new_node['uuid']
 
@@ -300,7 +295,6 @@ class IronicAPITests(SynchronousTestCase):
         Test ``/nodes/<node-id>/vendor_passthru/cache_image`` returns a 202 and
         sets the cache_image_id and cache_status on the node
         """
-        # create node
         new_node = self.create_node({'properties': {'memory_mb': 131072}})
         node_id = new_node['uuid']
 
