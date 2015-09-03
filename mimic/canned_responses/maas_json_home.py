@@ -5,7 +5,7 @@ Canned response for monitoring json home
 
 def json_home(url):
     """
-    Canned response for the jsno_home call
+    Canned response for the json_home call
     """
     return {
         "resources": {

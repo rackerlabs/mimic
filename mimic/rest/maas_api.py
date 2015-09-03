@@ -138,20 +138,17 @@ def create_entity(clock, params):
     :rtype: ``dict`` mapping ``unicode`` to ``unicode``, ``float``,
         ``bool``, ``dict`` or ``NoneType``.
     """
-    params = collections.defaultdict(lambda: '', params)
     current_time_milliseconds = int(1000 * clock.seconds())
 
-    newentity = {}
-    newentity['label'] = params['label']
-    newentity['id'] = 'en' + random_hex_generator(4)
-    newentity['agent_id'] = params['agent_id'] or random_hex_generator(12)
-    newentity['created_at'] = current_time_milliseconds
-    newentity['updated_at'] = current_time_milliseconds
-    newentity['managed'] = params['managed'] or False
-    newentity['metadata'] = params['metadata']
-    newentity['ip_addresses'] = params['ip_addresses'] or {}
-    newentity['uri'] = params['uri'] or None
-    return newentity
+    return {'label': params.get('label', ''),
+            'id': 'en' + random_hex_generator(4),
+            'agent_id': params.get('agent_id') or random_hex_generator(12),
+            'created_at': current_time_milliseconds,
+            'updated_at': current_time_milliseconds,
+            'managed': params.get('managed', False),
+            'metadata': params.get('metadata', {}),
+            'ip_addresses': params.get('ip_addresses', {}),
+            'uri': params.get('uri')}
 
 
 def create_check(clock, params):
@@ -166,23 +163,21 @@ def create_check(clock, params):
     """
     current_time_milliseconds = int(1000 * clock.seconds())
 
-    params = collections.defaultdict(lambda: '', params)
-    params['id'] = 'ch' + random_hex_generator(4)
-    params['collectors'] = []
-    for q in range(3):
-        params['collectors'].append('co' + random_hex_generator(3))
-    params['confd_hash'] = None
-    params['confd_name'] = None
-    params['created_at'] = current_time_milliseconds
-    params['updated_at'] = current_time_milliseconds
-    params['timeout'] = 10
-    params['period'] = 60
-    params['disabled'] = False
-    params['metadata'] = None
-    params['target_alias'] = None
-    if 'count' not in params['details']:
-        params['details'] = {'count': 5}  # I have no idea what count=5 is for.
-    return params
+    return {'id': 'ch' + random_hex_generator(4),
+            'type': params['type'],
+            'label': params.get('label', ''),
+            'monitoring_zones_poll': params.get('monitoring_zones_poll', []),
+            'collectors': ['co' + random_hex_generator(3) for _ in range(3)],
+            'created_at': current_time_milliseconds,
+            'updated_at': current_time_milliseconds,
+            'timeout': 10,
+            'period': 60,
+            'disabled': False,
+            'metadata': params.get('metadata', {}),
+            'target_alias': params.get('target_alias'),
+            'target_hostname': params.get('target_hostname'),
+            'target_resolver': params.get('target_resolver'),
+            'details': params.get('details') or {'count': 5}}
 
 
 def create_alarm(clock, params):
@@ -197,15 +192,15 @@ def create_alarm(clock, params):
     """
     current_time_milliseconds = int(1000 * clock.seconds())
 
-    params = collections.defaultdict(lambda: '', params)
-    params['id'] = 'al' + random_hex_generator(4)
-    params['confd_hash'] = None
-    params['confd_name'] = None
-    params['created_at'] = current_time_milliseconds
-    params['updated_at'] = current_time_milliseconds
-    params['disabled'] = False
-    params['metadata'] = None
-    return params
+    return {'id': 'al' + random_hex_generator(4),
+            'label': params.get('label', ''),
+            'criteria': params.get('criteria', 'return new AlarmStatus(OK);'),
+            'check_id': params['check_id'],
+            'notification_plan_id': params['notification_plan_id'],
+            'created_at': current_time_milliseconds,
+            'updated_at': current_time_milliseconds,
+            'disabled': False,
+            'metadata': params.get('metadata', {})}
 
 
 def create_notification_plan(clock, params):
@@ -220,14 +215,14 @@ def create_notification_plan(clock, params):
     """
     current_time_milliseconds = int(1000 * clock.seconds())
 
-    params['id'] = 'np' + random_hex_generator(4)
-    params['critical_state'] = None
-    params['warning_state'] = None
-    params['ok_state'] = None
-    params['created_at'] = current_time_milliseconds
-    params['updated_at'] = current_time_milliseconds
-    params['metadata'] = None
-    return params
+    return {'id': 'np' + random_hex_generator(4),
+            'label': params.get('label', ''),
+            'critical_state': params.get('critical_state'),
+            'warning_state': params.get('warning_state'),
+            'ok_state': params.get('ok_state'),
+            'created_at': current_time_milliseconds,
+            'updated_at': current_time_milliseconds,
+            'metadata': params.get('metadata', {})}
 
 
 def create_notification(clock, params):
@@ -242,11 +237,13 @@ def create_notification(clock, params):
     """
     current_time_milliseconds = int(1000 * clock.seconds())
 
-    params['id'] = 'nt' + random_hex_generator(4)
-    params['created_at'] = current_time_milliseconds
-    params['updated_at'] = current_time_milliseconds
-    params['metadata'] = None
-    return params
+    return {'id': 'nt' + random_hex_generator(4),
+            'label': params.get('label', ''),
+            'type': params.get('type', 'email'),
+            'details': params.get('details', {}),
+            'created_at': current_time_milliseconds,
+            'updated_at': current_time_milliseconds,
+            'metadata': params.get('metadata', {})}
 
 
 def create_suppression(params):
@@ -258,16 +255,14 @@ def create_suppression(params):
         <http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-suppressions.html>`_
     :rtype: ``dict`` mapping ``unicode`` to ``unicode`` or ``list``.
     """
-    params['id'] = 'sp' + random_hex_generator(4)
-    if 'notification_plans' not in params:
-        params['notification_plans'] = []
-    if 'entities' not in params:
-        params['entities'] = []
-    if 'checks' not in params:
-        params['checks'] = []
-    if 'alarms' not in params:
-        params['alarms'] = []
-    return params
+    return {'id': 'sp' + random_hex_generator(4),
+            'label': params.get('label', ''),
+            'start_time': params.get('start_time', 0),
+            'end_time': params.get('end_time', 0),
+            'notification_plans': params.get('notification_plans', []),
+            'entities': params.get('entities', []),
+            'checks': params.get('checks', []),
+            'alarms': params.get('alarms', [])}
 
 
 def create_metric_list_from_entity(entity, allchecks):
@@ -275,10 +270,9 @@ def create_metric_list_from_entity(entity, allchecks):
     To respond to the metrics_list api call, we must have the entity and allchecks
     and assemble the structure to reply with.
     """
-    v = {}
-    v['entity_id'] = entity['id']
-    v['entity_label'] = entity['label']
-    v['checks'] = []
+    v = {'entity_id': entity['id'],
+         'entity_label': entity['label'],
+         'checks': []}
     for c in allchecks:
         if c['type'] == 'remote.ping' and c['entity_id'] == entity['id']:
             metricscheck = {}
