@@ -155,7 +155,7 @@ class IronicAPITests(SynchronousTestCase):
         """
         Test create node then get the node and verify attributes
         """
-        content = self.create_node({"driver": "fake"})
+        content = self.create_node({})
         node_id = str(content['uuid'])
 
         # get node
