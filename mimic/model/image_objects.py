@@ -117,8 +117,7 @@ class RackspaceWindowsImage(Image):
             "image_type": "base",
             "os_type": "windows",
             "status": "active",
-            "org.openstack__1__os_distro": "com.microsoft.server",
-
+            "org.openstack__1__os_distro": "com.microsoft.server"
         }
 
 
@@ -513,7 +512,6 @@ class RackspaceVyattaImage(Image):
         }
 
 
-
 @attributes(['image_id', 'tenant_id', 'name', 'minDisk', 'minRam', 'image_size'])
 class OnMetalImage(object):
     """
@@ -582,6 +580,7 @@ class OnMetalImage(object):
             "metadata": self.metadata_json()
         })
         return template
+
 
 class RackspaceOnMetalCoreOSImage(OnMetalImage):
     """

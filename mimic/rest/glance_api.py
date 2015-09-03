@@ -76,19 +76,17 @@ class GlanceMock(object):
             visible = request.args.get('visibility')[0]
             limit = request.args.get('limit')[0]
 
-            if visible == 'private' and status == 'pending' and limit == '1000':
+            if visible == 'private' and status == 'shared' and limit == '1000':
                 request.setResponseCode(200)
                 return []
         elif 'visibility' in request.args:
             visible = request.args.get('visibility')[0]
             if visible == 'public':
-
                 image = GlanceImage()
-                print "GLANCE ROUTE VISIBLE IS PUBLIC"
-
                 return image.list_images(self._region, include_details=True)
             else:
                 request.setResponseCode(200)
                 return []
-            # request.setResponseCode(200)
-            # return json.dumps(get_images())
+        else:
+            image = GlanceImage()
+            return image.list_images(self._region, include_details=True)
