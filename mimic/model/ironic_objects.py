@@ -161,13 +161,9 @@ class Node(object):
             },
             "driver": self.driver,
             "driver_info": self.driver_info or {
-                "hardware_manager_version": None,
                 "ipmi_username": "USERID",
                 "ipmi_address": "127.0.0.0",
-                "decommission_target_state": None,
                 "ipmi_password": "******",
-                "agent_url": "http://127.0.0.1:9999",
-                "agent_last_heartbeat": 1427727371,
                 "cache_image_id": self.cache_image_id,
                 "cache_status": 'cached' if self.cache_image_id else None
             }

@@ -49,8 +49,9 @@ class IronicAPITests(SynchronousTestCase):
         self.create_request = {
             "chassis_uuid": str(uuid4()),
             "driver": "agent_ipmitool",
-            "driver_info": {"cache_image_id": None,
-                            "cache_status": None},
+            "driver_info": {"ipmi_username": "mimic-user",
+                            "ipmi_address": "127.0.0.0",
+                            "ipmi_password": "******"},
             "name": "test_node",
             "properties": {
                 "cpus": "1",
