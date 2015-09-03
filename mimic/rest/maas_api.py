@@ -358,6 +358,13 @@ def parse_and_flatten_qs(url):
     return flat_qs
 
 
+def _mcache_factory():
+    """
+    Makes a defaultdict that makes MCache objects for each tenant.
+    """
+    return collections.defaultdict(MCache)
+
+
 class MaasMock(object):
 
     """
@@ -380,9 +387,7 @@ class MaasMock(object):
         Retrieve the M_cache object containing all objects created so far
         """
         return (self._session_store.session_for_tenant_id(tenant_id)
-                .data_for_api(self._api_mock,
-                              lambda: collections.defaultdict(
-                                  lambda: MCache(self._session_store.clock)))[self._name]
+                .data_for_api(self._api_mock, _mcache_factory)[self._name]
                 )
 
     def _audit(self, app, request, tenant_id, status, content=''):
@@ -1359,8 +1364,7 @@ class MaasController(object):
         Retrieve the M_cache object containing all objects created so far
         """
         return (self.session_store.session_for_tenant_id(tenant_id)
-                .data_for_api(self.api_mock.maas_api,
-                              lambda: collections.defaultdict(MCache))[self.region])
+                .data_for_api(self.api_mock.maas_api, _mcache_factory)[self.region])
 
     app = MimicApp()
 

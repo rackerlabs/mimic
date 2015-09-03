@@ -433,12 +433,12 @@ class MaasAPITests(SynchronousTestCase):
         """
         req = request(self, self.root, "POST",
                       self.uri + '/entities/' + self.entity_id + '/test-check',
-                      json.dumps({'type': 'agent.cpu'}))
+                      json.dumps({'type': 'agent.disk'}))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
         self.assertEquals(1, len(data))
-        self.assertIn('usage_average', data[0]['metrics'])
+        self.assertIn('read_bytes', data[0]['metrics'])
 
     def test_test_check_setting_available(self):
         """
@@ -464,13 +464,13 @@ class MaasAPITests(SynchronousTestCase):
         """
         req = request(self, self.root, "PUT",
                       '{0}/entities/{1}/checks/test_responses/{2}'.format(
-                          self.ctl_uri, self.entity_id, 'agent.cpu'),
+                          self.ctl_uri, self.entity_id, 'agent.memory'),
                       json.dumps({'status': 'whuuut'}))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
         req = request(self, self.root, "POST",
                       self.uri + '/entities/' + self.entity_id + '/test-check',
-                      json.dumps({'type': 'agent.cpu'}))
+                      json.dumps({'type': 'agent.memory'}))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -479,6 +479,9 @@ class MaasAPITests(SynchronousTestCase):
     def test_test_check_setting_metrics(self):
         """
         The test-check control API can set metrics.
+
+        Subsequent requests to set the same metrics on the same check type
+        for the same entity will override.
         """
         req = request(self, self.root, "PUT",
                       '{0}/entities/{1}/checks/test_responses/{2}'.format(
@@ -493,6 +496,19 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
         self.assertEquals(31, data[0]['metrics']['usage_average']['data'])
+        req = request(self, self.root, "PUT",
+                      '{0}/entities/{1}/checks/test_responses/{2}'.format(
+                          self.ctl_uri, self.entity_id, 'agent.cpu'),
+                      json.dumps({'metrics': {'usage_average': {'data': 89}}}))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 204)
+        req = request(self, self.root, "POST",
+                      self.uri + '/entities/' + self.entity_id + '/test-check',
+                      json.dumps({'type': 'agent.cpu'}))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertEquals(89, data[0]['metrics']['usage_average']['data'])
 
     def test_test_check_clears_metrics(self):
         """
@@ -520,6 +536,38 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
         self.assertTrue(len(data[0]['metrics']['options']['data']) < 43)
+
+    def test_test_check_empty_clear_does_nothing(self):
+        """
+        If the user sends a DELETE request to the test_responses control API
+        and no control override is in place, nothing happens.
+        """
+        req = request(self, self.root, "DELETE",
+                      '{0}/entities/{1}/checks/test_responses/{2}'.format(
+                          self.ctl_uri, self.entity_id, 'agent.network'))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 204)
+        req = request(self, self.root, "POST",
+                      self.uri + '/entities/' + self.entity_id + '/test-check',
+                      json.dumps({'type': 'agent.network'}))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertIsInstance(data[0]['metrics']['rx_bytes']['data'], int)
+
+    def test_test_check_other_types(self):
+        """
+        The test-check API defines responses for a variety of check types.
+        """
+        for check_type in ['remote.http', 'remote.ping']:
+            req = request(self, self.root, "POST",
+                          '{0}/entities/{1}/test-check'.format(self.uri, self.entity_id),
+                          json.dumps({'type': check_type}))
+            resp = self.successResultOf(req)
+            self.assertEquals(resp.code, 200)
+            data = self.get_responsebody(resp)
+            self.assertEquals(1, len(data))
+            self.assertTrue('metrics' in data[0])
 
     def test_test_alarm(self):
         """
