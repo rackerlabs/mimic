@@ -229,9 +229,12 @@ class IronicNodeStore(object):
         """
         content = loads(http_create_request.content.read())
         try:
+            memory_mb = 131072
+            if content.get('properties'):
+                memory_mb = content.get('memory_mb', memory_mb)
             node = self.add_to_ironic_node_store(
                 node_id=str(uuid4()),
-                memory_mb=content['properties']['memory_mb'],
+                memory_mb=memory_mb,
                 chassis_uuid=content.get('chassis_uuid'),
                 driver=content.get('driver'),
                 properties=content.get('properties'),
