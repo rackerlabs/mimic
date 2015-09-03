@@ -4,7 +4,7 @@ Tests for :mod:`nova_api` and :mod:`nova_objects` for images.
 
 from twisted.trial.unittest import SynchronousTestCase
 
-from mimic.test.helpers import json_request, request
+from mimic.test.helpers import json_request
 from mimic.rest.nova_api import NovaApi
 from mimic.test.fixtures import APIMockHelper
 

@@ -302,17 +302,6 @@ class NovaRegion(object):
         """
         Returns a get image response, for any given imageid
         """
-        # response_data = get_image(image_id)
-        # request.setResponseCode(response_data[1])
-        # return json.dumps(response_data[0])
-        # image = get_image(image_id)
-        # if not image:
-        #     request.setResponseCode(404)
-        #     print 'DID NOT FIND THE IMAGE$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$'
-        #     return b''
-        # else:
-        #     request.setResponseCode(200)
-        #     return json.dumps(get_image(image_id))
         return(self._region_collection_for_tenant(tenant_id)
                .get_image(request, image_id, absolutize_url=self.url))
 
@@ -321,8 +310,6 @@ class NovaRegion(object):
         """
         Returns details
         """
-        # request.setResponseCode(200)
-        # return json.dumps(get_images_detail())
         return (self._region_collection_for_tenant(tenant_id)
                 .list_images(include_details=True, absolutize_url=self.url))
 
