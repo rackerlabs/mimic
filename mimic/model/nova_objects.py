@@ -21,6 +21,15 @@ from mimic.model.flavor_objects import (
     RackspaceOnMetalFlavor, RackspaceIOFlavor, RackspaceGeneralFlavor,
     RackspacePerformance1Flavor, RackspacePerformance2Flavor)
 
+from mimic.model.image_objects import (
+    Image, RackspaceWindowsImage, RackspaceArchImage, RackspaceCentOSPVImage,
+    RackspaceCentOSPVHMImage, RackspaceCoreOSImage, RackspaceDebianImage,
+    RackspaceFedoraImage, RackspaceFreeBSDImage, RackspaceGentooImage, RackspaceOpenSUSEImage,
+    RackspaceRedHatPVImage, RackspaceRedHatPVHMImage, RackspaceUbuntuPVImage, RackspaceUbuntuPVHMImage,
+    RackspaceVyattaImage, RackspaceScientificImage, RackspaceOnMetalCentOSImage,
+    RackspaceOnMetalCoreOSImage, RackspaceOnMetalDebianImage, RackspaceOnMetalFedoraImage,
+    RackspaceOnMetalUbuntuImage)
+
 from mimic.canned_responses.mimic_presets import get_presets
 from mimic.model.behaviors import (
     BehaviorRegistryCollection, EventDescription, Criterion, regexp_predicate
@@ -649,6 +658,7 @@ def metadata_to_creation_behavior(metadata):
     ["tenant_id", "region_name", "clock",
      Attribute("servers", default_factory=list),
      Attribute("flavors_store", default_factory=list),
+     Attribute("images_store", default_factory=list),
      Attribute(
          "behavior_registry_collection",
          default_factory=lambda: BehaviorRegistryCollection())]
@@ -673,6 +683,14 @@ class RegionalServerCollection(object):
         for flavor in self.flavors_store:
             if flavor.flavor_id == flavor_id:
                 return flavor
+
+    def image_by_id(self, image_id):
+        """
+        Retrieve a :obj:`Image` object by its ID.
+        """
+        for image in self.images_store:
+            if image.image_id == image_id:
+                return image
 
     def request_creation(self, creation_http_request, creation_json,
                          absolutize_url):
@@ -998,6 +1016,75 @@ class RegionalServerCollection(object):
                             ram=1, tenant_id=self.tenant_id, vcpus=2, rxtx=200, disk=3)
             self.flavors_store.append(flavor)
         return dumps({"flavor": flavor.detailed_json(absolutize_url)})
+
+    def create_images_list(self, image_classes):
+        """
+        Generates the data for each flavor in each flavor class
+        """
+        for image_class in image_classes:
+            for image, image_spec in image_class.images.iteritems():
+                if not self.image_by_id(image_spec['id']):
+                    image_name = image
+                    image_id = image_spec['id']
+                    minRam = image_spec['minRam']
+                    minDisk = image_spec['minDisk']
+                    image_size = image_spec['OS-EXT-IMG-SIZE:size']
+                    tenant_id = self.tenant_id
+                    image = image_class(image_id=image_id, tenant_id=tenant_id, image_size=image_size,
+                                        name=image_name, minRam=minRam, minDisk=minDisk)
+                    # if image_spec["com.rackspace__1__ui_default_show"]:
+                    # #     default = image_spec["com.rackspace__1__ui_default_show"]
+                    # # else:
+                    # #     default = ''
+                    self.images_store.append(image)
+
+    def list_images(self, include_details, absolutize_url):
+        """
+        Return a list of images.
+        """
+        images = [RackspaceWindowsImage, RackspaceVyattaImage, RackspaceUbuntuPVImage,
+                  RackspaceUbuntuPVHMImage, RackspaceArchImage,
+                  RackspaceScientificImage, RackspaceRedHatPVImage, RackspaceRedHatPVHMImage,
+                  RackspaceCentOSPVImage, RackspaceCentOSPVHMImage, RackspaceCoreOSImage,
+                  RackspaceDebianImage, RackspaceFedoraImage, RackspaceFreeBSDImage,
+                  RackspaceGentooImage, RackspaceOpenSUSEImage]
+        self.create_images_list(images)
+        images = []
+        for image in self.images_store:
+            # if self.region_name != "IAD" and isinstance(flavor, RackspaceOnMetalFlavor):
+            #     continue
+            if include_details:
+                images.append(image.detailed_json(absolutize_url))
+            else:
+                images.append(image.brief_json(absolutize_url))
+        result = {"images": images}
+
+        return dumps(result)
+
+    def get_image(self, http_get_request, image_id, absolutize_url):
+        """
+        Return an image object if one exists from the list `/images` api,
+        else creates and adds the image to the :obj: `images_store`.
+        """
+        # if f_id in get_presets['servers']['invalid_flavor_ref']:
+        #     return dumps(not_found("The resource could not be found.",
+        #                            http_get_request))
+        images = [RackspaceWindowsImage, RackspaceArchImage, RackspaceCentOSPVImage,
+                  RackspaceCentOSPVHMImage, RackspaceCoreOSImage, RackspaceDebianImage,
+                  RackspaceFedoraImage, RackspaceFreeBSDImage, RackspaceGentooImage,
+                  RackspaceOpenSUSEImage, RackspaceRedHatPVImage, RackspaceRedHatPVHMImage,
+                  RackspaceUbuntuPVImage, RackspaceUbuntuPVHMImage, RackspaceVyattaImage,
+                  RackspaceScientificImage, RackspaceOnMetalCentOSImage, RackspaceOnMetalCoreOSImage,
+                  RackspaceOnMetalDebianImage, RackspaceOnMetalFedoraImage, RackspaceOnMetalUbuntuImage]
+        self.create_images_list(images)
+
+        image = self.image_by_id(image_id)
+        print image
+        if image is None:
+            image = Image(image_id=image_id, name=image_id + "Mimic Test Instance",
+                          minRam=1, tenant_id=self.tenant_id, minDisk=3, image_size=12345)
+            self.images_store.append(image)
+        return dumps({"image": image.detailed_json(absolutize_url)})
 
 
 @attributes(["tenant_id", "clock",

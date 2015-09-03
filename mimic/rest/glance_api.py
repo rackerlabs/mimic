@@ -3,13 +3,12 @@
 Defines a list of images from glance
 """
 
-import json
 from uuid import uuid4
 from six import text_type
 from zope.interface import implementer
 from twisted.web.server import Request
 from twisted.plugin import IPlugin
-from mimic.canned_responses.glance import get_images
+from mimic.model.glance_objects import GlanceImage
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
@@ -55,14 +54,14 @@ class GlanceMock(object):
     """
     Glance Mock
     """
-    def __init__(self, api_mock, uri_prefix, session_store, name):
+    def __init__(self, api_mock, uri_prefix, session_store, region_name):
         """
         Create a glance region with a given URI prefix.
         """
         self.uri_prefix = uri_prefix
         self._api_mock = api_mock
         self._session_store = session_store
-        self._name = name
+        self._region = region_name
 
     app = MimicApp()
 
@@ -77,9 +76,19 @@ class GlanceMock(object):
             visible = request.args.get('visibility')[0]
             limit = request.args.get('limit')[0]
 
-            if visible == 'shared' and status == 'pending' and limit == '1000':
+            if visible == 'private' and status == 'pending' and limit == '1000':
                 request.setResponseCode(200)
                 return []
-        else:
-            request.setResponseCode(200)
-            return json.dumps(get_images())
+        elif 'visibility' in request.args:
+            visible = request.args.get('visibility')[0]
+            if visible == 'public':
+
+                image = GlanceImage()
+                print "GLANCE ROUTE VISIBLE IS PUBLIC"
+
+                return image.list_images(self._region, include_details=True)
+            else:
+                request.setResponseCode(200)
+                return []
+            # request.setResponseCode(200)
+            # return json.dumps(get_images())
