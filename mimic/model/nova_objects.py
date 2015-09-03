@@ -1066,9 +1066,9 @@ class RegionalServerCollection(object):
         Return an image object if one exists from the list `/images` api,
         else creates and adds the image to the :obj: `images_store`.
         """
-        # if f_id in get_presets['servers']['invalid_flavor_ref']:
-        #     return dumps(not_found("The resource could not be found.",
-        #                            http_get_request))
+        if image_id in get_presets['servers']['invalid_image_ref']:
+            return dumps(not_found("The resource could not be found.",
+                                   http_get_request))
         images = [RackspaceWindowsImage, RackspaceArchImage, RackspaceCentOSPVImage,
                   RackspaceCentOSPVHMImage, RackspaceCoreOSImage, RackspaceDebianImage,
                   RackspaceFedoraImage, RackspaceFreeBSDImage, RackspaceGentooImage,

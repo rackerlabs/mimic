@@ -416,15 +416,15 @@ class NovaAPITests(SynchronousTestCase):
         Test to verify :func:`get_image` on ``GET /v2.0/<tenant_id>/images/<image_id>``
         """
         get_server_image = request(
-            self, self.root, "GET", self.uri + '/images/45a01744-2bcf-4a23-ae88-63317f768a2f')
+            self, self.root, "GET", self.uri + '/images/7cf9f618-3dd3-4e3e-bace-e44d857039e2')
         get_server_image_response = self.successResultOf(get_server_image)
         get_server_image_response_body = self.successResultOf(
             treq.json_content(get_server_image_response))
         self.assertEqual(get_server_image_response.code, 200)
         self.assertEqual(
-            get_server_image_response_body['image']['id'], '45a01744-2bcf-4a23-ae88-63317f768a2f')
+            get_server_image_response_body['image']['id'], '7cf9f618-3dd3-4e3e-bace-e44d857039e2')
         self.assertEqual(
-            get_server_image_response_body['image']['status'], 'ACTIVE')
+            get_server_image_response_body['image']['metadata']['status'], 'active')
 
     def test_get_server_flavor(self):
         """
@@ -1693,7 +1693,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         :obj: `mimic_presets` is provided or if image id ends with Z.
         """
         get_server_image = request(self, self.root, "GET", self.uri +
-                                   '/images/test-image-idZ')
+                                   '/images/image_ends_with_Z')
         get_server_image_response = self.successResultOf(get_server_image)
         self.assertEqual(get_server_image_response.code, 404)
 
