@@ -26,16 +26,16 @@ class GlanceImage(object):
     static_defaults = {
     }
 
-    def brief_json(self, absolutize_url):
-        """
-        Brief JSON-serializable version of this flavor, for the non-details
-        list flavors request.
-        """
-        return {
-            "id": self.image_id,
-            "links": self.links_json(absolutize_url),
-            "name": self.name
-        }
+    # def brief_json(self, absolutize_url):
+    #     """
+    #     Brief JSON-serializable version of this flavor, for the non-details
+    #     list flavors request.
+    #     """
+    #     return {
+    #         "id": self.image_id,
+    #         "links": self.links_json(absolutize_url),
+    #         "name": self.name
+    #     }
 
     def detailed_json(self, image):
         """
@@ -96,10 +96,10 @@ class GlanceImage(object):
 
             if region_name != "IAD" and isinstance(image, OnMetalImage):
                 continue
-            if include_details:
-                images.append(self.detailed_json(image))
+            # if include_details:
+            #     images.append(self.detailed_json(image))
             else:
-                images.append(self.image.brief_json())
+                images.append(self.detailed_json(image))
         result = {"images": images, "schema": "/v2/schemas/images",
                   "first": "/v2/images?limit=1000"}
 
