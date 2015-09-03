@@ -21,6 +21,20 @@ class IronicApi(object):
         """
         self.core = core
 
+    @app.route('/nodes', methods=['POST'])
+    def create_node(self, request):
+        """
+        Responds with response code 201 and returns the newly created node.
+        """
+        return self.core.ironic_node_store.create_node(request)
+
+    @app.route('/nodes/<string:node_id>', methods=['DELETE'])
+    def delete_node(self, request, node_id):
+        """
+        Responds with response code 204 and delete the node.
+        """
+        return self.core.ironic_node_store.delete_node(request, node_id)
+
     @app.route('/nodes', methods=['GET'])
     def list_nodes(self, request):
         """
@@ -40,7 +54,7 @@ class IronicApi(object):
         """
         Responds with response code 200 with details of the nodes.
         """
-        return self.core.ironic_node_store.get_node_details(node_id)
+        return self.core.ironic_node_store.get_node_details(request, node_id)
 
     @app.route('/nodes/<string:node_id>/states/provision', methods=['PUT'])
     def set_node_provision_state(self, request, node_id):
