@@ -411,6 +411,13 @@ class NovaRegion(object):
         """
         Returns a newly created key pair with the specified name.
         """
+        try:
+            content = json.loads(request.content.read())
+        except ValueError:
+            request.setResponseCode(400)
+            return json.dumps(bad_request("Malformed request body", request))
+
+        keypair = content['keypair']
         return None
 
     @app.route("/v2/<string:tenant_id>/os-keypairs/<string:keypairname>", methods=['DELETE'])

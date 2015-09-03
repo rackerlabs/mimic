@@ -334,6 +334,13 @@ class Server(object):
         return self
 
 
+class KeyPair(object):
+    """
+    A key pair for a server
+    """
+    def json(self):
+        return {}
+
 @attributes(["address"])
 class IPv4Address(object):
     """
