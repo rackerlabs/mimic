@@ -1079,7 +1079,6 @@ class RegionalServerCollection(object):
         self.create_images_list(images)
 
         image = self.image_by_id(image_id)
-        print image
         if image is None:
             image = Image(image_id=image_id, name=image_id + "Mimic Test Instance",
                           minRam=1, tenant_id=self.tenant_id, minDisk=3, image_size=12345)
