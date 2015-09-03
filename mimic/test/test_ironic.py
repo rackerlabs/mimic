@@ -164,6 +164,12 @@ class IronicAPITests(SynchronousTestCase):
         self.assertEqual(200, response.code)
         self.assertEqual(content, get_content)
 
+    def test_create_then_get_node_with_empty_properties_attributes(self):
+        """
+        Test create node when `properties` attribute is set to None
+        """
+        self.create_node({"properties": None})
+
     def test_list_nodes(self):
         """
         Test ``/nodes`` to return response code 200 and validate the
