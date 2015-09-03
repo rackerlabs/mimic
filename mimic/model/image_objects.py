@@ -18,6 +18,9 @@ class Image(object):
     is_default = False
 
     def set_is_default(self):
+        """
+        Sets the image as default
+        """
         self.is_default = True
 
     def links_json(self, absolutize_url):
@@ -525,6 +528,9 @@ class OnMetalImage(object):
     is_default = False
 
     def set_is_default(self):
+        """
+        Sets image as a default
+        """
         self.is_default = True
 
     def links_json(self, absolutize_url):
