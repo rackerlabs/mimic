@@ -140,7 +140,8 @@ class IronicAPITests(SynchronousTestCase):
 
         content = self.get_nodes('/' + str(node_id))
         provision_state = content['provision_state']
-        self.assertEqual(provision_state, 'active')
+        self.assertFalse(content['driver_info'].get('cache_image_id'))
+        self.assertFalse(content['driver_info'].get('cache_status'))
 
     def test_setting_provision_state_fails(self):
         """

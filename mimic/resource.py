@@ -160,7 +160,7 @@ class MimicRoot(object):
     @app.route("/glance", branch=True)
     def glance_admin_api(self, request):
         """
-        Mock got the glance admin api
+        Mock for the glance admin api
         """
         return glance_api.GlanceAdminApi(self.core).app.resource()
 

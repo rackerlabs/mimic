@@ -264,6 +264,7 @@ class IronicNodeStore(object):
         node = self.node_by_id(node_id)
         if node:
             node.provision_state = content.get('target', 'available')
+            node.cache_image_id = None
             http_put_request.setResponseCode(202)
             return b''
         http_put_request.setResponseCode(404)

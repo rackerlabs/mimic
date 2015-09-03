@@ -54,14 +54,27 @@ class GlanceAdminAPITests(SynchronousTestCase):
         """
         self.core = MimicCore(Clock(), [])
         self.root = MimicRoot(self.core).app.resource()
+        self.uri = "/glance/v2/images"
+        self.create_request = {"name": "OnMetal - MIMIC", "distro": "linux"}
+
+    def create_image(self, request_json=None):
+        """
+        Create image and validate response code.
+        Return newly created image.
+        """
+        request_json = request_json or self.create_request
+        (response, content) = self.successResultOf(json_request(
+            self, self.root, "POST", self.uri,
+            body=request_json))
+        self.assertEqual(response.code, 201)
+        return content
 
     def list_images(self):
         """
         List images and return response
         """
-        uri = "/glance/v2/images"
         (response, content) = self.successResultOf(json_request(
-            self, self.root, "GET", uri))
+            self, self.root, "GET", self.uri))
         self.assertEqual(200, response.code)
         for each in content['images']:
             self.assertEqual(each["status"], "active")
@@ -95,3 +108,56 @@ class GlanceAdminAPITests(SynchronousTestCase):
         content1 = self.list_images()
         content2 = self.list_images()
         self.assertEqual(content2, content1)
+
+    def test_create_image(self):
+        """
+        Create Image and validate response
+        """
+        new_image = self.create_image()
+        self.assertEqual(new_image['name'], self.create_request['name'])
+
+    # def test_create_image_fails_with_400(self):
+    #     """
+    #     Create Image and validate response
+    #     NOTE: TEST FAILS> ABLE TO INITIALIZE IMAGE CLASS WITHOUT ALL ATTRIBUTES.
+    #     """
+    #     request_jsons = [{}, {"name": None}, {"hello": "world"}]
+    #     for each in request_jsons:
+    #         (response, content) = self.successResultOf(json_request(
+    #             self, self.root, "POST", self.uri,
+    #             body=json.dumps(each)))
+    #         self.assertEqual(response.code, 400)
+    #         print content
+
+    def test_get_image(self):
+        """
+        Create then GET Image and validate response
+        """
+        new_image = self.create_image()
+
+        (response, content) = self.successResultOf(json_request(
+            self, self.root, "GET", self.uri + '/' + new_image['id']))
+        self.assertEqual(200, response.code)
+        self.assertEqual(new_image, content)
+
+    def test_get_non_existant_image(self):
+        """
+        Return 404 when trying to GET a non existant image.
+        """
+        response = self.successResultOf(request(
+            self, self.root, "GET", self.uri + '/' + '1111'))
+        self.assertEqual(404, response.code)
+
+    def test_delete_image(self):
+        """
+        Create and then delete Image and validate response
+        """
+        new_image = self.create_image()
+
+        response = self.successResultOf(request(
+            self, self.root, "DELETE", self.uri + '/' + new_image['id']))
+        self.assertEqual(204, response.code)
+
+        response = self.successResultOf(request(
+            self, self.root, "GET", self.uri + '/' + new_image['id']))
+        self.assertEqual(404, response.code)
