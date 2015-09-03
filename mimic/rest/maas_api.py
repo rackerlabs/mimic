@@ -4,7 +4,6 @@ MAAS Mock API
 
 import json
 import collections
-import time
 import urlparse
 import random
 import re
@@ -80,24 +79,26 @@ class MaasApi(object):
         return MaasMock(self, uri_prefix, session_store, region).app.resource()
 
 
-class MCache(dict):
+class MCache(object):
 
     """
     M(onitoring) Cache Object to hold dictionaries of all entities, checks and alarms.
     """
 
-    def __init__(self):
+    def __init__(self, clock):
         """
         Create the initial structs for cache
         """
+        current_time_milliseconds = int(1000 * clock.seconds())
+
         self.agenthostinfo_querycount = collections.defaultdict(lambda: 0, {})
         self.entities_list = []
         self.checks_list = []
         self.alarms_list = []
         self.notifications_list = [{'id': 'ntTechnicalContactsEmail',
                                     'label': 'Email All Technical Contacts',
-                                    'created_at': time.time(),
-                                    'updated_at': time.time(),
+                                    'created_at': current_time_milliseconds,
+                                    'updated_at': current_time_milliseconds,
                                     'metadata': None,
                                     'type': 'technicalContactsEmail',
                                     'details': None}]
@@ -127,7 +128,7 @@ class MCache(dict):
         self.audits_list = []
 
 
-def create_entity(params):
+def create_entity(clock, params):
     """
     Returns a dictionary representing an entity
 
@@ -138,12 +139,14 @@ def create_entity(params):
         ``bool``, ``dict`` or ``NoneType``.
     """
     params = collections.defaultdict(lambda: '', params)
+    current_time_milliseconds = int(1000 * clock.seconds())
+
     newentity = {}
     newentity['label'] = params['label']
     newentity['id'] = 'en' + random_hex_generator(4)
     newentity['agent_id'] = params['agent_id'] or random_hex_generator(12)
-    newentity['created_at'] = time.time()
-    newentity['updated_at'] = time.time()
+    newentity['created_at'] = current_time_milliseconds
+    newentity['updated_at'] = current_time_milliseconds
     newentity['managed'] = params['managed'] or False
     newentity['metadata'] = params['metadata']
     newentity['ip_addresses'] = params['ip_addresses'] or {}
@@ -151,7 +154,7 @@ def create_entity(params):
     return newentity
 
 
-def create_check(params):
+def create_check(clock, params):
     """
     Returns a dictionary representing a check
 
@@ -161,6 +164,8 @@ def create_check(params):
     :rtype: ``dict`` mapping ``unicode`` to ``unicode``, ``float``,
         ``int``, ``bool``, ``dict`` or ``NoneType``.
     """
+    current_time_milliseconds = int(1000 * clock.seconds())
+
     params = collections.defaultdict(lambda: '', params)
     params['id'] = 'ch' + random_hex_generator(4)
     params['collectors'] = []
@@ -168,8 +173,8 @@ def create_check(params):
         params['collectors'].append('co' + random_hex_generator(3))
     params['confd_hash'] = None
     params['confd_name'] = None
-    params['created_at'] = time.time()
-    params['updated_at'] = time.time()
+    params['created_at'] = current_time_milliseconds
+    params['updated_at'] = current_time_milliseconds
     params['timeout'] = 10
     params['period'] = 60
     params['disabled'] = False
@@ -180,7 +185,7 @@ def create_check(params):
     return params
 
 
-def create_alarm(params):
+def create_alarm(clock, params):
     """
     Returns a dictionary representing an alarm
 
@@ -190,18 +195,20 @@ def create_alarm(params):
     :rtype: ``dict`` mapping ``unicode`` to ``unicode``, ``float``,
         ``bool``, ``dict``, or ``NoneType``.
     """
+    current_time_milliseconds = int(1000 * clock.seconds())
+
     params = collections.defaultdict(lambda: '', params)
     params['id'] = 'al' + random_hex_generator(4)
     params['confd_hash'] = None
     params['confd_name'] = None
-    params['created_at'] = time.time()
-    params['updated_at'] = time.time()
+    params['created_at'] = current_time_milliseconds
+    params['updated_at'] = current_time_milliseconds
     params['disabled'] = False
     params['metadata'] = None
     return params
 
 
-def create_notification_plan(params):
+def create_notification_plan(clock, params):
     """
     Creates a notification plan
 
@@ -211,17 +218,19 @@ def create_notification_plan(params):
     :rtype: ``dict`` mapping ``unicode`` to ``unicode``, ``float``,
         ``dict`` or ``NoneType``.
     """
+    current_time_milliseconds = int(1000 * clock.seconds())
+
     params['id'] = 'np' + random_hex_generator(4)
     params['critical_state'] = None
     params['warning_state'] = None
     params['ok_state'] = None
-    params['created_at'] = time.time()
-    params['updated_at'] = time.time()
+    params['created_at'] = current_time_milliseconds
+    params['updated_at'] = current_time_milliseconds
     params['metadata'] = None
     return params
 
 
-def create_notification(params):
+def create_notification(clock, params):
     """
     Creates a notification target
 
@@ -231,9 +240,11 @@ def create_notification(params):
     :rtype: ``dict`` mapping ``unicode`` to ``unicode``, ``float``,
         ``dict`` or ``NoneType``.
     """
+    current_time_milliseconds = int(1000 * clock.seconds())
+
     params['id'] = 'nt' + random_hex_generator(4)
-    params['created_at'] = time.time()
-    params['updated_at'] = time.time()
+    params['created_at'] = current_time_milliseconds
+    params['updated_at'] = current_time_milliseconds
     params['metadata'] = None
     return params
 
@@ -365,7 +376,9 @@ class MaasMock(object):
         Retrieve the M_cache object containing all objects created so far
         """
         return (self._session_store.session_for_tenant_id(tenant_id)
-                .data_for_api(self._api_mock, lambda: collections.defaultdict(MCache))[self._name]
+                .data_for_api(self._api_mock,
+                              lambda: collections.defaultdict(
+                                  lambda: MCache(self._session_store.clock)))[self._name]
                 )
 
     def _audit(self, app, request, tenant_id, status, content=''):
@@ -375,7 +388,7 @@ class MaasMock(object):
         self._entity_cache_for_tenant(tenant_id).audits_list.append(
             {
                 'id': str(uuid4()),
-                'timestamp': int(1000 * time.time()),
+                'timestamp': int(1000 * self._session_store.clock.seconds()),
                 'headers': headers,
                 'url': request.path,
                 'app': app,
@@ -441,7 +454,7 @@ class MaasMock(object):
         content = request.content.read()
         postdata = json.loads(content)
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        newentity = create_entity(postdata)
+        newentity = create_entity(self._session_store.clock, postdata)
         self._entity_cache_for_tenant(tenant_id).entities_list.append(newentity)
         status = 201
         request.setResponseCode(status)
@@ -501,7 +514,7 @@ class MaasMock(object):
                 for k in ['agent_id', 'managed', 'metadata', 'ip_addresses', 'uri', 'label']:
                     if k in update:
                         entity[k] = update[k]
-                entity['updated_at'] = time.time()
+                entity['updated_at'] = int(1000 * self._session_store.clock.seconds())
                 break
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         status = 204
@@ -544,7 +557,7 @@ class MaasMock(object):
         content = request.content.read()
         postdata = json.loads(content)
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        newcheck = create_check(postdata)
+        newcheck = create_check(self._session_store.clock, postdata)
         newcheck['entity_id'] = entity_id
         self._entity_cache_for_tenant(tenant_id).checks_list.append(newcheck)
         status = 201
@@ -583,7 +596,7 @@ class MaasMock(object):
                           'monitoring_zones_poll', 'target_alias', 'target_hostname', 'target_resolver']:
                     if k in update:
                         check[k] = update[k]
-                check['updated_at'] = time.time()
+                check['updated_at'] = int(1000 * self._session_store.clock.seconds())
                 break
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         status = 204
@@ -624,7 +637,7 @@ class MaasMock(object):
         content = request.content.read()
         postdata = json.loads(content)
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        newalarm = create_alarm(postdata)
+        newalarm = create_alarm(self._session_store.clock, postdata)
         newalarm['entity_id'] = entity_id
         self._entity_cache_for_tenant(tenant_id).alarms_list.append(newalarm)
         status = 201
@@ -678,7 +691,7 @@ class MaasMock(object):
                           'metadata']:
                     if k in update:
                         alarm[k] = update[k]
-                alarm['updated_at'] = time.time()
+                alarm['updated_at'] = int(1000 * self._session_store.clock.seconds())
                 break
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         status = 204
@@ -885,7 +898,7 @@ class MaasMock(object):
         """
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         content = request.content.read()
-        new_n = create_notification(json.loads(content))
+        new_n = create_notification(self._session_store.clock, json.loads(content))
         self._entity_cache_for_tenant(tenant_id).notifications_list.append(new_n)
         status = 201
         request.setResponseCode(status)
@@ -918,7 +931,7 @@ class MaasMock(object):
             if n['id'] == postdata['id']:
                 for k in postdata.keys():
                     n[k] = postdata[k]
-                n['updated_at'] = time.time()
+                n['updated_at'] = int(1000 * self._session_store.clock.seconds())
                 break
         status = 204
         request.setResponseCode(status)
@@ -950,7 +963,7 @@ class MaasMock(object):
         content = request.content.read()
         postdata = json.loads(content)
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        newnp = create_notification_plan({'label': postdata['label']})
+        newnp = create_notification_plan(self._session_store.clock, {'label': postdata['label']})
         self._entity_cache_for_tenant(tenant_id).notificationplans_list.append(newnp)
         status = 201
         request.setResponseCode(status)
@@ -997,7 +1010,7 @@ class MaasMock(object):
             if np['id'] == postdata['id']:
                 for k in postdata.keys():
                     np[k] = postdata[k]
-                np['updated_at'] = time.time()
+                np['updated_at'] = int(1000 * self._session_store.clock.seconds())
                 break
         status = 204
         request.setResponseCode(status)
@@ -1024,7 +1037,7 @@ class MaasMock(object):
             errobj['type'] = 'forbiddenError'
             errobj['code'] = 403
             errobj['txnId'] = '.rh-D0j7.h-dfw1-maas-prod-api0.r-doc8iigF.c-5540173.ts-' + \
-                str(time.time()) + '.v-bfe87f0'
+                str(self._session_store.clock.seconds()) + '.v-bfe87f0'
             errobj['message'] = 'Notification plans cannot be removed while alarms are using it:'
             for a_id in alarmids_using_np:
                 errobj['message'] += ' ' + a_id
@@ -1102,7 +1115,7 @@ class MaasMock(object):
             if sp['id'] == sp_id:
                 for k in postdata.keys():
                     sp[k] = postdata[k]
-                sp['updated_at'] = time.time()
+                sp['updated_at'] = int(1000 * self._session_store.clock.seconds())
                 break
         status = 204
         request.setResponseCode(status)
