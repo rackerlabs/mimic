@@ -4,6 +4,7 @@ Defines a list of images from glance
 """
 
 from uuid import uuid4
+from json import dumps
 from six import text_type
 from zope.interface import implementer
 from twisted.web.server import Request
@@ -68,25 +69,27 @@ class GlanceMock(object):
     @app.route('/v2/<string:tenant_id>/images', methods=['GET'])
     def get_images(self, request, tenant_id):
         """
-        Returns a list of glance images.  Reach makes two calls, the route with query strings returns
-        images that have been shared and but not accepted. For now return empty array.
+        Returns a list of glance images.  Reach makes three calls:
+        The call with member_status query param is for pending images, for now we just return
+            an empty array
+        The call with visibility is private, for now we just return and empty array
         """
         if 'member_status' in request.args:
             status = request.args.get('member_status')[0]
             visible = request.args.get('visibility')[0]
             limit = request.args.get('limit')[0]
 
-            if visible == 'private' and status == 'shared' and limit == '1000':
-                request.setResponseCode(200)
-                return []
+            if visible == 'shared' and status == 'pending' and limit == '1000':
+                return dumps({"images": [], "schema": "/v2/schemas/images",
+                              "first": "/v2/images?limit=1000&visibility=shared&member_status=pending"})
         elif 'visibility' in request.args:
             visible = request.args.get('visibility')[0]
             if visible == 'public':
                 image = GlanceImage()
                 return image.list_images(self._region, include_details=True)
             else:
-                request.setResponseCode(200)
-                return []
+                return dumps({"images": [], "schema": "/v2/schemas/images",
+                              "first": "/v2/images?limit=1000&visibility=private"})
         else:
             image = GlanceImage()
             return image.list_images(self._region, include_details=True)

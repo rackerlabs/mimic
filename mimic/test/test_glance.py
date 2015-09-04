@@ -58,9 +58,14 @@ class GlanceAPITests(SynchronousTestCase):
         self.assertEquals(True, 'onmetal' in json.dumps(data['images']))
 
     def test_pending_images(self):
+        """
+        Test pending images
+        """
         req = request(self, self.root, "GET", self.uri + '/images?member_status=pending&'
                                                          'visibility=shared&limit=1000')
         resp = self.successResultOf(req)
+        data = self.get_responsebody(resp)
+        self.assertEqual(len(data['images']), 0)
         self.assertEquals(resp.code, 200)
 
     def test_list_images_with_private_visibility(self):
@@ -69,11 +74,14 @@ class GlanceAPITests(SynchronousTestCase):
         """
         req = request(self, self.root, "GET", self.uri + '/images?visibility=private')
         resp = self.successResultOf(req)
+        data = self.get_responsebody(resp)
+        self.assertEqual(len(data['images']), 0)
         self.assertEquals(resp.code, 200)
 
     def test_list_images_with_no_request_args(self):
         """
-        List images with public visibility in region IAD
+        List images with no request args. IAD has 14 more images than other images due to OnMetal in
+            IAD only
         """
         # All regions other than IAD have 38 images
         req = request(self, self.root, "GET", self.uri + '/images')
