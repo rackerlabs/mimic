@@ -318,8 +318,6 @@ class NovaRegion(object):
         """
         Return images
         """
-        # request.setResponseCode(200)
-        # return json.dumps(get_images())
         return (self._region_collection_for_tenant(tenant_id)
                 .list_images(include_details=False, absolutize_url=self.url))
 

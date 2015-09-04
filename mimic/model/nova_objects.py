@@ -1051,8 +1051,9 @@ class RegionalServerCollection(object):
         self.create_images_list(images)
         images = []
         for image in self.images_store:
-            if self.region_name != "IAD" and isinstance(image, RackspaceOnMetalFlavor):
-                continue
+            # FIX THIS: NEED OnMetalImage class maybe?
+            # if self.region_name != "IAD" and isinstance(image, RackspaceOnMetalImage):
+            #     continue
             if include_details:
                 images.append(image.detailed_json(absolutize_url))
             else:
