@@ -669,7 +669,7 @@ class MaasMock(object):
         response_code, response_body = maas_store.check_types[check_type].get_test_check_response(
             entity_id=entity_id,
             monitoring_zones=test_config.get('monitoring_zones_poll'),
-            timestamp=int(1000 * time.time()))
+            timestamp=int(1000 * self._session_store.clock.seconds()))
         request.setResponseCode(response_code)
         self._audit('checks', request, tenant_id, response_code, content)
         return json.dumps(response_body)
@@ -773,6 +773,7 @@ class MaasMock(object):
         content = request.content.read()
         payload = json.loads(content)
         n_tests = len(payload['check_data'])
+        current_time_milliseconds = int(1000 * self._session_store.clock.seconds())
         test_responses = self._entity_cache_for_tenant(tenant_id).test_alarm_responses
         response_payload = []
         if entity_id in test_responses:
@@ -782,12 +783,12 @@ class MaasMock(object):
                 response_payload.append({'state': test_response['state'],
                                          'status': test_response.get(
                                              'status', 'Matched default return statement'),
-                                         'timestamp': int(time.time() * 1000)})
+                                         'timestamp': current_time_milliseconds})
         else:
             for i in xrange(n_tests):
                 response_payload.append({'state': random.choice(['OK', 'WARNING', 'CRITICAL']),
                                          'status': _random_hipsum(),
-                                         'timestamp': int(time.time() * 1000)})
+                                         'timestamp': current_time_milliseconds})
 
         status = 200
         request.setResponseCode(status)
