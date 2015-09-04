@@ -309,9 +309,8 @@ class Server(object):
         while True:
             private_ip = IPv4Address(
                 address="10.180.{0}.{1}".format(ipsegment(), ipsegment()))
-            if private_ip not in [addr
-                              for server in collection.servers
-                              for addr in server.private_ips]:
+            if private_ip not in [addr for server in collection.servers
+                                  for addr in server.private_ips]:
                 break
 
         self = cls(

@@ -2294,6 +2294,10 @@ class NovaAPIMetadataTests(SynchronousTestCase):
 
 class NovaServerTests(SynchronousTestCase):
     def test_unique_ips(self):
+        """
+        The private IP address of generated servers will be unique even if
+        the given ``ipsegment`` factory generates non-unique pairs.
+        """
         nova_api = NovaApi(["ORD", "MIMIC"])
         self.helper = self.helper = APIMockHelper(
             self, [nova_api, NovaControlApi(nova_api=nova_api)]
