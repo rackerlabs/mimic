@@ -17,6 +17,7 @@ from twisted.plugin import IPlugin
 
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
+from mimic.rest.auth_api import base_uri_from_request
 from mimic.rest.mimicapp import MimicApp
 from mimic.imimic import IAPIMock
 from mimic.canned_responses.maas_json_home import json_home
@@ -365,8 +366,6 @@ class MaasMock(object):
         Create a maas region with a given URI prefix (used for generating URIs
         to servers).
         """
-        self.endpoint_port = '8900'
-        self.uri_prefix = uri_prefix
         self._api_mock = api_mock
         self._session_store = session_store
         self._name = name
@@ -453,12 +452,12 @@ class MaasMock(object):
         """
         content = request.content.read()
         postdata = json.loads(content)
-        myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         newentity = create_entity(self._session_store.clock, postdata)
         self._entity_cache_for_tenant(tenant_id).entities_list.append(newentity)
         status = 201
         request.setResponseCode(status)
-        request.setHeader('location', myhostname_and_port + request.path + '/' + newentity['id'])
+        request.setHeader('location', base_uri_from_request(request).rstrip('/') +
+                          request.path + '/' + newentity['id'])
         request.setHeader('x-object-id', newentity['id'])
         request.setHeader('content-type', 'text/plain')
         self._audit('entities', request, tenant_id, status, content)
@@ -516,11 +515,9 @@ class MaasMock(object):
                         entity[k] = update[k]
                 entity['updated_at'] = int(1000 * self._session_store.clock.seconds())
                 break
-        myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         status = 204
         request.setResponseCode(status)
-        request.setHeader('location', myhostname_and_port + request.path +
-                          '/' + entity_id.encode('utf-8'))
+        request.setHeader('location', base_uri_from_request(request).rstrip('/') + request.path)
         request.setHeader('x-object-id', entity_id.encode('utf-8'))
         request.setHeader('content-type', 'text/plain')
         self._audit('entities', request, tenant_id, status, content)
@@ -556,13 +553,13 @@ class MaasMock(object):
         """
         content = request.content.read()
         postdata = json.loads(content)
-        myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         newcheck = create_check(self._session_store.clock, postdata)
         newcheck['entity_id'] = entity_id
         self._entity_cache_for_tenant(tenant_id).checks_list.append(newcheck)
         status = 201
         request.setResponseCode(status)
-        request.setHeader('location', myhostname_and_port + request.path + '/' + newcheck['id'])
+        request.setHeader('location', base_uri_from_request(request).rstrip('/') +
+                          request.path + '/' + newcheck['id'])
         request.setHeader('x-object-id', newcheck['id'])
         request.setHeader('content-type', 'text/plain')
         self._audit('checks', request, tenant_id, status, content)
@@ -598,11 +595,9 @@ class MaasMock(object):
                         check[k] = update[k]
                 check['updated_at'] = int(1000 * self._session_store.clock.seconds())
                 break
-        myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         status = 204
         request.setResponseCode(status)
-        request.setHeader('location', myhostname_and_port + request.path +
-                          '/' + check_id.encode('utf-8'))
+        request.setHeader('location', base_uri_from_request(request).rstrip('/') + request.path)
         request.setHeader('x-object-id', check_id.encode('utf-8'))
         request.setHeader('content-type', 'text/plain')
         self._audit('checks', request, tenant_id, status, content)
@@ -636,13 +631,13 @@ class MaasMock(object):
         """
         content = request.content.read()
         postdata = json.loads(content)
-        myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         newalarm = create_alarm(self._session_store.clock, postdata)
         newalarm['entity_id'] = entity_id
         self._entity_cache_for_tenant(tenant_id).alarms_list.append(newalarm)
         status = 201
         request.setResponseCode(status)
-        request.setHeader('location', myhostname_and_port + request.path + '/' + newalarm['id'])
+        request.setHeader('location', base_uri_from_request(request).rstrip('/') +
+                          request.path + '/' + newalarm['id'])
         request.setHeader('x-object-id', newalarm['id'])
         request.setHeader('content-type', 'text/plain')
         self._audit('alarms', request, tenant_id, status, content)
@@ -693,11 +688,9 @@ class MaasMock(object):
                         alarm[k] = update[k]
                 alarm['updated_at'] = int(1000 * self._session_store.clock.seconds())
                 break
-        myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         status = 204
         request.setResponseCode(status)
-        request.setHeader('location', myhostname_and_port + request.path +
-                          '/' + alarm_id.encode('utf-8'))
+        request.setHeader('location', base_uri_from_request(request).rstrip('/') + request.path)
         request.setHeader('x-object-id', alarm_id.encode('utf-8'))
         request.setHeader('content-type', 'text/plain')
         self._audit('alarms', request, tenant_id, status, content)
@@ -830,9 +823,8 @@ class MaasMock(object):
         TO DO: Regionless api
         """
         request.setResponseCode(200)
-        myhostname_and_port = request.getRequestHostname() + ':' + self.endpoint_port
         mockapi_id = re.findall('/mimicking/(.+?)/', request.path)[0]
-        url = "http://" + myhostname_and_port + '/mimicking/' + mockapi_id + '/ORD/v1.0'
+        url = base_uri_from_request(request).rstrip('/') + '/mimicking/' + mockapi_id + '/ORD/v1.0'
         return json.dumps(json_home(url))
 
     @app.route('/v1.0/<string:tenant_id>/views/agent_host_info', methods=['GET'])
@@ -896,14 +888,14 @@ class MaasMock(object):
         """
         Create notification target
         """
-        myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         content = request.content.read()
         new_n = create_notification(self._session_store.clock, json.loads(content))
         self._entity_cache_for_tenant(tenant_id).notifications_list.append(new_n)
         status = 201
         request.setResponseCode(status)
         request.setHeader('content-type', 'text/plain')
-        request.setHeader('location', myhostname_and_port + request.path + '/' + new_n['id'])
+        request.setHeader('location', base_uri_from_request(request).rstrip('/') +
+                          request.path + '/' + new_n['id'])
         request.setHeader('x-object-id', new_n['id'])
         self._audit('notifications', request, tenant_id, status, content)
         return ''
@@ -962,13 +954,13 @@ class MaasMock(object):
         """
         content = request.content.read()
         postdata = json.loads(content)
-        myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         newnp = create_notification_plan(self._session_store.clock, {'label': postdata['label']})
         self._entity_cache_for_tenant(tenant_id).notificationplans_list.append(newnp)
         status = 201
         request.setResponseCode(status)
         request.setHeader('content-type', 'text/plain')
-        request.setHeader('location', myhostname_and_port + request.path + '/' + newnp['id'])
+        request.setHeader('location', base_uri_from_request(request).rstrip('/') +
+                          request.path + '/' + newnp['id'])
         request.setHeader('x-object-id', newnp['id'])
         self._audit('notification_plans', request, tenant_id, status, content)
         return ''
@@ -1092,12 +1084,12 @@ class MaasMock(object):
         """
         content = request.content.read()
         postdata = json.loads(content)
-        myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         newsp = create_suppression(postdata)
         self._entity_cache_for_tenant(tenant_id).suppressions_list.append(newsp)
         status = 201
         request.setResponseCode(status)
-        request.setHeader('location', myhostname_and_port + request.path + '/' + newsp['id'])
+        request.setHeader('location', base_uri_from_request(request).rstrip('/') +
+                          request.path + '/' + newsp['id'])
         request.setHeader('x-object-id', newsp['id'])
         request.setHeader('content-type', 'text/plain')
         self._audit('suppressions', request, tenant_id, status, content)
