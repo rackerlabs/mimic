@@ -19,7 +19,7 @@ from mimic.util.helper import random_hex_generator
              Attribute("instance_uuid", default_value=None),
              Attribute("maintenance", default_value=False),
              Attribute("cache_image_id", default_value=None),
-             Attribute("memory_mb", default_value=131072),
+             Attribute("memory_mb", default_value=None),
              Attribute("name", default_value=None)
              ])
 class Node(object):
@@ -231,7 +231,7 @@ class IronicNodeStore(object):
         try:
             memory_mb = None
             if content.get('properties'):
-                memory_mb = content.get('memory_mb')
+                memory_mb = content['properties'].get('memory_mb')
             node = self.add_to_ironic_node_store(
                 node_id=str(uuid4()),
                 memory_mb=memory_mb,
