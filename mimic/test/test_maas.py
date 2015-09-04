@@ -128,17 +128,17 @@ class MaasAPITests(SynchronousTestCase):
         id is prefixed with 'en'. Test that the ids are not null and are
         prefixed.
         """
-        self.assertNotEquals(None, self.entity_id)
+        self.assertIsInstance(self.entity_id, str)
         self.assertTrue(self.entity_id.startswith('en'))
-        self.assertNotEquals(None, self.check_id)
+        self.assertIsInstance(self.check_id, str)
         self.assertTrue(self.check_id.startswith('ch'))
-        self.assertNotEquals(None, self.alarm_id)
+        self.assertIsInstance(self.alarm_id, str)
         self.assertTrue(self.alarm_id.startswith('al'))
-        self.assertNotEquals(None, self.nt_id)
+        self.assertIsInstance(self.nt_id, str)
         self.assertTrue(self.nt_id.startswith('nt'))
-        self.assertNotEquals(None, self.np_id)
+        self.assertIsInstance(self.np_id, str)
         self.assertTrue(self.np_id.startswith('np'))
-        self.assertNotEquals(None, self.sp_id)
+        self.assertIsInstance(self.sp_id, str)
         self.assertTrue(self.sp_id.startswith('sp'))
 
     def test_list_entity(self):
@@ -607,7 +607,7 @@ class MaasAPITests(SynchronousTestCase):
             if nt['id'] == self.nt_id:
                 mynt = nt
                 break
-        self.assertNotEquals(None, mynt)
+        self.assertIsNot(None, mynt)
         self.assertEquals('changed', mynt['label'])
 
     def test_delete_notification(self):
