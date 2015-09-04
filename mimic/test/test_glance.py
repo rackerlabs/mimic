@@ -68,6 +68,13 @@ class GlanceAPITests(SynchronousTestCase):
         self.assertEqual(len(data['images']), 0)
         self.assertEquals(resp.code, 200)
 
+        req = request(self, self.root, "GET", self.uri + '/images?member_status=pending&'
+                                                         'visibility=dark&limit=1000')
+        resp = self.successResultOf(req)
+        body = self.get_responsebody(resp)
+        self.assertEqual(body, {"badRequest": {"message": "Bad Request.", "code": 400}})
+        self.assertEquals(resp.code, 400)
+
     def test_list_images_with_private_visibility(self):
         """
         List images with private visibility

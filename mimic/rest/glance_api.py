@@ -15,6 +15,7 @@ from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.imimic import IAPIMock
 
+
 Request.defaultContentType = 'application/json'
 
 
@@ -82,6 +83,14 @@ class GlanceMock(object):
             if visible == 'shared' and status == 'pending' and limit == '1000':
                 return dumps({"images": [], "schema": "/v2/schemas/images",
                               "first": "/v2/images?limit=1000&visibility=shared&member_status=pending"})
+            else:
+                request.setResponseCode(400)
+                return dumps({
+                    "badRequest": {
+                        "message": "Bad Request.",
+                        "code": 400
+                    }
+                })
         elif 'visibility' in request.args:
             visible = request.args.get('visibility')[0]
             if visible == 'public':
