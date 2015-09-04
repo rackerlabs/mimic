@@ -86,7 +86,7 @@ class IronicAPITests(SynchronousTestCase):
         """
         Create node returns 201 and the newly created node.
         """
-        new_node = self.create_node()
+        new_node = self.create_node(self.create_request)
         for key in self.create_request.keys():
             self.assertEqual(self.create_request[key], new_node[key])
 
@@ -96,7 +96,7 @@ class IronicAPITests(SynchronousTestCase):
         as expected.
         """
         response = self.successResultOf(request(
-            self, self.root, "POST", self.url, body=json.dumps({})))
+            self, self.root, "POST", self.url, body=json.dumps("")))
         self.assertEqual(response.code, 400)
 
     def test_delete_node_when_node_does_not_exist(self):
@@ -129,8 +129,11 @@ class IronicAPITests(SynchronousTestCase):
         """
         Test create node then get the node and verify attributes
         """
-        content = self.create_node({"properties": {"memory_mb": 32768}})
+        create_request = {"properties": {"memory_mb": 32768}}
+        content = self.create_node(create_request)
         node_id = str(content['uuid'])
+        self.assertEqual(content['properties']['memory_mb'],
+                         create_request['properties']['memory_mb'])
 
         # get node
         (response, get_content) = self.successResultOf(json_request(
@@ -150,6 +153,28 @@ class IronicAPITests(SynchronousTestCase):
             self, self.root, "GET", self.url + '/' + node_id))
         self.assertEqual(200, response.code)
         self.assertEqual(content, get_content)
+
+    def test_create_then_get_node_with_mimimum_attributes(self):
+        """
+        Test create node then get the node and verify attributes
+        """
+        (response, content) = self.successResultOf(json_request(
+            self, self.root, "POST", self.url, body=json.dumps({})))
+        self.assertEqual(response.code, 201)
+        node_id = str(content['uuid'])
+        self.assertFalse(content['properties']['memory_mb'])
+
+        # get node
+        (response, get_content) = self.successResultOf(json_request(
+            self, self.root, "GET", self.url + '/' + node_id))
+        self.assertEqual(200, response.code)
+        self.assertEqual(content, get_content)
+
+    def test_create_then_get_node_with_empty_properties_attributes(self):
+        """
+        Test create node when `properties` attribute is set to None
+        """
+        self.create_node({"properties": None})
 
     def test_list_nodes(self):
         """
@@ -214,9 +239,10 @@ class IronicAPITests(SynchronousTestCase):
                                   "onmetal-memory1": 524288}
         content = self.get_nodes('/detail')
         for each in content['nodes']:
-            self.assertTrue(
-                (each['extra']['flavor'] in expected_flavor_memory.keys()) and
-                (each['properties']['memory_mb'] == expected_flavor_memory[each['extra']['flavor']]))
+            if each['properties']['memory_mb']:
+                self.assertTrue(
+                    (each['extra']['flavor'] in expected_flavor_memory.keys()) and
+                    (each['properties']['memory_mb'] == expected_flavor_memory[each['extra']['flavor']]))
 
     def test_setting_provision_state(self):
         """
