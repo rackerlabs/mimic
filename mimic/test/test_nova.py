@@ -411,7 +411,7 @@ class NovaAPITests(SynchronousTestCase):
         delete_server_response = self.successResultOf(delete_server)
         self.assertEqual(delete_server_response.code, 404)
 
-    def test_get_server_image(self):
+    def test_get_virtual_server_image(self):
         """
         Test to verify :func:`get_image` on ``GET /v2.0/<tenant_id>/images/<image_id>``
         """
@@ -425,6 +425,23 @@ class NovaAPITests(SynchronousTestCase):
             get_server_image_response_body['image']['id'], '7cf9f618-3dd3-4e3e-bace-e44d857039e2')
         self.assertEqual(
             get_server_image_response_body['image']['metadata']['status'], 'active')
+
+    def test_get_OnMetal_server_image(self):
+        """
+        Test to verify :func:`get_image` on ``GET /v2.0/<tenant_id>/images/<image_id>``
+        """
+        get_server_image = request(
+            self, self.root, "GET", self.uri + '/images/4005b86a-2acf-4a3f-be41-44fefb87e9ae')
+        get_server_image_response = self.successResultOf(get_server_image)
+        get_server_image_response_body = self.successResultOf(
+            treq.json_content(get_server_image_response))
+        self.assertEqual(get_server_image_response.code, 200)
+        self.assertEqual(
+            get_server_image_response_body[''
+                                           'image']['id'], '4005b86a-2acf-4a3f-be41-44fefb87e9ae')
+        self.assertEqual(
+            get_server_image_response_body['image']['metadata']['flavor_classes'], 'onmetal')
+
 
     def test_get_server_flavor(self):
         """
