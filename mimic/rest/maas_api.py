@@ -24,7 +24,7 @@ from mimic.canned_responses.maas_json_home import json_home
 from mimic.canned_responses.maas_agent_info import agent_info
 from mimic.canned_responses.maas_monitoring_zones import monitoring_zones
 from mimic.canned_responses.maas_alarm_examples import alarm_examples
-from mimic.model.maas_objects import get_test_check_response_by_type
+from mimic.model.maas_objects import MaasStore
 from mimic.util.helper import random_hex_generator
 
 
@@ -128,8 +128,8 @@ class MCache(object):
                                                                   code (E.164 format)'}]}]
         self.suppressions_list = []
         self.audits_list = []
+        self.maas_store = MaasStore(clock)
         self.test_alarm_responses = {}
-        self.test_check_responses = {}
 
 
 def create_entity(clock, params):
@@ -358,11 +358,29 @@ def parse_and_flatten_qs(url):
     return flat_qs
 
 
-def _mcache_factory():
+def _random_hipsum():
+    """
+    Generates a random sentence using Hipsum ( http://hipsum.co/ ).
+    """
+    hipsum = ''.join([
+        "Retro squid Portland raw denim Austin, normcore slow-carb Brooklyn. ",
+        "Deep v organic VHS drinking vinegar. Fingerstache locavore kogi Tumblr ",
+        "cred. Vice typewriter retro iPhone pour-over cred XOXO church-key, ",
+        "post-ironic kogi. Selvage polaroid retro, cold-pressed meh craft beer ",
+        "artisan pour-over taxidermy sartorial art party. Food truck church-key ",
+        "four loko wayfarers craft beer dreamcatcher normcore yr, jean shorts ",
+        "bespoke migas art party crucifix next level. Street art chia bitters, ",
+        "gastropub mixtape flexitarian Godard occupy lumbersexual."]).split(' ')
+    offset = random.randint(1, len(hipsum))
+    rotated = hipsum[offset:] + hipsum[:offset]
+    return ' '.join(rotated[:12])
+
+
+def _mcache_factory(clock):
     """
     Makes a defaultdict that makes MCache objects for each tenant.
     """
-    return collections.defaultdict(MCache)
+    return lambda: collections.defaultdict(lambda: MCache(clock))
 
 
 class MaasMock(object):
@@ -386,8 +404,9 @@ class MaasMock(object):
         """
         Retrieve the M_cache object containing all objects created so far
         """
+        clock = self._session_store.clock
         return (self._session_store.session_for_tenant_id(tenant_id)
-                .data_for_api(self._api_mock, _mcache_factory)[self._name]
+                .data_for_api(self._api_mock, _mcache_factory(clock))[self._name]
                 )
 
     def _audit(self, app, request, tenant_id, status, content=''):
@@ -646,11 +665,11 @@ class MaasMock(object):
         content = request.content.read()
         test_config = json.loads(content)
         check_type = test_config['type']
-        check_responses = self._entity_cache_for_tenant(tenant_id).test_check_responses
-        if (entity_id, check_type) not in check_responses:
-            check_responses[(entity_id, check_type)] = get_test_check_response_by_type(check_type)
-
-        response_code, response_body = check_responses[(entity_id, check_type)].get_response()
+        maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
+        response_code, response_body = maas_store.check_types[check_type].get_test_check_response(
+            entity_id=entity_id,
+            monitoring_zones=test_config.get('monitoring_zones_poll'),
+            timestamp=int(1000 * time.time()))
         request.setResponseCode(response_code)
         self._audit('checks', request, tenant_id, response_code, content)
         return json.dumps(response_body)
@@ -767,7 +786,7 @@ class MaasMock(object):
         else:
             for i in xrange(n_tests):
                 response_payload.append({'state': random.choice(['OK', 'WARNING', 'CRITICAL']),
-                                         'status': random.choice(['cats', 'dogs', 'chickens']),
+                                         'status': _random_hipsum(),
                                          'timestamp': int(time.time() * 1000)})
 
         status = 200
@@ -1363,8 +1382,9 @@ class MaasController(object):
         """
         Retrieve the M_cache object containing all objects created so far
         """
+        clock = self.session_store.clock
         return (self.session_store.session_for_tenant_id(tenant_id)
-                .data_for_api(self.api_mock.maas_api, _mcache_factory)[self.region])
+                .data_for_api(self.api_mock.maas_api, _mcache_factory(clock))[self.region])
 
     app = MimicApp()
 
@@ -1403,20 +1423,27 @@ class MaasController(object):
         Sets overriding behavior on the test-check handler for a given
         entity ID and check type.
         """
-        test_responses = self._entity_cache_for_tenant(tenant_id).test_check_responses
-        request_body = json.loads(request.content.read())
-        if (entity_id, check_type) not in test_responses:
-            test_responses[(entity_id, check_type)] = get_test_check_response_by_type(check_type)
+        maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
+        check_type_ins = maas_store.check_types[check_type]
+        overrides = json.loads(request.content.read())
+        check_id = '__test_check'
+        ench_key = (entity_id, check_id)
 
-        overriding_response = test_responses[(entity_id, check_type)]
-        if 'available' in request_body:
-            overriding_response.available = request_body['available']
-        if 'status' in request_body:
-            overriding_response.status = request_body['status']
-        metrics_dict = request_body.get('metrics', {})
-        for metric_name in metrics_dict:
-            test_check_metric = overriding_response.get_metric_by_name(metric_name)
-            test_check_metric.set_override(metrics_dict[metric_name]['data'])
+        for override in overrides:
+            if 'available' in override:
+                check_type_ins.test_check_available[ench_key] = override['available']
+            if 'status' in override:
+                check_type_ins.test_check_status[ench_key] = override['status']
+            metrics_dict = override.get('metrics', {})
+            for metric_name in metrics_dict:
+                test_check_metric = check_type_ins.get_metric_by_name(metric_name)
+                kwargs = {'entity_id': entity_id,
+                          'check_id': check_id,
+                          'override_fn': lambda _: metrics_dict[metric_name]['data']}
+                if 'monitoring_zone_id' in override:
+                    kwargs['monitoring_zone'] = override['monitoring_zone_id']
+                test_check_metric.set_override(**kwargs)
+
         request.setResponseCode(204)
         return ''
 
@@ -1426,14 +1453,8 @@ class MaasController(object):
         """
         Clears overriding behavior on a test-check handler.
         """
-        test_responses = self._entity_cache_for_tenant(tenant_id).test_check_responses
-        if (entity_id, check_type) in test_responses:
-            overriding_response = test_responses[(entity_id, check_type)]
-            overriding_response.available = True
-            overriding_response.status = "code=200,rt=0.4s,bytes=99"
-
-            for metric in overriding_response.metrics:
-                metric.clear_override()
-
+        maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
+        check_type_ins = maas_store.check_types[check_type]
+        check_type_ins.clear_overrides()
         request.setResponseCode(204)
         return ''

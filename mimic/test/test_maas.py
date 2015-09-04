@@ -1,7 +1,8 @@
 import json
 import treq
+from twisted.internet.task import Clock
 from twisted.trial.unittest import SynchronousTestCase
-from mimic.model.maas_objects import TestCheckMetric, TestCheckData
+from mimic.model.maas_objects import Metric, CheckType
 from mimic.rest.maas_api import MaasApi, MaasControlApi
 from mimic.test.helpers import request
 from mimic.test.fixtures import APIMockHelper
@@ -16,19 +17,22 @@ class MaasObjectsTests(SynchronousTestCase):
         Known types for TestCheckMetric are 'i', 'n', and 's'. Other types
         raise ValueError.
         """
-        metric = TestCheckMetric('whuut', 'z')
+        metric = Metric('whuut', 'z', Clock())
         with self.assertRaises(ValueError):
-            metric.get_value()
+            metric.get_value_for_test_check(
+                timestamp=0,
+                entity_id='en123456',
+                check_id='__test_check')
 
     def test_test_check_data_missing_metric_name_errors(self):
         """
         If you query a TestCheckData for a metric it doesn't have, you get
         NameError.
         """
-        test_check_data = TestCheckData([
-            TestCheckMetric('that_metric', 'i', 'count')])
+        clock = Clock()
+        check_type = CheckType(clock, [Metric('that_metric', 'i', clock, unit='count')])
         with self.assertRaises(NameError):
-            test_check_data.get_metric_by_name('not_that_metric')
+            check_type.get_metric_by_name('not_that_metric')
 
 
 class MaasAPITests(SynchronousTestCase):
@@ -447,7 +451,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "PUT",
                       '{0}/entities/{1}/checks/test_responses/{2}'.format(
                           self.ctl_uri, self.entity_id, 'agent.load_average'),
-                      json.dumps({'available': False}))
+                      json.dumps([{'available': False}]))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
         req = request(self, self.root, "POST",
@@ -465,7 +469,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "PUT",
                       '{0}/entities/{1}/checks/test_responses/{2}'.format(
                           self.ctl_uri, self.entity_id, 'agent.memory'),
-                      json.dumps({'status': 'whuuut'}))
+                      json.dumps([{'status': 'whuuut'}]))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
         req = request(self, self.root, "POST",
@@ -485,30 +489,34 @@ class MaasAPITests(SynchronousTestCase):
         """
         req = request(self, self.root, "PUT",
                       '{0}/entities/{1}/checks/test_responses/{2}'.format(
-                          self.ctl_uri, self.entity_id, 'agent.cpu'),
-                      json.dumps({'metrics': {'usage_average': {'data': 31}}}))
+                          self.ctl_uri, self.entity_id, 'remote.http'),
+                      json.dumps([{'metrics': {'duration': {'data': 123}},
+                                   'monitoring_zone_id': 'mzdfw'}]))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
         req = request(self, self.root, "POST",
                       self.uri + '/entities/' + self.entity_id + '/test-check',
-                      json.dumps({'type': 'agent.cpu'}))
+                      json.dumps({'type': 'remote.http',
+                                  'monitoring_zones_poll': ['mzdfw']}))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
-        self.assertEquals(31, data[0]['metrics']['usage_average']['data'])
+        self.assertEquals(123, data[0]['metrics']['duration']['data'])
         req = request(self, self.root, "PUT",
                       '{0}/entities/{1}/checks/test_responses/{2}'.format(
-                          self.ctl_uri, self.entity_id, 'agent.cpu'),
-                      json.dumps({'metrics': {'usage_average': {'data': 89}}}))
+                          self.ctl_uri, self.entity_id, 'remote.http'),
+                      json.dumps([{'metrics': {'duration': {'data': 456}},
+                                   'monitoring_zone_id': 'mzdfw'}]))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
         req = request(self, self.root, "POST",
                       self.uri + '/entities/' + self.entity_id + '/test-check',
-                      json.dumps({'type': 'agent.cpu'}))
+                      json.dumps({'type': 'remote.http',
+                                  'monitoring_zones_poll': ['mzdfw']}))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
-        self.assertEquals(89, data[0]['metrics']['usage_average']['data'])
+        self.assertEquals(456, data[0]['metrics']['duration']['data'])
 
     def test_test_check_clears_metrics(self):
         """
@@ -521,7 +529,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, "PUT",
                       '{0}/entities/{1}/checks/test_responses/{2}'.format(
                           self.ctl_uri, self.entity_id, 'agent.filesystem'),
-                      json.dumps({'metrics': {'options': options}}))
+                      json.dumps([{'metrics': {'options': options}}]))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
         req = request(self, self.root, "DELETE",
