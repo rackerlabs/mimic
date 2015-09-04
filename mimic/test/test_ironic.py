@@ -37,7 +37,7 @@ class IronicAPITests(SynchronousTestCase):
         self.core = MimicCore(Clock(), [])
         self.root = MimicRoot(self.core).app.resource()
         self.node_details_attributes = [
-            "instance_uuid", "target_power_state",
+            "instance_uuid", "target_power_state", "chassis_uuid",
             "properties", "uuid", "driver_info", "target_provision_state",
             "last_error", "console_enabled", "extra", "driver", "links",
             "maintenance_reason", "updated_at", "provision_updated_at",
@@ -45,18 +45,136 @@ class IronicAPITests(SynchronousTestCase):
             "power_state", "instance_info", "ports", "name", "driver_internal_info",
             "inspection_finished_at", "inspection_started_at", "clean_step"
         ]
+        self.url = "/ironic/v1/nodes"
+        self.create_request = {
+            "chassis_uuid": str(uuid4()),
+            "driver": "agent_ipmitool",
+            "driver_info": {"ipmi_username": "mimic-user",
+                            "ipmi_address": "127.0.0.0",
+                            "ipmi_password": "******"},
+            "name": "test_node",
+            "properties": {
+                "cpus": "1",
+                "local_gb": "10",
+                "memory_mb": "1024"
+            }
+        }
+
+    def create_node(self, create_request=None):
+        """
+        Create a new node and return node.
+        """
+        request = create_request or self.create_request
+        (response, content) = self.successResultOf(json_request(
+            self, self.root, "POST", self.url, body=json.dumps(request)))
+        self.assertEqual(response.code, 201)
+        return content
 
     def get_nodes(self, postfix=None):
         """
         Get nodes and return content
         """
-        url = "/ironic/v1/nodes"
+        url = self.url
         if postfix:
-            url = "/ironic/v1/nodes" + postfix
+            url = self.url + postfix
         (response, content) = self.successResultOf(json_request(
             self, self.root, "GET", url))
         self.assertEqual(200, response.code)
         return content
+
+    def test_create_node(self):
+        """
+        Create node returns 201 and the newly created node.
+        """
+        new_node = self.create_node(self.create_request)
+        for key in self.create_request.keys():
+            self.assertEqual(self.create_request[key], new_node[key])
+
+    def test_create_node_failure(self):
+        """
+        Create node returns 400 if the request json is not
+        as expected.
+        """
+        response = self.successResultOf(request(
+            self, self.root, "POST", self.url, body=json.dumps("")))
+        self.assertEqual(response.code, 400)
+
+    def test_delete_node_when_node_does_not_exist(self):
+        """
+        Delete node returns 404 when the given node_id
+        does not exist.
+        """
+        response = self.successResultOf(request(
+            self, self.root, "DELETE", self.url + "/1234"))
+        self.assertEqual(response.code, 404)
+
+    def test_delete_node(self):
+        """
+        Delete node returns 204 deletes the given node_id.
+        """
+        content = self.create_node()
+        node_id = str(content['uuid'])
+
+        # delete node
+        response = self.successResultOf(request(
+            self, self.root, "DELETE", self.url + '/' + node_id))
+        self.assertEqual(response.code, 204)
+
+        # get node
+        response = self.successResultOf(request(
+            self, self.root, "GET", self.url + '/' + node_id))
+        self.assertEqual(404, response.code)
+
+    def test_create_then_get_node(self):
+        """
+        Test create node then get the node and verify attributes
+        """
+        create_request = {"properties": {"memory_mb": 32768}}
+        content = self.create_node(create_request)
+        node_id = str(content['uuid'])
+        self.assertEqual(content['properties']['memory_mb'],
+                         create_request['properties']['memory_mb'])
+
+        # get node
+        (response, get_content) = self.successResultOf(json_request(
+            self, self.root, "GET", self.url + '/' + node_id))
+        self.assertEqual(200, response.code)
+        self.assertEqual(content, get_content)
+
+    def test_create_then_get_node_with_default_attributes(self):
+        """
+        Test create node then get the node and verify attributes
+        """
+        content = self.create_node()
+        node_id = str(content['uuid'])
+
+        # get node
+        (response, get_content) = self.successResultOf(json_request(
+            self, self.root, "GET", self.url + '/' + node_id))
+        self.assertEqual(200, response.code)
+        self.assertEqual(content, get_content)
+
+    def test_create_then_get_node_with_mimimum_attributes(self):
+        """
+        Test create node then get the node and verify attributes
+        """
+        (response, content) = self.successResultOf(json_request(
+            self, self.root, "POST", self.url, body=json.dumps({})))
+        self.assertEqual(response.code, 201)
+        node_id = str(content['uuid'])
+        self.assertFalse(content['properties']['memory_mb'])
+
+        # get node
+        (response, get_content) = self.successResultOf(json_request(
+            self, self.root, "GET", self.url + '/' + node_id))
+        self.assertEqual(200, response.code)
+        self.assertEqual(content, get_content)
+
+    def test_create_then_get_node_with_empty_properties_attributes(self):
+        """
+        Test create node when `properties` attribute is set to None
+        """
+        self.create_node({"properties": None})
 
     def test_list_nodes(self):
         """
@@ -102,7 +220,11 @@ class IronicAPITests(SynchronousTestCase):
         Test ``/nodes/<node_id>`` to return response code 200 and validate the
         attributes of the json response body
         """
-        node_id = uuid4()
+        # create a node
+        content = self.create_node()
+        node_id = content['uuid']
+
+        # get node
         content = self.get_nodes('/' + str(node_id))
         self.assertEqual(
             sorted(content.keys()),
@@ -117,23 +239,25 @@ class IronicAPITests(SynchronousTestCase):
                                   "onmetal-memory1": 524288}
         content = self.get_nodes('/detail')
         for each in content['nodes']:
-            self.assertTrue(
-                (each['extra']['flavor'] in expected_flavor_memory.keys()) and
-                (each['properties']['memory_mb'] == expected_flavor_memory[each['extra']['flavor']]))
+            if each['properties']['memory_mb']:
+                self.assertTrue(
+                    (each['extra']['flavor'] in expected_flavor_memory.keys()) and
+                    (each['properties']['memory_mb'] == expected_flavor_memory[each['extra']['flavor']]))
 
     def test_setting_provision_state(self):
         """
         Test ``/nodes/<node-id>/states/provision`` returns a 200 and
         sets the `provision_state` on the node.
         """
-        node_id = uuid4()
-        # GET node essentially creates a node
-        content = self.get_nodes('/' + str(node_id))
+        # create a node
+        content = self.create_node()
+        node_id = content['uuid']
+
         provision_state = content['provision_state']
         self.assertEqual(provision_state, 'available')
 
         # Change the provision_state to 'active'
-        url = "/ironic/v1/nodes/{0}/states/provision".format(node_id)
+        url = self.url + "/{0}/states/provision".format(node_id)
         response = self.successResultOf(request(
             self, self.root, "PUT", url, body=json.dumps({'target': 'active'})))
         self.assertEqual(response.code, 202)
@@ -148,7 +272,7 @@ class IronicAPITests(SynchronousTestCase):
         Test ``/nodes/<node-id>/states/provision`` returns a 404 when
         the node does not exist
         """
-        url = "/ironic/v1/nodes/111/states/provision"
+        url = self.url + "/111/states/provision"
         (response, content) = self.successResultOf(json_request(
             self, self.root, "PUT", url, body=json.dumps({'target': 'active'})))
         self.assertEqual(response.code, 404)
@@ -159,7 +283,7 @@ class IronicAPITests(SynchronousTestCase):
         Test ``/nodes/<node-id>/vendor_passthru/cache_image`` returns a 404 when
         the node does not exist
         """
-        url = "/ironic/v1/nodes/222/vendor_passthru/cache_image"
+        url = self.url + "/222/vendor_passthru/cache_image"
         (response, content) = self.successResultOf(json_request(
             self, self.root, "POST", url, body=json.dumps({})))
         self.assertEqual(response.code, 404)
@@ -170,11 +294,10 @@ class IronicAPITests(SynchronousTestCase):
         Test ``/nodes/<node-id>/vendor_passthru/cache_image`` returns a 400 when
         the the method is not `cache_image`
         """
-        node_id = uuid4()
-        # GET node essentially creates the node with the given node_id
-        self.get_nodes('/' + str(node_id))
+        new_node = self.create_node()
+        node_id = new_node['uuid']
 
-        url = "/ironic/v1/nodes/{0}/vendor_passthru/not_cache_image".format(node_id)
+        url = self.url + "/{0}/vendor_passthru/not_cache_image".format(node_id)
         response = self.successResultOf(request(
             self, self.root, "POST", url, body=json.dumps({})))
         self.assertEqual(response.code, 400)
@@ -184,9 +307,8 @@ class IronicAPITests(SynchronousTestCase):
         Test ``/nodes/<node-id>/vendor_passthru/cache_image`` returns a 400 when
         the body for the request is invalid
         """
-        node_id = uuid4()
-        # GET node essentially creates the node with the given node_id
-        self.get_nodes('/' + str(node_id))
+        new_node = self.create_node()
+        node_id = new_node['uuid']
 
         body_list = [{"image_info": {}}, {"image": {"id": "111"}},
                      {"image_invalid": {"inv": None}}, {"image_info": {"id": None}}]
@@ -201,15 +323,15 @@ class IronicAPITests(SynchronousTestCase):
         Test ``/nodes/<node-id>/vendor_passthru/cache_image`` returns a 202 and
         sets the cache_image_id and cache_status on the node
         """
-        node_id = uuid4()
-        # GET node essentially creates the node with the given node_id
-        content = self.get_nodes('/' + str(node_id))
-        self.assertFalse(content['driver_info'].get('cache_image_id'))
-        self.assertFalse(content['driver_info'].get('cache_status'))
+        new_node = self.create_node({'properties': {'memory_mb': 131072}})
+        node_id = new_node['uuid']
+
+        self.assertFalse(new_node['driver_info'].get('cache_image_id'))
+        self.assertFalse(new_node['driver_info'].get('cache_status'))
 
         image_id = str(uuid4())
         body = {"image_info": {"id": image_id}}
-        url = "/ironic/v1/nodes/{0}/vendor_passthru/cache_image".format(node_id)
+        url = self.url + "/{0}/vendor_passthru/cache_image".format(node_id)
         response = self.successResultOf(request(
             self, self.root, "POST", url, body=json.dumps(body)))
         self.assertEqual(response.code, 202)
@@ -229,7 +351,7 @@ class IronicAPITests(SynchronousTestCase):
 
         image_id = str(uuid4())
         body = {"image_info": {"id": image_id}}
-        url = "/ironic/v1/nodes/{0}/vendor_passthru/cache_image".format(node_id)
+        url = self.url + "/{0}/vendor_passthru/cache_image".format(node_id)
         response = self.successResultOf(request(
             self, self.root, "POST", url, body=json.dumps(body)))
         self.assertEqual(response.code, 202)

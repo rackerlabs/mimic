@@ -9,13 +9,17 @@ from mimic.util.helper import random_hex_generator
 
 
 @attributes(["node_id",
+             Attribute("chassis_uuid", default_value=None),
+             Attribute("driver", default_value=None),
+             Attribute("driver_info", default_value=None),
+             Attribute("properties", default_value=None),
              Attribute("flavor_id", default_value="onmetal-io1"),
              Attribute("power_state", default_value="power on"),
              Attribute("provision_state", default_value="available"),
              Attribute("instance_uuid", default_value=None),
              Attribute("maintenance", default_value=False),
              Attribute("cache_image_id", default_value=None),
-             Attribute("memory_mb", default_value=131072),
+             Attribute("memory_mb", default_value=None),
              Attribute("name", default_value=None)
              ])
 class Node(object):
@@ -31,7 +35,6 @@ class Node(object):
         "updated_at": "2015-08-09T04:30:05+00:00",
         "last_error": None,
         "console_enabled": False,
-        "driver": "agent_ipmitool",
         "maintenance_reason": None,
         "provision_updated_at": "2015-08-07T06:57:24+00:00",
         "reservation": None,
@@ -123,6 +126,7 @@ class Node(object):
         template = self.static_defaults.copy()
         template.update({
             "instance_uuid": self.instance_uuid,
+            "chassis_uuid": self.chassis_uuid,
             "name": self.name,
             "uuid": self.node_id,
             "links": self.links_json(),
@@ -149,20 +153,17 @@ class Node(object):
                 "hardware/interfaces/1/switch_port_id": "Mimic1/10",
                 "hardware/interfaces/0/switch_chassis_id": "mimic-chassis1"
             },
-            "properties": {
+            "properties": self.properties or {
                 "memory_mb": self.memory_mb,
                 "cpu_arch": "amd64",
                 "local_gb": 32,
                 "cpus": 40
             },
-            "driver_info": {
-                "hardware_manager_version": None,
+            "driver": self.driver,
+            "driver_info": self.driver_info or {
                 "ipmi_username": "USERID",
                 "ipmi_address": "127.0.0.0",
-                "decommission_target_state": None,
                 "ipmi_password": "******",
-                "agent_url": "http://127.0.0.1:9999",
-                "agent_last_heartbeat": 1427727371,
                 "cache_image_id": self.cache_image_id,
                 "cache_status": 'cached' if self.cache_image_id else None
             }
@@ -170,6 +171,8 @@ class Node(object):
         if self.instance_uuid:
             template["instance_info"] = self.static_instance_info
             template["provision_state"] = "active"
+        if not self.driver:
+            template["driver"] = "fake"
         return template
 
 
@@ -178,6 +181,11 @@ class IronicNodeStore(object):
     """
     A collection of ironic :obj:`Node` objects.
     """
+
+    memory_to_flavor_map = {131072: "onmetal-io1",
+                            32768: "onmetal-compute1",
+                            524288: "onmetal-memory1"
+                            }
 
     def node_not_found(self, node_id):
         """
@@ -204,8 +212,52 @@ class IronicNodeStore(object):
         Create a new Node object and add it to the
         :obj: `ironic_node_store`
         """
+        if not attributes.get('chassis_uuid'):
+            attributes['chassis_uuid'] = str(uuid4())
+        if (attributes.get("flavor_id", None) is None and
+                attributes.get("memory_mb")):
+            attributes['flavor_id'] = self.memory_to_flavor_map.get(
+                attributes['memory_mb'], "onmetal-mimic")
         node = Node(**attributes)
         self.ironic_node_store.append(node)
+        return node
+
+    def create_node(self, http_create_request):
+        """
+        Create a node
+        http://bit.ly/1N0O9KM
+        """
+        content = loads(http_create_request.content.read())
+        try:
+            memory_mb = None
+            if content.get('properties'):
+                memory_mb = content['properties'].get('memory_mb')
+            node = self.add_to_ironic_node_store(
+                node_id=str(uuid4()),
+                memory_mb=memory_mb,
+                chassis_uuid=content.get('chassis_uuid'),
+                driver=content.get('driver'),
+                properties=content.get('properties'),
+                driver_info=content.get('driver_info'),
+                name=content.get('name'))
+            http_create_request.setResponseCode(201)
+            return dumps(node.detail_json())
+        except:
+            http_create_request.setResponseCode(400)
+            return b''
+
+    def delete_node(self, http_delete_request, node_id):
+        """
+        Delete the `node_id` from the :obj:`ironic_node_store` if
+        the node exists and set response code to be 204.
+        If node does not exist, return response code 404.
+        """
+        node = self.node_by_id(node_id)
+        if node:
+            self.ironic_node_store.remove(node)
+            http_delete_request.setResponseCode(204)
+            return b''
+        http_delete_request.setResponseCode(404)
         return b''
 
     def list_nodes(self, include_details):
@@ -221,15 +273,12 @@ class IronicNodeStore(object):
         if not self.ironic_node_store:
             for _ in range(30):
                 self.add_to_ironic_node_store(node_id=str(uuid4()),
-                                              flavor_id="onmetal-io1",
                                               memory_mb=131072)
             for _ in range(30):
                 self.add_to_ironic_node_store(node_id=str(uuid4()),
-                                              flavor_id="onmetal-compute1",
                                               memory_mb=32768)
             for _ in range(30):
                 self.add_to_ironic_node_store(node_id=str(uuid4()),
-                                              flavor_id="onmetal-memory1",
                                               memory_mb=524288)
             for _ in range(2):
                 self.add_to_ironic_node_store(node_id=str(uuid4()),
@@ -243,15 +292,17 @@ class IronicNodeStore(object):
         }
         return dumps(result)
 
-    def get_node_details(self, node_id):
+    def get_node_details(self, http_request, node_id):
         """
-        Creates a node for the given `node_id` if one does not exist in
-        ``self.ironic_node_store`` and returns it. Else returns the :obj: `Node` for the
-        corresponding `node_id`.
-        Docs: http://docs.openstack.org/developer/ironic/webapi/v1.html#get--v1-nodes-(node_ident)
+        Returns the :obj: `Node` for the corresponding `node_id`
+        from the :obj:`ironic_node_store`.
+        Returns 404 if `node_id` one does not exist in
+        ``self.ironic_node_store``
+        Docs:http://bit.ly/1NMIlGx
         """
         if not self.node_by_id(node_id):
-            self.add_to_ironic_node_store(node_id=node_id)
+            http_request.setResponseCode(404)
+            return b''
         return dumps(self.node_by_id(node_id).detail_json())
 
     def set_node_provision_state(self, http_put_request, node_id):
