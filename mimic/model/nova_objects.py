@@ -22,7 +22,7 @@ from mimic.model.flavor_objects import (
     RackspacePerformance1Flavor, RackspacePerformance2Flavor)
 
 from mimic.model.image_objects import (
-    Image, RackspaceWindowsImage, RackspaceArchImage, RackspaceCentOSPVImage,
+    RackspaceWindowsImage, RackspaceArchImage, RackspaceCentOSPVImage,
     RackspaceCentOSPVHMImage, RackspaceCoreOSImage, RackspaceDebianImage,
     RackspaceFedoraImage, RackspaceFreeBSDImage, RackspaceGentooImage, RackspaceOpenSUSEImage,
     RackspaceRedHatPVImage, RackspaceRedHatPVHMImage, RackspaceUbuntuPVImage, RackspaceUbuntuPVHMImage,
@@ -1064,7 +1064,7 @@ class RegionalServerCollection(object):
     def get_image(self, http_get_request, image_id, absolutize_url):
         """
         Return an image object if one exists from the list `/images` api,
-        else creates and adds the image to the :obj: `images_store`.
+        else return 404 Image not found.
         """
         if image_id in get_presets['servers']['invalid_image_ref']:
             return dumps(not_found("The resource could not be found.",
@@ -1077,12 +1077,9 @@ class RegionalServerCollection(object):
                   RackspaceScientificImage, RackspaceOnMetalCentOSImage, RackspaceOnMetalCoreOSImage,
                   RackspaceOnMetalDebianImage, RackspaceOnMetalFedoraImage, RackspaceOnMetalUbuntuImage]
         self.create_images_list(images)
-
         image = self.image_by_id(image_id)
         if image is None:
-            image = Image(image_id=image_id, name=image_id + "Mimic Test Instance",
-                          minRam=1, tenant_id=self.tenant_id, minDisk=3, image_size=12345)
-            self.images_store.append(image)
+            return dumps(not_found('Image not found.', http_get_request))
         return dumps({"image": image.detailed_json(absolutize_url)})
 
 

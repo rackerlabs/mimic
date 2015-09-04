@@ -27,10 +27,10 @@ class NovaAPIImagesTests(SynchronousTestCase):
         """
         Get images, assert response code is 200 and return response body.
         """
-        (response, content) = self.successResultOf(json_request(
+        response, body = self.successResultOf(json_request(
             self, self.root, "GET", self.uri + postfix))
         self.assertEqual(200, response.code)
-        return content
+        return body
 
     def test_get_image_list(self):
         """
@@ -57,18 +57,22 @@ class NovaAPIImagesTests(SynchronousTestCase):
 
     def test_get_image_that_does_not_exist(self):
         """
-        Test to verify :func:`get_image_list` on ``GET /v2.0/<tenant_id>/images/detail``
+        Test to verify :func:`get_image` on ``GET /v2.0/<tenant_id>/images/<image_id>``
         """
-        # get_flavor_list_response_body = self.get_server_image('/images/no_id_found')
-        # image = get_flavor_list_response_body['images']
-        # for each_image in image_list:
-        #     self.assertEqual(sorted(each_image.keys()), sorted(['OS-EXT-IMG-SIZE:size',
-        #                                                         'com.rackspace__1__ui_default_show',
-        #                                                         'id', 'links', 'metadata', 'minDisk',
-        #                                                         'minRam', 'name']))
 
-    def test_get_pending_images(self):
-        self.get_server_image('/images?member_status=shared&visibility=private&limit=1000')
-        # image_list = get_image_list_response_body['images']
-        # self.assertTrue(len(image_list) > 1)
-        # for each_image in image_list:
+        response, body = self.successResultOf(json_request(
+            self, self.root, "GET", self.uri + '/images/id_not_found'))
+
+        self.assertEqual(response.code, 404)
+        self.assertEqual(body, {
+            "itemNotFound": {
+                "message": "Image not found.",
+                "code": 404
+            }
+        })
+    # @SynchronousTestCase.skip("showing class skipping")
+    # def test_get_pending_images(self):
+    #     self.get_server_image('/images?member_status=shared&visibility=private&limit=1000')
+    #     # image_list = get_image_list_response_body['images']
+    #     # self.assertTrue(len(image_list) > 1)
+    #     # for each_image in image_list:
