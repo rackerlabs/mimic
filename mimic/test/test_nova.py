@@ -19,6 +19,8 @@ from mimic.test.behavior_tests import (
     register_behavior)
 from mimic.test.fixtures import APIMockHelper, TenantAuthentication
 from mimic.util.helper import seconds_to_timestamp
+from mimic.model.nova_objects import (
+    RegionalServerCollection, Server, IPv4Address)
 
 
 def status_of_server(test_case, server_id):
@@ -2288,3 +2290,33 @@ class NovaAPIMetadataTests(SynchronousTestCase):
                         for i in xrange(40))
         self.assert_maximum_metadata(
             *self.set_metadata_item(metadata, 'key', {"meta": {"key": []}}))
+
+
+class NovaServerTests(SynchronousTestCase):
+    def test_unique_ips(self):
+        nova_api = NovaApi(["ORD", "MIMIC"])
+        self.helper = self.helper = APIMockHelper(
+            self, [nova_api, NovaControlApi(nova_api=nova_api)]
+        )
+        coll = RegionalServerCollection(
+            tenant_id='abc123', region_name='ORD', clock=self.helper.clock,
+            servers=[])
+        creation_json = {
+            'server': {'name': 'foo', 'flavorRef': 'bar', 'imageRef': 'baz'}}
+
+        def ipsegment():
+            yield 1
+            yield 1
+            yield 2
+            yield 2
+            yield 3
+            yield 3
+
+        Server.from_creation_request_json(coll, creation_json,
+                                          ipsegment=ipsegment().next)
+        Server.from_creation_request_json(coll, creation_json,
+                                          ipsegment=ipsegment().next)
+        self.assertEqual(coll.servers[0].private_ips,
+                         [IPv4Address(address='10.180.1.1')])
+        self.assertEqual(coll.servers[1].private_ips,
+                         [IPv4Address(address='10.180.2.2')])
