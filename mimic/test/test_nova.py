@@ -442,7 +442,6 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(
             get_server_image_response_body['image']['metadata']['flavor_classes'], 'onmetal')
 
-
     def test_get_server_flavor(self):
         """
         Test to verify :func:`get_image` on ``GET /v2.0/<tenant_id>/flavors/<flavor_id>``

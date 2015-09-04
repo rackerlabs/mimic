@@ -1019,7 +1019,7 @@ class RegionalServerCollection(object):
 
     def create_images_list(self, image_classes):
         """
-        Generates the data for each flavor in each flavor class
+        Generates the data for each image in each image class
         """
         for image_class in image_classes:
             for image, image_spec in image_class.images.iteritems():
@@ -1051,8 +1051,8 @@ class RegionalServerCollection(object):
         self.create_images_list(images)
         images = []
         for image in self.images_store:
-            # if self.region_name != "IAD" and isinstance(flavor, RackspaceOnMetalFlavor):
-            #     continue
+            if self.region_name != "IAD" and isinstance(image, RackspaceOnMetalFlavor):
+                continue
             if include_details:
                 images.append(image.detailed_json(absolutize_url))
             else:

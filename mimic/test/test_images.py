@@ -59,7 +59,7 @@ class NovaAPIImagesTests(SynchronousTestCase):
         """
         Test to verify :func:`get_image_list` on ``GET /v2.0/<tenant_id>/images/detail``
         """
-        #get_flavor_list_response_body = self.get_server_image('/images/no_id_found')
+        # get_flavor_list_response_body = self.get_server_image('/images/no_id_found')
         # image = get_flavor_list_response_body['images']
         # for each_image in image_list:
         #     self.assertEqual(sorted(each_image.keys()), sorted(['OS-EXT-IMG-SIZE:size',
