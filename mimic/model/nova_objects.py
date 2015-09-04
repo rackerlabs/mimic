@@ -306,6 +306,13 @@ class Server(object):
         metadata = server_json.get("metadata") or {}
         cls.validate_metadata(metadata, max_metadata_items)
 
+        while True:
+            private_ip = IPv4Address(
+                address="10.180.{0}.{1}".format(ipsegment(), ipsegment()))
+            if private_ip not in [addr for server in collection.servers
+                                  for addr in server.private_ips]:
+                break
+
         self = cls(
             collection=collection,
             server_name=server_json['name'],
@@ -314,10 +321,7 @@ class Server(object):
             metadata=metadata,
             creation_time=now,
             update_time=now,
-            private_ips=[
-                IPv4Address(address="10.180.{0}.{1}"
-                            .format(ipsegment(), ipsegment())),
-            ],
+            private_ips=[private_ip],
             public_ips=[
                 IPv4Address(address="198.101.241.{0}".format(ipsegment())),
                 IPv6Address(address="2001:4800:780e:0510:d87b:9cbc:ff04:513a")
