@@ -79,6 +79,10 @@ class NovaAPIFlavorsTests(SynchronousTestCase):
         for flavor in flavor_list:
             if isinstance(flavor, RackspaceOnMetalFlavor):
                 self.assertTrue('onmetal' in flavor['id'])
+                self.assertEqual(
+                    sorted(flavor.keys()),
+                    sorted(['id', 'name', 'links', 'ram', 'OS-FLV-WITH-EXT-SPECS:extra_specs',
+                            'vcpus', 'swap', 'rxtx_factor', 'OS-FLV-EXT-DATA:ephemeral', 'disk']))
 
     def test_get_flavor_list_with_details(self):
         """
