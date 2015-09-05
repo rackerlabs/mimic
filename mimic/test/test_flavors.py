@@ -7,7 +7,6 @@ from twisted.trial.unittest import SynchronousTestCase
 from mimic.test.helpers import json_request, request
 from mimic.rest.nova_api import NovaApi
 from mimic.test.fixtures import APIMockHelper
-from mimic.model.flavor_objects import RackspaceOnMetalFlavor
 
 
 class NovaAPIFlavorsTests(SynchronousTestCase):
@@ -73,12 +72,23 @@ class NovaAPIFlavorsTests(SynchronousTestCase):
         self.helper = APIMockHelper(self, [nova_api])
         self.root = self.helper.root
         self.uri = self.helper.uri
-        get_flavor_list_response_body = self.get_server_flavor('/flavors')
+        get_flavor_list_response_body = self.get_server_flavor('/flavors/')
         flavor_list = get_flavor_list_response_body['flavors']
         self.assertTrue(len(flavor_list) == 38)
         for flavor in flavor_list:
-            if isinstance(flavor, RackspaceOnMetalFlavor):
+            if 'onmetal' in flavor['id']:
                 self.assertTrue('onmetal' in flavor['id'])
+                self.assertEqual(
+                    sorted(flavor.keys()),
+                    sorted(['id', 'name', 'links']))
+
+        get_flavor_list_response_body = self.get_server_flavor('/flavors/detail')
+        flavor_list = get_flavor_list_response_body['flavors']
+        self.assertTrue(len(flavor_list) == 38)
+        for flavor in flavor_list:
+            if 'onmetal' in flavor['id']:
+                self.assertEqual('onmetal_flavor',
+                                 flavor['OS-FLV-WITH-EXT-SPECS:extra_specs']['policy_class'])
                 self.assertEqual(
                     sorted(flavor.keys()),
                     sorted(['id', 'name', 'links', 'ram', 'OS-FLV-WITH-EXT-SPECS:extra_specs',
