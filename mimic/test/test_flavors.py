@@ -61,7 +61,6 @@ class NovaAPIFlavorsTests(SynchronousTestCase):
         get_flavor_list_response_body = self.get_server_flavor('/flavors')
         flavor_list = get_flavor_list_response_body['flavors']
         self.assertTrue(len(flavor_list) > 1)
-        print len(flavor_list)
         for each_flavor in flavor_list:
             self.assertEqual(sorted(each_flavor.keys()), sorted(['id', 'name', 'links']))
 
