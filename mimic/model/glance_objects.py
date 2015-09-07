@@ -23,16 +23,13 @@ class GlanceImage(object):
     A Glance Image object
     """
 
-    static_defaults = {
-    }
-
     def detailed_json(self, image):
         """
         Long-form JSON-serializable object representation of this flavor, as
         returned by either a GET on this individual flavor or a member in the
         list returned by the list-details request.
         """
-        template = self.static_defaults.copy()
+        template = {}
         for key, value in image.metadata_json().iteritems():
             template.update({key: value})
 
@@ -51,7 +48,7 @@ class GlanceImage(object):
 
     def create_images_list(self, image_classes):
         """
-        Generates the data for each image in each image class
+        Generates the data for each glance image in each image class
         """
         for image_class in image_classes:
             for image, image_spec in image_class.images.iteritems():
@@ -69,7 +66,7 @@ class GlanceImage(object):
 
     def list_images(self, region_name, include_details):
         """
-        Return a list of images.
+        Return a list of glance images.
         """
         images = [RackspaceWindowsImage, RackspaceVyattaImage, RackspaceUbuntuPVImage,
                   RackspaceUbuntuPVHMImage, RackspaceScientificImage, RackspaceArchImage,
@@ -92,7 +89,7 @@ class GlanceImage(object):
 
     def image_by_id(self, image_id):
         """
-        Retrieve a :obj:`Image` object by its ID.
+        Retrieve a :obj:`Glance Image` object by its ID.
         """
         for image in self.images_store:
             if image.image_id == image_id:

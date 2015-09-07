@@ -11,10 +11,6 @@ class Image(object):
     A Image object
     """
 
-    static_defaults = {
-
-    }
-
     is_default = False
 
     def set_is_default(self):
@@ -64,7 +60,7 @@ class Image(object):
         returned by either a GET on this individual flavor or a member in the
         list returned by the list-details request.
         """
-        template = self.static_defaults.copy()
+        template = {}
         template.update({
             "id": self.image_id,
             "links": self.links_json(absolutize_url),
@@ -521,10 +517,6 @@ class OnMetalImage(object):
     A Image object
     """
 
-    static_defaults = {
-
-    }
-
     is_default = False
 
     def set_is_default(self):
@@ -574,7 +566,7 @@ class OnMetalImage(object):
         returned by either a GET on this individual flavor or a member in the
         list returned by the list-details request.
         """
-        template = self.static_defaults.copy()
+        template = {}
         template.update({
             "id": self.image_id,
             "links": self.links_json(absolutize_url),

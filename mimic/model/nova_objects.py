@@ -28,7 +28,7 @@ from mimic.model.image_objects import (
     RackspaceRedHatPVImage, RackspaceRedHatPVHMImage, RackspaceUbuntuPVImage, RackspaceUbuntuPVHMImage,
     RackspaceVyattaImage, RackspaceScientificImage, RackspaceOnMetalCentOSImage,
     RackspaceOnMetalCoreOSImage, RackspaceOnMetalDebianImage, RackspaceOnMetalFedoraImage,
-    RackspaceOnMetalUbuntuImage)
+    RackspaceOnMetalUbuntuImage, OnMetalImage)
 
 from mimic.canned_responses.mimic_presets import get_presets
 from mimic.model.behaviors import (
@@ -1017,10 +1017,19 @@ class RegionalServerCollection(object):
             self.flavors_store.append(flavor)
         return dumps({"flavor": flavor.detailed_json(absolutize_url)})
 
-    def create_images_list(self, image_classes):
+    def create_images_list(self):
         """
         Generates the data for each image in each image class
         """
+        image_classes = [RackspaceWindowsImage, RackspaceArchImage, RackspaceCentOSPVImage,
+                         RackspaceCentOSPVHMImage, RackspaceCoreOSImage, RackspaceDebianImage,
+                         RackspaceFedoraImage, RackspaceFreeBSDImage, RackspaceGentooImage,
+                         RackspaceOpenSUSEImage, RackspaceRedHatPVImage, RackspaceRedHatPVHMImage,
+                         RackspaceUbuntuPVImage, RackspaceUbuntuPVHMImage, RackspaceVyattaImage,
+                         RackspaceScientificImage, RackspaceOnMetalCentOSImage,
+                         RackspaceOnMetalCoreOSImage, RackspaceOnMetalDebianImage,
+                         RackspaceOnMetalFedoraImage, RackspaceOnMetalUbuntuImage]
+
         for image_class in image_classes:
             for image, image_spec in image_class.images.iteritems():
                 if not self.image_by_id(image_spec['id']):
@@ -1032,28 +1041,17 @@ class RegionalServerCollection(object):
                     tenant_id = self.tenant_id
                     image = image_class(image_id=image_id, tenant_id=tenant_id, image_size=image_size,
                                         name=image_name, minRam=minRam, minDisk=minDisk)
-                    # if image_spec["com.rackspace__1__ui_default_show"]:
-                    # #     default = image_spec["com.rackspace__1__ui_default_show"]
-                    # # else:
-                    # #     default = ''
                     self.images_store.append(image)
 
     def list_images(self, include_details, absolutize_url):
         """
         Return a list of images.
         """
-        images = [RackspaceWindowsImage, RackspaceVyattaImage, RackspaceUbuntuPVImage,
-                  RackspaceUbuntuPVHMImage, RackspaceArchImage,
-                  RackspaceScientificImage, RackspaceRedHatPVImage, RackspaceRedHatPVHMImage,
-                  RackspaceCentOSPVImage, RackspaceCentOSPVHMImage, RackspaceCoreOSImage,
-                  RackspaceDebianImage, RackspaceFedoraImage, RackspaceFreeBSDImage,
-                  RackspaceGentooImage, RackspaceOpenSUSEImage]
-        self.create_images_list(images)
+        self.create_images_list()
         images = []
         for image in self.images_store:
-            # FIX THIS: NEED OnMetalImage class maybe?
-            # if self.region_name != "IAD" and isinstance(image, RackspaceOnMetalImage):
-            #     continue
+            if self.region_name != "IAD" and isinstance(image, OnMetalImage):
+                continue
             if include_details:
                 images.append(image.detailed_json(absolutize_url))
             else:
@@ -1070,14 +1068,7 @@ class RegionalServerCollection(object):
         if image_id in get_presets['servers']['invalid_image_ref']:
             return dumps(not_found("The resource could not be found.",
                                    http_get_request))
-        images = [RackspaceWindowsImage, RackspaceArchImage, RackspaceCentOSPVImage,
-                  RackspaceCentOSPVHMImage, RackspaceCoreOSImage, RackspaceDebianImage,
-                  RackspaceFedoraImage, RackspaceFreeBSDImage, RackspaceGentooImage,
-                  RackspaceOpenSUSEImage, RackspaceRedHatPVImage, RackspaceRedHatPVHMImage,
-                  RackspaceUbuntuPVImage, RackspaceUbuntuPVHMImage, RackspaceVyattaImage,
-                  RackspaceScientificImage, RackspaceOnMetalCentOSImage, RackspaceOnMetalCoreOSImage,
-                  RackspaceOnMetalDebianImage, RackspaceOnMetalFedoraImage, RackspaceOnMetalUbuntuImage]
-        self.create_images_list(images)
+        self.create_images_list()
         image = self.image_by_id(image_id)
         if image is None:
             return dumps(not_found('Image not found.', http_get_request))
