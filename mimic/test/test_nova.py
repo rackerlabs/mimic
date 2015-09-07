@@ -437,8 +437,7 @@ class NovaAPITests(SynchronousTestCase):
             treq.json_content(get_server_image_response))
         self.assertEqual(get_server_image_response.code, 200)
         self.assertEqual(
-            get_server_image_response_body[''
-                                           'image']['id'], '4005b86a-2acf-4a3f-be41-44fefb87e9ae')
+            get_server_image_response_body['image']['id'], '4005b86a-2acf-4a3f-be41-44fefb87e9ae')
         self.assertEqual(
             get_server_image_response_body['image']['metadata']['flavor_classes'], 'onmetal')
 
@@ -1662,13 +1661,10 @@ class NovaAPINegativeTests(SynchronousTestCase):
         # create server with metadata to set status in ERROR
         server_id = quick_create_server(self.helper, metadata=metadata)
         # get server and verify status is ERROR
-        get_server = request(self, self.root, "GET", self.uri + '/servers/' +
-                             server_id)
+        get_server = request(self, self.root, "GET", self.uri + '/servers/' + server_id)
         get_server_response = self.successResultOf(get_server)
-        get_server_response_body = self.successResultOf(
-            treq.json_content(get_server_response))
-        self.assertEquals(
-            get_server_response_body['server']['status'], "ERROR")
+        get_server_response_body = self.successResultOf(treq.json_content(get_server_response))
+        self.assertEquals(get_server_response_body['server']['status'], "ERROR")
 
     def test_delete_server_fails_specified_number_of_times(self):
         """
@@ -1708,8 +1704,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         Test to verify :func:`get_image` when invalid image from the
         :obj: `mimic_presets` is provided or if image id ends with Z.
         """
-        get_server_image = request(self, self.root, "GET", self.uri +
-                                   '/images/image_ends_with_Z')
+        get_server_image = request(self, self.root, "GET", self.uri + '/images/image_ends_with_Z')
         get_server_image_response = self.successResultOf(get_server_image)
         self.assertEqual(get_server_image_response.code, 404)
 
@@ -1718,8 +1713,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         Test to verify :func:`get_flavor` when invalid flavor from the
         :obj: `mimic_presets` is provided.
         """
-        get_server_flavor = request(self, self.root, "GET", self.uri +
-                                    '/flavors/1')
+        get_server_flavor = request(self, self.root, "GET", self.uri + '/flavors/1')
         get_server_flavor_response = self.successResultOf(get_server_flavor)
         self.assertEqual(get_server_flavor_response.code, 404)
 
