@@ -34,12 +34,6 @@ class GlanceAPITests(SynchronousTestCase):
         data = self.get_responsebody(resp)
         self.assertEquals(True, 'images' in json.dumps(data))
 
-        req = request(self, self.root, "GET", self.uri + '/images')
-        resp = self.successResultOf(req)
-        self.assertEquals(resp.code, 200)
-        data = self.get_responsebody(resp)
-        self.assertEquals(True, 'images' in json.dumps(data))
-
     def test_list_images_with_public_visibility(self):
         """
         List images with public visibility in region IAD
