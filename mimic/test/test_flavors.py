@@ -51,6 +51,7 @@ class NovaAPIFlavorsTests(SynchronousTestCase):
         """
         get_server_flavor_response_body = self.get_server_flavor(
             '/flavors/test-flavor-id')
+
         self.assertEqual(
             get_server_flavor_response_body['flavor']['id'], 'test-flavor-id')
 
