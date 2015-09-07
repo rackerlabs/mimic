@@ -81,7 +81,6 @@ class GlanceImage(object):
         self.create_images_list(images)
         images = []
         for image in self.images_store:
-
             if region_name != "IAD" and isinstance(image, OnMetalImage):
                 continue
             else:
@@ -98,4 +97,3 @@ class GlanceImage(object):
         for image in self.images_store:
             if image.image_id == image_id:
                 return image
-        return None

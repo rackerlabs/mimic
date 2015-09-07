@@ -70,9 +70,3 @@ class NovaAPIImagesTests(SynchronousTestCase):
                 "code": 404
             }
         })
-    # @SynchronousTestCase.skip("showing class skipping")
-    # def test_get_pending_images(self):
-    #     self.get_server_image('/images?member_status=shared&visibility=private&limit=1000')
-    #     # image_list = get_image_list_response_body['images']
-    #     # self.assertTrue(len(image_list) > 1)
-    #     # for each_image in image_list:
