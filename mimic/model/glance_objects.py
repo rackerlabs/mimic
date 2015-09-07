@@ -46,10 +46,18 @@ class GlanceImage(object):
         })
         return template
 
-    def create_images_list(self, image_classes):
+    def create_images_list(self):
         """
         Generates the data for each glance image in each image class
         """
+        image_classes = [RackspaceWindowsImage, RackspaceVyattaImage, RackspaceUbuntuPVImage,
+                         RackspaceUbuntuPVHMImage, RackspaceScientificImage, RackspaceArchImage,
+                         RackspaceCentOSPVImage, RackspaceCentOSPVHMImage, RackspaceCoreOSImage,
+                         RackspaceDebianImage, RackspaceFedoraImage, RackspaceOpenSUSEImage,
+                         RackspaceGentooImage, RackspaceFreeBSDImage, RackspaceRedHatPVImage,
+                         RackspaceRedHatPVHMImage, RackspaceOnMetalDebianImage,
+                         RackspaceOnMetalFedoraImage, RackspaceOnMetalUbuntuImage,
+                         RackspaceOnMetalCentOSImage, RackspaceOnMetalCoreOSImage]
         for image_class in image_classes:
             for image, image_spec in image_class.images.iteritems():
                 if not self.image_by_id(image_spec['id']):
@@ -68,14 +76,8 @@ class GlanceImage(object):
         """
         Return a list of glance images.
         """
-        images = [RackspaceWindowsImage, RackspaceVyattaImage, RackspaceUbuntuPVImage,
-                  RackspaceUbuntuPVHMImage, RackspaceScientificImage, RackspaceArchImage,
-                  RackspaceCentOSPVImage, RackspaceCentOSPVHMImage, RackspaceCoreOSImage,
-                  RackspaceDebianImage, RackspaceFedoraImage, RackspaceOpenSUSEImage,
-                  RackspaceGentooImage, RackspaceFreeBSDImage, RackspaceRedHatPVImage,
-                  RackspaceRedHatPVHMImage, RackspaceOnMetalDebianImage, RackspaceOnMetalFedoraImage,
-                  RackspaceOnMetalUbuntuImage, RackspaceOnMetalCentOSImage, RackspaceOnMetalCoreOSImage]
-        self.create_images_list(images)
+
+        self.create_images_list()
         images = []
         for image in self.images_store:
             if region_name != "IAD" and isinstance(image, OnMetalImage):
