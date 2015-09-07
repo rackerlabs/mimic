@@ -12,8 +12,6 @@ can be generated, and are therefore not really fully implemented.
 
 import json
 import os
-# from mimic.canned_responses.mimic_presets import get_presets
-# from mimic.util.helper import not_found_response
 
 
 def _location():
@@ -47,41 +45,8 @@ def get_networks():
     return _get_json("json/nova/networks_json.py")
 
 
-def get_images_detail():
-    """
-    Returns all images with details from compute
-    """
-    return _get_json("json/nova/images_details_json.py")
-
-
 def get_os_volume_attachments():
     """
     Return volume empty attachments
     """
     return {"volumeAttachments": []}
-
-
-def get_image(image_id):
-    """
-    Canned response for get image.  The image id provided is substituted in the
-    response, if not one of the invalid image ids specified in mimic_presets.
-    """
-    images_data = _get_json("json/nova/images_details_json.py")['images']
-    for image in images_data:
-        if image['id'] == image_id:
-            return {"image": image}
-
-            # if (
-            #                 image_id in get_presets['servers']['invalid_image_ref'] or
-            #             image_id.endswith('Z')
-            # ):
-            #     return not_found_response('images'), 404
-            # return {'image': {'status': 'ACTIVE', 'id': image_id, 'name': 'mimic-test-image'}}, 200
-
-
-def get_images():
-    """
-    Returns all images without details from compute
-    """
-    images = _get_json("json/nova/images_json.py")
-    return {"images": images}
