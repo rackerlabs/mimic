@@ -76,7 +76,6 @@ class GlanceImage(object):
         """
         Return a list of glance images.
         """
-
         self.create_images_list()
         images = []
         for image in self.images_store:
