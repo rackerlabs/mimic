@@ -252,12 +252,11 @@ class IronicAPITests(SynchronousTestCase):
         Creates a node and verifies the node is 'available'.
         Changes the provision_state of the nodes to `new_provision_state`
         and verifies the state is set.
-        Returns the updated node.
+        Returns the node object after the update.
         """
         # create a node
         content = self.create_node()
         node_id = content['uuid']
-
         provision_state = content['provision_state']
         self.assertEqual(provision_state, 'available')
 
@@ -269,17 +268,17 @@ class IronicAPITests(SynchronousTestCase):
         self.assertEqual(response.code, 202)
 
         content = self.get_nodes('/' + str(node_id))
-        self.assertFalse(content['driver_info'].get('cache_image_id'))
-        self.assertFalse(content['driver_info'].get('cache_status'))
-        return content['provision_state']
+        return content
 
     def test_setting_provision_state_to_manage(self):
         """
         Test ``/nodes/<node-id>/states/provision`` returns a 200 and
         sets the `provision_state` to 'manage' on the node.
         """
-        new_state = self._validate_provisioning('manage')
-        self.assertEqual(new_state, 'manage')
+        content = self._validate_provisioning('manage')
+        self.assertEqual(content['provision_state'], 'manage')
+        self.assertFalse(content['driver_info'].get('cache_image_id'))
+        self.assertFalse(content['driver_info'].get('cache_status'))
 
     def test_setting_provision_state_to_provide(self):
         """
@@ -287,8 +286,20 @@ class IronicAPITests(SynchronousTestCase):
         sets the `provision_state` to 'available' on the node has
         provision_state set to 'provide'
         """
-        new_state = self._validate_provisioning('provide')
-        self.assertEqual(new_state, 'available')
+        content = self._validate_provisioning('provide')
+        self.assertEqual(content['provision_state'], 'available')
+        self.assertFalse(content['driver_info'].get('cache_image_id'))
+        self.assertFalse(content['driver_info'].get('cache_status'))
+
+    def test_setting_provision_state_to_active(self):
+        """
+        Test ``/nodes/<node-id>/states/provision`` returns a 200 and
+        sets the `provision_state` to 'active' on the node and
+        assigns a instance id.
+        """
+        content = self._validate_provisioning('active')
+        self.assertEqual(content['provision_state'], 'active')
+        self.assertTrue(content['instance_uuid'])
 
     def test_setting_provision_state_fails(self):
         """
