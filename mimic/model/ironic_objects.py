@@ -282,6 +282,7 @@ class IronicNodeStore(object):
                                               memory_mb=524288)
             for _ in range(2):
                 self.add_to_ironic_node_store(node_id=str(uuid4()),
+                                              memory_mb=32768,
                                               instance_uuid=str(uuid4()))
         result = {
             "nodes": [
