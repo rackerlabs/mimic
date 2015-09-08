@@ -205,6 +205,9 @@ class IronicAPITests(SynchronousTestCase):
         self.assertEqual(instance_nodes.count('onmetal-io1'), 30)
         self.assertEqual(instance_nodes.count('onmetal-compute1'), 32)
         self.assertEqual(instance_nodes.count('onmetal-memory1'), 30)
+        provisioned = [node for node in content['nodes']
+                       if node['instance_uuid']]
+        self.assertEqual(len(provisioned), 2)
 
     def test_list_nodes_with_details_is_consistent(self):
         """
