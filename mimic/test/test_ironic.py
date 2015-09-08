@@ -247,10 +247,12 @@ class IronicAPITests(SynchronousTestCase):
                     (each['extra']['flavor'] in expected_flavor_memory.keys()) and
                     (each['properties']['memory_mb'] == expected_flavor_memory[each['extra']['flavor']]))
 
-    def test_setting_provision_state(self):
+    def _validate_provisioning(self, new_provision_state):
         """
-        Test ``/nodes/<node-id>/states/provision`` returns a 200 and
-        sets the `provision_state` on the node.
+        Creates a node and verifies the node is 'available'.
+        Changes the provision_state of the nodes to `new_provision_state`
+        and verifies the state is set.
+        Returns the updated node.
         """
         # create a node
         content = self.create_node()
@@ -259,16 +261,34 @@ class IronicAPITests(SynchronousTestCase):
         provision_state = content['provision_state']
         self.assertEqual(provision_state, 'available')
 
-        # Change the provision_state to 'active'
+        # Change the provision_state
         url = self.url + "/{0}/states/provision".format(node_id)
         response = self.successResultOf(request(
-            self, self.root, "PUT", url, body=json.dumps({'target': 'active'})))
+            self, self.root, "PUT", url, body=json.dumps(
+                {'target': new_provision_state})))
         self.assertEqual(response.code, 202)
 
         content = self.get_nodes('/' + str(node_id))
-        provision_state = content['provision_state']
         self.assertFalse(content['driver_info'].get('cache_image_id'))
         self.assertFalse(content['driver_info'].get('cache_status'))
+        return content['provision_state']
+
+    def test_setting_provision_state_to_manage(self):
+        """
+        Test ``/nodes/<node-id>/states/provision`` returns a 200 and
+        sets the `provision_state` to 'manage' on the node.
+        """
+        new_state = self._validate_provisioning('manage')
+        self.assertEqual(new_state, 'manage')
+
+    def test_setting_provision_state_to_provide(self):
+        """
+        Test ``/nodes/<node-id>/states/provision`` returns a 200 and
+        sets the `provision_state` to 'available' on the node has
+        provision_state set to 'provide'
+        """
+        new_state = self._validate_provisioning('provide')
+        self.assertEqual(new_state, 'available')
 
     def test_setting_provision_state_fails(self):
         """
