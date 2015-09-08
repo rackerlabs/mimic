@@ -202,8 +202,8 @@ class IronicAPITests(SynchronousTestCase):
         instance_nodes = [node['extra']['flavor'] if node['extra'].get('flavor')
                           else None
                           for node in content['nodes']]
-        self.assertEqual(instance_nodes.count('onmetal-io1'), 32)
-        self.assertEqual(instance_nodes.count('onmetal-compute1'), 30)
+        self.assertEqual(instance_nodes.count('onmetal-io1'), 30)
+        self.assertEqual(instance_nodes.count('onmetal-compute1'), 32)
         self.assertEqual(instance_nodes.count('onmetal-memory1'), 30)
 
     def test_list_nodes_with_details_is_consistent(self):
