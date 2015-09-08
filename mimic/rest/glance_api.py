@@ -117,9 +117,9 @@ class GlanceAdminApi(object):
         """
         Deletes the image and returns response code 204.
         """
-        return json.dumps(self.core.glance_admin_image_store.delete_image(
+        return self.core.glance_admin_image_store.delete_image(
             request,
-            image_id))
+            image_id)
 
     @app.route('/v2/schemas/image', methods=['GET'])
     def get_image_schema_for_admin(self, request):

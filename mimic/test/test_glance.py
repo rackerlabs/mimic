@@ -161,3 +161,22 @@ class GlanceAdminAPITests(SynchronousTestCase):
         response = self.successResultOf(request(
             self, self.root, "GET", self.uri + '/' + new_image['id']))
         self.assertEqual(404, response.code)
+
+    def test_get_then_delete_image(self):
+        """
+        Create and then delete Image and validate response
+        """
+        images = self.list_images()['images']
+
+        for each in images[:2]:
+            response = self.successResultOf(request(
+                self, self.root, "DELETE", self.uri + '/' + each['id']))
+            self.assertEqual(204, response.code)
+
+            response = self.successResultOf(request(
+                self, self.root, "GET", self.uri + '/' + each['id']))
+            self.assertEqual(404, response.code)
+
+        images_after_delete = self.list_images()['images']
+        self.assertEqual(len(images),
+                         len(images_after_delete) + 2)
