@@ -78,20 +78,20 @@ class RackspaceStandardFlavor(Flavor):
     """
     A Rackspace standard flavor object representation
     """
-    flavors = {"512 MB Standard Instance": {"id": "2", "ram": 512, "vcpus": 1, "rxtx_factor": 80,
-                                            "disk": 20},
-               "1 GB Standard Instance": {"id": "3", "ram": 1024, "vcpus": 1, "rxtx_factor": 120,
-                                          "disk": 40},
-               "2 GB Standard Instance": {"id": "4", "ram": 2048, "vcpus": 2, "rxtx_factor": 240,
-                                          "disk": 80},
-               "4 GB Standard Instance": {"id": "5", "ram": 4096, "vcpus": 2, "rxtx_factor": 400,
-                                          "disk": 160},
-               "8 GB Standard Instance": {"id": "6", "ram": 8192, "vcpus": 4, "rxtx_factor": 600,
-                                          "disk": 320},
-               "15 GB Standard Instance": {"id": "7", "ram": 15360, "vcpus": 6, "rxtx_factor": 800,
-                                           "disk": 620},
-               "30 GB Standard Instance": {"id": "8", "ram": 30720, "vcpus": 8, "rxtx_factor": 1200,
-                                           "disk": 1200}}
+    flavors = {"512MB Standard Instance": {"id": "2", "ram": 512, "vcpus": 1, "rxtx_factor": 80,
+                                           "disk": 20},
+               "1GB Standard Instance": {"id": "3", "ram": 1024, "vcpus": 1, "rxtx_factor": 120,
+                                         "disk": 40},
+               "2GB Standard Instance": {"id": "4", "ram": 2048, "vcpus": 2, "rxtx_factor": 240,
+                                         "disk": 80},
+               "4GB Standard Instance": {"id": "5", "ram": 4096, "vcpus": 2, "rxtx_factor": 400,
+                                         "disk": 160},
+               "8GB Standard Instance": {"id": "6", "ram": 8192, "vcpus": 4, "rxtx_factor": 600,
+                                         "disk": 320},
+               "15GB Standard Instance": {"id": "7", "ram": 15360, "vcpus": 6, "rxtx_factor": 800,
+                                          "disk": 620},
+               "30GB Standard Instance": {"id": "8", "ram": 30720, "vcpus": 8, "rxtx_factor": 1200,
+                                          "disk": 1200}}
 
     def extra_specs_json(self):
         """
@@ -108,9 +108,9 @@ class RackspaceComputeFlavor(Flavor):
     """
     A Rackspace compute flavor object representatione
     """
-    flavors = {"3.75 GB Compute v1": {"id": "compute1-8", "ram": 3840, "vcpus": 2, "rxtx_factor": 312.5,
+    flavors = {"3.75 GB Compute v1": {"id": "compute1-4", "ram": 3840, "vcpus": 2, "rxtx_factor": 312.5,
                                       "disk": 0},
-               "7.5 GB Compute v1": {"id": "compute1-4", "ram": 7680, "vcpus": 4, "rxtx_factor": 625,
+               "7.5 GB Compute v1": {"id": "compute1-8", "ram": 7680, "vcpus": 4, "rxtx_factor": 625,
                                      "disk": 0},
                "15 GB Compute v1": {"id": "compute1-15", "ram": 15360, "vcpus": 8, "rxtx_factor": 1250,
                                     "disk": 0},
@@ -158,15 +158,15 @@ class RackspaceIOFlavor(Flavor):
     """
     A Rackspace IO flavor object representation
     """
-    flavors = {"15 GB I/0 v1": {"id": "io1-15", "ram": 15360, "vcpus": 4, "rxtx_factor": 1250,
+    flavors = {"15 GB I/O v1": {"id": "io1-15", "ram": 15360, "vcpus": 4, "rxtx_factor": 1250,
                                 "disk": 40},
-               "30 GB I/0 v1": {"id": "io1-30", "ram": 30720, "vcpus": 8, "rxtx_factor": 2500,
+               "30 GB I/O v1": {"id": "io1-30", "ram": 30720, "vcpus": 8, "rxtx_factor": 2500,
                                 "disk": 40},
-               "60 GB I/0 v1": {"id": "io1-60", "ram": 61440, "vcpus": 16, "rxtx_factor": 5000,
+               "60 GB I/O v1": {"id": "io1-60", "ram": 61440, "vcpus": 16, "rxtx_factor": 5000,
                                 "disk": 40},
-               "90 GB I/0 v1": {"id": "io1-90", "ram": 92160, "vcpus": 24, "rxtx_factor": 7500,
+               "90 GB I/O v1": {"id": "io1-90", "ram": 92160, "vcpus": 24, "rxtx_factor": 7500,
                                 "disk": 40},
-               "120 GB I/0 v1": {"id": "io1-120", "ram": 122880, "vcpus": 32, "rxtx_factor": 10000,
+               "120 GB I/O v1": {"id": "io1-120", "ram": 122880, "vcpus": 32, "rxtx_factor": 10000,
                                  "disk": 40}}
 
     def extra_specs_json(self):
