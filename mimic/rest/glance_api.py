@@ -20,6 +20,7 @@ class GlanceApi(object):
     """
     Rest endpoints for mocked Glance Api.
     """
+
     def __init__(self, regions=["ORD", "DFW", "IAD"]):
         """
         Create a GlanceApi.
@@ -52,6 +53,7 @@ class GlanceMock(object):
     """
     Glance Mock
     """
+
     def __init__(self, api_mock, uri_prefix, session_store, name):
         """
         Create a glance region with a given URI prefix.
@@ -87,12 +89,37 @@ class GlanceAdminApi(object):
         """
         self.core = core
 
+    @app.route('/v2/images', methods=['POST'])
+    def create_image(self, request):
+        """
+        Creates a new image and returns response code 201.
+        """
+        return json.dumps(self.core.glance_admin_image_store.create_image(request))
+
     @app.route('/v2/images', methods=['GET'])
     def get_images_for_admin(self, request):
         """
         Returns a list of glance images.
         """
         return json.dumps(self.core.glance_admin_image_store.list_images())
+
+    @app.route('/v2/images/<string:image_id>', methods=['GET'])
+    def get_image_for_admin(self, request, image_id):
+        """
+        Returns image with given `image_id`.
+        """
+        return json.dumps(self.core.glance_admin_image_store.get_image(
+            request,
+            image_id))
+
+    @app.route('/v2/images/<string:image_id>', methods=['DELETE'])
+    def delete_image(self, request, image_id):
+        """
+        Deletes the image and returns response code 204.
+        """
+        return self.core.glance_admin_image_store.delete_image(
+            request,
+            image_id)
 
     @app.route('/v2/schemas/image', methods=['GET'])
     def get_image_schema_for_admin(self, request):
