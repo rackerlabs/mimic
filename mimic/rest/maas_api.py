@@ -130,6 +130,7 @@ class MCache(object):
         self.audits_list = []
         self.maas_store = MaasStore(clock)
         self.test_alarm_responses = {}
+        self.test_alarm_errors = {}
 
 
 def create_entity(clock, params):
@@ -774,9 +775,17 @@ class MaasMock(object):
         payload = json.loads(content)
         n_tests = len(payload['check_data'])
         current_time_milliseconds = int(1000 * self._session_store.clock.seconds())
-        test_responses = self._entity_cache_for_tenant(tenant_id).test_alarm_responses
+        status = 200
         response_payload = []
-        if entity_id in test_responses:
+
+        test_responses = self._entity_cache_for_tenant(tenant_id).test_alarm_responses
+        test_errors = self._entity_cache_for_tenant(tenant_id).test_alarm_errors
+
+        if entity_id in test_errors and len(test_errors[entity_id]) > 0:
+            error_response = test_errors[entity_id].popleft()
+            status = error_response['code']
+            response_payload = error_response['response']
+        elif entity_id in test_responses:
             n_responses = len(test_responses[entity_id])
             for i in xrange(n_tests):
                 test_response = test_responses[entity_id][i % n_responses]
@@ -790,7 +799,6 @@ class MaasMock(object):
                                          'status': _random_hipsum(),
                                          'timestamp': current_time_milliseconds})
 
-        status = 200
         request.setResponseCode(status)
         self._audit('alarms', request, tenant_id, status, content)
         return json.dumps(response_payload)
@@ -1404,6 +1412,27 @@ class MaasController(object):
                 ith_response['status'] = response_block['status']
             test_responses[entity_id].append(ith_response)
         request.setResponseCode(204)
+        return ''
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/test_errors',
+               methods=['POST'])
+    def push_test_alarm_error(self, request, tenant_id, entity_id):
+        """
+        Creates a new error response that will be returned from the
+        test-alarm API the next time it is called for this entity.
+        """
+        test_alarm_errors = self._entity_cache_for_tenant(tenant_id).test_alarm_errors
+        request_body = json.loads(request.content.read())
+
+        if entity_id not in test_alarm_errors:
+            test_alarm_errors[entity_id] = collections.deque()
+
+        error_obj = {'id': 'er' + random_hex_generator(4),
+                     'code': request_body['code'],
+                     'response': request_body['response']}
+        test_alarm_errors[entity_id].append(error_obj)
+        request.setResponseCode(201)
+        request.setHeader('x-object-id', error_obj['id'])
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/test_response',

@@ -655,6 +655,48 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(1, len(data))
         self.assertNotEquals('test-alarm working OK', data[0]['status'])
 
+    def test_test_alarm_setting_errors(self):
+        parse_error = {'code': 400,
+                       'type': 'alarmParseError',
+                       'message': 'Failed to parse alarm'}
+        not_found_error = {'code': 404,
+                           'type': 'notFoundError',
+                           'message': 'Object does not exist'}
+
+        req = request(self, self.root, "POST",
+                      '{0}/entities/{1}/alarms/test_errors'.format(
+                          self.ctl_uri, self.entity_id),
+                      json.dumps({'code': 400,
+                                  'response': parse_error}))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 201)
+
+        req = request(self, self.root, "POST",
+                      '{0}/entities/{1}/alarms/test_errors'.format(
+                          self.ctl_uri, self.entity_id),
+                      json.dumps({'code': 404,
+                                  'response': not_found_error}))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 201)
+
+        req = request(self, self.root, "POST",
+                      '{0}/entities/{1}/test-alarm'.format(self.uri, self.entity_id),
+                      json.dumps({'criteria': 'return new AlarmStatus(OK);',
+                                  'check_data': [{}]}))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 400)
+        data = self.get_responsebody(resp)
+        self.assertEquals(data, parse_error)
+
+        req = request(self, self.root, "POST",
+                      '{0}/entities/{1}/test-alarm'.format(self.uri, self.entity_id),
+                      json.dumps({'criteria': 'return new AlarmStatus(OK);',
+                                  'check_data': [{}]}))
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 404)
+        data = self.get_responsebody(resp)
+        self.assertEquals(data, not_found_error)
+
     def test_get_alarms_for_entity(self):
         """
         get all alarms for the entity
