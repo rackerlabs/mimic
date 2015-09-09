@@ -79,19 +79,19 @@ class RackspaceStandardFlavor(Flavor):
     A Rackspace standard flavor object representation
     """
     flavors = {"512MB Standard Instance": {"id": "2", "ram": 512, "vcpus": 1, "rxtx_factor": 80,
-                                            "disk": 20},
+                                           "disk": 20},
                "1GB Standard Instance": {"id": "3", "ram": 1024, "vcpus": 1, "rxtx_factor": 120,
-                                          "disk": 40},
+                                         "disk": 40},
                "2GB Standard Instance": {"id": "4", "ram": 2048, "vcpus": 2, "rxtx_factor": 240,
-                                          "disk": 80},
+                                         "disk": 80},
                "4GB Standard Instance": {"id": "5", "ram": 4096, "vcpus": 2, "rxtx_factor": 400,
-                                          "disk": 160},
+                                         "disk": 160},
                "8GB Standard Instance": {"id": "6", "ram": 8192, "vcpus": 4, "rxtx_factor": 600,
-                                          "disk": 320},
+                                         "disk": 320},
                "15GB Standard Instance": {"id": "7", "ram": 15360, "vcpus": 6, "rxtx_factor": 800,
-                                           "disk": 620},
+                                          "disk": 620},
                "30GB Standard Instance": {"id": "8", "ram": 30720, "vcpus": 8, "rxtx_factor": 1200,
-                                           "disk": 1200}}
+                                          "disk": 1200}}
 
     def extra_specs_json(self):
         """
