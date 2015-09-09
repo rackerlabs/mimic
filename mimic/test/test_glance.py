@@ -116,18 +116,16 @@ class GlanceAdminAPITests(SynchronousTestCase):
         new_image = self.create_image()
         self.assertEqual(new_image['name'], self.create_request['name'])
 
-    # def test_create_image_fails_with_400(self):
-    #     """
-    #     Create Image and validate response
-    #     NOTE: TEST FAILS> ABLE TO INITIALIZE IMAGE CLASS WITHOUT ALL ATTRIBUTES.
-    #     """
-    #     request_jsons = [{}, {"name": None}, {"hello": "world"}]
-    #     for each in request_jsons:
-    #         (response, content) = self.successResultOf(json_request(
-    #             self, self.root, "POST", self.uri,
-    #             body=json.dumps(each)))
-    #         self.assertEqual(response.code, 400)
-    #         print content
+    def test_create_image_fails_with_400(self):
+        """
+        Create Image and validate response
+        """
+        request_jsons = [{}, {"name": None}, {"hello": "world"}]
+        for each in request_jsons:
+            (response, content) = self.successResultOf(json_request(
+                self, self.root, "POST", self.uri,
+                body=json.dumps(each)))
+            self.assertEqual(response.code, 400)
 
     def test_get_image(self):
         """
@@ -146,6 +144,14 @@ class GlanceAdminAPITests(SynchronousTestCase):
         """
         response = self.successResultOf(request(
             self, self.root, "GET", self.uri + '/' + '1111'))
+        self.assertEqual(404, response.code)
+
+    def test_delete_non_existant_image(self):
+        """
+        Return 404 when trying to DELETE a non existant image.
+        """
+        response = self.successResultOf(request(
+            self, self.root, "DELETE", self.uri + '/' + '1111'))
         self.assertEqual(404, response.code)
 
     def test_delete_image(self):

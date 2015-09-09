@@ -324,7 +324,7 @@ class IronicNodeStore(object):
             if node.provision_state != 'active':
                 node.instance_uuid = None
                 node.cache_image_id = None
-            elif node.provision_state == 'active':
+            if node.provision_state == 'active':
                 node.instance_uuid = str(uuid4())
             return dumps(b'')
         http_put_request.setResponseCode(404)

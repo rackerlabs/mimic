@@ -184,9 +184,9 @@ class GlanceAdminImageStore(object):
         Create a new Image object and add it to the
         :obj: `glance_admin_image_store`
         """
-        msg = Image(**attributes)
-        self.glance_admin_image_store.append(msg)
-        return
+        image = Image(**attributes)
+        self.glance_admin_image_store.append(image)
+        return image
 
     def list_images(self):
         """
@@ -221,13 +221,12 @@ class GlanceAdminImageStore(object):
         content = loads(http_create_request.content.read())
         try:
             image_id = str(uuid4())
-            self.add_to_glance_admin_image_store(
+            new_image = self.add_to_glance_admin_image_store(
                 image_id=image_id,
                 name=content.get('name'),
                 distro=content.get('distro'))
             http_create_request.setResponseCode(201)
-            image = self.image_by_id(image_id)
-            return image.get_glance_admin_image_json()
+            return new_image.get_glance_admin_image_json()
         except Exception as e:
             http_create_request.setResponseCode(400)
             return dumps({"Error": str(e)})
