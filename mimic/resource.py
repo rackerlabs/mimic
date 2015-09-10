@@ -1,10 +1,28 @@
 """
-Resources for Mimic's core.
+Resources for Mimic's core application.
 """
-
 import json
 
+from io import StringIO
+
+from six import text_type
+
 from twisted.web.resource import NoResource
+from twisted.web.server import Request, Site
+
+# Just import from twisted.logger if mimic drops support for twisted < 15.2.0
+try:
+    from twisted.logger import Logger
+except ImportError:
+    from twisted.python.log import msg
+
+    def log(message, **kwargs):
+        """
+        PEP3101-format the message string.
+        """
+        msg(message.format(**kwargs))
+else:
+    log = Logger("mimic").info
 
 from mimic.canned_responses.mimic_presets import get_presets
 from mimic.model.behaviors import BehaviorRegistryCollection
@@ -15,7 +33,8 @@ from mimic.rest.auth_api import (
     base_uri_from_request
 )
 from mimic.rest.noit_api import NoitApi
-from mimic.rest import fastly_api, mailgun_api, customer_api
+from mimic.rest import (fastly_api, mailgun_api, customer_api
+                        ironic_api, glance_api)
 from mimic.util.helper import seconds_to_timestamp
 
 
@@ -91,6 +110,13 @@ class MimicRoot(object):
         """
         return customer_api.CustomerApi(self.core).app.resource()
 
+    @app.route("/ironic/v1", branch=True)
+    def ironic_api(self, request):
+        """
+        Mock Ironic API.
+        """
+        return ironic_api.IronicApi(self.core).app.resource()
+
     @app.route('/mimic/v1.0/presets', methods=['GET'])
     def get_mimic_presets(self, request):
         """
@@ -137,3 +163,78 @@ class MimicRoot(object):
             # workaround for https://github.com/twisted/klein/issues/56
             return NoResource()
         return service_object
+
+    @app.route("/glance", branch=True)
+    def glance_admin_api(self, request):
+        """
+        Mock for the glance admin api
+        """
+        return glance_api.GlanceAdminApi(self.core).app.resource()
+
+
+class MimicRequest(Request, object):
+    """
+    Mimic requests by default are of content type application/json.
+    """
+    defaultContentType = "application/json"
+
+
+class MimicLoggingRequest(MimicRequest, object):
+    """
+    Mimic request that by default logs all incoming requests and outgoing
+    responses.
+    """
+
+    def __init__(self, *args, **kwargs):
+        """
+        Same as the superclass's :obj:`__init__` except it also creates a
+        buffer to store the response for logging.
+        """
+        super(MimicLoggingRequest, self).__init__(*args, **kwargs)
+        self.response_body_for_logging = StringIO()
+
+    def process(self):
+        """
+        Log the incoming response before calling the superclass's
+        :obj:`process`.
+        """
+        content = self.content.read()
+        self.content.seek(0)
+        log("Received request: {method} {url}\n"
+            "Headers: {headers}\n"
+            "{body}",
+            method=self.method, url=self.uri,
+            headers=json.dumps(dict(self.requestHeaders.getAllRawHeaders())),
+            body=("\n" + content + "\n" if content else ""))
+        return super(MimicLoggingRequest, self).process()
+
+    def write(self, data):
+        """
+        Collect the response data before calling the superclass's :obj:`write`.
+        """
+        self.response_body_for_logging.write(text_type(data))
+        return super(MimicLoggingRequest, self).write(data)
+
+    def finish(self):
+        """
+        Before finishing the request, log the response.
+        """
+        content = self.response_body_for_logging.getvalue()
+        log("Responding with {code} for: {method} {url}\n"
+            "Headers: {headers}\n"
+            "{body}",
+            method=self.method, url=self.uri, code=self.code,
+            headers=json.dumps(dict(self.responseHeaders.getAllRawHeaders())),
+            body=("\n" + content + "\n" if content else ""))
+        return super(MimicLoggingRequest, self).finish()
+
+
+def get_site(resource, logging=False):
+    """
+    :param resource: A :class:`twisted.web.resource.Resource` object.
+    :return: a :class:`Site` that can be run
+    """
+    site = Site(resource)
+    site.displayTracebacks = False
+    site.requestFactory = MimicLoggingRequest if logging else MimicRequest
+    return site

@@ -6,7 +6,6 @@ import json
 from uuid import uuid4
 from six import string_types, text_type
 from zope.interface import implementer
-from twisted.web.server import Request
 from twisted.plugin import IPlugin
 from mimic.rest.mimicapp import MimicApp
 from mimic.imimic import IAPIMock
@@ -21,9 +20,6 @@ from random import randrange
 
 from mimic.util.helper import invalid_resource, json_dump
 from characteristic import attributes
-
-
-Request.defaultContentType = 'application/json'
 
 
 @implementer(IAPIMock, IPlugin)

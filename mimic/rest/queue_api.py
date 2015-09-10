@@ -15,10 +15,7 @@ from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.rest.mimicapp import MimicApp
 from zope.interface import implementer
-from twisted.web.server import Request
 from random import randrange
-
-Request.defaultContentType = 'application/json'
 
 
 @implementer(IAPIMock, IPlugin)

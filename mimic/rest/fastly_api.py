@@ -5,15 +5,12 @@ Defines get current customer
 
 import json
 
-from twisted.web.server import Request
-
 from mimic.rest.mimicapp import MimicApp
 from mimic.canned_responses import fastly
 
-Request.defaultContentType = 'application/json'
-
 
 class FastlyApi(object):
+
     """
     Rest endpoints for mocked Fastly api.
     """
@@ -41,6 +38,8 @@ class FastlyApi(object):
     def get_current_customer(self, request):
         """
         Returns response with current customer details.
+
+        https://docs.fastly.com/api/account#customer_1
         """
         response = self.fastly_response.get_current_customer()
         return json.dumps(response)
@@ -49,6 +48,8 @@ class FastlyApi(object):
     def create_service(self, request):
         """
         Returns POST Service.
+
+        https://docs.fastly.com/api/config#service_5
         """
         url_data = request.args.items()
         response = self.fastly_response.create_service(url_data)
@@ -58,6 +59,8 @@ class FastlyApi(object):
     def create_version(self, request, service_id):
         """
         Returns POST Service.
+
+        https://docs.fastly.com/api/config#version_2
         """
         response = self.fastly_response.create_version(service_id)
         return json.dumps(response)
@@ -66,6 +69,8 @@ class FastlyApi(object):
     def get_service_by_name(self, request):
         """
         Returns response with current customer details.
+
+        https://docs.fastly.com/api/config#service_3
         """
         url_data = request.args.items()
         data = dict((key, value) for key, value in url_data)
@@ -80,6 +85,8 @@ class FastlyApi(object):
     def create_domain(self, request, service_id, version_id):
         """
         Returns Create Domain Response.
+
+        https://docs.fastly.com/api/config#domain_4
         """
         url_data = request.args.items()
         response = self.fastly_response.create_domain(url_data,
@@ -93,6 +100,8 @@ class FastlyApi(object):
     def check_domains(self, request, service_id, version_id):
         """
         Returns Check Domain.
+
+        https://docs.fastly.com/api/config#domain_3
         """
         response = self.fastly_response.check_domains(service_id, version_id)
         return json.dumps(response)
@@ -103,16 +112,76 @@ class FastlyApi(object):
     def create_backend(self, request, service_id, version_id):
         """
         Returns Create Backend Response.
+
+        https://docs.fastly.com/api/config#backend_2
         """
         url_data = request.args.items()
         response = self.fastly_response.create_backend(url_data,
                                                        service_id, version_id)
         return json.dumps(response)
 
+    @app.route(
+        '/service/<string:service_id>/version/<string:version_id>/condition',
+        methods=['POST'])
+    def create_condition(self, request, service_id, version_id):
+        """
+        Returns Create Condition Response.
+
+        https://docs.fastly.com/api/config#condition_3
+        """
+        url_data = request.args.items()
+        response = self.fastly_response.create_condition(url_data,
+                                                         service_id, version_id)
+        return json.dumps(response)
+
+    @app.route(
+        '/service/<string:service_id>/version/<string:version_id>/cache_settings',
+        methods=['POST'])
+    def create_cache_settings(self, request, service_id, version_id):
+        """
+        Returns Create Cache Settings Response.
+
+        https://docs.fastly.com/api/config#cache_settings_3
+        """
+        url_data = request.args.items()
+        response = self.fastly_response.create_cache_settings(url_data,
+                                                              service_id, version_id)
+        return json.dumps(response)
+
+    @app.route(
+        '/service/<string:service_id>/version/<string:version_id>/response_object',
+        methods=['POST'])
+    def create_response_object(self, request, service_id, version_id):
+        """
+        Returns Create Cache Settings Response.
+
+        https://docs.fastly.com/api/config#response_object_3
+        """
+        url_data = request.args.items()
+        response = self.fastly_response.create_response_object(url_data,
+                                                               service_id, version_id)
+        return json.dumps(response)
+
+    @app.route(
+        '/service/<string:service_id>/version/<string:version_id>/settings',
+        methods=['PUT'])
+    def create_settings(self, request, service_id, version_id):
+        """
+        Returns Settings Response.
+
+        https://docs.fastly.com/api/config#settings_2
+        """
+        url_data = request.args.items()
+        response = self.fastly_response.create_settings(url_data,
+                                                        service_id, version_id)
+        return json.dumps(response)
+
     @app.route('/service/<string:service_id>/version', methods=['GET'])
     def list_versions(self, request, service_id):
         """
         Returns List of Service versions.
+
+        https://docs.fastly.com/api/config#version_3
         """
         response = self.fastly_response.list_versions(service_id)
         return json.dumps(response)
@@ -122,6 +191,8 @@ class FastlyApi(object):
     def activate_version(self, request, service_id, version_number):
         """
         Returns Activate Service versions.
+
+        https://docs.fastly.com/api/config#version_5
         """
         response = self.fastly_response.activate_version(service_id,
                                                          version_number)
@@ -132,6 +203,8 @@ class FastlyApi(object):
     def deactivate_version(self, request, service_id, version_number):
         """
         Returns Activate Service versions.
+
+        https://docs.fastly.com/api/config#version_6
         """
         response = self.fastly_response.deactivate_version(service_id,
                                                            version_number)
@@ -141,6 +214,8 @@ class FastlyApi(object):
     def delete_service(self, request, service_id):
         """
         Returns DELETE Service.
+
+        https://docs.fastly.com/api/config#service_6
         """
         response = self.fastly_response.delete_service(service_id)
         return json.dumps(response)
@@ -149,6 +224,8 @@ class FastlyApi(object):
     def get_service_details(self, request, service_id):
         """
         Returns Service details.
+
+        https://docs.fastly.com/api/config#service_2
         """
         response = self.fastly_response.get_service_details(service_id)
         return json.dumps(response)

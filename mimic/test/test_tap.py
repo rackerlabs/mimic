@@ -22,6 +22,7 @@ from twisted.plugins.mimic import mimicService
 from twisted.application.service import IServiceMaker
 
 from mimic.core import MimicCore
+from mimic.resource import MimicLoggingRequest, MimicRequest
 from mimic.tap import Options, makeService
 
 
@@ -90,6 +91,21 @@ class TapTests(SynchronousTestCase):
     """
     Tests for L{mimic.tap}
     """
+    def get_site(self, options_list):
+        """
+        Create the service, and get the site that was created.
+        """
+        o = Options()
+        o.parseOptions(options_list)
+        thisFakeParser = FakeEndpointParser()
+        addFakePluginObject(self, plugins, thisFakeParser)
+        service = makeService(o)
+        service.startService()
+        self.assertEqual(len(thisFakeParser.endpoints), 1)
+        endpoints = thisFakeParser.endpoints[0]
+        self.assertEqual(len(endpoints.factories), 1)
+        factory = endpoints.factories[0]
+        return factory
 
     def test_listenOption(self):
         """
@@ -103,17 +119,9 @@ class TapTests(SynchronousTestCase):
         """
         makeService creates a service that, when listened upon, creates a Site.
         """
-        o = Options()
-        o.parseOptions(["--listen", "fake:"])
-        thisFakeParser = FakeEndpointParser()
-        addFakePluginObject(self, plugins, thisFakeParser)
-        service = makeService(o)
-        service.startService()
-        self.assertEqual(len(thisFakeParser.endpoints), 1)
-        endpoints = thisFakeParser.endpoints[0]
-        self.assertEqual(len(endpoints.factories), 1)
-        factory = endpoints.factories[0]
-        self.assertEqual(factory.displayTracebacks, False)
+        site = self.get_site(["--listen", "fake:"])
+        self.assertEqual(site.displayTracebacks, False)
+        self.assertEqual(site.requestFactory, MimicRequest)
 
     def test_realtime(self):
         """
@@ -135,6 +143,15 @@ class TapTests(SynchronousTestCase):
         # Grab the global reactor just for comparison.
         from twisted.internet import reactor as real_reactor
         self.assertIdentical(CheckClock.clock, real_reactor)
+
+    def test_verbose_logging(self):
+        """
+        The C{--verbose} option causes the default request factory on the site
+        to be :class:`MimicLoggingRequest`.
+        """
+        site = self.get_site(["--listen", "fake:", "--verbose"])
+        self.assertEqual(site.displayTracebacks, False)
+        self.assertEqual(site.requestFactory, MimicLoggingRequest)
 
     def test_plugin(self):
         """

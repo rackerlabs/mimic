@@ -4,7 +4,7 @@ MAAS Mock API
 
 import json
 import collections
-import time
+import urlparse
 import random
 import re
 from uuid import uuid4
@@ -13,7 +13,6 @@ from six import text_type
 
 from zope.interface import implementer
 
-from twisted.web.server import Request
 from twisted.plugin import IPlugin
 
 from mimic.catalog import Entry
@@ -27,17 +26,21 @@ from mimic.canned_responses.maas_alarm_examples import alarm_examples
 from mimic.util.helper import random_hex_generator
 
 
-Request.defaultContentType = 'application/json'
-
-
-def _find_index_of_id(xs, val):
+class _MatchesID(object):
     """
-    Finds the index of the first element in the list with the specified id.
+    Class for implementing equality based on the id field.
     """
-    for i, x in enumerate(xs):
-        if x['id'] == val:
-            return i
-    raise ValueError('No element with id {0} in list'.format(val))
+    def __init__(self, id):
+        """
+        Set id on self so that other objects can be compared against this one.
+        """
+        self.id = id
+
+    def __eq__(self, other):
+        """
+        Implements the == comparison based on the id field (and nothing else).
+        """
+        return other['id'] == self.id
 
 
 @implementer(IAPIMock, IPlugin)
@@ -76,24 +79,26 @@ class MaasApi(object):
         return MaasMock(self, uri_prefix, session_store, region).app.resource()
 
 
-class MCache(dict):
+class MCache(object):
 
     """
     M(onitoring) Cache Object to hold dictionaries of all entities, checks and alarms.
     """
 
-    def __init__(self):
+    def __init__(self, clock):
         """
         Create the initial structs for cache
         """
+        current_time_milliseconds = int(1000 * clock.seconds())
+
         self.agenthostinfo_querycount = collections.defaultdict(lambda: 0, {})
         self.entities_list = []
         self.checks_list = []
         self.alarms_list = []
         self.notifications_list = [{'id': 'ntTechnicalContactsEmail',
                                     'label': 'Email All Technical Contacts',
-                                    'created_at': time.time(),
-                                    'updated_at': time.time(),
+                                    'created_at': current_time_milliseconds,
+                                    'updated_at': current_time_milliseconds,
                                     'metadata': None,
                                     'type': 'technicalContactsEmail',
                                     'details': None}]
@@ -120,9 +125,10 @@ class MCache(dict):
                                                                   with leading + and country \
                                                                   code (E.164 format)'}]}]
         self.suppressions_list = []
+        self.audits_list = []
 
 
-def create_entity(params):
+def create_entity(clock, params):
     """
     Returns a dictionary representing an entity
 
@@ -132,21 +138,20 @@ def create_entity(params):
     :rtype: ``dict`` mapping ``unicode`` to ``unicode``, ``float``,
         ``bool``, ``dict`` or ``NoneType``.
     """
-    params = collections.defaultdict(lambda: '', params)
-    newentity = {}
-    newentity['label'] = params['label']
-    newentity['id'] = 'en' + random_hex_generator(4)
-    newentity['agent_id'] = params['agent_id'] or random_hex_generator(12)
-    newentity['created_at'] = time.time()
-    newentity['updated_at'] = time.time()
-    newentity['managed'] = params['managed'] or False
-    newentity['metadata'] = params['metadata']
-    newentity['ip_addresses'] = params['ip_addresses'] or {}
-    newentity['uri'] = params['uri'] or None
-    return newentity
+    current_time_milliseconds = int(1000 * clock.seconds())
+
+    return {'label': params.get('label', ''),
+            'id': 'en' + random_hex_generator(4),
+            'agent_id': params.get('agent_id') or random_hex_generator(12),
+            'created_at': current_time_milliseconds,
+            'updated_at': current_time_milliseconds,
+            'managed': params.get('managed', False),
+            'metadata': params.get('metadata', {}),
+            'ip_addresses': params.get('ip_addresses', {}),
+            'uri': params.get('uri')}
 
 
-def create_check(params):
+def create_check(clock, params):
     """
     Returns a dictionary representing a check
 
@@ -156,26 +161,26 @@ def create_check(params):
     :rtype: ``dict`` mapping ``unicode`` to ``unicode``, ``float``,
         ``int``, ``bool``, ``dict`` or ``NoneType``.
     """
-    params = collections.defaultdict(lambda: '', params)
-    params['id'] = 'ch' + random_hex_generator(4)
-    params['collectors'] = []
-    for q in range(3):
-        params['collectors'].append('co' + random_hex_generator(3))
-    params['confd_hash'] = None
-    params['confd_name'] = None
-    params['created_at'] = time.time()
-    params['updated_at'] = time.time()
-    params['timeout'] = 10
-    params['period'] = 60
-    params['disabled'] = False
-    params['metadata'] = None
-    params['target_alias'] = None
-    if 'count' not in params['details']:
-        params['details'] = {'count': 5}  # I have no idea what count=5 is for.
-    return params
+    current_time_milliseconds = int(1000 * clock.seconds())
+
+    return {'id': 'ch' + random_hex_generator(4),
+            'type': params['type'],
+            'label': params.get('label', ''),
+            'monitoring_zones_poll': params.get('monitoring_zones_poll', []),
+            'collectors': ['co' + random_hex_generator(3) for _ in range(3)],
+            'created_at': current_time_milliseconds,
+            'updated_at': current_time_milliseconds,
+            'timeout': 10,
+            'period': 60,
+            'disabled': False,
+            'metadata': params.get('metadata', {}),
+            'target_alias': params.get('target_alias'),
+            'target_hostname': params.get('target_hostname'),
+            'target_resolver': params.get('target_resolver'),
+            'details': params.get('details') or {'count': 5}}
 
 
-def create_alarm(params):
+def create_alarm(clock, params):
     """
     Returns a dictionary representing an alarm
 
@@ -185,18 +190,20 @@ def create_alarm(params):
     :rtype: ``dict`` mapping ``unicode`` to ``unicode``, ``float``,
         ``bool``, ``dict``, or ``NoneType``.
     """
-    params = collections.defaultdict(lambda: '', params)
-    params['id'] = 'al' + random_hex_generator(4)
-    params['confd_hash'] = None
-    params['confd_name'] = None
-    params['created_at'] = time.time()
-    params['updated_at'] = time.time()
-    params['disabled'] = False
-    params['metadata'] = None
-    return params
+    current_time_milliseconds = int(1000 * clock.seconds())
+
+    return {'id': 'al' + random_hex_generator(4),
+            'label': params.get('label', ''),
+            'criteria': params.get('criteria', 'return new AlarmStatus(OK);'),
+            'check_id': params['check_id'],
+            'notification_plan_id': params['notification_plan_id'],
+            'created_at': current_time_milliseconds,
+            'updated_at': current_time_milliseconds,
+            'disabled': False,
+            'metadata': params.get('metadata', {})}
 
 
-def create_notification_plan(params):
+def create_notification_plan(clock, params):
     """
     Creates a notification plan
 
@@ -206,17 +213,19 @@ def create_notification_plan(params):
     :rtype: ``dict`` mapping ``unicode`` to ``unicode``, ``float``,
         ``dict`` or ``NoneType``.
     """
-    params['id'] = 'np' + random_hex_generator(4)
-    params['critical_state'] = None
-    params['warning_state'] = None
-    params['ok_state'] = None
-    params['created_at'] = time.time()
-    params['updated_at'] = time.time()
-    params['metadata'] = None
-    return params
+    current_time_milliseconds = int(1000 * clock.seconds())
+
+    return {'id': 'np' + random_hex_generator(4),
+            'label': params.get('label', ''),
+            'critical_state': params.get('critical_state'),
+            'warning_state': params.get('warning_state'),
+            'ok_state': params.get('ok_state'),
+            'created_at': current_time_milliseconds,
+            'updated_at': current_time_milliseconds,
+            'metadata': params.get('metadata', {})}
 
 
-def create_notification(params):
+def create_notification(clock, params):
     """
     Creates a notification target
 
@@ -226,11 +235,15 @@ def create_notification(params):
     :rtype: ``dict`` mapping ``unicode`` to ``unicode``, ``float``,
         ``dict`` or ``NoneType``.
     """
-    params['id'] = 'nt' + random_hex_generator(4)
-    params['created_at'] = time.time()
-    params['updated_at'] = time.time()
-    params['metadata'] = None
-    return params
+    current_time_milliseconds = int(1000 * clock.seconds())
+
+    return {'id': 'nt' + random_hex_generator(4),
+            'label': params.get('label', ''),
+            'type': params.get('type', 'email'),
+            'details': params.get('details', {}),
+            'created_at': current_time_milliseconds,
+            'updated_at': current_time_milliseconds,
+            'metadata': params.get('metadata', {})}
 
 
 def create_suppression(params):
@@ -242,16 +255,14 @@ def create_suppression(params):
         <http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-suppressions.html>`_
     :rtype: ``dict`` mapping ``unicode`` to ``unicode`` or ``list``.
     """
-    params['id'] = 'sp' + random_hex_generator(4)
-    if 'notification_plans' not in params:
-        params['notification_plans'] = []
-    if 'entities' not in params:
-        params['entities'] = []
-    if 'checks' not in params:
-        params['checks'] = []
-    if 'alarms' not in params:
-        params['alarms'] = []
-    return params
+    return {'id': 'sp' + random_hex_generator(4),
+            'label': params.get('label', ''),
+            'start_time': params.get('start_time', 0),
+            'end_time': params.get('end_time', 0),
+            'notification_plans': params.get('notification_plans', []),
+            'entities': params.get('entities', []),
+            'checks': params.get('checks', []),
+            'alarms': params.get('alarms', [])}
 
 
 def create_metric_list_from_entity(entity, allchecks):
@@ -259,10 +270,9 @@ def create_metric_list_from_entity(entity, allchecks):
     To respond to the metrics_list api call, we must have the entity and allchecks
     and assemble the structure to reply with.
     """
-    v = {}
-    v['entity_id'] = entity['id']
-    v['entity_label'] = entity['label']
-    v['checks'] = []
+    v = {'entity_id': entity['id'],
+         'entity_label': entity['label'],
+         'checks': []}
     for c in allchecks:
         if c['type'] == 'remote.ping' and c['entity_id'] == entity['id']:
             metricscheck = {}
@@ -327,6 +337,17 @@ def create_multiplot_from_metric(metric, reqargs, allchecks):
     return multiplot
 
 
+def parse_and_flatten_qs(url):
+    """
+    Parses a querystring and flattens 1-arg arrays.
+    """
+    qs = urlparse.parse_qs(url)
+    flat_qs = {}
+    for key in qs:
+        flat_qs[key] = qs[key][0] if len(qs[key]) == 1 else qs[key]
+    return flat_qs
+
+
 class MaasMock(object):
 
     """
@@ -349,8 +370,31 @@ class MaasMock(object):
         Retrieve the M_cache object containing all objects created so far
         """
         return (self._session_store.session_for_tenant_id(tenant_id)
-                .data_for_api(self._api_mock, lambda: collections.defaultdict(MCache))[self._name]
+                .data_for_api(self._api_mock,
+                              lambda: collections.defaultdict(
+                                  lambda: MCache(self._session_store.clock)))[self._name]
                 )
+
+    def _audit(self, app, request, tenant_id, status, content=''):
+        headers = dict([(k, v) for k, v in request.getAllHeaders().iteritems()
+                        if k != 'x-auth-token'])
+
+        self._entity_cache_for_tenant(tenant_id).audits_list.append(
+            {
+                'id': str(uuid4()),
+                'timestamp': int(1000 * self._session_store.clock.seconds()),
+                'headers': headers,
+                'url': request.path,
+                'app': app,
+                'query': parse_and_flatten_qs(request.uri),
+                'txnId': str(uuid4()),
+                'payload': content,
+                'method': request.method,
+                'account_id': tenant_id,
+                'who': '',
+                'why': '',
+                'statusCode': status
+            })
 
     app = MimicApp()
 
@@ -401,14 +445,17 @@ class MaasMock(object):
         """
         Creates a new entity
         """
-        postdata = json.loads(request.content.read())
+        content = request.content.read()
+        postdata = json.loads(content)
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        newentity = create_entity(postdata)
+        newentity = create_entity(self._session_store.clock, postdata)
         self._entity_cache_for_tenant(tenant_id).entities_list.append(newentity)
-        request.setResponseCode(201)
+        status = 201
+        request.setResponseCode(status)
         request.setHeader('location', myhostname_and_port + request.path + '/' + newentity['id'])
         request.setHeader('x-object-id', newentity['id'])
         request.setHeader('content-type', 'text/plain')
+        self._audit('entities', request, tenant_id, status, content)
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>', methods=['GET'])
@@ -453,21 +500,24 @@ class MaasMock(object):
         """
         Update entity in place.
         """
-        update = json.loads(request.content.read())
+        content = request.content.read()
+        update = json.loads(content)
         for q in range(len(self._entity_cache_for_tenant(tenant_id).entities_list)):
             if self._entity_cache_for_tenant(tenant_id).entities_list[q]['id'] == entity_id:
                 entity = self._entity_cache_for_tenant(tenant_id).entities_list[q]
                 for k in ['agent_id', 'managed', 'metadata', 'ip_addresses', 'uri', 'label']:
                     if k in update:
                         entity[k] = update[k]
-                entity['updated_at'] = time.time()
+                entity['updated_at'] = int(1000 * self._session_store.clock.seconds())
                 break
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        request.setResponseCode(204)
+        status = 204
+        request.setResponseCode(status)
         request.setHeader('location', myhostname_and_port + request.path +
                           '/' + entity_id.encode('utf-8'))
         request.setHeader('x-object-id', entity_id.encode('utf-8'))
         request.setHeader('content-type', 'text/plain')
+        self._audit('entities', request, tenant_id, status, content)
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>', methods=['DELETE'])
@@ -488,23 +538,28 @@ class MaasMock(object):
         for a in alarms:
             if a['entity_id'] == entity_id:
                 del alarms[alarms.index(a)]
-        request.setResponseCode(204)
+        status = 204
+        request.setResponseCode(status)
         request.setHeader('content-type', 'text/plain')
+        self._audit('entities', request, tenant_id, status)
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks', methods=['POST'])
     def create_check(self, request, tenant_id, entity_id):
         """
         Create a check
         """
-        postdata = json.loads(request.content.read())
+        content = request.content.read()
+        postdata = json.loads(content)
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        newcheck = create_check(postdata)
+        newcheck = create_check(self._session_store.clock, postdata)
         newcheck['entity_id'] = entity_id
         self._entity_cache_for_tenant(tenant_id).checks_list.append(newcheck)
-        request.setResponseCode(201)
+        status = 201
+        request.setResponseCode(status)
         request.setHeader('location', myhostname_and_port + request.path + '/' + newcheck['id'])
         request.setHeader('x-object-id', newcheck['id'])
         request.setHeader('content-type', 'text/plain')
+        self._audit('checks', request, tenant_id, status, content)
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks/<string:check_id>',
@@ -527,21 +582,24 @@ class MaasMock(object):
         """
         Updates a check in place.
         """
-        update = json.loads(request.content.read())
+        content = request.content.read()
+        update = json.loads(content)
         for check in self._entity_cache_for_tenant(tenant_id).checks_list:
             if check['entity_id'] == entity_id and check['id'] == check_id:
                 for k in ['type', 'details', 'disabled', 'label', 'metadata', 'period', 'timeout',
                           'monitoring_zones_poll', 'target_alias', 'target_hostname', 'target_resolver']:
                     if k in update:
                         check[k] = update[k]
-                check['updated_at'] = time.time()
+                check['updated_at'] = int(1000 * self._session_store.clock.seconds())
                 break
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        request.setResponseCode(204)
+        status = 204
+        request.setResponseCode(status)
         request.setHeader('location', myhostname_and_port + request.path +
                           '/' + check_id.encode('utf-8'))
         request.setHeader('x-object-id', check_id.encode('utf-8'))
         request.setHeader('content-type', 'text/plain')
+        self._audit('checks', request, tenant_id, status, content)
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks/<string:check_id>',
@@ -559,8 +617,10 @@ class MaasMock(object):
         for a in alarms:
             if a['check_id'] == check_id and a['entity_id'] == entity_id:
                 del alarms[alarms.index(a)]
-        request.setResponseCode(204)
+        status = 204
+        request.setResponseCode(status)
         request.setHeader('content-type', 'text/plain')
+        self._audit('checks', request, tenant_id, status)
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms', methods=['POST'])
@@ -568,15 +628,18 @@ class MaasMock(object):
         """
         Creates alarm
         """
-        postdata = json.loads(request.content.read())
+        content = request.content.read()
+        postdata = json.loads(content)
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        newalarm = create_alarm(postdata)
+        newalarm = create_alarm(self._session_store.clock, postdata)
         newalarm['entity_id'] = entity_id
         self._entity_cache_for_tenant(tenant_id).alarms_list.append(newalarm)
-        request.setResponseCode(201)
+        status = 201
+        request.setResponseCode(status)
         request.setHeader('location', myhostname_and_port + request.path + '/' + newalarm['id'])
         request.setHeader('x-object-id', newalarm['id'])
         request.setHeader('content-type', 'text/plain')
+        self._audit('alarms', request, tenant_id, status, content)
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/<string:alarm_id>',
@@ -614,21 +677,24 @@ class MaasMock(object):
 
             http://goo.gl/NhxgTZ
         """
-        update = json.loads(request.content.read())
+        content = request.content.read()
+        update = json.loads(content)
         for alarm in self._entity_cache_for_tenant(tenant_id).alarms_list:
             if alarm['entity_id'] == entity_id and alarm['id'] == alarm_id:
                 for k in ['check_id', 'notification_plan_id', 'criteria', 'disabled', 'label',
                           'metadata']:
                     if k in update:
                         alarm[k] = update[k]
-                alarm['updated_at'] = time.time()
+                alarm['updated_at'] = int(1000 * self._session_store.clock.seconds())
                 break
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        request.setResponseCode(204)
+        status = 204
+        request.setResponseCode(status)
         request.setHeader('location', myhostname_and_port + request.path +
                           '/' + alarm_id.encode('utf-8'))
         request.setHeader('x-object-id', alarm_id.encode('utf-8'))
         request.setHeader('content-type', 'text/plain')
+        self._audit('alarms', request, tenant_id, status, content)
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/<string:alarm_id>',
@@ -642,8 +708,10 @@ class MaasMock(object):
             if alarms[q]['entity_id'] == entity_id and alarms[q]['id'] == alarm_id:
                 del alarms[q]
                 break
-        request.setResponseCode(204)
+        status = 204
+        request.setResponseCode(status)
         request.setHeader('content-type', 'text/plain')
+        self._audit('alarms', request, tenant_id, status)
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms', methods=['GET'])
@@ -679,7 +747,7 @@ class MaasMock(object):
         current_marker = request.args.get('marker', [None])[0]
         if current_marker is not None:
             try:
-                offset = _find_index_of_id(all_entities, current_marker)
+                offset = all_entities.index(_MatchesID(current_marker))
             except ValueError:
                 offset = 0
 
@@ -715,6 +783,37 @@ class MaasMock(object):
             values.append(v)
         request.setResponseCode(200)
         return json.dumps({'metadata': metadata, 'values': values})
+
+    @app.route('/v1.0/<string:tenant_id>/audits', methods=['GET'])
+    def list_audits(self, request, tenant_id):
+        """
+        Gets the user's audit logs.
+        """
+        ordering = -1 if request.args.get('reverse', False) else 1
+        all_audits = self._entity_cache_for_tenant(tenant_id).audits_list[::ordering]
+        page_limit = min(int(request.args.get('limit', [100])[0]), 1000)
+        offset = 0
+        current_marker = request.args.get('marker', [None])[0]
+        if current_marker is not None:
+            try:
+                offset = all_audits.index(_MatchesID(current_marker))
+            except ValueError:
+                offset = 0
+
+        audits = all_audits[offset:offset + page_limit]
+        next_marker = None
+        if offset + page_limit < len(all_audits):
+            next_marker = all_audits[offset + page_limit]['id']
+
+        metadata = {
+            'count': len(audits),
+            'marker': current_marker,
+            'next_marker': next_marker,
+            'limit': page_limit,
+            'next_href': None
+        }
+        request.setResponseCode(200)
+        return json.dumps({'metadata': metadata, 'values': audits})
 
     @app.route('/v1.0/<string:tenant_id>/__experiments/json_home', methods=['GET'])
     def service_json_home(self, request, tenant_id):
@@ -780,8 +879,10 @@ class MaasMock(object):
         """
         xsil = "https://monitoring.api.rackspacecloud.com/"
         xsil += "v1.0/00000/agent_installers/c69b2ceafc0444506fb32255af3d9be3.sh"
-        request.setResponseCode(201)
+        status = 201
+        request.setResponseCode(status)
         request.setHeader('x-shell-installer-location', xsil)
+        self._audit('agent_installers', request, tenant_id, status, request.content.read())
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/notifications', methods=['POST'])
@@ -790,12 +891,15 @@ class MaasMock(object):
         Create notification target
         """
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        new_n = create_notification(json.loads(request.content.read()))
+        content = request.content.read()
+        new_n = create_notification(self._session_store.clock, json.loads(content))
         self._entity_cache_for_tenant(tenant_id).notifications_list.append(new_n)
-        request.setResponseCode(201)
+        status = 201
+        request.setResponseCode(status)
         request.setHeader('content-type', 'text/plain')
         request.setHeader('location', myhostname_and_port + request.path + '/' + new_n['id'])
         request.setHeader('x-object-id', new_n['id'])
+        self._audit('notifications', request, tenant_id, status, content)
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/notifications', methods=['GET'])
@@ -814,16 +918,19 @@ class MaasMock(object):
         """
         Updates notification targets
         """
-        postdata = json.loads(request.content.read())
+        content = request.content.read()
+        postdata = json.loads(content)
         nlist = self._entity_cache_for_tenant(tenant_id).notifications_list
         for n in nlist:
             if n['id'] == postdata['id']:
                 for k in postdata.keys():
                     n[k] = postdata[k]
-                n['updated_at'] = time.time()
+                n['updated_at'] = int(1000 * self._session_store.clock.seconds())
                 break
-        request.setResponseCode(204)
+        status = 204
+        request.setResponseCode(status)
         request.setHeader('content-type', 'text/plain')
+        self._audit('notifications', request, tenant_id, status, content)
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/notifications/<string:n_id>', methods=['DELETE'])
@@ -836,8 +943,10 @@ class MaasMock(object):
             if n['id'] == n_id:
                 del nlist[nlist.index(n)]
                 break
-        request.setResponseCode(204)
+        status = 204
+        request.setResponseCode(status)
         request.setHeader('content-type', 'text/plain')
+        self._audit('notifications', request, tenant_id, status)
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/notification_plans', methods=['POST'])
@@ -845,14 +954,17 @@ class MaasMock(object):
         """
         Creates a new notificationPlans
         """
-        postdata = json.loads(request.content.read())
+        content = request.content.read()
+        postdata = json.loads(content)
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        newnp = create_notification_plan({'label': postdata['label']})
+        newnp = create_notification_plan(self._session_store.clock, {'label': postdata['label']})
         self._entity_cache_for_tenant(tenant_id).notificationplans_list.append(newnp)
-        request.setResponseCode(201)
+        status = 201
+        request.setResponseCode(status)
         request.setHeader('content-type', 'text/plain')
         request.setHeader('location', myhostname_and_port + request.path + '/' + newnp['id'])
         request.setHeader('x-object-id', newnp['id'])
+        self._audit('notification_plans', request, tenant_id, status, content)
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/notification_plans', methods=['GET'])
@@ -885,16 +997,19 @@ class MaasMock(object):
         """
         Alter a notification plan
         """
-        postdata = json.loads(request.content.read())
+        content = request.content.read()
+        postdata = json.loads(content)
         nplist = self._entity_cache_for_tenant(tenant_id).notificationplans_list
         for np in nplist:
             if np['id'] == postdata['id']:
                 for k in postdata.keys():
                     np[k] = postdata[k]
-                np['updated_at'] = time.time()
+                np['updated_at'] = int(1000 * self._session_store.clock.seconds())
                 break
-        request.setResponseCode(204)
+        status = 204
+        request.setResponseCode(status)
         request.setHeader('content-type', 'text/plain')
+        self._audit('notification_plans', request, tenant_id, status, content)
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/notification_plans/<string:np_id>', methods=['DELETE'])
@@ -910,24 +1025,28 @@ class MaasMock(object):
                 alarmids_using_np.append(alarm['id'])
 
         if len(alarmids_using_np):
-            request.setResponseCode(403)
+            status = 403
+            request.setResponseCode(status)
             errobj = {}
             errobj['type'] = 'forbiddenError'
             errobj['code'] = 403
             errobj['txnId'] = '.rh-D0j7.h-dfw1-maas-prod-api0.r-doc8iigF.c-5540173.ts-' + \
-                str(time.time()) + '.v-bfe87f0'
+                str(self._session_store.clock.seconds()) + '.v-bfe87f0'
             errobj['message'] = 'Notification plans cannot be removed while alarms are using it:'
             for a_id in alarmids_using_np:
                 errobj['message'] += ' ' + a_id
             errobj['details'] = errobj['message']
+            self._audit('notification_plans', request, tenant_id, status)
             return json.dumps(errobj)
 
         for np in nplist:
             if np['id'] == np_id:
                 del nplist[nplist.index(np)]
                 break
-        request.setResponseCode(204)
+        status = 204
+        request.setResponseCode(status)
         request.setHeader('content-type', 'text/plain')
+        self._audit('notification_plans', request, tenant_id, status)
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/suppressions', methods=['GET'])
@@ -965,14 +1084,17 @@ class MaasMock(object):
         """
         Create a new suppression.
         """
-        postdata = json.loads(request.content.read())
+        content = request.content.read()
+        postdata = json.loads(content)
         myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
         newsp = create_suppression(postdata)
         self._entity_cache_for_tenant(tenant_id).suppressions_list.append(newsp)
-        request.setResponseCode(201)
+        status = 201
+        request.setResponseCode(status)
         request.setHeader('location', myhostname_and_port + request.path + '/' + newsp['id'])
         request.setHeader('x-object-id', newsp['id'])
         request.setHeader('content-type', 'text/plain')
+        self._audit('suppressions', request, tenant_id, status, content)
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/suppressions/<string:sp_id>', methods=['PUT'])
@@ -980,16 +1102,19 @@ class MaasMock(object):
         """
         Update a suppression.
         """
-        postdata = json.loads(request.content.read())
+        content = request.content.read()
+        postdata = json.loads(content)
         splist = self._entity_cache_for_tenant(tenant_id).suppressions_list
         for sp in splist:
             if sp['id'] == sp_id:
                 for k in postdata.keys():
                     sp[k] = postdata[k]
-                sp['updated_at'] = time.time()
+                sp['updated_at'] = int(1000 * self._session_store.clock.seconds())
                 break
-        request.setResponseCode(204)
+        status = 204
+        request.setResponseCode(status)
         request.setHeader('content-type', 'text/plain')
+        self._audit('suppressions', request, tenant_id, status, content)
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/suppressions/<string:sp_id>', methods=['DELETE'])
@@ -1002,8 +1127,10 @@ class MaasMock(object):
             if sp['id'] == sp_id:
                 del splist[splist.index(sp)]
                 break
+        status = 204
         request.setResponseCode(204)
         request.setHeader('content-type', 'text/plain')
+        self._audit('suppressions', request, tenant_id, status)
         return ''
 
     @app.route('/v1.0/<string:tenant_id>/monitoring_zones', methods=['GET'])
@@ -1120,11 +1247,14 @@ class MaasMock(object):
         Right now, only checks of type remote.ping work
         """
         allchecks = self._entity_cache_for_tenant(tenant_id).checks_list
-        metrics_requested = json.loads(request.content.read())
+        content = request.content.read()
+        metrics_requested = json.loads(content)
         metrics_replydata = []
         for m in metrics_requested['metrics']:
             mp = create_multiplot_from_metric(m, request.args, allchecks)
             if mp:
                 metrics_replydata.append(mp)
+        status = 200
         request.setResponseCode(200)
+        self._audit('rollups', request, tenant_id, status, content)
         return json.dumps({'metrics': metrics_replydata})

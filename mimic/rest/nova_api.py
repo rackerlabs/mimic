@@ -11,14 +11,12 @@ from six import text_type
 
 from zope.interface import implementer
 
-from twisted.web.server import Request
-
 from twisted.python.urlpath import URLPath
 
 from twisted.plugin import IPlugin
 from twisted.web.http import CREATED, BAD_REQUEST
 
-from mimic.canned_responses.nova import get_limit, get_image, get_flavor
+from mimic.canned_responses.nova import get_limit
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
@@ -27,8 +25,6 @@ from mimic.model.behaviors import make_behavior_api
 from mimic.model.nova_objects import (
     BadRequestError, GlobalServerCollections, LimitError, Server,
     bad_request, forbidden, not_found, server_creation)
-
-Request.defaultContentType = 'application/json'
 
 
 @implementer(IAPIMock, IPlugin)
@@ -302,18 +298,65 @@ class NovaRegion(object):
         """
         Returns a get image response, for any given imageid
         """
-        response_data = get_image(image_id)
-        request.setResponseCode(response_data[1])
-        return json.dumps(response_data[0])
+        return (
+            self._region_collection_for_tenant(tenant_id)
+            .get_image(request, image_id, absolutize_url=self.url)
+        )
+
+    @app.route('/v2/<string:tenant_id>/images/detail', methods=['GET'])
+    def get_server_image_list_with_details(self, request, tenant_id):
+        """
+        Returns a image list.
+        """
+        return (
+            self._region_collection_for_tenant(tenant_id)
+            .list_server_image(include_details=True, absolutize_url=self.url)
+        )
+
+    @app.route('/v2/<string:tenant_id>/images', methods=['GET'])
+    def get_server_image_list(self, request, tenant_id):
+        """
+        Returns a image list.
+        """
+        return (
+            self._region_collection_for_tenant(tenant_id)
+            .list_server_image(include_details=False, absolutize_url=self.url)
+        )
 
     @app.route('/v2/<string:tenant_id>/flavors/<string:flavor_id>', methods=['GET'])
-    def get_flavor(self, request, tenant_id, flavor_id):
+    def get_flavor_details(self, request, tenant_id, flavor_id):
         """
         Returns a get flavor response, for any given flavorid
         """
-        response_data = get_flavor(flavor_id)
-        request.setResponseCode(response_data[1])
-        return json.dumps(response_data[0])
+        return (
+            self._region_collection_for_tenant(tenant_id)
+            .get_flavor(request, flavor_id, absolutize_url=self.url)
+        )
+
+    @app.route('/v2/<string:tenant_id>/flavors', methods=['GET'])
+    def get_flavor_list(self, request, tenant_id):
+        """
+        Returns a list of flavor with the response code 200.
+        docs: http://bit.ly/1eXTSDC
+        TO DO: The length of flavor list can be set using the control plane.
+               Also be able to set different flavor types in the future.
+        """
+        return (
+            self._region_collection_for_tenant(tenant_id)
+            .list_flavors(include_details=False, absolutize_url=self.url)
+        )
+
+    @app.route('/v2/<string:tenant_id>/flavors/detail', methods=['GET'])
+    def get_flavor_list_with_details(self, request, tenant_id):
+        """
+        Returns a list of flavor details with the response code 200.
+        TO DO: The length of flavor list can be set using the control plane.
+               Also be able to set different flavor types in the future.
+        """
+        return (
+            self._region_collection_for_tenant(tenant_id)
+            .list_flavors(include_details=True, absolutize_url=self.url)
+        )
 
     @app.route('/v2/<string:tenant_id>/limits', methods=['GET'])
     def get_limit(self, request, tenant_id):
@@ -348,6 +391,13 @@ class NovaRegion(object):
             return json.dumps(not_found('Server does not exist', request))
 
         return ServerMetadata(server).app.resource()
+
+    @app.route('/v2/<string:tenant_id>/servers/<string:server_id>/action', methods=['POST'])
+    def perform_action(self, request, tenant_id, server_id):
+        """
+        Perform the requested action on the server
+        """
+        return self._region_collection_for_tenant(tenant_id).request_action(request, server_id, self.url)
 
 
 class ServerMetadata(object):

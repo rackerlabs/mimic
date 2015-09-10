@@ -19,6 +19,8 @@ from mimic.test.behavior_tests import (
     register_behavior)
 from mimic.test.fixtures import APIMockHelper, TenantAuthentication
 from mimic.util.helper import seconds_to_timestamp
+from mimic.model.nova_objects import (
+    RegionalServerCollection, Server, IPv4Address)
 
 
 def status_of_server(test_case, server_id):
@@ -169,6 +171,7 @@ class NovaAPITests(SynchronousTestCase):
             self, [nova_api, NovaControlApi(nova_api=nova_api)]
         )
         self.root = self.helper.root
+        self.clock = self.helper.clock
         self.uri = self.helper.uri
         self.server_name = 'test_server'
 
@@ -410,34 +413,6 @@ class NovaAPITests(SynchronousTestCase):
         delete_server_response = self.successResultOf(delete_server)
         self.assertEqual(delete_server_response.code, 404)
 
-    def test_get_server_image(self):
-        """
-        Test to verify :func:`get_image` on ``GET /v2.0/<tenant_id>/images/<image_id>``
-        """
-        get_server_image = request(
-            self, self.root, "GET", self.uri + '/images/test-image-id')
-        get_server_image_response = self.successResultOf(get_server_image)
-        get_server_image_response_body = self.successResultOf(
-            treq.json_content(get_server_image_response))
-        self.assertEqual(get_server_image_response.code, 200)
-        self.assertEqual(
-            get_server_image_response_body['image']['id'], 'test-image-id')
-        self.assertEqual(
-            get_server_image_response_body['image']['status'], 'ACTIVE')
-
-    def test_get_server_flavor(self):
-        """
-        Test to verify :func:`get_image` on ``GET /v2.0/<tenant_id>/flavors/<flavor_id>``
-        """
-        get_server_flavor = request(
-            self, self.root, "GET", self.uri + '/flavors/test-flavor-id')
-        get_server_flavor_response = self.successResultOf(get_server_flavor)
-        get_server_flavor_response_body = self.successResultOf(
-            treq.json_content(get_server_flavor_response))
-        self.assertEqual(get_server_flavor_response.code, 200)
-        self.assertEqual(
-            get_server_flavor_response_body['flavor']['id'], 'test-flavor-id')
-
     def test_get_server_limits(self):
         """
         Test to verify :func:`get_limit` on ``GET /v2.0/<tenant_id>/limits``
@@ -563,6 +538,367 @@ class NovaAPITests(SynchronousTestCase):
         second_status = status_of_server(self, second_server_id)
         self.assertEqual(status, "ERROR")
         self.assertEqual(second_status, "BUILD")
+
+    def test_server_resize(self):
+        """
+        Resizing a server that does not exist should respond with a 404 and
+        resizing a server that does exist should respond with a 202 and the server
+        should have an updated flavor
+        http://docs.rackspace.com/servers/api/v2/cs-devguide/cs-devguide-20150727.pdf
+        """
+        resize_request = json.dumps({"resize": {"flavorRef": "2"}})
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST", self.uri + '/servers/nothing/action', resize_request))
+        self.assertEqual(response.code, 404)
+        self.assertEqual(body, {
+            "itemNotFound": {
+                "message": "Instance nothing could not be found",
+                "code": 404
+            }
+        })
+
+        existing_server = request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', resize_request)
+        existing_server_response = self.successResultOf(existing_server)
+        self.assertEqual(existing_server_response.code, 202)
+
+        get_resized_server = request(
+            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+        get_server_response = self.successResultOf(get_resized_server)
+        get_server_response_body = self.successResultOf(
+            treq.json_content(get_server_response))
+        self.assertEqual(get_server_response_body['server']['flavor']['id'], '2')
+
+        no_resize_request = json.dumps({"non_supported_action": {"flavorRef": "2"}})
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', no_resize_request))
+        self.assertEqual(response.code, 400)
+        self.assertEqual(body, {
+            "badRequest": {
+                "message": "There is no such action currently supported",
+                "code": 400
+            }
+        })
+
+        no_flavorref_request = json.dumps({"resize": {"missingflavorRef": "5"}})
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', no_flavorref_request))
+        self.assertEqual(response.code, 400)
+        self.assertEqual(body, {
+            "badRequest": {
+                "message": "Resize requests require 'flavorRef' attribute",
+                "code": 400
+            }
+        })
+
+    def test_confirm_and_revert_server_resize(self):
+        """
+        After a server finishes resizing, the size must be confirmed or reverted
+        A confirmation action should make the server ACTIVE and return a 204
+        A revert action should change the flavor and return a 202
+        Attempting to revert or confirm that is not in VERIFY_RESIZE state returns a 409
+        http://docs.rackspace.com/servers/api/v2/cs-devguide/cs-devguide-20150727.pdf
+        """
+        confirm_request = json.dumps({"confirmResize": "null"})
+        revert_request = json.dumps({"revertResize": "null"})
+        resize_request = json.dumps({"resize": {"flavorRef": "2"}})
+
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', confirm_request))
+        self.assertEqual(response.code, 409)
+        self.assertEqual(body, {
+            "conflictingRequest": {
+                "message": "Cannot 'confirmResize' instance " + self.server_id +
+                           " while it is in vm_state active",
+                "code": 409
+            }
+        })
+
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', revert_request))
+        self.assertEqual(response.code, 409)
+        self.assertEqual(body, {
+            "conflictingRequest": {
+                "message": "Cannot 'revertResize' instance " + self.server_id +
+                           " while it is in vm_state active",
+                "code": 409
+            }
+        })
+
+        request(self, self.root, "POST",
+                self.uri + '/servers/' + self.server_id + '/action', resize_request)
+        confirm = request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', confirm_request)
+        confirm_response = self.successResultOf(confirm)
+        self.assertEqual(confirm_response.code, 204)
+
+        resize_request = json.dumps({"resize": {"flavorRef": "10"}})
+
+        request(self, self.root, "POST",
+                self.uri + '/servers/' + self.server_id + '/action', resize_request)
+
+        resized_server = request(
+            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+        resized_server_response = self.successResultOf(resized_server)
+        resized_server_response_body = self.successResultOf(
+            treq.json_content(resized_server_response))
+        self.assertEqual(resized_server_response_body['server']['flavor']['id'], '10')
+
+        revert = request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', revert_request)
+        revert_response = self.successResultOf(revert)
+        self.assertEqual(revert_response.code, 202)
+
+        reverted_server = request(
+            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+        reverted_server_response = self.successResultOf(reverted_server)
+        reverted_server_response_body = self.successResultOf(
+            treq.json_content(reverted_server_response))
+        self.assertEqual(reverted_server_response_body['server']['flavor']['id'], '2')
+
+    def test_rescue(self):
+        """
+        Attempting to rescue a server that is not in ACTIVE state
+            returns conflictingRequest with response code 409.
+        If the server is in ACTIVE state, then a new password is returned
+            for the server with a response code of 200.
+        http://docs.rackspace.com/servers/api/v2/cs-devguide/content/rescue_mode.html
+        """
+        metadata = {"server_error": "1"}
+        server_id = quick_create_server(self.helper, metadata=metadata)
+
+        rescue_request = json.dumps({"rescue": "none"})
+
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + server_id + '/action', rescue_request))
+        self.assertEqual(response.code, 409)
+        self.assertEqual(body, {
+            "conflictingRequest": {
+                "message": "Cannot 'rescue' instance " + server_id +
+                           " while it is in task state other than active",
+                "code": 409
+            }
+        })
+
+        rescue = request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', rescue_request)
+        rescue_response = self.successResultOf(rescue)
+        rescue_response_body = self.successResultOf(treq.json_content(rescue_response))
+        self.assertEqual(rescue_response.code, 200)
+        self.assertTrue('"adminPass":' in json.dumps(rescue_response_body))
+
+    def test_unrescue(self):
+        """
+        Attempting to unrescue a server that is not in RESCUE state a response body
+            of conflicting request and response code of 409
+        Unsrescuing a server that is in ACTIVE state, returns a 200.
+        http://docs.rackspace.com/servers/api/v2/cs-devguide/content/exit_rescue_mode.html
+        """
+        rescue_request = json.dumps({"rescue": "none"})
+        unrescue_request = json.dumps({"unrescue": "null"})
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', unrescue_request))
+        self.assertEqual(response.code, 409)
+        self.assertEqual(body, {
+            "conflictingRequest": {
+                "message": "Cannot 'unrescue' instance " + self.server_id +
+                           " while it is in task state other than rescue",
+                "code": 409
+            }
+        })
+        # Put a server in rescue status
+        request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', rescue_request)
+
+        unrescue = request(self, self.root, "POST",
+                           self.uri + '/servers/' + self.server_id + '/action', unrescue_request)
+        unrescue_response = self.successResultOf(unrescue)
+        self.assertEqual(unrescue_response.code, 200)
+
+    def test_reboot_server(self):
+        """
+        A hard reboot of a server sets the server status to HARD_REBOOT and returns a 202
+        A soft reboot of a server sets the server status to REBOOT and returns a 202
+        After some amount of time the server will go back to ACTIVE state
+        The clock is being used to advance time and verify that status changes from the
+            a reboot state to active.  The current time interval being used in hardcoded
+            in the route for now. In the future we need to refactor to allow different
+            durations to be set including a zero duration which would allow the server to
+            skip the intermediary state of HARD_REBOOT or REBOOT and go straight to ACTIVE
+        If the 'type' attribute is left out of the request, a response body is returned
+            with code of 400
+        http://docs.rackspace.com/servers/api/v2/cs-devguide/content/Reboot_Server-d1e3371.html
+        """
+        no_reboot_type_request = json.dumps({"reboot": {"missing_type": "SOFT"}})
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', no_reboot_type_request))
+        self.assertEqual(response.code, 400)
+        self.assertEqual(body, {
+            "badRequest": {
+                "message": "Missing argument 'type' for reboot",
+                "code": 400
+            }
+        })
+
+        wrong_reboot_type_request = json.dumps({"reboot": {"type": "FIRM"}})
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', wrong_reboot_type_request))
+        self.assertEqual(response.code, 400)
+        self.assertEqual(body, {
+            "badRequest": {
+                "message": "Argument 'type' for reboot is not HARD or SOFT",
+                "code": 400
+            }
+        })
+
+        # Soft reboot tests
+        soft_reboot_request = json.dumps({"reboot": {"type": "SOFT"}})
+        soft_reboot = request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', soft_reboot_request)
+
+        soft_reboot_response = self.successResultOf(soft_reboot)
+        self.assertEqual(soft_reboot_response.code, 202)
+
+        response, body = self.successResultOf(json_request(
+            self, self.root, "GET", self.uri + '/servers/' + self.server_id))
+        self.assertEqual(body['server']['status'], 'REBOOT')
+
+        # Advance the clock 3 seconds and check status
+        self.clock.advance(3)
+        rebooted_server = request(
+            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+        rebooted_server_response = self.successResultOf(rebooted_server)
+        rebooted_server_response_body = self.successResultOf(
+            treq.json_content(rebooted_server_response))
+        self.assertEqual(rebooted_server_response_body['server']['status'], 'ACTIVE')
+
+        # Hard Reboot Tests
+        hard_reboot_request = json.dumps({"reboot": {"type": "HARD"}})
+        hard_reboot = request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', hard_reboot_request)
+        hard_reboot_response = self.successResultOf(hard_reboot)
+        self.assertEqual(hard_reboot_response.code, 202)
+
+        hard_reboot_server = request(
+            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+        hard_reboot_server_response = self.successResultOf(hard_reboot_server)
+        hard_reboot_server_response_body = self.successResultOf(
+            treq.json_content(hard_reboot_server_response))
+        self.assertEqual(hard_reboot_server_response_body['server']['status'], 'HARD_REBOOT')
+
+        # Advance clock 6 seconds and check server status
+        self.clock.advance(6)
+        rebooted_server = request(
+            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+        rebooted_server_response = self.successResultOf(rebooted_server)
+        rebooted_server_response_body = self.successResultOf(
+            treq.json_content(rebooted_server_response))
+        self.assertEqual(rebooted_server_response_body['server']['status'], 'ACTIVE')
+
+    def test_change_password(self):
+        """
+        Resetting the password on a non ACTIVE server responds with a
+            conflictingRequest and response code 409
+        adminPass is required as part of the request body, if missing a badRequest
+            is returned with response code 400
+        A successful password reset returns 202
+        http://docs.rackspace.com/servers/api/v2/cs-devguide/content/Change_Password-d1e3234.html
+        """
+        password_request = json.dumps({"changePassword": {"adminPass": "password"}})
+        bad_password_request = json.dumps({"changePassword": {"Pass": "password"}})
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', bad_password_request))
+        self.assertEqual(response.code, 400)
+        self.assertEqual(body, {
+            "badRequest": {
+                "message": "No adminPass was specified",
+                "code": 400
+            }
+        })
+        password_reset = request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', password_request)
+        password_reset_response = self.successResultOf(password_reset)
+        self.assertEqual(password_reset_response.code, 202)
+
+        # Create server in error state and test response when changing password
+        # in state other than ACTIVE
+        metadata = {"server_error": "1"}
+        server_id = quick_create_server(self.helper, metadata=metadata)
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + server_id + '/action', password_request))
+        self.assertEqual(response.code, 409)
+        self.assertEqual(body, {
+            "conflictingRequest": {
+                "message": "Cannot 'changePassword' instance " + server_id +
+                           " while it is in task state other than active",
+                "code": 409
+            }
+        })
+
+    def test_rebuild(self):
+        rebuild_request = json.dumps({"rebuild": {"imageRef": "d5f916f8-03a4-4392-9ec2-cc6e5ad41cf0"}})
+        no_imageRef_request = json.dumps({"rebuild": {"name": "new_server"}})
+
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', no_imageRef_request))
+        self.assertEqual(response.code, 400)
+        self.assertEqual(body, {
+            "badRequest": {
+                "message": "Could not parse imageRef from request.",
+                "code": 400
+            }
+        })
+
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', rebuild_request))
+        self.assertEqual(response.code, 202)
+        self.assertTrue('adminPass' in json.dumps(body))
+        self.assertEqual(body['server']['id'], self.server_id)
+        self.assertEqual(body['server']['status'], 'REBUILD')
+
+        self.clock.advance(5)
+        rebuilt_server = request(
+            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+        rebuilt_server_response = self.successResultOf(rebuilt_server)
+        rebuilt_server_response_body = self.successResultOf(
+            treq.json_content(rebuilt_server_response))
+        self.assertEqual(rebuilt_server_response_body['server']['status'], 'ACTIVE')
+
+        # Create server in error state and test response when an attempt to
+        # rebuild the server when it is in state other than ACTIVE
+        metadata = {"server_error": "1"}
+        server_id = quick_create_server(self.helper, metadata=metadata)
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + server_id + '/action', rebuild_request))
+        self.assertEqual(response.code, 409)
+        self.assertEqual(body, {
+            "conflictingRequest": {
+                "message": "Cannot 'rebuild' instance " + server_id +
+                           " while it is in task state other than active",
+                "code": 409
+            }
+        })
 
 
 class NovaAPIChangesSinceTests(SynchronousTestCase):
@@ -1324,26 +1660,6 @@ class NovaAPINegativeTests(SynchronousTestCase):
         get_server_response = self.successResultOf(get_server)
         self.assertEquals(get_server_response.code, 404)
 
-    def test_get_invalid_image(self):
-        """
-        Test to verify :func:`get_image` when invalid image from the
-        :obj: `mimic_presets` is provided or if image id ends with Z.
-        """
-        get_server_image = request(self, self.root, "GET", self.uri +
-                                   '/images/test-image-idZ')
-        get_server_image_response = self.successResultOf(get_server_image)
-        self.assertEqual(get_server_image_response.code, 404)
-
-    def test_get_server_flavor(self):
-        """
-        Test to verify :func:`get_flavor` when invalid flavor from the
-        :obj: `mimic_presets` is provided.
-        """
-        get_server_flavor = request(self, self.root, "GET", self.uri +
-                                    '/flavors/1')
-        get_server_flavor_response = self.successResultOf(get_server_flavor)
-        self.assertEqual(get_server_flavor_response.code, 404)
-
     def test_create_server_failure_using_behaviors(self):
         """
         :func:`create_server` fails with given error message and response code
@@ -1974,3 +2290,37 @@ class NovaAPIMetadataTests(SynchronousTestCase):
                         for i in xrange(40))
         self.assert_maximum_metadata(
             *self.set_metadata_item(metadata, 'key', {"meta": {"key": []}}))
+
+
+class NovaServerTests(SynchronousTestCase):
+    def test_unique_ips(self):
+        """
+        The private IP address of generated servers will be unique even if
+        the given ``ipsegment`` factory generates non-unique pairs.
+        """
+        nova_api = NovaApi(["ORD", "MIMIC"])
+        self.helper = self.helper = APIMockHelper(
+            self, [nova_api, NovaControlApi(nova_api=nova_api)]
+        )
+        coll = RegionalServerCollection(
+            tenant_id='abc123', region_name='ORD', clock=self.helper.clock,
+            servers=[])
+        creation_json = {
+            'server': {'name': 'foo', 'flavorRef': 'bar', 'imageRef': 'baz'}}
+
+        def ipsegment():
+            yield 1
+            yield 1
+            yield 2
+            yield 2
+            yield 3
+            yield 3
+
+        Server.from_creation_request_json(coll, creation_json,
+                                          ipsegment=ipsegment().next)
+        Server.from_creation_request_json(coll, creation_json,
+                                          ipsegment=ipsegment().next)
+        self.assertEqual(coll.servers[0].private_ips,
+                         [IPv4Address(address='10.180.1.1')])
+        self.assertEqual(coll.servers[1].private_ips,
+                         [IPv4Address(address='10.180.2.2')])

@@ -37,7 +37,7 @@ In order to use Mimic with most other projects you just need to override the Aut
 #### Build status: ####
 [![Build Status](https://travis-ci.org/rackerlabs/mimic.svg?branch=master)](https://travis-ci.org/rackerlabs/mimic)
 
-[![Coverage Status](https://coveralls.io/repos/rackerlabs/mimic/badge.png)](https://coveralls.io/r/rackerlabs/mimic)
+[![codecov.io](http://codecov.io/github/rackerlabs/mimic/coverage.svg?branch=master)](http://codecov.io/github/rackerlabs/mimic?branch=master)
 
 ## Compute ##
 
