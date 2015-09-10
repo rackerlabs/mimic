@@ -1,4 +1,4 @@
-klein==15.0.0
+klein==15.1.0
 cryptography==1.0.1
 twisted==15.4.0
 jsonschema==2.5.1
