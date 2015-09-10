@@ -10,3 +10,4 @@ _tmp
 _trial_temp
 .tox
 *.egg-info
+.idea/
