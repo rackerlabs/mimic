@@ -216,6 +216,10 @@ class NovaRegion(object):
         return (self._api_mock._get_session(self._session_store, tenant_id)
                 .collection_for_region(self._name))
 
+    def _keypair_collection_for_tenant(self, tenant_id):
+        return (self._api_mock._get_session(self._session_store, tenant_id)
+                .keypair_collection_for_region(self._name))
+
     app = MimicApp()
 
     @app.route('/v2/<string:tenant_id>/servers', methods=['POST'])
