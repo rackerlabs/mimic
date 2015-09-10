@@ -2,8 +2,8 @@
 Tests for :mod:`nova_api` and :mod:`nova_objects` for images.
 """
 
+import json
 from twisted.trial.unittest import SynchronousTestCase
-
 from mimic.test.helpers import json_request
 from mimic.rest.nova_api import NovaApi
 from mimic.test.fixtures import APIMockHelper
@@ -69,6 +69,8 @@ class NovaAPIImagesTests(SynchronousTestCase):
         self.assertEqual(200, response.code)
         image_list = body['images']
         self.assertEqual(len(image_list), 52)
+        self.assertEquals(True, 'onmetal' in json.dumps(image_list))
+
         for each_image in image_list:
             self.assertEqual(sorted(each_image.keys()), sorted(['OS-EXT-IMG-SIZE:size',
                                                                 'com.rackspace__1__ui_default_show',
