@@ -7,13 +7,13 @@ enum34==1.0.4
 flake8==2.4.1
 Jinja2==2.8
 MarkupSafe==0.23
-pbr==1.6.0
+pbr==1.7.0
 mccabe==0.3.1
 pep257==0.6.0
 pep8==1.6.2
 unittest2==1.1.0
 Sphinx==1.3.1
-stevedore==1.7.0
+stevedore==1.8.0
 treq==15.0.0
 testtools==1.8.0
 -e .
