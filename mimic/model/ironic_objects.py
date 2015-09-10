@@ -159,7 +159,7 @@ class Node(object):
                 "local_gb": 32,
                 "cpus": 40
             },
-            "driver": self.driver,
+            "driver": self.driver or "fake",
             "driver_info": self.driver_info or {
                 "ipmi_username": "USERID",
                 "ipmi_address": "127.0.0.0",
@@ -171,8 +171,6 @@ class Node(object):
         if self.instance_uuid:
             template["instance_info"] = self.static_instance_info
             template["provision_state"] = "active"
-        if not self.driver:
-            template["driver"] = "fake"
         return template
 
 
