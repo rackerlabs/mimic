@@ -55,7 +55,7 @@ class NovaAPIImagesTests(SynchronousTestCase):
                                                                 'id', 'links', 'metadata', 'minDisk',
                                                                 'minRam', 'name']))
 
-    def test_get_image_list_with_OnMetal(self):
+    def test_get_image_list_details_OnMetal(self):
         """
         Test to verify :func:`get_image_list` on ``GET /v2.0/<tenant_id>/images/detail``
         includes OnMetal images in IAD
@@ -76,6 +76,24 @@ class NovaAPIImagesTests(SynchronousTestCase):
                                                                 'com.rackspace__1__ui_default_show',
                                                                 'id', 'links', 'metadata', 'minDisk',
                                                                 'minRam', 'name']))
+
+    def test_get_image_list_OnMetal(self):
+        """
+        Test to verify :func:`get_image_list` on ``GET /v2.0/<tenant_id>/images``
+        includes OnMetal images in IAD
+        """
+        nova_api = NovaApi(['IAD'])
+        helper = APIMockHelper(self, [nova_api])
+        root = helper.root
+        uri = helper.uri
+        response, body = self.successResultOf(json_request(
+            self, root, "GET", uri + '/images'))
+        self.assertEqual(200, response.code)
+        image_list = body['images']
+        self.assertEqual(len(image_list), 52)
+
+        for each_image in image_list:
+            self.assertEqual(sorted(each_image.keys()), sorted(['id', 'name', 'links']))
 
     def test_get_image_that_does_not_exist(self):
         """
