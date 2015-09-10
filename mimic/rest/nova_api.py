@@ -306,11 +306,11 @@ class NovaRegion(object):
     @app.route('/v2/<string:tenant_id>/images/detail', methods=['GET'])
     def get_server_image_list_with_details(self, request, tenant_id):
         """
-        Returns a image list.
+        Returns a image list with details.
         """
         return (
             self._region_collection_for_tenant(tenant_id)
-            .list_server_image(include_details=True, absolutize_url=self.url)
+            .list_images(include_details=True, absolutize_url=self.url)
         )
 
     @app.route('/v2/<string:tenant_id>/images', methods=['GET'])
@@ -320,7 +320,7 @@ class NovaRegion(object):
         """
         return (
             self._region_collection_for_tenant(tenant_id)
-            .list_server_image(include_details=False, absolutize_url=self.url)
+            .list_images(include_details=False, absolutize_url=self.url)
         )
 
     @app.route('/v2/<string:tenant_id>/flavors/<string:flavor_id>', methods=['GET'])
