@@ -416,13 +416,13 @@ class NovaAPITests(SynchronousTestCase):
         Test to verify :func:`get_image` on ``GET /v2.0/<tenant_id>/images/<image_id>``
         """
         get_server_image = request(
-            self, self.root, "GET", self.uri + '/images/7cf9f618-3dd3-4e3e-bace-e44d857039e2')
+            self, self.root, "GET", self.uri + '/images/c934d497-7b45-4764-ac63-5b67e1458a20')
         get_server_image_response = self.successResultOf(get_server_image)
         get_server_image_response_body = self.successResultOf(
             treq.json_content(get_server_image_response))
         self.assertEqual(get_server_image_response.code, 200)
         self.assertEqual(
-            get_server_image_response_body['image']['id'], '7cf9f618-3dd3-4e3e-bace-e44d857039e2')
+            get_server_image_response_body['image']['id'], 'c934d497-7b45-4764-ac63-5b67e1458a20')
         self.assertEqual(
             get_server_image_response_body['image']['metadata']['status'], 'active')
 
@@ -431,13 +431,13 @@ class NovaAPITests(SynchronousTestCase):
         Test to verify :func:`get_image` on ``GET /v2.0/<tenant_id>/images/<image_id>``
         """
         get_server_image = request(
-            self, self.root, "GET", self.uri + '/images/4005b86a-2acf-4a3f-be41-44fefb87e9ae')
+            self, self.root, "GET", self.uri + '/images/dfce8398-39f0-40a1-99fe-6323ea3641c8')
         get_server_image_response = self.successResultOf(get_server_image)
         get_server_image_response_body = self.successResultOf(
             treq.json_content(get_server_image_response))
         self.assertEqual(get_server_image_response.code, 200)
         self.assertEqual(
-            get_server_image_response_body['image']['id'], '4005b86a-2acf-4a3f-be41-44fefb87e9ae')
+            get_server_image_response_body['image']['id'], 'dfce8398-39f0-40a1-99fe-6323ea3641c8')
         self.assertEqual(
             get_server_image_response_body['image']['metadata']['flavor_classes'], 'onmetal')
 
