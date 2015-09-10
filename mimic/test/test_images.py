@@ -38,7 +38,7 @@ class NovaAPIImagesTests(SynchronousTestCase):
         """
         get_image_list_response_body = self.get_server_image('/images')
         image_list = get_image_list_response_body['images']
-        self.assertTrue(len(image_list) > 1)
+        self.assertEqual(len(image_list), 38)
         for each_image in image_list:
             self.assertEqual(sorted(each_image.keys()), sorted(['id', 'name', 'links']))
 
@@ -49,6 +49,26 @@ class NovaAPIImagesTests(SynchronousTestCase):
         get_image_list_response_body = self.get_server_image('/images/detail')
         image_list = get_image_list_response_body['images']
         self.assertTrue(len(image_list) > 1)
+        for each_image in image_list:
+            self.assertEqual(sorted(each_image.keys()), sorted(['OS-EXT-IMG-SIZE:size',
+                                                                'com.rackspace__1__ui_default_show',
+                                                                'id', 'links', 'metadata', 'minDisk',
+                                                                'minRam', 'name']))
+
+    def test_get_image_list_with_OnMetal(self):
+        """
+        Test to verify :func:`get_image_list` on ``GET /v2.0/<tenant_id>/images/detail``
+        includes OnMetal images in IAD
+        """
+        nova_api = NovaApi(['IAD'])
+        helper = APIMockHelper(self, [nova_api])
+        root = helper.root
+        uri = helper.uri
+        response, body = self.successResultOf(json_request(
+            self, root, "GET", uri + '/images/detail'))
+        self.assertEqual(200, response.code)
+        image_list = body['images']
+        self.assertEqual(len(image_list), 52)
         for each_image in image_list:
             self.assertEqual(sorted(each_image.keys()), sorted(['OS-EXT-IMG-SIZE:size',
                                                                 'com.rackspace__1__ui_default_show',

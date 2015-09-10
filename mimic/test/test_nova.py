@@ -854,13 +854,13 @@ class NovaAPITests(SynchronousTestCase):
 
     def test_change_password(self):
         """
-       Resetting the password on a non ACTIVE server responds with a
+        Resetting the password on a non ACTIVE server responds with a
            conflictingRequest and response code 409
-       adminPass is required as part of the request body, if missing a badRequest
+        adminPass is required as part of the request body, if missing a badRequest
            is returned with response code 400
-       A successful password reset returns 202
-       http://docs.rackspace.com/servers/api/v2/cs-devguide/content/Change_Password-d1e3234.html
-       """
+        A successful password reset returns 202
+        http://docs.rackspace.com/servers/api/v2/cs-devguide/content/Change_Password-d1e3234.html
+        """
         password_request = json.dumps({"changePassword": {"adminPass": "password"}})
         bad_password_request = json.dumps({"changePassword": {"Pass": "password"}})
         response, body = self.successResultOf(json_request(
