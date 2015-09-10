@@ -101,7 +101,7 @@ class RackspaceWindowsImage(Image):
                "OS-EXT-IMG-SIZE:size": 12135414967, "com.rackspace__1__ui_default_show": "True"},
               "Windows Server 2012 R2 + SQL Server 2014 Web":
               {"id": "beb3dfe6-ebb0-4943-bcea-65a3e11bb7bd", "minRam": 2048, "minDisk": 40,
-               "OS-EXT-IMG-SIZE:size": 1213905689, "com.rackspace__1__ui_default_show": "True"},
+               "OS-EXT-IMG-SIZE:size": 12139059689, "com.rackspace__1__ui_default_show": "True"},
               "Windows Server 2012":
               {"id": "03b70725-29c6-4d88-be2b-c19004b25c28", "minRam": 1024, "minDisk": 40,
                "OS-EXT-IMG-SIZE:size": 11465351762, "com.rackspace__1__ui_default_show": "True"}}
@@ -199,10 +199,10 @@ class RackspaceCoreOSImage(Image):
     """
     A Rackspace CoreOS image object representation
     """
-    images = {"CoreOS (Beta)": {"id": "7cf9f618-3dd3-4e3e-bace-e44d857039e2", "minRam": 512,
-                                "minDisk": 20, "OS-EXT-IMG-SIZE:size": 223270688},
-              "CoreOS (Alpha)": {"id": "6e4f6893-b973-4f91-b7e3-9f442a30a907", "minRam": 512,
-                                 "minDisk": 20, "OS-EXT-IMG-SIZE:size": 239270643},
+    images = {"CoreOS (Beta)": {"id": "49a82313-5d5f-4e9c-b128-99a8ddd835e8", "minRam": 512,
+                                "minDisk": 20, "OS-EXT-IMG-SIZE:size": 217868501},
+              "CoreOS (Alpha)": {"id": "42d8c62e-4947-4544-b82b-b4cbae73b18c", "minRam": 512,
+                                 "minDisk": 20, "OS-EXT-IMG-SIZE:size": 239664114},
               "CoreOS (Stable)": {"id": "b05a6c75-158a-4fca-b5ad-fe9d644e04b4", "minRam": 512,
                                   "minDisk": 20, "OS-EXT-IMG-SIZE:size": 224241308,
                                   "com.rackspace__1__ui_default_show": "True"}}
@@ -434,7 +434,7 @@ class RackspaceUbuntuPVHMImage(Image):
     """
     A Rackspace Ubuntu image object representation
     """
-    images = {"Ubuntu 15.04 (Vivid Vervet) (PVHVM)": {"id": "315b2dc-23fc-4d81-9e73-aa620357e1d8",
+    images = {"Ubuntu 15.04 (Vivid Vervet) (PVHVM)": {"id": "4315b2dc-23fc-4d81-9e73-aa620357e1d8",
                                                       "minRam": 512, "minDisk": 20,
                                                       "OS-EXT-IMG-SIZE:size": 784546403,
                                                       "com.rackspace__1__ui_default_show": "True"},
@@ -584,12 +584,12 @@ class RackspaceOnMetalCoreOSImage(OnMetalImage):
     """
     A Rackspace OnMetal image object representation
     """
-    images = {"OnMetal - CoreOS (Alpha)": {"id": "4005b86a-2acf-4a3f-be41-44fefb87e9ae",
+    images = {"OnMetal - CoreOS (Alpha)": {"id": "044d1fd0-28e2-4f75-bdc1-8899c5599a6a",
                                            "minRam": 512, "minDisk": 20,
-                                           "OS-EXT-IMG-SIZE:size": 243990528},
-              "OnMetal - CoreOS (Beta)": {"id": "4c8ddca8-6a94-4151-b090-a89ebc7143b8",
+                                           "OS-EXT-IMG-SIZE:size": 244187136},
+              "OnMetal - CoreOS (Beta)": {"id": "071206f4-f39b-4c8b-938d-5609c8f88744",
                                           "minRam": 512, "minDisk": 20,
-                                          "OS-EXT-IMG-SIZE:size": 225771520},
+                                          "OS-EXT-IMG-SIZE:size": 220463104},
               "OnMetal - CoreOS (Stable)": {"id": "584b1869-a204-4572-925c-e6aec423f1e4",
                                             "minRam": 512, "minDisk": 20,
                                             "OS-EXT-IMG-SIZE:size": 225837056}}
