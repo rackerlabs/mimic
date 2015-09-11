@@ -508,14 +508,6 @@ class OnMetalImage(object):
     A Image object
     """
 
-    is_default = False
-
-    def set_is_default(self):
-        """
-        Sets image as a default
-        """
-        self.is_default = True
-
     def links_json(self, absolutize_url):
         """
         Create a JSON-serializable data structure describing the links to this
