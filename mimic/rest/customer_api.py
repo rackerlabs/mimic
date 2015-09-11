@@ -39,7 +39,7 @@ class CustomerApi(object):
         Adds new contacts to a tenant and responds with a 200.
 
         Note: If there is a GET on the tenant before this `POST` call, the default
-        contacts would have been listed. This POST will overwrite the existing conatacts
+        contacts would have been listed. This POST will overwrite the existing contacts
         and only set the contacts provided.
         """
         content = json.loads(request.content.read())

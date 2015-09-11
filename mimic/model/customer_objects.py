@@ -1,5 +1,5 @@
 """
-Customet Contacts storage object
+Customer Contacts storage object
 """
 from characteristic import attributes, Attribute
 
@@ -16,8 +16,8 @@ class Contact(object):
         "firstName": "Pat",
         "lastName": "Example",
         "customerAccountType": "CLOUD",
-        "contactNumber": "RPN-994-758-811",
-        "rcn": "RCN-348-367-072",
+        "contactNumber": "MIMIC-111-111-111",
+        "rcn": "MIMIC-111-111-1111",
         "emailAddresses": {
                     "emailAddress": [
                         {
@@ -39,7 +39,7 @@ class Contact(object):
         "link": [
             {
                 "rel": "via",
-                "href": "http://link-to-nothing-for-contact-in-customer-api"
+                "href": "http://mimic-customer.mimic-customer.com"
             }
         ]
     }
@@ -106,7 +106,7 @@ class ContactsStore(object):
             "link": [
                 {
                     "rel": "next",
-                    "href": "http://link-to-nothing-in-the-customer-api"
+                    "href": "http://mimic-customer.mimic-customer.com"
                 }
             ],
             "contact": contacts
