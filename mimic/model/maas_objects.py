@@ -3,30 +3,25 @@ MaaS API data model
 """
 
 import random
+import string
+
+from characteristic import attributes, Attribute
+
+from mimic.util.helper import random_string
+
+METRIC_TYPE_INTEGER = 'i'
+METRIC_TYPE_NUMBER = 'n'
+METRIC_TYPE_STRING = 's'
 
 
-def random_letters(len_min, len_max):
-    """
-    Makes a string with random letters (a-z).
-    """
-    return ''.join([chr(ord('a') + random.randint(0, 25))
-                    for _ in xrange(random.randint(len_min, len_max))])
-
-
+@attributes(["name",
+             "type",
+             Attribute("_unit", default_value="other"),
+             Attribute("_overrides", default_factory=dict)])
 class Metric(object):
     """
     Models a MaaS metric type.
     """
-    def __init__(self, name, type, clock, unit='other'):
-        """
-        Initializes the metric.
-        """
-        self.name = name
-        self.type = type
-        self._unit = unit
-        self._overrides = {}
-        self._clock = clock
-
     def _override_key(self, **kwargs):
         """
         Computes a key used for hashing overrides, as a tuple of strings.
@@ -55,15 +50,15 @@ class Metric(object):
         Gets the default data point. This data point may be overridden by
         setting the override value.
         """
-        if self.type == 'i':
+        if self.type == METRIC_TYPE_INTEGER:
             return random.randint(0, 100000)
-        elif self.type == 'n':
+        elif self.type == METRIC_TYPE_NUMBER:
             if self._unit == 'percent':
                 return random.uniform(0, 100)
             else:
                 return random.uniform(0, 100000)
-        elif self.type == 's':
-            return random_letters(12, 30)
+        elif self.type == METRIC_TYPE_STRING:
+            return random_string(random.randint(12, 30), selectable=(string.letters + string.digits))
         raise ValueError('No default data getter for type {0}!'.format(self.type))
 
     def get_value_for_test_check(self, **kwargs):
@@ -83,20 +78,15 @@ class Metric(object):
                 'data': data}
 
 
+@attributes(["metrics",
+             Attribute("_clock"),
+             Attribute("test_check_available", default_factory=dict),
+             Attribute("test_check_status", default_factory=dict),
+             Attribute("test_check_response_code", default_factory=dict)])
 class CheckType(object):
     """
     Data model for a MaaS check type (e.g., remote.ping).
     """
-    def __init__(self, clock, metrics):
-        """
-        Constructs a check type with metrics.
-        """
-        self.metrics = metrics
-        self.test_check_available = {}
-        self.test_check_status = {}
-        self.test_check_response_code = {}
-        self._clock = clock
-
     def clear_overrides(self):
         """
         Clears the overrides for test-checks and metrics.
@@ -153,77 +143,83 @@ class MaasStore(object):
     """
     def __init__(self, clock):
         """
-        Initializes the Maas configuration using the provided clock.
+        Initializes the MaaS configuration using the provided clock.
+
+        This initializer reflects the variety of available check types and
+        metrics supported by MaaS. Some MaaS check types have been omitted
+        for simplicity and clarity. The full list of check types and metrics
+        can be found in `the Rackspace Cloud Monitoring Developer Guide, appendix B
+            <http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/appendix-check-types.html>`_
         """
         self.check_types = {
-            'agent.cpu': CheckType(clock, [
-                Metric('user_percent_average', 'n', clock, unit='percent'),
-                Metric('wait_percent_average', 'n', clock, unit='percent'),
-                Metric('sys_percent_average', 'n', clock, unit='percent'),
-                Metric('idle_percent_average', 'n', clock, unit='percent'),
-                Metric('irq_percent_average', 'n', clock, unit='percent'),
-                Metric('usage_average', 'n', clock, unit='percent'),
-                Metric('min_cpu_usage', 'n', clock, unit='percent'),
-                Metric('max_cpu_usage', 'n', clock, unit='percent'),
-                Metric('stolen_percent_average', 'n', clock, unit='percent')]),
-            'agent.disk': CheckType(clock, [
-                Metric('queue', 'i', clock),
-                Metric('read_bytes', 'i', clock, unit='bytes'),
-                Metric('reads', 'i', clock, unit='count'),
-                Metric('rtime', 'i', clock),
-                Metric('wtime', 'i', clock),
-                Metric('write_bytes', 'i', clock, unit='bytes'),
-                Metric('writes', 'i', clock, unit='count')]),
-            'agent.filesystem': CheckType(clock, [
-                Metric('avail', 'i', clock, unit='kilobytes'),
-                Metric('free', 'i', clock, unit='kilobytes'),
-                Metric('options', 's', clock, unit='string'),
-                Metric('total', 'i', clock, unit='kilobytes'),
-                Metric('used', 'i', clock, unit='kilobytes'),
-                Metric('files', 'i', clock, unit='count'),
-                Metric('free_files', 'i', clock, unit='count')]),
-            'agent.load_average': CheckType(clock, [
-                Metric('1m', 'n', clock),
-                Metric('5m', 'n', clock),
-                Metric('10m', 'n', clock)]),
-            'agent.memory': CheckType(clock, [
-                Metric('actual_free', 'i', clock, unit='bytes'),
-                Metric('actual_used', 'i', clock, unit='bytes'),
-                Metric('free', 'i', clock, unit='bytes'),
-                Metric('ram', 'i', clock, unit='megabytes'),
-                Metric('swap_free', 'i', clock, unit='bytes'),
-                Metric('swap_page_in', 'i', clock, unit='bytes'),
-                Metric('swap_page_out', 'i', clock, unit='bytes'),
-                Metric('swap_total', 'i', clock, unit='bytes'),
-                Metric('swap_used', 'i', clock, unit='bytes'),
-                Metric('total', 'i', clock, unit='bytes'),
-                Metric('used', 'i', clock, unit='bytes')]),
-            'agent.network': CheckType(clock, [
-                Metric('rx_bytes', 'i', clock, unit='bytes'),
-                Metric('rx_dropped', 'i', clock, unit='bytes'),
-                Metric('rx_errors', 'i', clock, unit='bytes'),
-                Metric('rx_packets', 'i', clock, unit='bytes'),
-                Metric('tx_bytes', 'i', clock, unit='bytes'),
-                Metric('tx_dropped', 'i', clock, unit='bytes'),
-                Metric('tx_errors', 'i', clock, unit='bytes'),
-                Metric('tx_packets', 'i', clock, unit='bytes')]),
-            'remote.http': CheckType(clock, [
-                Metric('bytes', 'i', clock, unit='bytes'),
-                Metric('cert_end', 'i', clock),
-                Metric('cert_end_in', 'i', clock),
-                Metric('cert_error', 's', clock, unit='string'),
-                Metric('cert_issuer', 's', clock, unit='string'),
-                Metric('cert_start', 'i', clock),
-                Metric('cert_subject', 's', clock, unit='string'),
-                Metric('cert_subject_alternative_names', 's', clock, unit='string'),
-                Metric('code', 's', clock, unit='string'),
-                Metric('duration', 'i', clock),
-                Metric('truncated', 'i', clock, unit='bytes'),
-                Metric('tt_connect', 'i', clock),
-                Metric('tt_firstbyte', 'i', clock)]),
-            'remote.ping': CheckType(clock, [
-                Metric('available', 'n', clock, unit='percent'),
-                Metric('average', 'n', clock),
-                Metric('count', 'i', clock, unit='count'),
-                Metric('maximum', 'n', clock),
-                Metric('minimum', 'n', clock)])}
+            'agent.cpu': CheckType(clock=clock, metrics=[
+                Metric(name='user_percent_average', type=METRIC_TYPE_NUMBER, unit='percent'),
+                Metric(name='wait_percent_average', type=METRIC_TYPE_NUMBER, unit='percent'),
+                Metric(name='sys_percent_average', type=METRIC_TYPE_NUMBER, unit='percent'),
+                Metric(name='idle_percent_average', type=METRIC_TYPE_NUMBER, unit='percent'),
+                Metric(name='irq_percent_average', type=METRIC_TYPE_NUMBER, unit='percent'),
+                Metric(name='usage_average', type=METRIC_TYPE_NUMBER, unit='percent'),
+                Metric(name='min_cpu_usage', type=METRIC_TYPE_NUMBER, unit='percent'),
+                Metric(name='max_cpu_usage', type=METRIC_TYPE_NUMBER, unit='percent'),
+                Metric(name='stolen_percent_average', type=METRIC_TYPE_NUMBER, unit='percent')]),
+            'agent.disk': CheckType(clock=clock, metrics=[
+                Metric(name='queue', type=METRIC_TYPE_INTEGER),
+                Metric(name='read_bytes', type=METRIC_TYPE_INTEGER, unit='bytes'),
+                Metric(name='reads', type=METRIC_TYPE_INTEGER, unit='count'),
+                Metric(name='rtime', type=METRIC_TYPE_INTEGER),
+                Metric(name='wtime', type=METRIC_TYPE_INTEGER),
+                Metric(name='write_bytes', type=METRIC_TYPE_INTEGER, unit='bytes'),
+                Metric(name='writes', type=METRIC_TYPE_INTEGER, unit='count')]),
+            'agent.filesystem': CheckType(clock=clock, metrics=[
+                Metric(name='avail', type=METRIC_TYPE_INTEGER, unit='kilobytes'),
+                Metric(name='free', type=METRIC_TYPE_INTEGER, unit='kilobytes'),
+                Metric(name='options', type=METRIC_TYPE_STRING, unit='string'),
+                Metric(name='total', type=METRIC_TYPE_INTEGER, unit='kilobytes'),
+                Metric(name='used', type=METRIC_TYPE_INTEGER, unit='kilobytes'),
+                Metric(name='files', type=METRIC_TYPE_INTEGER, unit='count'),
+                Metric(name='free_files', type=METRIC_TYPE_INTEGER, unit='count')]),
+            'agent.load_average': CheckType(clock=clock, metrics=[
+                Metric(name='1m', type=METRIC_TYPE_NUMBER),
+                Metric(name='5m', type=METRIC_TYPE_NUMBER),
+                Metric(name='10m', type=METRIC_TYPE_NUMBER)]),
+            'agent.memory': CheckType(clock=clock, metrics=[
+                Metric(name='actual_free', type=METRIC_TYPE_INTEGER, unit='bytes'),
+                Metric(name='actual_used', type=METRIC_TYPE_INTEGER, unit='bytes'),
+                Metric(name='free', type=METRIC_TYPE_INTEGER, unit='bytes'),
+                Metric(name='ram', type=METRIC_TYPE_INTEGER, unit='megabytes'),
+                Metric(name='swap_free', type=METRIC_TYPE_INTEGER, unit='bytes'),
+                Metric(name='swap_page_in', type=METRIC_TYPE_INTEGER, unit='bytes'),
+                Metric(name='swap_page_out', type=METRIC_TYPE_INTEGER, unit='bytes'),
+                Metric(name='swap_total', type=METRIC_TYPE_INTEGER, unit='bytes'),
+                Metric(name='swap_used', type=METRIC_TYPE_INTEGER, unit='bytes'),
+                Metric(name='total', type=METRIC_TYPE_INTEGER, unit='bytes'),
+                Metric(name='used', type=METRIC_TYPE_INTEGER, unit='bytes')]),
+            'agent.network': CheckType(clock=clock, metrics=[
+                Metric(name='rx_bytes', type=METRIC_TYPE_INTEGER, unit='bytes'),
+                Metric(name='rx_dropped', type=METRIC_TYPE_INTEGER, unit='bytes'),
+                Metric(name='rx_errors', type=METRIC_TYPE_INTEGER, unit='bytes'),
+                Metric(name='rx_packets', type=METRIC_TYPE_INTEGER, unit='bytes'),
+                Metric(name='tx_bytes', type=METRIC_TYPE_INTEGER, unit='bytes'),
+                Metric(name='tx_dropped', type=METRIC_TYPE_INTEGER, unit='bytes'),
+                Metric(name='tx_errors', type=METRIC_TYPE_INTEGER, unit='bytes'),
+                Metric(name='tx_packets', type=METRIC_TYPE_INTEGER, unit='bytes')]),
+            'remote.http': CheckType(clock=clock, metrics=[
+                Metric(name='bytes', type=METRIC_TYPE_INTEGER, unit='bytes'),
+                Metric(name='cert_end', type=METRIC_TYPE_INTEGER),
+                Metric(name='cert_end_in', type=METRIC_TYPE_INTEGER),
+                Metric(name='cert_error', type=METRIC_TYPE_STRING, unit='string'),
+                Metric(name='cert_issuer', type=METRIC_TYPE_STRING, unit='string'),
+                Metric(name='cert_start', type=METRIC_TYPE_INTEGER),
+                Metric(name='cert_subject', type=METRIC_TYPE_STRING, unit='string'),
+                Metric(name='cert_subject_alternative_names', type=METRIC_TYPE_STRING, unit='string'),
+                Metric(name='code', type=METRIC_TYPE_STRING, unit='string'),
+                Metric(name='duration', type=METRIC_TYPE_INTEGER),
+                Metric(name='truncated', type=METRIC_TYPE_INTEGER, unit='bytes'),
+                Metric(name='tt_connect', type=METRIC_TYPE_INTEGER),
+                Metric(name='tt_firstbyte', type=METRIC_TYPE_INTEGER)]),
+            'remote.ping': CheckType(clock=clock, metrics=[
+                Metric(name='available', type=METRIC_TYPE_NUMBER, unit='percent'),
+                Metric(name='average', type=METRIC_TYPE_NUMBER),
+                Metric(name='count', type=METRIC_TYPE_INTEGER, unit='count'),
+                Metric(name='maximum', type=METRIC_TYPE_NUMBER),
+                Metric(name='minimum', type=METRIC_TYPE_NUMBER)])}

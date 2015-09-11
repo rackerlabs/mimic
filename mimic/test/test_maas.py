@@ -17,7 +17,7 @@ class MaasObjectsTests(SynchronousTestCase):
         Known types for TestCheckMetric are 'i', 'n', and 's'. Other types
         raise ValueError.
         """
-        metric = Metric('whuut', 'z', Clock())
+        metric = Metric(name='whuut', type='z')
         with self.assertRaises(ValueError):
             metric.get_value_for_test_check(
                 timestamp=0,
@@ -30,7 +30,8 @@ class MaasObjectsTests(SynchronousTestCase):
         NameError.
         """
         clock = Clock()
-        check_type = CheckType(clock, [Metric('that_metric', 'i', clock, unit='count')])
+        check_type = CheckType(clock=clock, metrics=[
+            Metric(name='that_metric', type='i', unit='count')])
         with self.assertRaises(NameError):
             check_type.get_metric_by_name('not_that_metric')
 
@@ -522,7 +523,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         The test-check control API can clear metrics.
 
-        NB: Randomly generated string metrics are between 12 and 30
+        ..note: Randomly generated string metrics are between 12 and 30
         characters long.
         """
         options = {'data': 'really great forty-three character sentence'}
@@ -615,6 +616,9 @@ class MaasAPITests(SynchronousTestCase):
         self.assertIn('timestamp', data[0])
 
     def test_test_alarm_setting_status(self):
+        """
+        Users can set the status field on the response from the test-alarm API.
+        """
         req = request(self, self.root, "PUT",
                       '{0}/entities/{1}/alarms/test_response'.format(
                           self.ctl_uri, self.entity_id),
@@ -633,6 +637,10 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals('test status message', data[0]['status'])
 
     def test_test_alarm_clearing_response(self):
+        """
+        Sending HTTP DELETE to the entity's test-alarm response
+        causes the response to be cleared and not returned later.
+        """
         req = request(self, self.root, "PUT",
                       '{0}/entities/{1}/alarms/test_response'.format(
                           self.ctl_uri, self.entity_id),
@@ -656,6 +664,9 @@ class MaasAPITests(SynchronousTestCase):
         self.assertNotEquals('test-alarm working OK', data[0]['status'])
 
     def test_test_alarm_setting_errors(self):
+        """
+        Users can use the control API to make the test-alarm API return errors.
+        """
         parse_error = {'code': 400,
                        'type': 'alarmParseError',
                        'message': 'Failed to parse alarm'}

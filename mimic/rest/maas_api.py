@@ -25,7 +25,7 @@ from mimic.canned_responses.maas_agent_info import agent_info
 from mimic.canned_responses.maas_monitoring_zones import monitoring_zones
 from mimic.canned_responses.maas_alarm_examples import alarm_examples
 from mimic.model.maas_objects import MaasStore
-from mimic.util.helper import random_hex_generator
+from mimic.util.helper import random_hex_generator, random_hipsum
 
 
 class _MatchesID(object):
@@ -359,27 +359,10 @@ def parse_and_flatten_qs(url):
     return flat_qs
 
 
-def _random_hipsum():
-    """
-    Generates a random sentence using Hipsum ( http://hipsum.co/ ).
-    """
-    hipsum = ''.join([
-        "Retro squid Portland raw denim Austin, normcore slow-carb Brooklyn. ",
-        "Deep v organic VHS drinking vinegar. Fingerstache locavore kogi Tumblr ",
-        "cred. Vice typewriter retro iPhone pour-over cred XOXO church-key, ",
-        "post-ironic kogi. Selvage polaroid retro, cold-pressed meh craft beer ",
-        "artisan pour-over taxidermy sartorial art party. Food truck church-key ",
-        "four loko wayfarers craft beer dreamcatcher normcore yr, jean shorts ",
-        "bespoke migas art party crucifix next level. Street art chia bitters, ",
-        "gastropub mixtape flexitarian Godard occupy lumbersexual."]).split(' ')
-    offset = random.randint(1, len(hipsum))
-    rotated = hipsum[offset:] + hipsum[:offset]
-    return ' '.join(rotated[:12])
-
-
 def _mcache_factory(clock):
     """
-    Makes a defaultdict that makes MCache objects for each tenant.
+    Returns a function that makes a defaultdict that makes MCache objects
+    for each tenant.
     """
     return lambda: collections.defaultdict(lambda: MCache(clock))
 
@@ -661,7 +644,13 @@ class MaasMock(object):
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/test-check', methods=['POST'])
     def test_check(self, request, tenant_id, entity_id):
         """
-        Tests a check
+        Tests a check.
+
+        If the user has configured overrides using the control API for
+        test-check using this entity and check type, those will be used.
+        Otherwise, random values within each metric type will be
+        generated. For instance, integer metrics generate integers, and
+        string metrics generate strings. No other guarantees are made.
         """
         content = request.content.read()
         test_config = json.loads(content)
@@ -769,7 +758,13 @@ class MaasMock(object):
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/test-alarm', methods=['POST'])
     def test_alarm(self, request, tenant_id, entity_id):
         """
-        Test an alarm, pulling responses from the simulated test-alarm queue.
+        Test an alarm.
+
+        This API can be driven using the control API to set an error
+        or canned success response. If no error or success response is set,
+        it will return success with a random state and status. Users should
+        not expect this API to consistently return either OK, WARNING or
+        CRITICAL without first setting the response in the control API.
         """
         content = request.content.read()
         payload = json.loads(content)
@@ -796,7 +791,7 @@ class MaasMock(object):
         else:
             for i in xrange(n_tests):
                 response_payload.append({'state': random.choice(['OK', 'WARNING', 'CRITICAL']),
-                                         'status': _random_hipsum(),
+                                         'status': random_hipsum(12),
                                          'timestamp': current_time_milliseconds})
 
         request.setResponseCode(status)
