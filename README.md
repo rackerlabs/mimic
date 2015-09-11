@@ -1,6 +1,6 @@
 <img alt="MIMIC" src="https://i.imgur.com/eodn4M4.png" height="75">
 
-Mimic is an API-compatible mock service for  __Openstack Compute__ and __Rackspace's implementation of Identity and Cloud Load balancers__. It is backed by in-memory data structure rather than a potentially expensive database.
+Mimic is an API-compatible mock service for  __Openstack Compute__, __Rackspace's implementation of Identity and Cloud Load balancers__, and __more__. It is backed by in-memory data structure rather than a potentially expensive database.
 
 Mimic helps with:
 * fast set-up
@@ -135,6 +135,43 @@ https://github.com/rackerlabs/mimic/blob/master/mimic/rest/fastly_api.py
  10. DELETE /service/{service_id}
  11. GET /service/{service_id}/details
  12. GET / (health check)
+
+## ElasticSearch ##
+
+#### Calls supported: ####
+https://github.com/rackerlabs/mimic/blob/master/mimic/rest/elasticsearch_api.py
+
+root path = /elasticsearch
+
+ 1. GET /
+
+    *Example URL: http://localhost:8900/elasticsearch/*
+
+ 2. GET /version
+
+    *Example URL: http://localhost:8900/elasticsearch/version*
+
+ 3. GET /_search
+
+    *Example URL: http://localhost:8900/elasticsearch/_search*
+
+ 4. GET /_all/{types}/_search
+
+    *Example URL: http://localhost:8900/elasticsearch/_all/bogus_type/_search*
+
+ 5. GET /{indexes}/_search
+
+    *Example URL: http://localhost:8900/elasticsearch/novaperf-***/_search*
+
+ 6. GET /{indexes}/{types}/_search
+
+    *Example URL: http://localhost:8900/elasticsearch/abacus/syntheticNeutronAPICheck/_search*
+
+#### Special Information: ####
+* Static/Deterministic response data is cached in a JSON file (elasticsearch.json) instead of memory
+* Indexes/Types and corresponding Response data that are appropriate for your application must be added to the JSON file
+* The JSON file can be modified and changes will be used without requiring Mimic to be restarted
+* Request Data can be sent and Request Arguments are validated, but neither are used to determine which Response data is returned; only indexes and types specified in the url are used
 
 ## Mimic Control APIs ##
 

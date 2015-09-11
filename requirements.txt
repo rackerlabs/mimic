@@ -4,8 +4,9 @@ twisted==15.4.0
 jsonschema==2.0
 treq==15.0.0
 characteristic==14.3.0
-six==1.6.1
+six==1.9.0
 xmltodict==0.9.1
 attrs==15.1.0
 iso8601==0.1.10
 toolz==0.7.4
+mock==1.3.0

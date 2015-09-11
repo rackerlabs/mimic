@@ -22,7 +22,8 @@ from mimic.rest.auth_api import (
 )
 from mimic.rest.noit_api import NoitApi
 from mimic.rest import (fastly_api, mailgun_api, customer_api,
-                        ironic_api, glance_api, valkyrie_api)
+                        ironic_api, glance_api, valkyrie_api,
+                        elasticsearch_api)
 from mimic.util.helper import json_from_request
 from mimic.util.helper import seconds_to_timestamp
 
@@ -86,6 +87,13 @@ class MimicRoot(object):
         Mock Mail Gun API.
         """
         return mailgun_api.MailGunApi(self.core).app.resource()
+
+    @app.route("/elasticsearch", branch=True)
+    def get_elasticsearch_api(self, request):
+        """
+        Get the ElasticSearch API ...
+        """
+        return elasticsearch_api.ElasticSearchApi(self.core).app.resource()
 
     @app.route("/fastly", branch=True)
     def get_fastly_api(self, request):
