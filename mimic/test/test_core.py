@@ -34,6 +34,7 @@ class CoreBuildingTests(SynchronousTestCase):
             loadbalancer_plugin.loadbalancer,
             loadbalancer_plugin.loadbalancer_control,
             maas_plugin.maas,
+            maas_plugin.maas_control,
             nova_plugin.nova,
             nova_plugin.nova_control_api,
             queue_plugin.queue,

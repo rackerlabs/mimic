@@ -159,7 +159,7 @@ class Node(object):
                 "local_gb": 32,
                 "cpus": 40
             },
-            "driver": self.driver,
+            "driver": self.driver or "fake",
             "driver_info": self.driver_info or {
                 "ipmi_username": "USERID",
                 "ipmi_address": "127.0.0.0",
@@ -171,8 +171,6 @@ class Node(object):
         if self.instance_uuid:
             template["instance_info"] = self.static_instance_info
             template["provision_state"] = "active"
-        if not self.driver:
-            template["driver"] = "fake"
         return template
 
 
@@ -282,6 +280,7 @@ class IronicNodeStore(object):
                                               memory_mb=524288)
             for _ in range(2):
                 self.add_to_ironic_node_store(node_id=str(uuid4()),
+                                              memory_mb=32768,
                                               instance_uuid=str(uuid4()))
         result = {
             "nodes": [
@@ -309,14 +308,23 @@ class IronicNodeStore(object):
         """
         Sets the provision state on the node and returns 202.
         If the `node_id` does not exist returns 404.
+        Note: When the provision_state is set to `provide` the
+        node is made 'available'.
         Docs: http://bit.ly/1ElELdU
         """
         content = loads(http_put_request.content.read())
         node = self.node_by_id(node_id)
         if node:
-            node.provision_state = content.get('target', 'available')
             http_put_request.setResponseCode(202)
-            return b''
+            node.provision_state = content.get('target', 'available')
+            if node.provision_state == 'provide':
+                node.provision_state = 'available'
+            if node.provision_state != 'active':
+                node.instance_uuid = None
+                node.cache_image_id = None
+            if node.provision_state == 'active':
+                node.instance_uuid = str(uuid4())
+            return dumps(b'')
         http_put_request.setResponseCode(404)
         return self.node_not_found(node_id)
 
@@ -335,6 +343,6 @@ class IronicNodeStore(object):
         if content.get('image_info') and content['image_info'].get('id'):
             node.cache_image_id = content['image_info']['id']
             http_request.setResponseCode(202)
-            return b''
+            return dumps(b'')
         http_request.setResponseCode(400)
         return b''

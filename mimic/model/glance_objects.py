@@ -1,6 +1,7 @@
 """
 Model objects for the Glance mimic.
 """
+from json import dumps, loads
 from characteristic import attributes, Attribute
 from uuid import uuid4
 
@@ -133,7 +134,7 @@ class Image(object):
             "links": self.links_json(absolutize_url)
         }
 
-    def get_image_json(self):
+    def get_glance_admin_image_json(self):
         """
         JSON-serializable object representation of this image, as
         returned by either a GET on this individual image or a member in the
@@ -170,15 +171,22 @@ class GlanceAdminImageStore(object):
     """
     A collection of :obj:`Image`.
     """
+    def image_by_id(self, image_id):
+        """
+        Retrieve a :obj:`Image` object by its ID.
+        """
+        for image in self.glance_admin_image_store:
+            if image.image_id == image_id:
+                return image
 
     def add_to_glance_admin_image_store(self, **attributes):
         """
         Create a new Image object and add it to the
         :obj: `glance_admin_image_store`
         """
-        msg = Image(**attributes)
-        self.glance_admin_image_store.append(msg)
-        return
+        image = Image(**attributes)
+        self.glance_admin_image_store.append(image)
+        return image
 
     def list_images(self):
         """
@@ -190,5 +198,49 @@ class GlanceAdminImageStore(object):
                     image_id=each_image['id'],
                     name=each_image['name'],
                     distro=each_image['distro'])
-        return {"images": [image.get_image_json()
+        return {"images": [image.get_glance_admin_image_json()
                            for image in self.glance_admin_image_store]}
+
+    def get_image(self, http_request, image_id):
+        """
+        get image with image_id for the Glance Admin API.
+        """
+        image = self.image_by_id(image_id)
+        if image:
+            return image.get_glance_admin_image_json()
+        http_request.setResponseCode(404)
+        return b''
+
+    def create_image(self, http_create_request):
+        """
+        Creates a new image with the given request json and returns the image.
+
+        Note: This is more like a control plane API as I dint find seem
+        to find documentation for add image under the Glance admin API.
+        """
+        content = loads(http_create_request.content.read())
+        try:
+            image_id = str(uuid4())
+            new_image = self.add_to_glance_admin_image_store(
+                image_id=image_id,
+                name=content.get('name'),
+                distro=content.get('distro'))
+            http_create_request.setResponseCode(201)
+            return new_image.get_glance_admin_image_json()
+        except Exception as e:
+            http_create_request.setResponseCode(400)
+            return dumps({"Error": str(e)})
+
+    def delete_image(self, http_request, image_id):
+        """
+        Deletes the image and returns 204.
+        If image does not exit, returns 404.
+        Docs: http://bit.ly/1Obujvd
+        """
+        image = self.image_by_id(image_id)
+        if image:
+            self.glance_admin_image_store.remove(image)
+            http_request.setResponseCode(204)
+            return b''
+        http_request.setResponseCode(404)
+        return b''

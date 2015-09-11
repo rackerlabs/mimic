@@ -33,7 +33,7 @@ from mimic.rest.auth_api import (
     base_uri_from_request
 )
 from mimic.rest.noit_api import NoitApi
-from mimic.rest import (fastly_api, mailgun_api,
+from mimic.rest import (fastly_api, mailgun_api, customer_api,
                         ironic_api, glance_api)
 from mimic.util.helper import seconds_to_timestamp
 
@@ -103,6 +103,13 @@ class MimicRoot(object):
         """
         return fastly_api.FastlyApi(self.core).app.resource()
 
+    @app.route("/v1/customer_accounts/CLOUD", branch=True)
+    def get_customer_api(self, request):
+        """
+        Adds support for the Customer API
+        """
+        return customer_api.CustomerApi(self.core).app.resource()
+
     @app.route("/ironic/v1", branch=True)
     def ironic_api(self, request):
         """
@@ -160,7 +167,7 @@ class MimicRoot(object):
     @app.route("/glance", branch=True)
     def glance_admin_api(self, request):
         """
-        Mock got the glance admin api
+        Mock for the glance admin api
         """
         return glance_api.GlanceAdminApi(self.core).app.resource()
 
