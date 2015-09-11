@@ -467,7 +467,7 @@ class MaasMock(object):
         request.setHeader('x-object-id', newentity['id'])
         request.setHeader('content-type', 'text/plain')
         self._audit('entities', request, tenant_id, status, content)
-        return ''
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>', methods=['GET'])
     def get_entity(self, request, tenant_id, entity_id):
@@ -481,7 +481,7 @@ class MaasMock(object):
                 break
         if not entity:
             request.setResponseCode(404)
-            return '{}'
+            return b'{}'
         else:
             request.setResponseCode(200)
             return json.dumps(entity)
@@ -527,7 +527,7 @@ class MaasMock(object):
         request.setHeader('x-object-id', entity_id.encode('utf-8'))
         request.setHeader('content-type', 'text/plain')
         self._audit('entities', request, tenant_id, status, content)
-        return ''
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>', methods=['DELETE'])
     def delete_entity(self, request, tenant_id, entity_id):
@@ -569,7 +569,7 @@ class MaasMock(object):
         request.setHeader('x-object-id', newcheck['id'])
         request.setHeader('content-type', 'text/plain')
         self._audit('checks', request, tenant_id, status, content)
-        return ''
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks/<string:check_id>',
                methods=['GET'])
@@ -607,7 +607,7 @@ class MaasMock(object):
         request.setHeader('x-object-id', check_id.encode('utf-8'))
         request.setHeader('content-type', 'text/plain')
         self._audit('checks', request, tenant_id, status, content)
-        return ''
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks/<string:check_id>',
                methods=['DELETE'])
@@ -628,7 +628,7 @@ class MaasMock(object):
         request.setResponseCode(status)
         request.setHeader('content-type', 'text/plain')
         self._audit('checks', request, tenant_id, status)
-        return ''
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/test-check', methods=['POST'])
     def test_check(self, request, tenant_id, entity_id):
@@ -670,7 +670,7 @@ class MaasMock(object):
         request.setHeader('x-object-id', newalarm['id'])
         request.setHeader('content-type', 'text/plain')
         self._audit('alarms', request, tenant_id, status, content)
-        return ''
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/<string:alarm_id>',
                methods=['GET'])
@@ -723,7 +723,7 @@ class MaasMock(object):
         request.setHeader('x-object-id', alarm_id.encode('utf-8'))
         request.setHeader('content-type', 'text/plain')
         self._audit('alarms', request, tenant_id, status, content)
-        return ''
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/<string:alarm_id>',
                methods=['DELETE'])
@@ -740,7 +740,7 @@ class MaasMock(object):
         request.setResponseCode(status)
         request.setHeader('content-type', 'text/plain')
         self._audit('alarms', request, tenant_id, status)
-        return ''
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/test-alarm', methods=['POST'])
     def test_alarm(self, request, tenant_id, entity_id):
@@ -953,7 +953,7 @@ class MaasMock(object):
         request.setResponseCode(status)
         request.setHeader('x-shell-installer-location', xsil)
         self._audit('agent_installers', request, tenant_id, status, request.content.read())
-        return ''
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/notifications', methods=['POST'])
     def create_notification(self, request, tenant_id):
@@ -970,7 +970,7 @@ class MaasMock(object):
                           request.path + '/' + new_n['id'])
         request.setHeader('x-object-id', new_n['id'])
         self._audit('notifications', request, tenant_id, status, content)
-        return ''
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/notifications', methods=['GET'])
     def get_notifications(self, request, tenant_id):
@@ -1001,7 +1001,7 @@ class MaasMock(object):
         request.setResponseCode(status)
         request.setHeader('content-type', 'text/plain')
         self._audit('notifications', request, tenant_id, status, content)
-        return ''
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/notifications/<string:n_id>', methods=['DELETE'])
     def delete_notification(self, request, tenant_id, n_id):
@@ -1017,7 +1017,7 @@ class MaasMock(object):
         request.setResponseCode(status)
         request.setHeader('content-type', 'text/plain')
         self._audit('notifications', request, tenant_id, status)
-        return ''
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/notification_plans', methods=['POST'])
     def create_notificationplan(self, request, tenant_id):
@@ -1035,7 +1035,7 @@ class MaasMock(object):
                           request.path + '/' + newnp['id'])
         request.setHeader('x-object-id', newnp['id'])
         self._audit('notification_plans', request, tenant_id, status, content)
-        return ''
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/notification_plans', methods=['GET'])
     def get_notification_plans(self, request, tenant_id):
@@ -1080,7 +1080,7 @@ class MaasMock(object):
         request.setResponseCode(status)
         request.setHeader('content-type', 'text/plain')
         self._audit('notification_plans', request, tenant_id, status, content)
-        return ''
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/notification_plans/<string:np_id>', methods=['DELETE'])
     def delete_notification_plan(self, request, tenant_id, np_id):
@@ -1117,7 +1117,7 @@ class MaasMock(object):
         request.setResponseCode(status)
         request.setHeader('content-type', 'text/plain')
         self._audit('notification_plans', request, tenant_id, status)
-        return ''
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/suppressions', methods=['GET'])
     def get_suppressions(self, request, tenant_id):
@@ -1165,7 +1165,7 @@ class MaasMock(object):
         request.setHeader('x-object-id', newsp['id'])
         request.setHeader('content-type', 'text/plain')
         self._audit('suppressions', request, tenant_id, status, content)
-        return ''
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/suppressions/<string:sp_id>', methods=['PUT'])
     def update_suppression(self, request, tenant_id, sp_id):
@@ -1185,7 +1185,7 @@ class MaasMock(object):
         request.setResponseCode(status)
         request.setHeader('content-type', 'text/plain')
         self._audit('suppressions', request, tenant_id, status, content)
-        return ''
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/suppressions/<string:sp_id>', methods=['DELETE'])
     def delete_suppression(self, request, tenant_id, sp_id):
@@ -1201,7 +1201,7 @@ class MaasMock(object):
         request.setResponseCode(204)
         request.setHeader('content-type', 'text/plain')
         self._audit('suppressions', request, tenant_id, status)
-        return ''
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/monitoring_zones', methods=['GET'])
     def list_monitoring_zones(self, request, tenant_id):
@@ -1393,7 +1393,7 @@ class MaasController(object):
                 ith_response['status'] = response_block['status']
             test_responses[entity_id].append(ith_response)
         request.setResponseCode(204)
-        return ''
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/test_errors',
                methods=['POST'])
@@ -1414,7 +1414,7 @@ class MaasController(object):
         test_alarm_errors[entity_id].append(error_obj)
         request.setResponseCode(201)
         request.setHeader('x-object-id', error_obj['id'])
-        return ''
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/test_response',
                methods=['DELETE'])
@@ -1425,7 +1425,7 @@ class MaasController(object):
         test_responses = self._entity_cache_for_tenant(tenant_id).test_alarm_responses
         del test_responses[entity_id]
         request.setResponseCode(204)
-        return ''
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks' +
                '/test_responses/<string:check_type>', methods=['PUT'])
@@ -1456,7 +1456,7 @@ class MaasController(object):
                 test_check_metric.set_override(**kwargs)
 
         request.setResponseCode(204)
-        return ''
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks' +
                '/test_responses/<string:check_type>', methods=['DELETE'])
@@ -1468,4 +1468,4 @@ class MaasController(object):
         check_type_ins = maas_store.check_types[check_type]
         check_type_ins.clear_overrides()
         request.setResponseCode(204)
-        return ''
+        return b''
