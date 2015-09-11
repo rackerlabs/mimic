@@ -11,6 +11,7 @@ from uuid import uuid4
 
 from six import text_type
 
+from characteristic import attributes
 from zope.interface import implementer
 
 from twisted.plugin import IPlugin
@@ -24,7 +25,8 @@ from mimic.canned_responses.maas_json_home import json_home
 from mimic.canned_responses.maas_agent_info import agent_info
 from mimic.canned_responses.maas_monitoring_zones import monitoring_zones
 from mimic.canned_responses.maas_alarm_examples import alarm_examples
-from mimic.util.helper import random_hex_generator
+from mimic.model.maas_objects import MaasStore
+from mimic.util.helper import random_hex_generator, random_hipsum
 
 
 class _MatchesID(object):
@@ -59,7 +61,7 @@ class MaasApi(object):
 
     def catalog_entries(self, tenant_id):
         """
-        List catalog entries for the Nova API.
+        List catalog entries for the MaaS API.
         """
         return [
             Entry(
@@ -127,6 +129,9 @@ class MCache(object):
                                                                   code (E.164 format)'}]}]
         self.suppressions_list = []
         self.audits_list = []
+        self.maas_store = MaasStore(clock)
+        self.test_alarm_responses = {}
+        self.test_alarm_errors = {}
 
 
 def create_entity(clock, params):
@@ -349,6 +354,14 @@ def parse_and_flatten_qs(url):
     return flat_qs
 
 
+def _mcache_factory(clock):
+    """
+    Returns a function that makes a defaultdict that makes MCache objects
+    for each tenant.
+    """
+    return lambda: collections.defaultdict(lambda: MCache(clock))
+
+
 class MaasMock(object):
 
     """
@@ -368,10 +381,9 @@ class MaasMock(object):
         """
         Retrieve the M_cache object containing all objects created so far
         """
+        clock = self._session_store.clock
         return (self._session_store.session_for_tenant_id(tenant_id)
-                .data_for_api(self._api_mock,
-                              lambda: collections.defaultdict(
-                                  lambda: MCache(self._session_store.clock)))[self._name]
+                .data_for_api(self._api_mock, _mcache_factory(clock))[self._name]
                 )
 
     def _audit(self, app, request, tenant_id, status, content=''):
@@ -618,6 +630,29 @@ class MaasMock(object):
         self._audit('checks', request, tenant_id, status)
         return ''
 
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/test-check', methods=['POST'])
+    def test_check(self, request, tenant_id, entity_id):
+        """
+        Tests a check.
+
+        If the user has configured overrides using the control API for
+        test-check using this entity and check type, those will be used.
+        Otherwise, random values within each metric type will be
+        generated. For instance, integer metrics generate integers, and
+        string metrics generate strings. No other guarantees are made.
+        """
+        content = request.content.read()
+        test_config = json.loads(content)
+        check_type = test_config['type']
+        maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
+        response_code, response_body = maas_store.check_types[check_type].get_test_check_response(
+            entity_id=entity_id,
+            monitoring_zones=test_config.get('monitoring_zones_poll'),
+            timestamp=int(1000 * self._session_store.clock.seconds()))
+        request.setResponseCode(response_code)
+        self._audit('checks', request, tenant_id, response_code, content)
+        return json.dumps(response_body)
+
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms', methods=['POST'])
     def create_alarm(self, request, tenant_id, entity_id):
         """
@@ -706,6 +741,49 @@ class MaasMock(object):
         request.setHeader('content-type', 'text/plain')
         self._audit('alarms', request, tenant_id, status)
         return ''
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/test-alarm', methods=['POST'])
+    def test_alarm(self, request, tenant_id, entity_id):
+        """
+        Test an alarm.
+
+        This API can be driven using the control API to set an error
+        or canned success response. If no error or success response is set,
+        it will return success with a random state and status. Users should
+        not expect this API to consistently return either OK, WARNING or
+        CRITICAL without first setting the response in the control API.
+        """
+        content = request.content.read()
+        payload = json.loads(content)
+        n_tests = len(payload['check_data'])
+        current_time_milliseconds = int(1000 * self._session_store.clock.seconds())
+        status = 200
+        response_payload = []
+
+        test_responses = self._entity_cache_for_tenant(tenant_id).test_alarm_responses
+        test_errors = self._entity_cache_for_tenant(tenant_id).test_alarm_errors
+
+        if entity_id in test_errors and len(test_errors[entity_id]) > 0:
+            error_response = test_errors[entity_id].popleft()
+            status = error_response['code']
+            response_payload = error_response['response']
+        elif entity_id in test_responses:
+            n_responses = len(test_responses[entity_id])
+            for i in xrange(n_tests):
+                test_response = test_responses[entity_id][i % n_responses]
+                response_payload.append({'state': test_response['state'],
+                                         'status': test_response.get(
+                                             'status', 'Matched default return statement'),
+                                         'timestamp': current_time_milliseconds})
+        else:
+            for i in xrange(n_tests):
+                response_payload.append({'state': random.choice(['OK', 'WARNING', 'CRITICAL']),
+                                         'status': random_hipsum(12),
+                                         'timestamp': current_time_milliseconds})
+
+        request.setResponseCode(status)
+        self._audit('alarms', request, tenant_id, status, content)
+        return json.dumps(response_payload)
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms', methods=['GET'])
     def get_alarms_for_entity(self, request, tenant_id, entity_id):
@@ -1250,3 +1328,144 @@ class MaasMock(object):
         request.setResponseCode(200)
         self._audit('rollups', request, tenant_id, status, content)
         return json.dumps({'metrics': metrics_replydata})
+
+
+@implementer(IAPIMock, IPlugin)
+@attributes(["maas_api"])
+class MaasControlApi(object):
+    """
+    This class registers the MaaS controller API in the service catalog.
+    """
+    def catalog_entries(self, tenant_id):
+        """
+        List catalog entries for the MaaS API.
+        """
+        return [
+            Entry(
+                tenant_id, "rax: monitor", "cloudMonitoringControl",
+                [
+                    Endpoint(tenant_id, region, text_type(uuid4()),
+                             "v1.0")
+                    for region in self.maas_api._regions
+                ]
+            )
+        ]
+
+    def resource_for_region(self, region, uri_prefix, session_store):
+        """
+        Get an :obj:`twisted.web.iweb.IResource` for the given URI prefix;
+        implement :obj:`IAPIMock`.
+        """
+        maas_controller = MaasController(api_mock=self,
+                                         session_store=session_store,
+                                         region=region)
+        return maas_controller.app.resource()
+
+
+@attributes(["api_mock", "session_store", "region"])
+class MaasController(object):
+    """
+    Klein routes for MaaS control API.
+    """
+
+    def _entity_cache_for_tenant(self, tenant_id):
+        """
+        Retrieve the M_cache object containing all objects created so far
+        """
+        clock = self.session_store.clock
+        return (self.session_store.session_for_tenant_id(tenant_id)
+                .data_for_api(self.api_mock.maas_api, _mcache_factory(clock))[self.region])
+
+    app = MimicApp()
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/test_response',
+               methods=['PUT'])
+    def set_test_alarm_response(self, request, tenant_id, entity_id):
+        """
+        Sets the test-alarm response for a given entity.
+        """
+        test_responses = self._entity_cache_for_tenant(tenant_id).test_alarm_responses
+        dummy_response = json.loads(request.content.read())
+        test_responses[entity_id] = []
+        for response_block in dummy_response:
+            ith_response = {'state': response_block['state']}
+            if 'status' in response_block:
+                ith_response['status'] = response_block['status']
+            test_responses[entity_id].append(ith_response)
+        request.setResponseCode(204)
+        return ''
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/test_errors',
+               methods=['POST'])
+    def push_test_alarm_error(self, request, tenant_id, entity_id):
+        """
+        Creates a new error response that will be returned from the
+        test-alarm API the next time it is called for this entity.
+        """
+        test_alarm_errors = self._entity_cache_for_tenant(tenant_id).test_alarm_errors
+        request_body = json.loads(request.content.read())
+
+        if entity_id not in test_alarm_errors:
+            test_alarm_errors[entity_id] = collections.deque()
+
+        error_obj = {'id': 'er' + random_hex_generator(4),
+                     'code': request_body['code'],
+                     'response': request_body['response']}
+        test_alarm_errors[entity_id].append(error_obj)
+        request.setResponseCode(201)
+        request.setHeader('x-object-id', error_obj['id'])
+        return ''
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/test_response',
+               methods=['DELETE'])
+    def clear_test_alarm_response(self, request, tenant_id, entity_id):
+        """
+        Clears the test-alarm response and restores normal behavior.
+        """
+        test_responses = self._entity_cache_for_tenant(tenant_id).test_alarm_responses
+        del test_responses[entity_id]
+        request.setResponseCode(204)
+        return ''
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks' +
+               '/test_responses/<string:check_type>', methods=['PUT'])
+    def set_test_check_overrides(self, request, tenant_id, entity_id, check_type):
+        """
+        Sets overriding behavior on the test-check handler for a given
+        entity ID and check type.
+        """
+        maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
+        check_type_ins = maas_store.check_types[check_type]
+        overrides = json.loads(request.content.read())
+        check_id = '__test_check'
+        ench_key = (entity_id, check_id)
+
+        for override in overrides:
+            if 'available' in override:
+                check_type_ins.test_check_available[ench_key] = override['available']
+            if 'status' in override:
+                check_type_ins.test_check_status[ench_key] = override['status']
+            metrics_dict = override.get('metrics', {})
+            for metric_name in metrics_dict:
+                test_check_metric = check_type_ins.get_metric_by_name(metric_name)
+                kwargs = {'entity_id': entity_id,
+                          'check_id': check_id,
+                          'override_fn': lambda _: metrics_dict[metric_name]['data']}
+                if 'monitoring_zone_id' in override:
+                    kwargs['monitoring_zone'] = override['monitoring_zone_id']
+                test_check_metric.set_override(**kwargs)
+
+        request.setResponseCode(204)
+        return ''
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks' +
+               '/test_responses/<string:check_type>', methods=['DELETE'])
+    def clear_test_check_overrides(self, request, tenant_id, entity_id, check_type):
+        """
+        Clears overriding behavior on a test-check handler.
+        """
+        maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
+        check_type_ins = maas_store.check_types[check_type]
+        check_type_ins.clear_overrides()
+        request.setResponseCode(204)
+        return ''
