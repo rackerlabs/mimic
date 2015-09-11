@@ -64,6 +64,17 @@ class NovaAPIFlavorsTests(SynchronousTestCase):
         for each_flavor in flavor_list:
             self.assertEqual(sorted(each_flavor.keys()), sorted(['id', 'name', 'links']))
 
+    def test_get_flavor_list_with_OnMetal_negative(self):
+        """
+        Test to verify :func:`get_flavor_list` on ``GET /v2.0/<tenant_id>/flavors``
+        does not have OnMetal flavors in regions other than IAD
+        """
+        get_flavor_list_response_body = self.get_server_flavor('/flavors/detail')
+        flavor_list = get_flavor_list_response_body['flavors']
+        for flavor in flavor_list:
+                self.assertNotEqual('onmetal_flavor',
+                                    flavor['OS-FLV-WITH-EXT-SPECS:extra_specs']['policy_class'])
+
     def test_get_flavor_list_with_OnMetal(self):
         """
         Test to verify :func:`get_flavor_list` on ``GET /v2.0/<tenant_id>/flavors``
