@@ -11,14 +11,6 @@ class Image(object):
     A Image object
     """
 
-    is_default = False
-
-    def set_is_default(self):
-        """
-        Sets the image as default
-        """
-        self.is_default = True
-
     def links_json(self, absolutize_url):
         """
         Create a JSON-serializable data structure describing the links to this
@@ -68,7 +60,6 @@ class Image(object):
             "minRam": self.minRam,
             "minDisk": self.minDisk,
             "OS-EXT-IMG-SIZE:size": self.image_size,
-            "com.rackspace__1__ui_default_show": self.is_default,
             "metadata": self.metadata_json()
         })
         return template
@@ -574,7 +565,6 @@ class OnMetalImage(object):
             "minRam": self.minRam,
             "minDisk": self.minDisk,
             "OS-EXT-IMG-SIZE:size": self.image_size,
-            "com.rackspace__1__ui_default_show": self.is_default,
             "metadata": self.metadata_json()
         })
         return template
