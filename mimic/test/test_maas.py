@@ -4,7 +4,7 @@ from twisted.internet.task import Clock
 from twisted.trial.unittest import SynchronousTestCase
 from mimic.model.maas_objects import Metric, CheckType
 from mimic.rest.maas_api import MaasApi, MaasControlApi
-from mimic.test.helpers import request
+from mimic.test.helpers import json_request, request
 from mimic.test.fixtures import APIMockHelper
 
 
@@ -436,12 +436,11 @@ class MaasAPITests(SynchronousTestCase):
         """
         The test-check API should return fake test-check results.
         """
-        req = request(self, self.root, "POST",
-                      self.uri + '/entities/' + self.entity_id + '/test-check',
-                      json.dumps({'type': 'agent.disk'}))
-        resp = self.successResultOf(req)
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         self.uri + '/entities/' + self.entity_id + '/test-check',
+                         json.dumps({'type': 'agent.disk'})))
         self.assertEquals(resp.code, 200)
-        data = self.get_responsebody(resp)
         self.assertEquals(1, len(data))
         self.assertIn('read_bytes', data[0]['metrics'])
 
@@ -449,36 +448,34 @@ class MaasAPITests(SynchronousTestCase):
         """
         The test-check control API can set available=False.
         """
-        req = request(self, self.root, "PUT",
-                      '{0}/entities/{1}/checks/test_responses/{2}'.format(
-                          self.ctl_uri, self.entity_id, 'agent.load_average'),
-                      json.dumps([{'available': False}]))
-        resp = self.successResultOf(req)
+        resp = self.successResultOf(request(self, self.root, "PUT",
+                                    '{0}/entities/{1}/checks/test_responses/{2}'.format(
+                                        self.ctl_uri, self.entity_id, 'agent.load_average'),
+                                    json.dumps([{'available': False}])))
         self.assertEquals(resp.code, 204)
-        req = request(self, self.root, "POST",
-                      self.uri + '/entities/' + self.entity_id + '/test-check',
-                      json.dumps({'type': 'agent.load_average'}))
-        resp = self.successResultOf(req)
+
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         self.uri + '/entities/' + self.entity_id + '/test-check',
+                         json.dumps({'type': 'agent.load_average'})))
         self.assertEquals(resp.code, 200)
-        data = self.get_responsebody(resp)
         self.assertEquals(False, data[0]['available'])
 
     def test_test_check_setting_status(self):
         """
         The test-check control API can set the status message.
         """
-        req = request(self, self.root, "PUT",
-                      '{0}/entities/{1}/checks/test_responses/{2}'.format(
-                          self.ctl_uri, self.entity_id, 'agent.memory'),
-                      json.dumps([{'status': 'whuuut'}]))
-        resp = self.successResultOf(req)
+        resp = self.successResultOf(request(self, self.root, "PUT",
+                                    '{0}/entities/{1}/checks/test_responses/{2}'.format(
+                                        self.ctl_uri, self.entity_id, 'agent.memory'),
+                                    json.dumps([{'status': 'whuuut'}])))
         self.assertEquals(resp.code, 204)
-        req = request(self, self.root, "POST",
-                      self.uri + '/entities/' + self.entity_id + '/test-check',
-                      json.dumps({'type': 'agent.memory'}))
-        resp = self.successResultOf(req)
+
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         self.uri + '/entities/' + self.entity_id + '/test-check',
+                         json.dumps({'type': 'agent.memory'})))
         self.assertEquals(resp.code, 200)
-        data = self.get_responsebody(resp)
         self.assertEquals('whuuut', data[0]['status'])
 
     def test_test_check_setting_metrics(self):
@@ -488,35 +485,34 @@ class MaasAPITests(SynchronousTestCase):
         Subsequent requests to set the same metrics on the same check type
         for the same entity will override.
         """
-        req = request(self, self.root, "PUT",
-                      '{0}/entities/{1}/checks/test_responses/{2}'.format(
-                          self.ctl_uri, self.entity_id, 'remote.http'),
-                      json.dumps([{'metrics': {'duration': {'data': 123}},
-                                   'monitoring_zone_id': 'mzdfw'}]))
-        resp = self.successResultOf(req)
+        resp = self.successResultOf(request(self, self.root, "PUT",
+                                    '{0}/entities/{1}/checks/test_responses/{2}'.format(
+                                        self.ctl_uri, self.entity_id, 'remote.http'),
+                                    json.dumps([{'metrics': {'duration': {'data': 123}},
+                                                 'monitoring_zone_id': 'mzdfw'}])))
         self.assertEquals(resp.code, 204)
-        req = request(self, self.root, "POST",
-                      self.uri + '/entities/' + self.entity_id + '/test-check',
-                      json.dumps({'type': 'remote.http',
-                                  'monitoring_zones_poll': ['mzdfw']}))
-        resp = self.successResultOf(req)
+
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         self.uri + '/entities/' + self.entity_id + '/test-check',
+                         json.dumps({'type': 'remote.http',
+                                     'monitoring_zones_poll': ['mzdfw']})))
         self.assertEquals(resp.code, 200)
-        data = self.get_responsebody(resp)
         self.assertEquals(123, data[0]['metrics']['duration']['data'])
-        req = request(self, self.root, "PUT",
-                      '{0}/entities/{1}/checks/test_responses/{2}'.format(
-                          self.ctl_uri, self.entity_id, 'remote.http'),
-                      json.dumps([{'metrics': {'duration': {'data': 456}},
-                                   'monitoring_zone_id': 'mzdfw'}]))
-        resp = self.successResultOf(req)
+
+        resp = self.successResultOf(request(self, self.root, "PUT",
+                                    '{0}/entities/{1}/checks/test_responses/{2}'.format(
+                                        self.ctl_uri, self.entity_id, 'remote.http'),
+                                    json.dumps([{'metrics': {'duration': {'data': 456}},
+                                                 'monitoring_zone_id': 'mzdfw'}])))
         self.assertEquals(resp.code, 204)
-        req = request(self, self.root, "POST",
-                      self.uri + '/entities/' + self.entity_id + '/test-check',
-                      json.dumps({'type': 'remote.http',
-                                  'monitoring_zones_poll': ['mzdfw']}))
-        resp = self.successResultOf(req)
+
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         self.uri + '/entities/' + self.entity_id + '/test-check',
+                         json.dumps({'type': 'remote.http',
+                                     'monitoring_zones_poll': ['mzdfw']})))
         self.assertEquals(resp.code, 200)
-        data = self.get_responsebody(resp)
         self.assertEquals(456, data[0]['metrics']['duration']['data'])
 
     def test_test_check_clears_metrics(self):
@@ -527,23 +523,25 @@ class MaasAPITests(SynchronousTestCase):
         characters long.
         """
         options = {'data': 'really great forty-three character sentence'}
-        req = request(self, self.root, "PUT",
-                      '{0}/entities/{1}/checks/test_responses/{2}'.format(
-                          self.ctl_uri, self.entity_id, 'agent.filesystem'),
-                      json.dumps([{'metrics': {'options': options}}]))
-        resp = self.successResultOf(req)
+
+        resp = self.successResultOf(
+            request(self, self.root, "PUT",
+                    '{0}/entities/{1}/checks/test_responses/{2}'.format(
+                        self.ctl_uri, self.entity_id, 'agent.filesystem'),
+                    json.dumps([{'metrics': {'options': options}}])))
         self.assertEquals(resp.code, 204)
-        req = request(self, self.root, "DELETE",
-                      '{0}/entities/{1}/checks/test_responses/{2}'.format(
-                          self.ctl_uri, self.entity_id, 'agent.filesystem'))
-        resp = self.successResultOf(req)
+
+        resp = self.successResultOf(
+            request(self, self.root, "DELETE",
+                    '{0}/entities/{1}/checks/test_responses/{2}'.format(
+                        self.ctl_uri, self.entity_id, 'agent.filesystem')))
         self.assertEquals(resp.code, 204)
-        req = request(self, self.root, "POST",
-                      self.uri + '/entities/' + self.entity_id + '/test-check',
-                      json.dumps({'type': 'agent.filesystem'}))
-        resp = self.successResultOf(req)
+
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         self.uri + '/entities/' + self.entity_id + '/test-check',
+                         json.dumps({'type': 'agent.filesystem'})))
         self.assertEquals(resp.code, 200)
-        data = self.get_responsebody(resp)
         self.assertTrue(len(data[0]['metrics']['options']['data']) < 43)
 
     def test_test_check_empty_clear_does_nothing(self):
@@ -551,17 +549,17 @@ class MaasAPITests(SynchronousTestCase):
         If the user sends a DELETE request to the test_responses control API
         and no control override is in place, nothing happens.
         """
-        req = request(self, self.root, "DELETE",
-                      '{0}/entities/{1}/checks/test_responses/{2}'.format(
-                          self.ctl_uri, self.entity_id, 'agent.network'))
-        resp = self.successResultOf(req)
+        resp = self.successResultOf(
+            request(self, self.root, "DELETE",
+                    '{0}/entities/{1}/checks/test_responses/{2}'.format(
+                        self.ctl_uri, self.entity_id, 'agent.network')))
         self.assertEquals(resp.code, 204)
-        req = request(self, self.root, "POST",
-                      self.uri + '/entities/' + self.entity_id + '/test-check',
-                      json.dumps({'type': 'agent.network'}))
-        resp = self.successResultOf(req)
+
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         self.uri + '/entities/' + self.entity_id + '/test-check',
+                         json.dumps({'type': 'agent.network'})))
         self.assertEquals(resp.code, 200)
-        data = self.get_responsebody(resp)
         self.assertIsInstance(data[0]['metrics']['rx_bytes']['data'], int)
 
     def test_test_check_other_types(self):
@@ -569,12 +567,11 @@ class MaasAPITests(SynchronousTestCase):
         The test-check API defines responses for a variety of check types.
         """
         for check_type in ['remote.http', 'remote.ping']:
-            req = request(self, self.root, "POST",
-                          '{0}/entities/{1}/test-check'.format(self.uri, self.entity_id),
-                          json.dumps({'type': check_type}))
-            resp = self.successResultOf(req)
+            (resp, data) = self.successResultOf(
+                json_request(self, self.root, "POST",
+                             '{0}/entities/{1}/test-check'.format(self.uri, self.entity_id),
+                             json.dumps({'type': check_type})))
             self.assertEquals(resp.code, 200)
-            data = self.get_responsebody(resp)
             self.assertEquals(1, len(data))
             self.assertTrue('metrics' in data[0])
 
@@ -582,13 +579,12 @@ class MaasAPITests(SynchronousTestCase):
         """
         Test test-alarm API in normal operation.
         """
-        req = request(self, self.root, "POST",
-                      self.uri + '/entities/' + self.entity_id + '/test-alarm',
-                      json.dumps({'criteria': 'return new AlarmStatus(OK);',
-                                  'check_data': [{}]}))
-        resp = self.successResultOf(req)
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         self.uri + '/entities/' + self.entity_id + '/test-alarm',
+                         json.dumps({'criteria': 'return new AlarmStatus(OK);',
+                                     'check_data': [{}]})))
         self.assertEquals(resp.code, 200)
-        data = self.get_responsebody(resp)
         self.assertEquals(1, len(data))
         self.assertIn('state', data[0])
         self.assertIn('status', data[0])
@@ -598,19 +594,18 @@ class MaasAPITests(SynchronousTestCase):
         """
         Test test-alarm API setting the state parameter.
         """
-        req = request(self, self.root, "PUT",
-                      '{0}/entities/{1}/alarms/test_response'.format(
-                          self.ctl_uri, self.entity_id),
-                      json.dumps([{'state': 'OK'}]))
-        resp = self.successResultOf(req)
+        resp = self.successResultOf(request(self, self.root, "PUT",
+                                            '{0}/entities/{1}/alarms/test_response'.format(
+                                                self.ctl_uri, self.entity_id),
+                                            json.dumps([{'state': 'OK'}])))
         self.assertEquals(resp.code, 204)
-        req = request(self, self.root, "POST",
-                      self.uri + '/entities/' + self.entity_id + '/test-alarm',
-                      json.dumps({'criteria': 'return new AlarmStatus(OK);',
-                                  'check_data': [{}]}))
-        resp = self.successResultOf(req)
+
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         self.uri + '/entities/' + self.entity_id + '/test-alarm',
+                         json.dumps({'criteria': 'return new AlarmStatus(OK);',
+                                     'check_data': [{}]})))
         self.assertEquals(resp.code, 200)
-        data = self.get_responsebody(resp)
         self.assertEquals(1, len(data))
         self.assertEquals('OK', data[0]['state'])
         self.assertIn('timestamp', data[0])
@@ -619,20 +614,20 @@ class MaasAPITests(SynchronousTestCase):
         """
         Users can set the status field on the response from the test-alarm API.
         """
-        req = request(self, self.root, "PUT",
-                      '{0}/entities/{1}/alarms/test_response'.format(
-                          self.ctl_uri, self.entity_id),
-                      json.dumps([{'state': 'OK',
-                                   'status': 'test status message'}]))
-        resp = self.successResultOf(req)
+        resp = self.successResultOf(
+            request(self, self.root, "PUT",
+                    '{0}/entities/{1}/alarms/test_response'.format(
+                        self.ctl_uri, self.entity_id),
+                    json.dumps([{'state': 'OK',
+                                 'status': 'test status message'}])))
         self.assertEquals(resp.code, 204)
-        req = request(self, self.root, "POST",
-                      self.uri + '/entities/' + self.entity_id + '/test-alarm',
-                      json.dumps({'criteria': 'return new AlarmStatus(OK);',
-                                  'check_data': [{}]}))
-        resp = self.successResultOf(req)
+
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         self.uri + '/entities/' + self.entity_id + '/test-alarm',
+                         json.dumps({'criteria': 'return new AlarmStatus(OK);',
+                                     'check_data': [{}]})))
         self.assertEquals(resp.code, 200)
-        data = self.get_responsebody(resp)
         self.assertEquals(1, len(data))
         self.assertEquals('test status message', data[0]['status'])
 
@@ -641,25 +636,25 @@ class MaasAPITests(SynchronousTestCase):
         Sending HTTP DELETE to the entity's test-alarm response
         causes the response to be cleared and not returned later.
         """
-        req = request(self, self.root, "PUT",
-                      '{0}/entities/{1}/alarms/test_response'.format(
-                          self.ctl_uri, self.entity_id),
-                      json.dumps([{'state': 'OK',
-                                   'status': 'test-alarm working OK'}]))
-        resp = self.successResultOf(req)
+        resp = self.successResultOf(
+            request(self, self.root, "PUT",
+                    '{0}/entities/{1}/alarms/test_response'.format(
+                        self.ctl_uri, self.entity_id),
+                    json.dumps([{'state': 'OK',
+                                 'status': 'test-alarm working OK'}])))
         self.assertEquals(resp.code, 204)
-        req = request(self, self.root, "DELETE",
-                      '{0}/entities/{1}/alarms/test_response'.format(
-                          self.ctl_uri, self.entity_id))
-        resp = self.successResultOf(req)
+
+        resp = self.successResultOf(request(self, self.root, "DELETE",
+                                            '{0}/entities/{1}/alarms/test_response'.format(
+                                                self.ctl_uri, self.entity_id)))
         self.assertEquals(resp.code, 204)
-        req = request(self, self.root, "POST",
-                      self.uri + '/entities/' + self.entity_id + '/test-alarm',
-                      json.dumps({'criteria': 'return new AlarmStatus(OK);',
-                                  'check_data': [{}]}))
-        resp = self.successResultOf(req)
+
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         self.uri + '/entities/' + self.entity_id + '/test-alarm',
+                         json.dumps({'criteria': 'return new AlarmStatus(OK);',
+                                     'check_data': [{}]})))
         self.assertEquals(resp.code, 200)
-        data = self.get_responsebody(resp)
         self.assertEquals(1, len(data))
         self.assertNotEquals('test-alarm working OK', data[0]['status'])
 
@@ -674,38 +669,34 @@ class MaasAPITests(SynchronousTestCase):
                            'type': 'notFoundError',
                            'message': 'Object does not exist'}
 
-        req = request(self, self.root, "POST",
-                      '{0}/entities/{1}/alarms/test_errors'.format(
-                          self.ctl_uri, self.entity_id),
-                      json.dumps({'code': 400,
-                                  'response': parse_error}))
-        resp = self.successResultOf(req)
+        resp = self.successResultOf(
+            request(self, self.root, "POST",
+                    '{0}/entities/{1}/alarms/test_errors'.format(
+                        self.ctl_uri, self.entity_id),
+                    json.dumps({'code': 400, 'response': parse_error})))
         self.assertEquals(resp.code, 201)
 
-        req = request(self, self.root, "POST",
-                      '{0}/entities/{1}/alarms/test_errors'.format(
-                          self.ctl_uri, self.entity_id),
-                      json.dumps({'code': 404,
-                                  'response': not_found_error}))
-        resp = self.successResultOf(req)
+        resp = self.successResultOf(
+            request(self, self.root, "POST",
+                    '{0}/entities/{1}/alarms/test_errors'.format(
+                        self.ctl_uri, self.entity_id),
+                    json.dumps({'code': 404, 'response': not_found_error})))
         self.assertEquals(resp.code, 201)
 
-        req = request(self, self.root, "POST",
-                      '{0}/entities/{1}/test-alarm'.format(self.uri, self.entity_id),
-                      json.dumps({'criteria': 'return new AlarmStatus(OK);',
-                                  'check_data': [{}]}))
-        resp = self.successResultOf(req)
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         '{0}/entities/{1}/test-alarm'.format(self.uri, self.entity_id),
+                         json.dumps({'criteria': 'return new AlarmStatus(OK);',
+                                     'check_data': [{}]})))
         self.assertEquals(resp.code, 400)
-        data = self.get_responsebody(resp)
         self.assertEquals(data, parse_error)
 
-        req = request(self, self.root, "POST",
-                      '{0}/entities/{1}/test-alarm'.format(self.uri, self.entity_id),
-                      json.dumps({'criteria': 'return new AlarmStatus(OK);',
-                                  'check_data': [{}]}))
-        resp = self.successResultOf(req)
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         '{0}/entities/{1}/test-alarm'.format(self.uri, self.entity_id),
+                         json.dumps({'criteria': 'return new AlarmStatus(OK);',
+                                     'check_data': [{}]})))
         self.assertEquals(resp.code, 404)
-        data = self.get_responsebody(resp)
         self.assertEquals(data, not_found_error)
 
     def test_get_alarms_for_entity(self):
