@@ -17,6 +17,7 @@ from mimic.model.mailgun_objects import MessageStore
 from mimic.model.customer_objects import ContactsStore
 from mimic.model.ironic_objects import IronicNodeStore
 from mimic.model.glance_objects import GlanceAdminImageStore
+from mimic.model.valkyrie_objects import ValkyrieStore
 
 
 class MimicCore(object):
@@ -43,6 +44,7 @@ class MimicCore(object):
         self.contacts_store = ContactsStore()
         self.ironic_node_store = IronicNodeStore()
         self.glance_admin_image_store = GlanceAdminImageStore()
+        self.valkyrie_store = ValkyrieStore()
 
         for api in apis:
             this_api_id = ((api.__class__.__name__) + '-' +
