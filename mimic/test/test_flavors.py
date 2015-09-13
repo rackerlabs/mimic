@@ -98,8 +98,6 @@ class NovaAPIFlavorsTests(SynchronousTestCase):
                     sorted(flavor.keys()),
                     sorted(['id', 'name', 'links']))
 
-
-
     def test_get_flavor_list_with_details(self):
         """
         Test to verify :func:`test_get_flavor_list_with_details` on
