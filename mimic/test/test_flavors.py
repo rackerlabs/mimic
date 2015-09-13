@@ -71,9 +71,14 @@ class NovaAPIFlavorsTests(SynchronousTestCase):
         """
         get_flavor_list_response_body = self.get_server_flavor('/flavors/detail')
         flavor_list = get_flavor_list_response_body['flavors']
+        self.assertTrue(len(flavor_list) == 35)
         for flavor in flavor_list:
                 self.assertNotEqual('onmetal_flavor',
                                     flavor['OS-FLV-WITH-EXT-SPECS:extra_specs']['policy_class'])
+                self.assertEqual(
+                    sorted(flavor.keys()),
+                    sorted(['id', 'name', 'links', 'ram', 'OS-FLV-WITH-EXT-SPECS:extra_specs',
+                            'vcpus', 'swap', 'rxtx_factor', 'OS-FLV-EXT-DATA:ephemeral', 'disk']))
 
     def test_get_flavor_list_with_OnMetal(self):
         """
@@ -93,17 +98,7 @@ class NovaAPIFlavorsTests(SynchronousTestCase):
                     sorted(flavor.keys()),
                     sorted(['id', 'name', 'links']))
 
-        get_flavor_list_response_body = self.get_server_flavor('/flavors/detail')
-        flavor_list = get_flavor_list_response_body['flavors']
-        self.assertTrue(len(flavor_list) == 38)
-        for flavor in flavor_list:
-            if 'onmetal' in flavor['id']:
-                self.assertEqual('onmetal_flavor',
-                                 flavor['OS-FLV-WITH-EXT-SPECS:extra_specs']['policy_class'])
-                self.assertEqual(
-                    sorted(flavor.keys()),
-                    sorted(['id', 'name', 'links', 'ram', 'OS-FLV-WITH-EXT-SPECS:extra_specs',
-                            'vcpus', 'swap', 'rxtx_factor', 'OS-FLV-EXT-DATA:ephemeral', 'disk']))
+
 
     def test_get_flavor_list_with_details(self):
         """
