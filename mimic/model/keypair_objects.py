@@ -2,6 +2,26 @@
 Keypair objects for mimic
 """
 
+import re
+
+from characteristic import attributes, Attribute
+from random import randrange
+from json import loads, dumps
+from urllib import urlencode
+
+from six import string_types
+
+from mimic.util.helper import (
+    seconds_to_timestamp,
+    random_string,
+    timestamp_to_seconds
+)
+from mimic.canned_responses.mimic_presets import get_presets
+from mimic.model.behaviors import (
+    BehaviorRegistryCollection, EventDescription, Criterion, regexp_predicate
+)
+from twisted.web.http import ACCEPTED, BAD_REQUEST, FORBIDDEN, NOT_FOUND, CONFLICT
+
 from characteristic import attributes, Attribute
 @attributes(['name', 'public_key', 'user_id'])
 class KeyPair(object):
@@ -20,6 +40,17 @@ class KeyPair(object):
             "public_key": self.public_key,
             "user_id": self.user_id
         })
+
+@attributes(
+    ["tenant_id", "region_name", "clock",
+     Attribute("keypairs", default_factory=list),
+     Attribute(
+         "behavior_registry_collection",
+         default_factory=lambda: BehaviorRegistryCollection())]
+)
+class RegionalKeyPairCollection(object):
+    pass
+
 
 @attributes(["tenant_id", "clock",
              Attribute("regional_collections", default_factory=dict)])
