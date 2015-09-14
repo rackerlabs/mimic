@@ -3,6 +3,7 @@ Keypair objects for mimic
 """
 
 import re
+from mimic.session import SessionStore
 
 from characteristic import attributes, Attribute
 from random import randrange
@@ -43,8 +44,22 @@ class KeyPair(object):
      Attribute("keypairs", default_factory=list)]
 )
 class RegionalKeyPairCollection(object):
-    def request_creation(self):
 
+    def tenant_session(self):
+        tenant_session = SessionStore.session_for_tenant_id(self.tenant_id)
+        return tenant_session
+
+    def _get_session(self):
+        return (
+            self.tenant_session()
+            .data_for_api(self, lambda: GlobalKeyPairCollections(
+                tenant_id=self.tenant_id,
+                clock=self.tenant_session().clock
+            ))
+        )
+
+    def create_keypair(self, keypair):
+        self.keypairs
 
 
 @attributes(["tenant_id", "clock",
