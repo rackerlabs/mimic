@@ -17,9 +17,6 @@ from mimic.util.helper import (
     timestamp_to_seconds
 )
 from mimic.canned_responses.mimic_presets import get_presets
-from mimic.model.behaviors import (
-    BehaviorRegistryCollection, EventDescription, Criterion, regexp_predicate
-)
 from twisted.web.http import ACCEPTED, BAD_REQUEST, FORBIDDEN, NOT_FOUND, CONFLICT
 
 from characteristic import attributes, Attribute
@@ -43,13 +40,11 @@ class KeyPair(object):
 
 @attributes(
     ["tenant_id", "region_name", "clock",
-     Attribute("keypairs", default_factory=list),
-     Attribute(
-         "behavior_registry_collection",
-         default_factory=lambda: BehaviorRegistryCollection())]
+     Attribute("keypairs", default_factory=list)]
 )
 class RegionalKeyPairCollection(object):
-    pass
+    def request_creation(self):
+
 
 
 @attributes(["tenant_id", "clock",
