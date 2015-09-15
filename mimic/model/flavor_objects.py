@@ -9,7 +9,7 @@ from mimic.model.flavors import (
     RackspaceOnMetalFlavor, RackspaceIOFlavor, RackspaceGeneralFlavor,
     RackspacePerformance1Flavor, RackspacePerformance2Flavor)
 
-from twisted.web.http import BAD_REQUEST, NOT_FOUND
+from twisted.web.http import NOT_FOUND
 
 
 @attributes(['nova_message'])
@@ -39,19 +39,6 @@ def _nova_error_message(msg_type, message, status_code, request):
             "code": status_code
         }
     }
-
-
-def bad_request(message, request):
-    """
-    Return a 400 error body associated with a Nova bad request error.
-    Also sets the response code on the request.
-
-    :param str message: The message to include in the bad request body.
-    :param request: The request on which to set the response code.
-
-    :return: dictionary representing the error body.
-    """
-    return _nova_error_message("badRequest", message, BAD_REQUEST, request)
 
 
 def not_found(message, request):
