@@ -37,7 +37,6 @@ class NovaAPIFlavorsTests(SynchronousTestCase):
         """
         Test to verify :func:`get_flavor` on ``GET /v2.0/<tenant_id>/flavors/<flavor_id>``
         """
-        self.get_server_flavor('/flavors')
         get_server_flavor = self.get_server_flavor('/flavors/2')
         self.assertEqual(get_server_flavor['flavor']['id'], '2')
 

@@ -66,38 +66,42 @@ class RegionalFlavorCollection(object):
         """
         Retrieve a :obj:`Flavor` object by its ID.
         """
+        if len(self.flavors_store) < 1:
+            self.create_flavors_list()
         for flavor in self.flavors_store:
             if flavor.flavor_id == flavor_id:
                 return flavor
 
-    def create_flavors_list(self, flavor_classes):
+    def create_flavors_list(self):
         """
         Generates the data for each flavor in each flavor class
         """
+        rackspace_flavors = [RackspaceStandardFlavor, RackspaceComputeFlavor,
+                             RackspacePerformance1Flavor, RackspaceOnMetalFlavor,
+                             RackspacePerformance2Flavor, RackspaceMemoryFlavor,
+                             RackspaceIOFlavor, RackspaceGeneralFlavor]
+
         if len(self.flavors_store) < 1:
-            for flavor_class in flavor_classes:
+            for flavor_class in rackspace_flavors:
                 for flavor, flavor_spec in flavor_class.flavors.iteritems():
-                    if not self.flavor_by_id(flavor_spec['id']):
-                        flavor_name = flavor
-                        flavor_id = flavor_spec['id']
-                        ram = flavor_spec['ram']
-                        vcpus = flavor_spec['vcpus']
-                        network = flavor_spec['rxtx_factor']
-                        disk = flavor_spec['disk']
-                        tenant_id = self.tenant_id
-                        flavor = flavor_class(flavor_id=flavor_id, tenant_id=tenant_id,
-                                              name=flavor_name, ram=ram, vcpus=vcpus,
-                                              rxtx=network, disk=disk)
-                        self.flavors_store.append(flavor)
+                    flavor_name = flavor
+                    flavor_id = flavor_spec['id']
+                    ram = flavor_spec['ram']
+                    vcpus = flavor_spec['vcpus']
+                    network = flavor_spec['rxtx_factor']
+                    disk = flavor_spec['disk']
+                    tenant_id = self.tenant_id
+                    flavor = flavor_class(flavor_id=flavor_id, tenant_id=tenant_id,
+                                          name=flavor_name, ram=ram, vcpus=vcpus,
+                                          rxtx=network, disk=disk)
+                    self.flavors_store.append(flavor)
 
     def list_flavors(self, include_details, absolutize_url):
         """
         Return a list of flavors with details.
         """
-        flavors = [RackspaceStandardFlavor, RackspaceComputeFlavor, RackspacePerformance1Flavor,
-                   RackspaceOnMetalFlavor, RackspacePerformance2Flavor, RackspaceMemoryFlavor,
-                   RackspaceIOFlavor, RackspaceGeneralFlavor]
-        self.create_flavors_list(flavors)
+        if len(self.flavors_store) < 1:
+            self.create_flavors_list()
         flavors = []
         for flavor in self.flavors_store:
             if self.region_name != "IAD" and isinstance(flavor, RackspaceOnMetalFlavor):
