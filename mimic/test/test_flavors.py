@@ -129,3 +129,12 @@ class NovaAPIFlavorsTests(SynchronousTestCase):
             get_server_flavor_response_body = self.get_server_flavor('/flavors/' + flavor_id)
             self.assertEqual(flavor_id, get_server_flavor_response_body['flavor']['id'])
             self.assertEqual(name, get_server_flavor_response_body['flavor']['name'])
+
+    def test_get_OnMetal_flavor(self):
+        """
+        Test to verify :func:`get_flavor` on ``GET /v2.0/<tenant_id>/flavors/<flavor_id>``
+        """
+        get_server_flavor = self.get_server_flavor('/flavors/onmetal-compute1')
+        self.assertEqual(get_server_flavor['flavor']['id'], 'onmetal-compute1')
+        self.assertEqual(sorted(get_server_flavor['flavor']['OS-FLV-WITH-EXT-SPECS:extra_specs'].keys()),
+                         sorted(['quota_resources', 'class', 'policy_class']))
