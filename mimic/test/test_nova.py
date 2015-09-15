@@ -441,19 +441,6 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(
             get_server_image_response_body['image']['metadata']['flavor_classes'], 'onmetal')
 
-    def test_get_server_flavor(self):
-        """
-        Test to verify :func:`get_image` on ``GET /v2.0/<tenant_id>/flavors/<flavor_id>``
-        """
-        get_server_flavor = request(
-            self, self.root, "GET", self.uri + '/flavors/2')
-        get_server_flavor_response = self.successResultOf(get_server_flavor)
-        get_server_flavor_response_body = self.successResultOf(
-            treq.json_content(get_server_flavor_response))
-        self.assertEqual(get_server_flavor_response.code, 200)
-        self.assertEqual(
-            get_server_flavor_response_body['flavor']['id'], '2')
-
     def test_get_server_limits(self):
         """
         Test to verify :func:`get_limit` on ``GET /v2.0/<tenant_id>/limits``
