@@ -228,10 +228,8 @@ class NovaRegion(object):
         one.
         """
         tenant_session = self._session_store.session_for_tenant_id(tenant_id)
-        global_collection = tenant_session.data_for_api(
-            self._api_mock, lambda: collections)
-        region_collection =\
-            global_collection.collection_for_region(region_name=self._name)
+        global_collection = tenant_session.data_for_api(self._api_mock, lambda: collections)
+        region_collection = global_collection.collection_for_region(region_name=self._name)
         return region_collection
 
     app = MimicApp()
