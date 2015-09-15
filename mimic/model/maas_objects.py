@@ -147,6 +147,41 @@ class Alarm(object):
         self.updated_at = int(1000 * kwargs['clock'].seconds())
 
 
+@attributes([Attribute('created_at', instance_of=int),
+             Attribute('details', default_factory=dict, instance_of=dict),
+             Attribute('id',
+                       default_factory=(lambda: u'nt' + random_hex_generator(4)),
+                       instance_of=text_type),
+             Attribute('label', default_value=u'', instance_of=text_type),
+             Attribute('metadata', default_factory=dict, instance_of=dict),
+             Attribute('type', default_value='email', instance_of=text_type),
+             Attribute('updated_at', instance_of=int)])
+class Notification(object):
+    """
+    Models a MaaS Notification.
+    """
+    def to_json(self):
+        """
+        Serializes the Notification to a JSON-encodable dict.
+        """
+        return {'id': self.id,
+                'label': self.label,
+                'type': self.type,
+                'details': self.details,
+                'created_at': self.created_at,
+                'updated_at': self.updated_at,
+                'metadata': self.metadata}
+
+    def update(self, **kwargs):
+        """
+        Updates this Notification.
+        """
+        for key in ['details', 'label', 'metadata', 'type']:
+            if key in kwargs:
+                setattr(self, key, kwargs[key])
+        self.updated_at = int(1000 * kwargs['clock'].seconds())
+
+
 @attributes(["name",
              "type",
              Attribute("_unit", default_value="other"),

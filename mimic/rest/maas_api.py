@@ -25,7 +25,7 @@ from mimic.canned_responses.maas_json_home import json_home
 from mimic.canned_responses.maas_agent_info import agent_info
 from mimic.canned_responses.maas_monitoring_zones import monitoring_zones
 from mimic.canned_responses.maas_alarm_examples import alarm_examples
-from mimic.model.maas_objects import Alarm, Check, Entity, MaasStore
+from mimic.model.maas_objects import Alarm, Check, Entity, MaasStore, Notification
 from mimic.util.helper import random_hex_generator, random_hipsum
 
 
@@ -100,13 +100,11 @@ class MCache(object):
         self.entities_list = []
         self.checks_list = []
         self.alarms_list = []
-        self.notifications_list = [{'id': 'ntTechnicalContactsEmail',
-                                    'label': 'Email All Technical Contacts',
-                                    'created_at': current_time_milliseconds,
-                                    'updated_at': current_time_milliseconds,
-                                    'metadata': None,
-                                    'type': 'technicalContactsEmail',
-                                    'details': None}]
+        self.notifications_list = [Notification(id=u'ntTechnicalContactsEmail',
+                                                label=u'Email All Technical Contacts',
+                                                created_at=current_time_milliseconds,
+                                                updated_at=current_time_milliseconds,
+                                                type=u'technicalContactsEmail')]
         self.notificationplans_list = [{'id': 'npTechnicalContactsEmail',
                                         'label': 'Technical Contacts - Email',
                                         'critical_state': [], 'warning_state': [],
@@ -219,14 +217,9 @@ def create_notification(clock, params):
         ``dict`` or ``NoneType``.
     """
     current_time_milliseconds = int(1000 * clock.seconds())
-
-    return {'id': 'nt' + random_hex_generator(4),
-            'label': params.get('label', ''),
-            'type': params.get('type', 'email'),
-            'details': params.get('details', {}),
-            'created_at': current_time_milliseconds,
-            'updated_at': current_time_milliseconds,
-            'metadata': params.get('metadata', {})}
+    params_copy = dict(params)
+    params_copy['created_at'] = params_copy['updated_at'] = current_time_milliseconds
+    return Notification(**params_copy)
 
 
 def create_suppression(params):
@@ -932,8 +925,8 @@ class MaasMock(object):
         request.setResponseCode(status)
         request.setHeader('content-type', 'text/plain')
         request.setHeader('location', base_uri_from_request(request).rstrip('/') +
-                          request.path + '/' + new_n['id'])
-        request.setHeader('x-object-id', new_n['id'])
+                          request.path + '/' + new_n.id.encode('utf-8'))
+        request.setHeader('x-object-id', new_n.id.encode('utf-8'))
         self._audit('notifications', request, tenant_id, status, content)
         return b''
 
@@ -942,41 +935,45 @@ class MaasMock(object):
         """
         Get notification targets
         """
-        nlist = self._entity_cache_for_tenant(tenant_id).notifications_list
-        metadata = {'count': len(nlist), 'limit': 100, 'marker': None, 'next_marker': None,
+        nt_list = self._entity_cache_for_tenant(tenant_id).notifications_list
+        metadata = {'count': len(nt_list),
+                    'limit': 100,
+                    'marker': None,
+                    'next_marker': None,
                     'next_href': None}
         request.setResponseCode(200)
-        return json.dumps({'values': nlist, 'metadata': metadata})
+        return json.dumps({'values': [nt.to_json() for nt in nt_list], 'metadata': metadata})
 
-    @app.route('/v1.0/<string:tenant_id>/notifications/<string:n_id>', methods=['PUT'])
-    def update_notifications(self, request, tenant_id, n_id):
+    @app.route('/v1.0/<string:tenant_id>/notifications/<string:nt_id>', methods=['PUT'])
+    def update_notifications(self, request, tenant_id, nt_id):
         """
         Updates notification targets
         """
         content = request.content.read()
         postdata = json.loads(content)
-        nlist = self._entity_cache_for_tenant(tenant_id).notifications_list
-        for n in nlist:
-            if n['id'] == postdata['id']:
-                for k in postdata.keys():
-                    n[k] = postdata[k]
-                n['updated_at'] = int(1000 * self._session_store.clock.seconds())
+        update_kwargs = dict(postdata)
+        update_kwargs['clock'] = self._session_store.clock
+        nt_list = self._entity_cache_for_tenant(tenant_id).notifications_list
+        for nt in nt_list:
+            if nt.id == nt_id:
+                nt.update(**update_kwargs)
                 break
+
         status = 204
         request.setResponseCode(status)
         request.setHeader('content-type', 'text/plain')
         self._audit('notifications', request, tenant_id, status, content)
         return b''
 
-    @app.route('/v1.0/<string:tenant_id>/notifications/<string:n_id>', methods=['DELETE'])
-    def delete_notification(self, request, tenant_id, n_id):
+    @app.route('/v1.0/<string:tenant_id>/notifications/<string:nt_id>', methods=['DELETE'])
+    def delete_notification(self, request, tenant_id, nt_id):
         """
         Delete a notification
         """
-        nlist = self._entity_cache_for_tenant(tenant_id).notifications_list
-        for n in nlist:
-            if n['id'] == n_id:
-                del nlist[nlist.index(n)]
+        nt_list = self._entity_cache_for_tenant(tenant_id).notifications_list
+        for nt in nt_list:
+            if nt.id == nt_id:
+                del nt_list[nt_list.index(nt)]
                 break
         status = 204
         request.setResponseCode(status)
