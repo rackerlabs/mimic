@@ -55,6 +55,57 @@ class Entity(object):
         self.updated_at = int(1000 * kwargs['clock'].seconds())
 
 
+@attributes([Attribute('created_at', instance_of=int),
+             Attribute('details', default_factory=dict, instance_of=dict),
+             Attribute('disabled', default_value=False, instance_of=bool),
+             Attribute('entity_id', instance_of=text_type),
+             Attribute('id',
+                       default_factory=(lambda: u'ch' + random_hex_generator(4)),
+                       instance_of=text_type),
+             Attribute('label', default_value=u'', instance_of=text_type),
+             Attribute('metadata', default_factory=dict, instance_of=dict),
+             Attribute('monitoring_zones_poll', default_factory=list, instance_of=list),
+             Attribute('period', default_value=60, instance_of=int),
+             Attribute('target_alias', default_value=None),
+             Attribute('target_hostname', default_value=None),
+             Attribute('target_resolver', default_value=None),
+             Attribute('timeout', default_value=10, instance_of=int),
+             Attribute('type', instance_of=text_type),
+             Attribute('updated_at', instance_of=int)])
+class Check(object):
+    """
+    Models a MaaS Check.
+    """
+    def to_json(self):
+        """
+        Serializes the Check to JSON.
+        """
+        return {'label': self.label,
+                'id': self.id,
+                'type': self.type,
+                'monitoring_zones_poll': self.monitoring_zones_poll,
+                'created_at': self.created_at,
+                'updated_at': self.updated_at,
+                'timeout': self.timeout,
+                'period': self.period,
+                'disabled': self.disabled,
+                'metadata': self.metadata,
+                'target_alias': self.target_alias,
+                'target_resolver': self.target_resolver,
+                'target_hostname': self.target_hostname,
+                'details': self.details}
+
+    def update(self, **kwargs):
+        """
+        Updates this Check.
+        """
+        for key in ['type', 'details', 'disabled', 'label', 'metadata', 'period', 'timeout',
+                    'monitoring_zones_poll', 'target_alias', 'target_hostname', 'target_resolver']:
+            if key in kwargs:
+                setattr(self, key, kwargs[key])
+        self.updated_at = int(1000 * kwargs['clock'].seconds())
+
+
 @attributes(["name",
              "type",
              Attribute("_unit", default_value="other"),

@@ -25,7 +25,7 @@ from mimic.canned_responses.maas_json_home import json_home
 from mimic.canned_responses.maas_agent_info import agent_info
 from mimic.canned_responses.maas_monitoring_zones import monitoring_zones
 from mimic.canned_responses.maas_alarm_examples import alarm_examples
-from mimic.model.maas_objects import Entity, MaasStore
+from mimic.model.maas_objects import Check, Entity, MaasStore
 from mimic.util.helper import random_hex_generator, random_hipsum
 
 
@@ -152,7 +152,7 @@ def create_entity(clock, params):
     return Entity(**params_copy)
 
 
-def create_check(clock, params):
+def create_check(clock, entity_id, params):
     """
     Returns a dictionary representing a check
 
@@ -163,22 +163,10 @@ def create_check(clock, params):
         ``int``, ``bool``, ``dict`` or ``NoneType``.
     """
     current_time_milliseconds = int(1000 * clock.seconds())
-
-    return {'id': 'ch' + random_hex_generator(4),
-            'type': params['type'],
-            'label': params.get('label', ''),
-            'monitoring_zones_poll': params.get('monitoring_zones_poll', []),
-            'collectors': ['co' + random_hex_generator(3) for _ in range(3)],
-            'created_at': current_time_milliseconds,
-            'updated_at': current_time_milliseconds,
-            'timeout': 10,
-            'period': 60,
-            'disabled': False,
-            'metadata': params.get('metadata', {}),
-            'target_alias': params.get('target_alias'),
-            'target_hostname': params.get('target_hostname'),
-            'target_resolver': params.get('target_resolver'),
-            'details': params.get('details') or {'count': 5}}
+    params_copy = dict(params)
+    params_copy['entity_id'] = entity_id
+    params_copy['created_at'] = params_copy['updated_at'] = current_time_milliseconds
+    return Check(**params_copy)
 
 
 def create_alarm(clock, params):
@@ -275,13 +263,13 @@ def create_metric_list_from_entity(entity, allchecks):
          'entity_label': entity.label,
          'checks': []}
     for c in allchecks:
-        if c['type'] == 'remote.ping' and c['entity_id'] == entity.id:
+        if c.type == 'remote.ping' and c.entity_id == entity.id:
             metricscheck = {}
-            metricscheck['id'] = c['id']
-            metricscheck['label'] = c['label']
+            metricscheck['id'] = c.id
+            metricscheck['label'] = c.label
             metricscheck['type'] = 'remote.ping'
             metricscheck['metrics'] = []
-            for mz in c['monitoring_zones_poll']:
+            for mz in c.monitoring_zones_poll:
                 metricscheck['metrics'].append(
                     {'name': mz + '.available', 'unit': 'percent', 'type': 'D'})
                 metricscheck['metrics'].append(
@@ -306,8 +294,8 @@ def create_multiplot_from_metric(metric, reqargs, allchecks):
     multiplot = {}
     squarewave_downtrend = 1
     for c in allchecks:
-        if c['entity_id'] == metric['entity_id']:
-            if c['type'] == 'remote.ping':
+        if c.entity_id == metric['entity_id']:
+            if c.type == 'remote.ping':
                 multiplot['entity_id'] = metric['entity_id']
                 multiplot['check_id'] = metric['check_id']
                 multiplot['type'] = 'number'
@@ -325,7 +313,7 @@ def create_multiplot_from_metric(metric, reqargs, allchecks):
                     d['timestamp'] = timestamp
                     if not q % (points / 4):
                         squarewave_downtrend = squarewave_downtrend ^ 1
-                    if c['label'] == 'squarewave':
+                    if c.label == 'squarewave':
                         if squarewave_downtrend:
                             d['average'] = 15
                         else:
@@ -489,10 +477,8 @@ class MaasMock(object):
         """
         checks = []
         for c in self._entity_cache_for_tenant(tenant_id).checks_list:
-            if c['entity_id'] == entity_id:
-                c = dict(c)  # make a copy,  don't want the entity_id in the response
-                del c['entity_id']
-                checks.append(c)
+            if c.entity_id == entity_id:
+                checks.append(c.to_json())
         metadata = {}
         metadata['count'] = len(checks)
         metadata['limit'] = 1000
@@ -537,7 +523,7 @@ class MaasMock(object):
                 del entities[e]
                 break
         for c in checks:
-            if c['entity_id'] == entity_id:
+            if c.entity_id == entity_id:
                 del checks[checks.index(c)]
         for a in alarms:
             if a['entity_id'] == entity_id:
@@ -554,14 +540,13 @@ class MaasMock(object):
         """
         content = request.content.read()
         postdata = json.loads(content)
-        newcheck = create_check(self._session_store.clock, postdata)
-        newcheck['entity_id'] = entity_id
+        newcheck = create_check(self._session_store.clock, entity_id, postdata)
         self._entity_cache_for_tenant(tenant_id).checks_list.append(newcheck)
         status = 201
         request.setResponseCode(status)
         request.setHeader('location', base_uri_from_request(request).rstrip('/') +
-                          request.path + '/' + newcheck['id'])
-        request.setHeader('x-object-id', newcheck['id'])
+                          request.path + '/' + newcheck.id.encode('utf-8'))
+        request.setHeader('x-object-id', newcheck.id.encode('utf-8'))
         request.setHeader('content-type', 'text/plain')
         self._audit('checks', request, tenant_id, status, content)
         return b''
@@ -574,9 +559,8 @@ class MaasMock(object):
         """
         mycheck = {}
         for c in self._entity_cache_for_tenant(tenant_id).checks_list:
-            if c['id'] == check_id:
-                mycheck = dict(c)
-                del mycheck['entity_id']
+            if c.id == check_id:
+                mycheck = c.to_json()
         request.setResponseCode(200)
         return json.dumps(mycheck)
 
@@ -588,13 +572,11 @@ class MaasMock(object):
         """
         content = request.content.read()
         update = json.loads(content)
+        update_kwargs = dict(update)
+        update_kwargs['clock'] = self._session_store.clock
         for check in self._entity_cache_for_tenant(tenant_id).checks_list:
-            if check['entity_id'] == entity_id and check['id'] == check_id:
-                for k in ['type', 'details', 'disabled', 'label', 'metadata', 'period', 'timeout',
-                          'monitoring_zones_poll', 'target_alias', 'target_hostname', 'target_resolver']:
-                    if k in update:
-                        check[k] = update[k]
-                check['updated_at'] = int(1000 * self._session_store.clock.seconds())
+            if check.entity_id == entity_id and check.id == check_id:
+                check.update(**update_kwargs)
                 break
         status = 204
         request.setResponseCode(status)
@@ -613,7 +595,7 @@ class MaasMock(object):
         checks = self._entity_cache_for_tenant(tenant_id).checks_list
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
         for c in range(len(checks)):
-            if checks[c]['entity_id'] == entity_id and checks[c]['id'] == check_id:
+            if checks[c].entity_id == entity_id and checks[c].id == check_id:
                 del checks[c]
                 break
         for a in alarms:
@@ -840,10 +822,8 @@ class MaasMock(object):
                     v['alarms'].append(a)
             v['checks'] = []
             for c in checks:
-                if c['entity_id'] == e.id:
-                    c = dict(c)
-                    del c['entity_id']
-                    v['checks'].append(c)
+                if c.entity_id == e.id:
+                    v['checks'].append(c.to_json())
             v['entity'] = e.to_json()
             v['latest_alarm_states'] = []
             values.append(v)
