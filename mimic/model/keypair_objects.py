@@ -21,7 +21,7 @@ from mimic.canned_responses.mimic_presets import get_presets
 from twisted.web.http import ACCEPTED, BAD_REQUEST, FORBIDDEN, NOT_FOUND, CONFLICT
 
 from characteristic import attributes, Attribute
-@attributes(['name', 'public_key', 'user_id'])
+@attributes(['name', 'public_key'])
 class KeyPair(object):
     """
     A KeyPair object
@@ -31,12 +31,12 @@ class KeyPair(object):
         "private_key": """-----TEST-----\TODO: INSERT RANDOM STRING-----TEST-----\n"""
     }
 
+
     def key_json(self):
         template = self.static_defaults.copy()
         template.update({
             "name": self.name,
-            "public_key": self.public_key,
-            "user_id": self.user_id
+            "public_key": self.public_key
         })
 
 @attributes(
@@ -46,6 +46,8 @@ class KeyPair(object):
 class RegionalKeyPairCollection(object):
 
     def create_keypair(self, keypair):
+        # from IPython import embed
+        # embed()
         self.keypairs.append(keypair)
 
 

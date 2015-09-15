@@ -22,7 +22,7 @@ from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.imimic import IAPIMock
 from mimic.model.behaviors import make_behavior_api
-from mimic.model.keypair_objects import GlobalKeyPairCollections
+from mimic.model.keypair_objects import GlobalKeyPairCollections, KeyPair
 from mimic.model.nova_objects import (
     BadRequestError, GlobalServerCollections, LimitError, Server,
     bad_request, forbidden, not_found, server_creation)
@@ -428,7 +428,11 @@ class NovaRegion(object):
             request.setResponseCode(400)
             return json.dumps(bad_request("Malformed request body", request))
 
-        keypair = content['keypair']
+        keypair = content["keypair"]
+        name = keypair["name"]
+        pub_key = keypair["public_key"]
+        keypair_from_request = KeyPair(name=name, public_key=pub_key)
+        self._keypair_collection_for_tenant(tenant_id).create_keypair(keypair=keypair_from_request)
         return None
 
     @app.route("/v2/<string:tenant_id>/os-keypairs/<string:keypairname>", methods=['DELETE'])

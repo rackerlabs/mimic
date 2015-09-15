@@ -5,10 +5,8 @@ import json
 from urllib import urlencode
 from urlparse import parse_qs
 
-from testtools.matchers import (
-    ContainsDict, Equals, MatchesDict, MatchesListwise, StartsWith)
-
 import treq
+from IPython import embed;
 
 from twisted.trial.unittest import SynchronousTestCase
 
@@ -20,49 +18,34 @@ from mimic.test.behavior_tests import (
 from mimic.test.fixtures import APIMockHelper, TenantAuthentication
 from mimic.util.helper import seconds_to_timestamp
 
-# def create_server(helper, name=None, imageRef=None, flavorRef=None,
-#                   metadata=None, diskConfig=None, body_override=None,
-#                   region="ORD", request_func=json_request):
-#     """
-#     Create a server with the given body and returns the response object and
-#     body.
-#
-#     :param name: Name of the server - defaults to "test_server"
-#     :param imageRef: Image of the server - defaults to "test-image"
-#     :param flavorRef: Flavor size of the server - defaults to "test-flavor"
-#     :param metadata: Metadata of the server - optional
-#     :param diskConfig: the "OS-DCF:diskConfig" setting for the server -
-#         optional
-#
-#     :param str body_override: String containing the server args to
-#         override the default server body JSON.
-#     :param str region: The region in which to create the server
-#     :param callable request_func: What function to use to make the request -
-#         defaults to json_request (alternately could be request_with_content)
-#
-#     :return: either the response object, or the response object and JSON
-#         body if ``json`` is `True`.
-#     """
-#     body = body_override
-#     if body is None:
-#         data = {
-#             "name": name if name is not None else 'test_server',
-#             "imageRef": imageRef if imageRef is not None else "test-image",
-#             "flavorRef": flavorRef if flavorRef is not None else "test-flavor"
-#         }
-#         if metadata is not None:
-#             data['metadata'] = metadata
-#         if diskConfig is not None:
-#             data["OS-DCF:diskConfig"] = diskConfig
-#         body = json.dumps({"server": data})
-#
-#     create_server = request_func(
-#         helper.test_case,
-#         helper.root,
-#         "POST",
-#         '{0}/servers'.format(helper.get_service_endpoint(
-#             "cloudServersOpenStack", region)),
-#         body
-#     )
-#     return helper.test_case.successResultOf(create_server)
-#
+class KeyPairTests(SynchronousTestCase):
+
+    """
+    Tests for keypairs
+    """
+
+    def setUp(self):
+        """
+        Create a :obj:`MimicCore` with :obj:`NovaApi` as the only plugin
+        """
+        nova_api = NovaApi(["ORD", "MIMIC"])
+        self.helper = self.helper = APIMockHelper(
+            self, [nova_api, NovaControlApi(nova_api=nova_api)]
+        )
+        self.root = self.helper.root
+        self.clock = self.helper.clock
+        self.uri = self.helper.uri
+
+    def test_create_keypair(self):
+        api_helper = self.helper
+        kp_body = {
+            "keypair": {
+                "name": "test_lp",
+                "public_key": "ssh-rsa testkey/"
+            }
+        }
+
+        resp, body = self.successResultOf(json_request(
+            self, api_helper.root, "POST", api_helper.uri + '/os-keypairs',
+            kp_body
+        ))
