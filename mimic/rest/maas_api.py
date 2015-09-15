@@ -766,6 +766,17 @@ class MaasMock(object):
         serves the overview api call,returns all entities,checks and alarms
         """
         all_entities = self._entity_cache_for_tenant(tenant_id).entities_list
+        if 'entityId' in request.args:
+            all_entities = [entity for entity in all_entities
+                            if entity.id in request.args['entityId']]
+            if len(all_entities) == 0:
+                request.setResponseCode(404)
+                return json.dumps({'type': 'notFoundError',
+                                   'code': 404,
+                                   'message': 'Object does not exist',
+                                   'details': 'Object "Entity" with key "{0}" does not exist'.format(
+                                       request.args['entityId'])})
+
         checks = self._entity_cache_for_tenant(tenant_id).checks_list
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
         page_limit = min(int(request.args.get('limit', [100])[0]), 1000)

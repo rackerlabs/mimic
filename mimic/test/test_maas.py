@@ -1176,3 +1176,27 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
         self.assertEquals(data['values'][0]['entity']['label'], 'ItsAnEntity')
+
+    def test_overview_filters_by_entity(self):
+        """
+        The overview call restricts results to the desired entity,
+        regardless if other entities exist.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "GET",
+                         '{0}/views/overview?entityId={1}'.format(
+                             self.uri, self.entity_id)))
+        self.assertEquals(resp.code, 200)
+        self.assertEquals(len(data['values']), 1)
+        self.assertEquals(data['values'][0]['entity']['label'], 'ItsAnEntity')
+
+    def test_overview_missing_entity_404s(self):
+        """
+        If the user passes in a non-existing entity ID, a 404 is returned.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "GET",
+                         '{0}/views/overview?entityId={1}'.format(
+                             self.uri, 'enDoesNotExist')))
+        self.assertEquals(resp.code, 404)
+        self.assertEquals(data['type'], 'notFoundError')
