@@ -222,11 +222,6 @@ class NovaRegion(object):
         return (self._api_mock._get_session(self._session_store, tenant_id)
                 .collection_for_region(self._name))
 
-    # def _flavor_collection_for_tenant(self, tenant_id):
-    #     print 'FLAVOR COLLECTION FOR TENANT'
-    #     return (self._api_mock._get_session(self._session_store, tenant_id)
-    #             .flavors_collection_for_region(self._name))
-
     def _flavor_collection_for_tenant(self, tenant_id):
         """
         Gets a session for a particular tenant, creating one if there isn't
