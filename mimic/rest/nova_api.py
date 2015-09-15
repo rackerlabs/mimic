@@ -25,6 +25,7 @@ from mimic.model.behaviors import make_behavior_api
 from mimic.model.nova_objects import (
     BadRequestError, GlobalServerCollections, LimitError, Server,
     bad_request, forbidden, not_found, server_creation)
+from mimic.model.flavor_objects import GlobalFlavorCollections
 
 
 @implementer(IAPIMock, IPlugin)
@@ -176,8 +177,7 @@ class NovaControlApiRegion(object):
         """
         Retrieve the server collection for this region for the given tenant.
         """
-        return (self.api_mock.nova_api
-                ._get_session(self.session_store, tenant_id)
+        return (self.api_mock.nova_api._get_session(self.session_store, tenant_id)
                 .collection_for_region(self.region))
 
 
@@ -215,6 +215,16 @@ class NovaRegion(object):
         """
         return (self._api_mock._get_session(self._session_store, tenant_id)
                 .collection_for_region(self._name))
+
+    def _collection_for_tenant(self, tenant_id, collections):
+        """
+        Gets a session for a particular tenant, creating one if there isn't
+        one.
+        """
+        tenant_session = self._session_store.session_for_tenant_id(tenant_id)
+        global_collection = tenant_session.data_for_api(self._api_mock, lambda: collections)
+        region_collection = global_collection.collection_for_region(region_name=self._name)
+        return region_collection
 
     app = MimicApp()
 
@@ -328,10 +338,10 @@ class NovaRegion(object):
         """
         Returns a get flavor response, for any given flavorid
         """
-        return (
-            self._region_collection_for_tenant(tenant_id)
-            .get_flavor(request, flavor_id, absolutize_url=self.url)
-        )
+        flavor_collection = GlobalFlavorCollections(tenant_id=tenant_id,
+                                                    clock=self._session_store.clock)
+        return (self._collection_for_tenant(tenant_id, flavor_collection)
+                .get_flavor(request, flavor_id, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/flavors', methods=['GET'])
     def get_flavor_list(self, request, tenant_id):
@@ -341,10 +351,10 @@ class NovaRegion(object):
         TO DO: The length of flavor list can be set using the control plane.
                Also be able to set different flavor types in the future.
         """
-        return (
-            self._region_collection_for_tenant(tenant_id)
-            .list_flavors(include_details=False, absolutize_url=self.url)
-        )
+        flavor_collection = GlobalFlavorCollections(tenant_id=tenant_id,
+                                                    clock=self._session_store.clock)
+        return (self._collection_for_tenant(tenant_id, flavor_collection)
+                .list_flavors(include_details=False, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/flavors/detail', methods=['GET'])
     def get_flavor_list_with_details(self, request, tenant_id):
@@ -353,10 +363,10 @@ class NovaRegion(object):
         TO DO: The length of flavor list can be set using the control plane.
                Also be able to set different flavor types in the future.
         """
-        return (
-            self._region_collection_for_tenant(tenant_id)
-            .list_flavors(include_details=True, absolutize_url=self.url)
-        )
+        flavor_collection = GlobalFlavorCollections(tenant_id=tenant_id,
+                                                    clock=self._session_store.clock)
+        return (self._collection_for_tenant(tenant_id, flavor_collection)
+                .list_flavors(include_details=True, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/limits', methods=['GET'])
     def get_limit(self, request, tenant_id):
