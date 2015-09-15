@@ -224,7 +224,7 @@ class NovaRegion(object):
             lambda: GlobalKeyPairCollections(
                 clock=self._session_store.clock))
         kp_region_collection = kp_global_collection.collection_for_region(
-            self.region_name)
+            self._name)
         return kp_region_collection
 
     app = MimicApp()
