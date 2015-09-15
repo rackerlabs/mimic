@@ -22,6 +22,7 @@ from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.imimic import IAPIMock
 from mimic.model.behaviors import make_behavior_api
+from mimic.model.keypair_objects import GlobalKeyPairCollections
 from mimic.model.nova_objects import (
     BadRequestError, GlobalServerCollections, LimitError, Server,
     bad_request, forbidden, not_found, server_creation)
@@ -217,8 +218,14 @@ class NovaRegion(object):
                 .collection_for_region(self._name))
 
     def _keypair_collection_for_tenant(self, tenant_id):
-        return (self._api_mock._get_session(self._session_store, tenant_id)
-                .keypair_collection_for_region(self._name))
+        tenant_session = self._session_store.session_for_tenant_id(tenant_id)
+        kp_global_collection = tenant_session.data_for_api(
+            self._api_mock,
+            lambda: GlobalKeyPairCollections(
+                clock=self._session_store.clock))
+        kp_region_collection = kp_global_collection.collection_for_region(
+            self.region_name)
+        return kp_region_collection
 
     app = MimicApp()
 
