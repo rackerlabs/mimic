@@ -16,7 +16,7 @@ from mimic.util.helper import (
     random_string,
     timestamp_to_seconds
 )
-from mimic.model.flavor_objects import (
+from mimic.model.flavors import (
     Flavor, RackspaceStandardFlavor, RackspaceComputeFlavor, RackspaceMemoryFlavor,
     RackspaceOnMetalFlavor, RackspaceIOFlavor, RackspaceGeneralFlavor,
     RackspacePerformance1Flavor, RackspacePerformance2Flavor)

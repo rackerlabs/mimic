@@ -39,20 +39,9 @@ class NovaAPIFlavorsTests(SynchronousTestCase):
         :obj: `mimic_presets` is provided.
         """
         get_server_flavor = request(self, self.root, "GET", self.uri +
-                                    '/flavors/1')
+                                    '/flavors/100')
         get_server_flavor_response = self.successResultOf(get_server_flavor)
         self.assertEqual(get_server_flavor_response.code, 404)
-
-    def test_get_server_flavor(self):
-        """
-        Test to verify :func:`get_image` on ``GET /v2.0/<tenant_id>/flavors/<flavor_id>``
-        This test should go away in the future, Rackspace does not support adding your
-        own falvors.
-        """
-        get_server_flavor_response_body = self.get_server_flavor(
-            '/flavors/test-flavor-id')
-        self.assertEqual(
-            get_server_flavor_response_body['flavor']['id'], 'test-flavor-id')
 
     def test_get_flavor_list(self):
         """
