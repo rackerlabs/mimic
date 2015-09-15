@@ -6,12 +6,53 @@ import random
 import string
 
 from characteristic import attributes, Attribute
+from six import text_type
 
-from mimic.util.helper import random_string
+from mimic.util.helper import random_hex_generator, random_string
 
 METRIC_TYPE_INTEGER = 'i'
 METRIC_TYPE_NUMBER = 'n'
 METRIC_TYPE_STRING = 's'
+
+
+@attributes([Attribute('agent_id', default_value=None),
+             Attribute('alarm_states', default_factory=list, instance_of=list),
+             Attribute('created_at', instance_of=int),
+             Attribute('id',
+                       default_factory=(lambda: u'en' + random_hex_generator(4)),
+                       instance_of=text_type),
+             Attribute('ip_addresses', default_factory=dict, instance_of=dict),
+             Attribute('label', default_value=u'', instance_of=text_type),
+             Attribute('managed', default_value=False, instance_of=bool),
+             Attribute('metadata', default_factory=dict, instance_of=dict),
+             Attribute('updated_at', instance_of=int),
+             Attribute('uri', default_value=None)])
+class Entity(object):
+    """
+    Models a MaaS Entity.
+    """
+    def to_json(self):
+        """
+        Serializes the Entity to JSON.
+        """
+        return {'label': self.label,
+                'id': self.id,
+                'agent_id': self.agent_id,
+                'created_at': self.created_at,
+                'updated_at': self.updated_at,
+                'managed': self.managed,
+                'metadata': self.metadata,
+                'ip_addresses': self.ip_addresses,
+                'uri': self.uri}
+
+    def update(self, **kwargs):
+        """
+        Updates this Entity.
+        """
+        for key in ['agent_id', 'managed', 'metadata', 'ip_addresses', 'uri', 'label']:
+            if key in kwargs:
+                setattr(self, key, kwargs[key])
+        self.updated_at = int(1000 * kwargs['clock'].seconds())
 
 
 @attributes(["name",

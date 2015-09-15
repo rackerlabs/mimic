@@ -25,7 +25,7 @@ from mimic.canned_responses.maas_json_home import json_home
 from mimic.canned_responses.maas_agent_info import agent_info
 from mimic.canned_responses.maas_monitoring_zones import monitoring_zones
 from mimic.canned_responses.maas_alarm_examples import alarm_examples
-from mimic.model.maas_objects import MaasStore
+from mimic.model.maas_objects import Entity, MaasStore
 from mimic.util.helper import random_hex_generator, random_hipsum
 
 
@@ -43,7 +43,9 @@ class _MatchesID(object):
         """
         Implements the == comparison based on the id field (and nothing else).
         """
-        return other['id'] == self.id
+        if hasattr(other, '__getitem__'):
+            return other['id'] == self.id
+        return other.id == self.id
 
 
 @implementer(IAPIMock, IPlugin)
@@ -145,16 +147,9 @@ def create_entity(clock, params):
         ``bool``, ``dict`` or ``NoneType``.
     """
     current_time_milliseconds = int(1000 * clock.seconds())
-
-    return {'label': params.get('label', ''),
-            'id': 'en' + random_hex_generator(4),
-            'agent_id': params.get('agent_id') or random_hex_generator(12),
-            'created_at': current_time_milliseconds,
-            'updated_at': current_time_milliseconds,
-            'managed': params.get('managed', False),
-            'metadata': params.get('metadata', {}),
-            'ip_addresses': params.get('ip_addresses', {}),
-            'uri': params.get('uri')}
+    params_copy = dict(params)
+    params_copy['created_at'] = params_copy['updated_at'] = current_time_milliseconds
+    return Entity(**params_copy)
 
 
 def create_check(clock, params):
@@ -276,11 +271,11 @@ def create_metric_list_from_entity(entity, allchecks):
     To respond to the metrics_list api call, we must have the entity and allchecks
     and assemble the structure to reply with.
     """
-    v = {'entity_id': entity['id'],
-         'entity_label': entity['label'],
+    v = {'entity_id': entity.id,
+         'entity_label': entity.label,
          'checks': []}
     for c in allchecks:
-        if c['type'] == 'remote.ping' and c['entity_id'] == entity['id']:
+        if c['type'] == 'remote.ping' and c['entity_id'] == entity.id:
             metricscheck = {}
             metricscheck['id'] = c['id']
             metricscheck['label'] = c['label']
@@ -433,11 +428,11 @@ class MaasMock(object):
         if 'marker' in request.args:
             marker = request.args['marker'][0].strip()
             for q in range(len(entities)):
-                if entities[q]['id'] == marker:
+                if entities[q].id == marker:
                     entities = entities[q:]
                     break
         try:
-            next_marker = entities[limit]['id']
+            next_marker = entities[limit].id
         except Exception:
             pass
         entities = entities[:limit]
@@ -449,7 +444,8 @@ class MaasMock(object):
         metadata['next_marker'] = next_marker
         metadata['next_href'] = next_href
         request.setResponseCode(200)
-        return json.dumps({'metadata': metadata, 'values': entities})
+        return json.dumps({'metadata': metadata,
+                           'values': [entity.to_json() for entity in entities]})
 
     @app.route('/v1.0/<string:tenant_id>/entities', methods=['POST'])
     def create_entity(self, request, tenant_id):
@@ -463,8 +459,8 @@ class MaasMock(object):
         status = 201
         request.setResponseCode(status)
         request.setHeader('location', base_uri_from_request(request).rstrip('/') +
-                          request.path + '/' + newentity['id'])
-        request.setHeader('x-object-id', newentity['id'])
+                          request.path + '/' + newentity.id.encode('utf-8'))
+        request.setHeader('x-object-id', newentity.id.encode('utf-8'))
         request.setHeader('content-type', 'text/plain')
         self._audit('entities', request, tenant_id, status, content)
         return b''
@@ -476,7 +472,7 @@ class MaasMock(object):
         """
         entity = None
         for e in self._entity_cache_for_tenant(tenant_id).entities_list:
-            if e['id'] == entity_id:
+            if e.id == entity_id:
                 entity = e
                 break
         if not entity:
@@ -484,7 +480,7 @@ class MaasMock(object):
             return b'{}'
         else:
             request.setResponseCode(200)
-            return json.dumps(entity)
+            return json.dumps(entity.to_json())
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks', methods=['GET'])
     def get_checks_for_entity(self, request, tenant_id, entity_id):
@@ -513,14 +509,13 @@ class MaasMock(object):
         """
         content = request.content.read()
         update = json.loads(content)
-        for q in range(len(self._entity_cache_for_tenant(tenant_id).entities_list)):
-            if self._entity_cache_for_tenant(tenant_id).entities_list[q]['id'] == entity_id:
-                entity = self._entity_cache_for_tenant(tenant_id).entities_list[q]
-                for k in ['agent_id', 'managed', 'metadata', 'ip_addresses', 'uri', 'label']:
-                    if k in update:
-                        entity[k] = update[k]
-                entity['updated_at'] = int(1000 * self._session_store.clock.seconds())
+        update_kwargs = dict(update)
+        update_kwargs['clock'] = self._session_store.clock
+        for entity in self._entity_cache_for_tenant(tenant_id).entities_list:
+            if entity.id == entity_id:
+                entity.update(**update_kwargs)
                 break
+
         status = 204
         request.setResponseCode(status)
         request.setHeader('location', base_uri_from_request(request).rstrip('/') + request.path)
@@ -538,7 +533,7 @@ class MaasMock(object):
         checks = self._entity_cache_for_tenant(tenant_id).checks_list
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
         for e in range(len(entities)):
-            if entities[e]['id'] == entity_id:
+            if entities[e].id == entity_id:
                 del entities[e]
                 break
         for c in checks:
@@ -825,7 +820,7 @@ class MaasMock(object):
         entities = all_entities[offset:offset + page_limit]
         next_marker = None
         if offset + page_limit < len(all_entities):
-            next_marker = all_entities[offset + page_limit]['id']
+            next_marker = all_entities[offset + page_limit].id
 
         metadata = {
             'count': len(entities),
@@ -839,17 +834,17 @@ class MaasMock(object):
             v = {}
             v['alarms'] = []
             for a in alarms:
-                if a['entity_id'] == e['id']:
+                if a['entity_id'] == e.id:
                     a = dict(a)
                     del a['entity_id']
                     v['alarms'].append(a)
             v['checks'] = []
             for c in checks:
-                if c['entity_id'] == e['id']:
+                if c['entity_id'] == e.id:
                     c = dict(c)
                     del c['entity_id']
                     v['checks'].append(c)
-            v['entity'] = e
+            v['entity'] = e.to_json()
             v['latest_alarm_states'] = []
             values.append(v)
         request.setResponseCode(200)
@@ -916,8 +911,10 @@ class MaasMock(object):
 
         entity_id = request.args['entityId'][0].strip()
         for e in self._entity_cache_for_tenant(tenant_id).entities_list:
-            if e['id'] == entity_id:
-                agent_id = e['agent_id']
+            if e.id == entity_id:
+                if e.agent_id is None:
+                    e.agent_id = random_hex_generator(12)
+                agent_id = e.agent_id
                 break
         else:
             request.setResponseCode(404)
