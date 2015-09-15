@@ -33,7 +33,7 @@ class Entity(object):
     """
     def to_json(self):
         """
-        Serializes the Entity to JSON.
+        Serializes the Entity to a JSON-encodable dict.
         """
         return {'label': self.label,
                 'id': self.id,
@@ -78,7 +78,7 @@ class Check(object):
     """
     def to_json(self):
         """
-        Serializes the Check to JSON.
+        Serializes the Check to a JSON-encodable dict.
         """
         return {'label': self.label,
                 'id': self.id,
@@ -101,6 +101,47 @@ class Check(object):
         """
         for key in ['type', 'details', 'disabled', 'label', 'metadata', 'period', 'timeout',
                     'monitoring_zones_poll', 'target_alias', 'target_hostname', 'target_resolver']:
+            if key in kwargs:
+                setattr(self, key, kwargs[key])
+        self.updated_at = int(1000 * kwargs['clock'].seconds())
+
+
+@attributes([Attribute('check_id', instance_of=text_type),
+             Attribute('created_at', instance_of=int),
+             Attribute('criteria', default_value=u'', instance_of=text_type),
+             Attribute('disabled', default_value=False, instance_of=bool),
+             Attribute('entity_id', instance_of=text_type),
+             Attribute('id',
+                       default_factory=(lambda: u'al' + random_hex_generator(4)),
+                       instance_of=text_type),
+             Attribute('label', default_value=u'', instance_of=text_type),
+             Attribute('metadata', default_factory=dict, instance_of=dict),
+             Attribute('notification_plan_id', instance_of=text_type),
+             Attribute('updated_at', instance_of=int)])
+class Alarm(object):
+    """
+    Models a MaaS Alarm.
+    """
+    def to_json(self):
+        """
+        Serializes the Alarm to a JSON-encodable dict.
+        """
+        return {'id': self.id,
+                'label': self.label,
+                'criteria': self.criteria,
+                'check_id': self.check_id,
+                'notification_plan_id': self.notification_plan_id,
+                'created_at': self.created_at,
+                'updated_at': self.updated_at,
+                'disabled': self.disabled,
+                'metadata': self.metadata}
+
+    def update(self, **kwargs):
+        """
+        Updates this Alarm.
+        """
+        for key in ['check_id', 'notification_plan_id', 'criteria', 'disabled', 'label',
+                    'metadata']:
             if key in kwargs:
                 setattr(self, key, kwargs[key])
         self.updated_at = int(1000 * kwargs['clock'].seconds())

@@ -25,7 +25,7 @@ from mimic.canned_responses.maas_json_home import json_home
 from mimic.canned_responses.maas_agent_info import agent_info
 from mimic.canned_responses.maas_monitoring_zones import monitoring_zones
 from mimic.canned_responses.maas_alarm_examples import alarm_examples
-from mimic.model.maas_objects import Check, Entity, MaasStore
+from mimic.model.maas_objects import Alarm, Check, Entity, MaasStore
 from mimic.util.helper import random_hex_generator, random_hipsum
 
 
@@ -169,7 +169,7 @@ def create_check(clock, entity_id, params):
     return Check(**params_copy)
 
 
-def create_alarm(clock, params):
+def create_alarm(clock, entity_id, params):
     """
     Returns a dictionary representing an alarm
 
@@ -180,16 +180,10 @@ def create_alarm(clock, params):
         ``bool``, ``dict``, or ``NoneType``.
     """
     current_time_milliseconds = int(1000 * clock.seconds())
-
-    return {'id': 'al' + random_hex_generator(4),
-            'label': params.get('label', ''),
-            'criteria': params.get('criteria', 'return new AlarmStatus(OK);'),
-            'check_id': params['check_id'],
-            'notification_plan_id': params['notification_plan_id'],
-            'created_at': current_time_milliseconds,
-            'updated_at': current_time_milliseconds,
-            'disabled': False,
-            'metadata': params.get('metadata', {})}
+    params_copy = dict(params)
+    params_copy['entity_id'] = entity_id
+    params_copy['created_at'] = params_copy['updated_at'] = current_time_milliseconds
+    return Alarm(**params_copy)
 
 
 def create_notification_plan(clock, params):
@@ -526,7 +520,7 @@ class MaasMock(object):
             if c.entity_id == entity_id:
                 del checks[checks.index(c)]
         for a in alarms:
-            if a['entity_id'] == entity_id:
+            if a.entity_id == entity_id:
                 del alarms[alarms.index(a)]
         status = 204
         request.setResponseCode(status)
@@ -599,7 +593,7 @@ class MaasMock(object):
                 del checks[c]
                 break
         for a in alarms:
-            if a['check_id'] == check_id and a['entity_id'] == entity_id:
+            if a.check_id == check_id and a.entity_id == entity_id:
                 del alarms[alarms.index(a)]
         status = 204
         request.setResponseCode(status)
@@ -637,14 +631,13 @@ class MaasMock(object):
         """
         content = request.content.read()
         postdata = json.loads(content)
-        newalarm = create_alarm(self._session_store.clock, postdata)
-        newalarm['entity_id'] = entity_id
+        newalarm = create_alarm(self._session_store.clock, entity_id, postdata)
         self._entity_cache_for_tenant(tenant_id).alarms_list.append(newalarm)
         status = 201
         request.setResponseCode(status)
         request.setHeader('location', base_uri_from_request(request).rstrip('/') +
-                          request.path + '/' + newalarm['id'])
-        request.setHeader('x-object-id', newalarm['id'])
+                          request.path + '/' + newalarm.id.encode('utf-8'))
+        request.setHeader('x-object-id', newalarm.id.encode('utf-8'))
         request.setHeader('content-type', 'text/plain')
         self._audit('alarms', request, tenant_id, status, content)
         return b''
@@ -657,7 +650,7 @@ class MaasMock(object):
         """
         alarm = None
         for a in self._entity_cache_for_tenant(tenant_id).alarms_list:
-            if a['entity_id'] == entity_id and a['id'] == alarm_id:
+            if a.entity_id == entity_id and a.id == alarm_id:
                 alarm = a
                 break
         else:
@@ -669,7 +662,7 @@ class MaasMock(object):
                                    entity_id, alarm_id)
                                })
         request.setResponseCode(200)
-        return json.dumps(alarm)
+        return json.dumps(alarm.to_json())
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/<string:alarm_id>',
                methods=['PUT'])
@@ -686,14 +679,13 @@ class MaasMock(object):
         """
         content = request.content.read()
         update = json.loads(content)
+        update_kwargs = dict(update)
+        update_kwargs['clock'] = self._session_store.clock
         for alarm in self._entity_cache_for_tenant(tenant_id).alarms_list:
-            if alarm['entity_id'] == entity_id and alarm['id'] == alarm_id:
-                for k in ['check_id', 'notification_plan_id', 'criteria', 'disabled', 'label',
-                          'metadata']:
-                    if k in update:
-                        alarm[k] = update[k]
-                alarm['updated_at'] = int(1000 * self._session_store.clock.seconds())
+            if alarm.entity_id == entity_id and alarm.id == alarm_id:
+                alarm.update(**update_kwargs)
                 break
+
         status = 204
         request.setResponseCode(status)
         request.setHeader('location', base_uri_from_request(request).rstrip('/') + request.path)
@@ -710,7 +702,7 @@ class MaasMock(object):
         """
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
         for q in range(len(alarms)):
-            if alarms[q]['entity_id'] == entity_id and alarms[q]['id'] == alarm_id:
+            if alarms[q].entity_id == entity_id and alarms[q].id == alarm_id:
                 del alarms[q]
                 break
         status = 204
@@ -768,11 +760,9 @@ class MaasMock(object):
         Get all alarms for the specified entity.
         """
         alarms = [
-            dict(alarm) for alarm in self._entity_cache_for_tenant(tenant_id).alarms_list
-            if alarm['entity_id'] == entity_id
+            alarm for alarm in self._entity_cache_for_tenant(tenant_id).alarms_list
+            if alarm.entity_id == entity_id
         ]
-        for alarm in alarms:
-            del alarm['entity_id']
         metadata = {}
         metadata['count'] = len(alarms)
         metadata['limit'] = 1000
@@ -780,7 +770,7 @@ class MaasMock(object):
         metadata['next_marker'] = None
         metadata['next_href'] = None
         request.setResponseCode(200)
-        return json.dumps({'metadata': metadata, 'values': alarms})
+        return json.dumps({'metadata': metadata, 'values': [alarm.to_json() for alarm in alarms]})
 
     @app.route('/v1.0/<string:tenant_id>/views/overview', methods=['GET'])
     def overview(self, request, tenant_id):
@@ -816,10 +806,8 @@ class MaasMock(object):
             v = {}
             v['alarms'] = []
             for a in alarms:
-                if a['entity_id'] == e.id:
-                    a = dict(a)
-                    del a['entity_id']
-                    v['alarms'].append(a)
+                if a.entity_id == e.id:
+                    v['alarms'].append(a.to_json())
             v['checks'] = []
             for c in checks:
                 if c.entity_id == e.id:
@@ -1068,8 +1056,8 @@ class MaasMock(object):
         nplist = self._entity_cache_for_tenant(tenant_id).notificationplans_list
         alarmids_using_np = []
         for alarm in allalarms:
-            if alarm['notification_plan_id'] == np_id:
-                alarmids_using_np.append(alarm['id'])
+            if alarm.notification_plan_id == np_id:
+                alarmids_using_np.append(alarm.id)
 
         if len(alarmids_using_np):
             status = 403
@@ -1230,7 +1218,7 @@ class MaasMock(object):
             v = {}
             v['notification_plan_id'] = np['id']
             for alarm in allalarms:
-                if alarm['notification_plan_id'] == np['id']:
+                if alarm.notification_plan_id == np['id']:
                     alarm_count = alarm_count + 1
             v['alarm_count'] = alarm_count
             values.append(v)
@@ -1251,8 +1239,8 @@ class MaasMock(object):
         metadata['next_marker'] = None
         metadata['next_href'] = None
         for alarm in allalarms:
-            if alarm['notification_plan_id'] == np_id:
-                values.append(alarm)
+            if alarm.notification_plan_id == np_id:
+                values.append(alarm.to_json())
         metadata['count'] = len(values)
         request.setResponseCode(200)
         return json.dumps({'values': values, 'metadata': metadata})

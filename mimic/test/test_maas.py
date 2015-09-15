@@ -92,7 +92,6 @@ class MaasAPITests(SynchronousTestCase):
         """
         postdata = {}
         postdata['check_id'] = check_id
-        postdata['entityId'] = entity_id
         postdata['label'] = label
         postdata['notification_plan_id'] = 'npTechnicalContactsEmail'
         alarms_endpoint = '{0}/entities/{1}/alarms'.format(self.uri, entity_id)
