@@ -234,8 +234,10 @@ class NovaRegion(object):
         """
         tenant_session = self._session_store.session_for_tenant_id(tenant_id)
         flavors_global_collection = tenant_session.data_for_api(
-            self._api_mock, lambda: GlobalFlavorCollections(tenant_id=tenant_id, clock=self._session_store.clock))
-        flavors_region_collection = flavors_global_collection.collection_for_region(region_name=self._name)
+            self._api_mock, lambda: GlobalFlavorCollections(tenant_id=tenant_id,
+                                                            clock=self._session_store.clock))
+        flavors_region_collection =\
+            flavors_global_collection.collection_for_region(region_name=self._name)
         return flavors_region_collection
 
     app = MimicApp()

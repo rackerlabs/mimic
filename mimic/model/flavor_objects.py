@@ -66,6 +66,7 @@ def not_found(message, request):
     """
     return _nova_error_message("itemNotFound", message, NOT_FOUND, request)
 
+
 @attributes(
     ["tenant_id", "region_name", "clock",
      Attribute("flavors_store", default_factory=list)]
@@ -132,7 +133,7 @@ class RegionalFlavorCollection(object):
         flavor = self.flavor_by_id(flavor_id)
         if flavor is None:
             return dumps(not_found("The resource could not be found.",
-                                                   http_get_request))
+                                   http_get_request))
         return dumps({"flavor": flavor.detailed_json(absolutize_url)})
 
 

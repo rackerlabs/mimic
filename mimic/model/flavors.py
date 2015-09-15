@@ -14,7 +14,7 @@ class Flavor(object):
     static_defaults = {
         "swap": "",
         "OS-FLV-EXT-DATA:ephemeral": 0,
-        }
+    }
 
     def links_json(self, absolutize_url):
         """
@@ -41,7 +41,7 @@ class Flavor(object):
         """
         return {
             "quota_resources": "instances=mimic-instances,ram=mimic-ram",
-            }
+        }
 
     def brief_json(self, absolutize_url):
         """
