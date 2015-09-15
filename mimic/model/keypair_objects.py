@@ -45,21 +45,8 @@ class KeyPair(object):
 )
 class RegionalKeyPairCollection(object):
 
-    def tenant_session(self):
-        tenant_session = SessionStore.session_for_tenant_id(self.tenant_id)
-        return tenant_session
-
-    def _get_session(self):
-        return (
-            self.tenant_session()
-            .data_for_api(self, lambda: GlobalKeyPairCollections(
-                tenant_id=self.tenant_id,
-                clock=self.tenant_session().clock
-            ))
-        )
-
     def create_keypair(self, keypair):
-        self.keypairs
+        self.keypairs.append(keypair)
 
 
 @attributes(["tenant_id", "clock",

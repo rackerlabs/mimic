@@ -221,7 +221,7 @@ class NovaRegion(object):
         tenant_session = self._session_store.session_for_tenant_id(tenant_id)
         kp_global_collection = tenant_session.data_for_api(
             self._api_mock,
-            lambda: GlobalKeyPairCollections(
+            lambda: GlobalKeyPairCollections(tenant_id=tenant_id,
                 clock=self._session_store.clock))
         kp_region_collection = kp_global_collection.collection_for_region(
             self._name)
