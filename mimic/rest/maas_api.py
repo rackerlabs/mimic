@@ -236,6 +236,24 @@ def create_suppression(clock, params):
     return Suppression(**params_copy)
 
 
+def _object_getter(collection, matcher, request, object_type, object_key):
+    """
+    Generic getter handler for objects in a collection.
+    """
+    for obj in collection:
+        if matcher(obj):
+            request.setResponseCode(200)
+            return json.dumps(obj.to_json())
+    request.setResponseCode(404)
+    return json.dumps({'type': 'notFoundError',
+                       'code': 404,
+                       'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
+                       'message': 'Object does not exist',
+                       'details': 'Object "{0}" with key "{1}" does not exist'.format(
+                           object_type, object_key)
+                       })
+
+
 def create_metric_list_from_entity(entity, allchecks):
     """
     To respond to the metrics_list api call, we must have the entity and allchecks
@@ -439,17 +457,11 @@ class MaasMock(object):
         """
         Fetches a specific entity
         """
-        entity = None
-        for e in self._entity_cache_for_tenant(tenant_id).entities_list:
-            if e.id == entity_id:
-                entity = e
-                break
-        if not entity:
-            request.setResponseCode(404)
-            return b'{}'
-        else:
-            request.setResponseCode(200)
-            return json.dumps(entity.to_json())
+        return _object_getter(self._entity_cache_for_tenant(tenant_id).entities_list,
+                              lambda entity: entity.id == entity_id,
+                              request,
+                              "Entity",
+                              entity_id)
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks', methods=['GET'])
     def get_checks_for_entity(self, request, tenant_id, entity_id):
@@ -535,12 +547,11 @@ class MaasMock(object):
         """
         Get a specific check that was created before
         """
-        mycheck = {}
-        for c in self._entity_cache_for_tenant(tenant_id).checks_list:
-            if c.id == check_id:
-                mycheck = c.to_json()
-        request.setResponseCode(200)
-        return json.dumps(mycheck)
+        return _object_getter(self._entity_cache_for_tenant(tenant_id).checks_list,
+                              lambda check: check.id == check_id,
+                              request,
+                              "Check",
+                              '{0}:{1}'.format(entity_id, check_id))
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks/<string:check_id>',
                methods=['PUT'])
@@ -630,18 +641,11 @@ class MaasMock(object):
         """
         Gets an alarm by ID.
         """
-        for alarm in self._entity_cache_for_tenant(tenant_id).alarms_list:
-            if alarm.entity_id == entity_id and alarm.id == alarm_id:
-                request.setResponseCode(200)
-                return json.dumps(alarm.to_json())
-
-        request.setResponseCode(404)
-        return json.dumps({'type': 'notFoundError',
-                           'code': 404,
-                           'message': 'Object does not exist',
-                           'details': 'Object "Alarm" with key "{0}:{1}" does not exist'.format(
-                               entity_id, alarm_id)
-                           })
+        return _object_getter(self._entity_cache_for_tenant(tenant_id).alarms_list,
+                              lambda alarm: alarm.entity_id == entity_id and alarm.id == alarm_id,
+                              request,
+                              "Alarm",
+                              '{0}:{1}'.format(entity_id, alarm_id))
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/<string:alarm_id>',
                methods=['PUT'])
@@ -995,14 +999,11 @@ class MaasMock(object):
         """
         Get specific notif plan
         """
-        mynp = None
-        np_list = self._entity_cache_for_tenant(tenant_id).notificationplans_list
-        for np in np_list:
-            if np.id == np_id:
-                mynp = np.to_json()
-                break
-        request.setResponseCode(200)
-        return json.dumps(mynp)
+        return _object_getter(self._entity_cache_for_tenant(tenant_id).notificationplans_list,
+                              lambda np: np.id == np_id,
+                              request,
+                              "Notification Plan",
+                              np_id)
 
     @app.route('/v1.0/<string:tenant_id>/notification_plans/<string:np_id>', methods=['PUT'])
     def update_notification_plan(self, request, tenant_id, np_id):
@@ -1075,14 +1076,11 @@ class MaasMock(object):
         """
         Get a suppression by ID.
         """
-        mysp = None
-        splist = self._entity_cache_for_tenant(tenant_id).suppressions_list
-        for sp in splist:
-            if sp.id == sp_id:
-                mysp = sp.to_json()
-                break
-        request.setResponseCode(200)
-        return json.dumps(mysp)
+        return _object_getter(self._entity_cache_for_tenant(tenant_id).suppressions_list,
+                              lambda sp: sp.id == sp_id,
+                              request,
+                              "Suppression",
+                              sp_id)
 
     @app.route('/v1.0/<string:tenant_id>/suppressions', methods=['POST'])
     def create_suppression(self, request, tenant_id):
