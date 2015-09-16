@@ -25,7 +25,13 @@ from mimic.canned_responses.maas_json_home import json_home
 from mimic.canned_responses.maas_agent_info import agent_info
 from mimic.canned_responses.maas_monitoring_zones import monitoring_zones
 from mimic.canned_responses.maas_alarm_examples import alarm_examples
-from mimic.model.maas_objects import Alarm, Check, Entity, MaasStore, Notification
+from mimic.model.maas_objects import (Alarm,
+                                      Check,
+                                      Entity,
+                                      MaasStore,
+                                      Notification,
+                                      NotificationPlan,
+                                      Suppression)
 from mimic.util.helper import random_hex_generator, random_hipsum
 
 
@@ -105,10 +111,10 @@ class MCache(object):
                                                 created_at=current_time_milliseconds,
                                                 updated_at=current_time_milliseconds,
                                                 type=u'technicalContactsEmail')]
-        self.notificationplans_list = [{'id': 'npTechnicalContactsEmail',
-                                        'label': 'Technical Contacts - Email',
-                                        'critical_state': [], 'warning_state': [],
-                                        'ok_state': [], 'metadata': None}]
+        self.notificationplans_list = [NotificationPlan(id=u'npTechnicalContactsEmail',
+                                                        label=u'Technical Contacts - Email',
+                                                        created_at=current_time_milliseconds,
+                                                        updated_at=current_time_milliseconds)]
         self.notificationtypes_list = [{'id': 'webhook', 'fields': [{'name': 'url',
                                                                      'optional': False,
                                                                      'description': 'An HTTP or \
@@ -195,15 +201,9 @@ def create_notification_plan(clock, params):
         ``dict`` or ``NoneType``.
     """
     current_time_milliseconds = int(1000 * clock.seconds())
-
-    return {'id': 'np' + random_hex_generator(4),
-            'label': params.get('label', ''),
-            'critical_state': params.get('critical_state'),
-            'warning_state': params.get('warning_state'),
-            'ok_state': params.get('ok_state'),
-            'created_at': current_time_milliseconds,
-            'updated_at': current_time_milliseconds,
-            'metadata': params.get('metadata', {})}
+    params_copy = dict(params)
+    params_copy['created_at'] = params_copy['updated_at'] = current_time_milliseconds
+    return NotificationPlan(**params_copy)
 
 
 def create_notification(clock, params):
@@ -222,7 +222,7 @@ def create_notification(clock, params):
     return Notification(**params_copy)
 
 
-def create_suppression(params):
+def create_suppression(clock, params):
     """
     Creates a suppression
 
@@ -231,14 +231,9 @@ def create_suppression(params):
         <http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-suppressions.html>`_
     :rtype: ``dict`` mapping ``unicode`` to ``unicode`` or ``list``.
     """
-    return {'id': 'sp' + random_hex_generator(4),
-            'label': params.get('label', ''),
-            'start_time': params.get('start_time', 0),
-            'end_time': params.get('end_time', 0),
-            'notification_plans': params.get('notification_plans', []),
-            'entities': params.get('entities', []),
-            'checks': params.get('checks', []),
-            'alarms': params.get('alarms', [])}
+    params_copy = dict(params)
+    params_copy['created_at'] = params_copy['updated_at'] = int(1000 * clock.seconds())
+    return Suppression(**params_copy)
 
 
 def create_metric_list_from_entity(entity, allchecks):
@@ -994,8 +989,8 @@ class MaasMock(object):
         request.setResponseCode(status)
         request.setHeader('content-type', 'text/plain')
         request.setHeader('location', base_uri_from_request(request).rstrip('/') +
-                          request.path + '/' + newnp['id'])
-        request.setHeader('x-object-id', newnp['id'])
+                          request.path + '/' + newnp.id.encode('utf-8'))
+        request.setHeader('x-object-id', newnp.id.encode('utf-8'))
         self._audit('notification_plans', request, tenant_id, status, content)
         return b''
 
@@ -1004,11 +999,14 @@ class MaasMock(object):
         """
         Get all notification plans
         """
-        npist = self._entity_cache_for_tenant(tenant_id).notificationplans_list
-        metadata = {'count': len(npist), 'limit': 100, 'marker': None, 'next_marker': None,
+        np_list = self._entity_cache_for_tenant(tenant_id).notificationplans_list
+        metadata = {'count': len(np_list),
+                    'limit': 100,
+                    'marker': None,
+                    'next_marker': None,
                     'next_href': None}
         request.setResponseCode(200)
-        return json.dumps({'values': npist, 'metadata': metadata})
+        return json.dumps({'values': [np.to_json() for np in np_list], 'metadata': metadata})
 
     @app.route('/v1.0/<string:tenant_id>/notification_plans/<string:np_id>', methods=['GET'])
     def get_notification_plan(self, request, tenant_id, np_id):
@@ -1016,10 +1014,10 @@ class MaasMock(object):
         Get specific notif plan
         """
         mynp = None
-        nplist = self._entity_cache_for_tenant(tenant_id).notificationplans_list
-        for np in nplist:
-            if np['id'] == np_id:
-                mynp = np
+        np_list = self._entity_cache_for_tenant(tenant_id).notificationplans_list
+        for np in np_list:
+            if np.id == np_id:
+                mynp = np.to_json()
                 break
         request.setResponseCode(200)
         return json.dumps(mynp)
@@ -1031,12 +1029,12 @@ class MaasMock(object):
         """
         content = request.content.read()
         postdata = json.loads(content)
-        nplist = self._entity_cache_for_tenant(tenant_id).notificationplans_list
-        for np in nplist:
-            if np['id'] == postdata['id']:
-                for k in postdata.keys():
-                    np[k] = postdata[k]
-                np['updated_at'] = int(1000 * self._session_store.clock.seconds())
+        update_kwargs = dict(postdata)
+        update_kwargs['clock'] = self._session_store.clock
+        np_list = self._entity_cache_for_tenant(tenant_id).notificationplans_list
+        for np in np_list:
+            if np.id == np_id:
+                np.update(**update_kwargs)
                 break
         status = 204
         request.setResponseCode(status)
@@ -1050,7 +1048,7 @@ class MaasMock(object):
         Remove a notification plan
         """
         allalarms = self._entity_cache_for_tenant(tenant_id).alarms_list
-        nplist = self._entity_cache_for_tenant(tenant_id).notificationplans_list
+        np_list = self._entity_cache_for_tenant(tenant_id).notificationplans_list
         alarmids_using_np = []
         for alarm in allalarms:
             if alarm.notification_plan_id == np_id:
@@ -1071,9 +1069,9 @@ class MaasMock(object):
             self._audit('notification_plans', request, tenant_id, status)
             return json.dumps(errobj)
 
-        for np in nplist:
-            if np['id'] == np_id:
-                del nplist[nplist.index(np)]
+        for np in np_list:
+            if np.id == np_id:
+                del np_list[np_list.index(np)]
                 break
         status = 204
         request.setResponseCode(status)
@@ -1086,16 +1084,16 @@ class MaasMock(object):
         """
         Get the list of suppressions for this tenant.
         """
-        splist = self._entity_cache_for_tenant(tenant_id).suppressions_list
+        sp_list = self._entity_cache_for_tenant(tenant_id).suppressions_list
         metadata = {
-            'count': len(splist),
+            'count': len(sp_list),
             'limit': 100,
             'marker': None,
             'next_marker': None,
             'next_href': None
         }
         request.setResponseCode(200)
-        return json.dumps({'values': splist, 'metadata': metadata})
+        return json.dumps({'values': [sp.to_json() for sp in sp_list], 'metadata': metadata})
 
     @app.route('/v1.0/<string:tenant_id>/suppressions/<string:sp_id>', methods=['GET'])
     def get_suppression(self, request, tenant_id, sp_id):
@@ -1105,8 +1103,8 @@ class MaasMock(object):
         mysp = None
         splist = self._entity_cache_for_tenant(tenant_id).suppressions_list
         for sp in splist:
-            if sp['id'] == sp_id:
-                mysp = sp
+            if sp.id == sp_id:
+                mysp = sp.to_json()
                 break
         request.setResponseCode(200)
         return json.dumps(mysp)
@@ -1118,13 +1116,13 @@ class MaasMock(object):
         """
         content = request.content.read()
         postdata = json.loads(content)
-        newsp = create_suppression(postdata)
+        newsp = create_suppression(self._session_store.clock, postdata)
         self._entity_cache_for_tenant(tenant_id).suppressions_list.append(newsp)
         status = 201
         request.setResponseCode(status)
         request.setHeader('location', base_uri_from_request(request).rstrip('/') +
-                          request.path + '/' + newsp['id'])
-        request.setHeader('x-object-id', newsp['id'])
+                          request.path + '/' + newsp.id.encode('utf-8'))
+        request.setHeader('x-object-id', newsp.id.encode('utf-8'))
         request.setHeader('content-type', 'text/plain')
         self._audit('suppressions', request, tenant_id, status, content)
         return b''
@@ -1136,12 +1134,12 @@ class MaasMock(object):
         """
         content = request.content.read()
         postdata = json.loads(content)
-        splist = self._entity_cache_for_tenant(tenant_id).suppressions_list
-        for sp in splist:
-            if sp['id'] == sp_id:
-                for k in postdata.keys():
-                    sp[k] = postdata[k]
-                sp['updated_at'] = int(1000 * self._session_store.clock.seconds())
+        update_kwargs = dict(postdata)
+        update_kwargs['clock'] = self._session_store.clock
+        sp_list = self._entity_cache_for_tenant(tenant_id).suppressions_list
+        for sp in sp_list:
+            if sp.id == sp_id:
+                sp.update(**update_kwargs)
                 break
         status = 204
         request.setResponseCode(status)
@@ -1154,10 +1152,10 @@ class MaasMock(object):
         """
         Delete a suppression.
         """
-        splist = self._entity_cache_for_tenant(tenant_id).suppressions_list
-        for sp in splist:
-            if sp['id'] == sp_id:
-                del splist[splist.index(sp)]
+        sp_list = self._entity_cache_for_tenant(tenant_id).suppressions_list
+        for sp in sp_list:
+            if sp.id == sp_id:
+                del sp_list[sp_list.index(sp)]
                 break
         status = 204
         request.setResponseCode(204)
@@ -1213,9 +1211,9 @@ class MaasMock(object):
         for np in allnps:
             alarm_count = 0
             v = {}
-            v['notification_plan_id'] = np['id']
+            v['notification_plan_id'] = np.id
             for alarm in allalarms:
-                if alarm.notification_plan_id == np['id']:
+                if alarm.notification_plan_id == np.id:
                     alarm_count = alarm_count + 1
             v['alarm_count'] = alarm_count
             values.append(v)

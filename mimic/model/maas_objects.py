@@ -182,6 +182,83 @@ class Notification(object):
         self.updated_at = int(1000 * kwargs['clock'].seconds())
 
 
+@attributes([Attribute('created_at', instance_of=int),
+             Attribute('critical_state', default_factory=list, instance_of=list),
+             Attribute('id',
+                       default_factory=(lambda: u'np' + random_hex_generator(4)),
+                       instance_of=text_type),
+             Attribute('label', default_value=u'', instance_of=text_type),
+             Attribute('metadata', default_factory=dict, instance_of=dict),
+             Attribute('ok_state', default_factory=list, instance_of=list),
+             Attribute('updated_at', instance_of=int),
+             Attribute('warning_state', default_factory=list, instance_of=list)])
+class NotificationPlan(object):
+    """
+    Models a MaaS notification plan.
+    """
+    def to_json(self):
+        """
+        Serializes the Notification Plan to a JSON-encodable dict.
+        """
+        return {'id': self.id,
+                'label': self.label,
+                'critical_state': self.critical_state,
+                'warning_state': self.warning_state,
+                'ok_state': self.ok_state,
+                'created_at': self.created_at,
+                'updated_at': self.updated_at,
+                'metadata': self.metadata}
+
+    def update(self, **kwargs):
+        """
+        Updates this Notification Plan.
+        """
+        for key in ['critical_state', 'label', 'metadata', 'ok_state', 'warning_state']:
+            if key in kwargs:
+                setattr(self, key, kwargs[key])
+        self.updated_at = int(1000 * kwargs['clock'].seconds())
+
+
+@attributes([Attribute('alarms', default_factory=list, instance_of=list),
+             Attribute('checks', default_factory=list, instance_of=list),
+             Attribute('created_at', instance_of=int),
+             Attribute('end_time', default_value=0, instance_of=int),
+             Attribute('entities', default_factory=list, instance_of=list),
+             Attribute('id',
+                       default_factory=(lambda: u'sp' + random_hex_generator(4)),
+                       instance_of=text_type),
+             Attribute('label', default_value=u'', instance_of=text_type),
+             Attribute('notification_plans', default_factory=list, instance_of=list),
+             Attribute('start_time', default_value=0, instance_of=int),
+             Attribute('updated_at', instance_of=int)])
+class Suppression(object):
+    """
+    Models a MaaS suppression.
+    """
+    def to_json(self):
+        """
+        Serializes the Suppression to a JSON-encodable dict.
+        """
+        return {'id': self.id,
+                'label': self.label,
+                'start_time': self.start_time,
+                'end_time': self.end_time,
+                'notification_plans': self.notification_plans,
+                'entities': self.entities,
+                'checks': self.checks,
+                'alarms': self.alarms}
+
+    def update(self, **kwargs):
+        """
+        Updates this Suppression.
+        """
+        for key in ['alarms', 'checks', 'end_time', 'entities', 'label',
+                    'notification_plans', 'start_time']:
+            if key in kwargs:
+                setattr(self, key, kwargs[key])
+        self.updated_at = int(1000 * kwargs['clock'].seconds())
+
+
 @attributes(["name",
              "type",
              Attribute("_unit", default_value="other"),
