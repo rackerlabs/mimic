@@ -9,49 +9,7 @@ from mimic.model.flavors import (
     RackspaceOnMetalFlavor, RackspaceIOFlavor, RackspaceGeneralFlavor,
     RackspacePerformance1Flavor, RackspacePerformance2Flavor)
 
-from twisted.web.http import NOT_FOUND
-
-
-@attributes(['nova_message'])
-class BadRequestError(Exception):
-    """
-    Error to be raised when bad input has been received to Nova.
-    """
-
-
-def _nova_error_message(msg_type, message, status_code, request):
-    """
-    Set the response code on the request, and return a JSON blob representing
-    a Nova error body, in the format Nova returns error messages.
-
-    :param str msg_type: What type of error this is - something like
-        "badRequest" or "itemNotFound" for Nova.
-    :param str message: The message to include in the body.
-    :param int status_code: The status code to set
-    :param request: the request to set the status code on
-
-    :return: dictionary representing the error body
-    """
-    request.setResponseCode(status_code)
-    return {
-        msg_type: {
-            "message": message,
-            "code": status_code
-        }
-    }
-
-
-def not_found(message, request):
-    """
-    Return a 404 error body associated with a Nova not found error.
-    Also sets the response code on the request.
-
-    :param str message: The message to include in the bad request body.
-    :param request: The request on which to set the response code.
-
-    :return: dictionary representing the error body.
-    """
-    return _nova_error_message("itemNotFound", message, NOT_FOUND, request)
+from mimic.model.nova_objects import not_found
 
 
 @attributes(
