@@ -49,6 +49,7 @@ class RegionalKeyPairCollection(object):
         # from IPython import embed
         # embed()
         self.keypairs.append(keypair)
+        return
 
 
 @attributes(["tenant_id", "clock",

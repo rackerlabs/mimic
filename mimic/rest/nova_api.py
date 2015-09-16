@@ -432,8 +432,10 @@ class NovaRegion(object):
         name = keypair["name"]
         pub_key = keypair["public_key"]
         keypair_from_request = KeyPair(name=name, public_key=pub_key)
-        self._keypair_collection_for_tenant(tenant_id).create_keypair(keypair=keypair_from_request)
-        return None
+        keypair_response = self._keypair_collection_for_tenant(tenant_id).create_keypair(keypair=keypair_from_request)
+        from IPython import embed
+        embed()
+        return json.dumps(keypair_response)
 
     @app.route("/v2/<string:tenant_id>/os-keypairs/<string:keypairname>", methods=['DELETE'])
     def delete_key_pair(self, request, tenant_id, keypairname):
