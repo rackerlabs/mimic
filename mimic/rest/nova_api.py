@@ -5,15 +5,11 @@ Defines create, delete, get, list servers and get images and flavors.
 
 from uuid import uuid4
 import json
-from IPython import embed
 
 from characteristic import attributes
 from six import text_type
-
 from zope.interface import implementer
-
 from twisted.python.urlpath import URLPath
-
 from twisted.plugin import IPlugin
 from twisted.web.http import CREATED, BAD_REQUEST
 
