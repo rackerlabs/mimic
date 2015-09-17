@@ -2,11 +2,6 @@
 Tests for :mod:`nova_api` and :mod:`nova_objects`.
 """
 import json
-from urllib import urlencode
-from urlparse import parse_qs
-
-import treq
-from IPython import embed;
 
 from twisted.trial.unittest import SynchronousTestCase
 
