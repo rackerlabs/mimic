@@ -415,7 +415,7 @@ class NovaRegion(object):
         """
         Returns current key pairs
         """
-        return None
+        return json.dumps(self._keypair_collection_for_tenant(tenant_id).json_list())
 
     @app.route("/v2/<string:tenant_id>/os-keypairs", methods=['POST'])
     def create_key_pair(self, request, tenant_id):
@@ -433,8 +433,6 @@ class NovaRegion(object):
         pub_key = keypair["public_key"]
         keypair_from_request = KeyPair(name=name, public_key=pub_key)
         keypair_response = self._keypair_collection_for_tenant(tenant_id).create_keypair(keypair=keypair_from_request)
-        from IPython import embed
-        embed()
         return json.dumps(keypair_response)
 
     @app.route("/v2/<string:tenant_id>/os-keypairs/<string:keypairname>", methods=['DELETE'])
@@ -442,7 +440,8 @@ class NovaRegion(object):
         """
         Removes a key by its name
         """
-        return None
+        self._keypair_collection_for_tenant(tenant_id).remove_keypair(keypairname)
+        request.setResponseCode(202)
 
 class ServerMetadata(object):
 

@@ -1,24 +1,12 @@
 """
 Keypair objects for mimic
 """
-
-import re
 from mimic.session import SessionStore
 
 from characteristic import attributes, Attribute
-from random import randrange
 from json import loads, dumps
 from urllib import urlencode
 
-from six import string_types
-
-from mimic.util.helper import (
-    seconds_to_timestamp,
-    random_string,
-    timestamp_to_seconds
-)
-from mimic.canned_responses.mimic_presets import get_presets
-from twisted.web.http import ACCEPTED, BAD_REQUEST, FORBIDDEN, NOT_FOUND, CONFLICT
 
 from characteristic import attributes, Attribute
 @attributes(['name', 'public_key'])
@@ -26,18 +14,16 @@ class KeyPair(object):
     """
     A KeyPair object
     """
-    static_defaults = {
-        "fingerprint": "TEST",
-        "private_key": """-----TEST-----\TODO: INSERT RANDOM STRING-----TEST-----\n"""
-    }
-
+    fingerprint = "TEST::TEST::TEST::TEST:TEST"
 
     def key_json(self):
-        template = self.static_defaults.copy()
-        template.update({
-            "name": self.name,
-            "public_key": self.public_key
-        })
+        return {
+            "keypair": {
+                "name": self.name,
+                "public_key": self.public_key,
+                "fingerprint": self.fingerprint
+                }
+            }
 
 @attributes(
     ["tenant_id", "region_name", "clock",
@@ -46,11 +32,29 @@ class KeyPair(object):
 class RegionalKeyPairCollection(object):
 
     def create_keypair(self, keypair):
-        # from IPython import embed
-        # embed()
         self.keypairs.append(keypair)
-        return
+        return self.keypair_by_name(keypair.name).key_json()
 
+    def keypair_by_name(self, name):
+        for keypair in self.keypairs:
+            if keypair.name == name:
+                return keypair
+
+    def json_list(self):
+        keypairs_json = {}
+        for keypair in self.keypairs:
+            keypairs_json.update(keypair.key_json())
+
+        result = {
+            "keypairs": [
+                keypairs_json
+            ]
+        }
+        return dumps(result)
+
+    def remove_keypair(self, name):
+        kp_to_remove = self.keypair_by_name(name)
+        self.keypairs.remove(kp_to_remove)
 
 @attributes(["tenant_id", "clock",
              Attribute("regional_collections", default_factory=dict)])
