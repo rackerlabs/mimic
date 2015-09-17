@@ -333,6 +333,7 @@ class Server(object):
         collection.servers.append(self)
         return self
 
+
 @attributes(["address"])
 class IPv4Address(object):
     """
