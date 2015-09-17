@@ -13,6 +13,7 @@ from mimic.test.behavior_tests import (
 from mimic.test.fixtures import APIMockHelper, TenantAuthentication
 from mimic.util.helper import seconds_to_timestamp
 
+
 class KeyPairTests(SynchronousTestCase):
 
     """
@@ -32,7 +33,8 @@ class KeyPairTests(SynchronousTestCase):
         self.uri = self.helper.uri
         self.create_keypair_response, self.create_keypair_response_body = (
             self.create_keypair())
-        self.keypair_name = self.create_keypair_response_body['keypair']['name']
+        self.keypair_name = self.create_keypair_response_body[
+            'keypair']['name']
 
     def create_keypair(self):
         kp_body = {
@@ -70,13 +72,13 @@ class KeyPairTests(SynchronousTestCase):
             self, self.helper.root, "GET", self.helper.uri + '/os-keypairs'
         ))
         self.assertEqual(resp.code, 200)
-        #assert for good servers in response here
-
+        # assert for good servers in response here
 
     def test_delete_keypair(self):
         resp = self.successResultOf(request(
-            self, self.helper.root, "DELETE", self.helper.uri + '/os-keypairs/' + self.keypair_name
+            self, self.helper.root, "DELETE", self.helper.uri +
+            '/os-keypairs/' + self.keypair_name
         ))
 
         self.assertEqual(resp.code, 202)
-        #assert server is gone
+        # assert server is gone

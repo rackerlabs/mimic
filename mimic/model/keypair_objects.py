@@ -9,6 +9,8 @@ from urllib import urlencode
 
 
 from characteristic import attributes, Attribute
+
+
 @attributes(['name', 'public_key'])
 class KeyPair(object):
     """
@@ -22,8 +24,9 @@ class KeyPair(object):
                 "name": self.name,
                 "public_key": self.public_key,
                 "fingerprint": self.fingerprint
-                }
             }
+        }
+
 
 @attributes(
     ["tenant_id", "region_name", "clock",
@@ -56,6 +59,7 @@ class RegionalKeyPairCollection(object):
         kp_to_remove = self.keypair_by_name(name)
         self.keypairs.remove(kp_to_remove)
 
+
 @attributes(["tenant_id", "clock",
              Attribute("regional_collections", default_factory=dict)])
 class GlobalKeyPairCollections(object):
@@ -73,7 +77,7 @@ class GlobalKeyPairCollections(object):
         if region_name not in self.regional_collections:
             self.regional_collections[region_name] = (
                 RegionalKeyPairCollection(tenant_id=self.tenant_id,
-                                         region_name=region_name,
-                                         clock=self.clock)
+                                          region_name=region_name,
+                                          clock=self.clock)
             )
         return self.regional_collections[region_name]

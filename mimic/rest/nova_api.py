@@ -5,6 +5,7 @@ Defines create, delete, get, list servers and get images and flavors.
 
 from uuid import uuid4
 import json
+from IPython import embed
 
 from characteristic import attributes
 from six import text_type
@@ -222,7 +223,7 @@ class NovaRegion(object):
         kp_global_collection = tenant_session.data_for_api(
             self._api_mock,
             lambda: GlobalKeyPairCollections(tenant_id=tenant_id,
-                clock=self._session_store.clock))
+                                             clock=self._session_store.clock))
         kp_region_collection = kp_global_collection.collection_for_region(
             self._name)
         return kp_region_collection
@@ -432,7 +433,8 @@ class NovaRegion(object):
         name = keypair["name"]
         pub_key = keypair["public_key"]
         keypair_from_request = KeyPair(name=name, public_key=pub_key)
-        keypair_response = self._keypair_collection_for_tenant(tenant_id).create_keypair(keypair=keypair_from_request)
+        keypair_response = self._keypair_collection_for_tenant(
+            tenant_id).create_keypair(keypair=keypair_from_request)
         return json.dumps(keypair_response)
 
     @app.route("/v2/<string:tenant_id>/os-keypairs/<string:keypairname>", methods=['DELETE'])
@@ -440,8 +442,10 @@ class NovaRegion(object):
         """
         Removes a key by its name
         """
-        self._keypair_collection_for_tenant(tenant_id).remove_keypair(keypairname)
+        self._keypair_collection_for_tenant(
+            tenant_id).remove_keypair(keypairname)
         request.setResponseCode(202)
+
 
 class ServerMetadata(object):
 
