@@ -1,12 +1,8 @@
 """
 Keypair objects for mimic
 """
-from mimic.session import SessionStore
 
-from characteristic import attributes, Attribute
-from json import loads, dumps
-from urllib import urlencode
-
+from json import dumps
 
 from characteristic import attributes, Attribute
 

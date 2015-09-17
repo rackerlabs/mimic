@@ -1,17 +1,12 @@
 """
 Tests for :mod:`nova_api` and :mod:`nova_objects`.
 """
-import json
 
 from twisted.trial.unittest import SynchronousTestCase
 
-from mimic.test.helpers import json_request, request, request_with_content, validate_link_json
+from mimic.test.helpers import json_request, request
 from mimic.rest.nova_api import NovaApi, NovaControlApi
-from mimic.test.behavior_tests import (
-    behavior_tests_helper_class,
-    register_behavior)
-from mimic.test.fixtures import APIMockHelper, TenantAuthentication
-from mimic.util.helper import seconds_to_timestamp
+from mimic.test.fixtures import APIMockHelper
 
 
 class KeyPairTests(SynchronousTestCase):
