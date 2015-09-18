@@ -24,13 +24,12 @@ class RegionalFlavorCollection(object):
         """
         Retrieve a :obj:`Flavor` object by its ID.
         """
-        if len(self.flavors_store) < 1:
-            self.create_flavors_list()
+        self._create_flavors_list()
         for flavor in self.flavors_store:
             if flavor.flavor_id == flavor_id:
                 return flavor
 
-    def create_flavors_list(self):
+    def _create_flavors_list(self):
         """
         Generates the data for each flavor in each flavor class
         """
@@ -58,8 +57,7 @@ class RegionalFlavorCollection(object):
         """
         Return a list of flavors with details.
         """
-        if len(self.flavors_store) < 1:
-            self.create_flavors_list()
+        self._create_flavors_list()
         flavors = []
         for flavor in self.flavors_store:
             if self.region_name != "IAD" and isinstance(flavor, RackspaceOnMetalFlavor):
@@ -75,8 +73,7 @@ class RegionalFlavorCollection(object):
     def get_flavor(self, http_get_request, flavor_id, absolutize_url):
         """
         Return a flavor object if one exists from the list `/flavors` api,
-        else creates and adds the flavor to the :obj: `flavors_store`.
-        If the `flavor_id` is listed in `mimic.canned_responses.mimic_presets`,
+        If the `flavor_id` is not found in the flavor store,
         then will return 404.
         """
         flavor = self.flavor_by_id(flavor_id)
@@ -88,9 +85,9 @@ class RegionalFlavorCollection(object):
 
 @attributes(["tenant_id", "clock",
              Attribute("regional_collections", default_factory=dict)])
-class GlobalFlavorCollections(object):
+class GlobalFlavorCollection(object):
     """
-    A :obj:`GlobalFlavorCollections` is a set of all the
+    A :obj:`GlobalFlavorCollection` is a set of all the
     :obj:`RegionalFlavorCollection` objects owned by a given tenant.  In other
     words, all the flavor objects that a single tenant owns globally.
     """

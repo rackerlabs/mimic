@@ -25,7 +25,7 @@ from mimic.model.behaviors import make_behavior_api
 from mimic.model.nova_objects import (
     BadRequestError, GlobalServerCollections, LimitError, Server,
     bad_request, forbidden, not_found, server_creation)
-from mimic.model.flavor_objects import GlobalFlavorCollections
+from mimic.model.flavor_collections import GlobalFlavorCollection
 
 
 @implementer(IAPIMock, IPlugin)
@@ -328,8 +328,8 @@ class NovaRegion(object):
         """
         Returns a get flavor response, for any given flavorid
         """
-        flavor_collection = GlobalFlavorCollections(tenant_id=tenant_id,
-                                                    clock=self._session_store.clock)
+        flavor_collection = GlobalFlavorCollection(tenant_id=tenant_id,
+                                                   clock=self._session_store.clock)
         return (flavor_collection.collection_for_region(region_name=self._name)
                 .get_flavor(request, flavor_id, absolutize_url=self.url))
 
@@ -341,8 +341,8 @@ class NovaRegion(object):
         TO DO: The length of flavor list can be set using the control plane.
                Also be able to set different flavor types in the future.
         """
-        flavor_collection = GlobalFlavorCollections(tenant_id=tenant_id,
-                                                    clock=self._session_store.clock)
+        flavor_collection = GlobalFlavorCollection(tenant_id=tenant_id,
+                                                   clock=self._session_store.clock)
         return (flavor_collection.collection_for_region(region_name=self._name)
                 .list_flavors(include_details=False, absolutize_url=self.url))
 
@@ -353,8 +353,8 @@ class NovaRegion(object):
         TO DO: The length of flavor list can be set using the control plane.
                Also be able to set different flavor types in the future.
         """
-        flavor_collection = GlobalFlavorCollections(tenant_id=tenant_id,
-                                                    clock=self._session_store.clock)
+        flavor_collection = GlobalFlavorCollection(tenant_id=tenant_id,
+                                                   clock=self._session_store.clock)
         return (flavor_collection.collection_for_region(region_name=self._name)
                 .list_flavors(include_details=True, absolutize_url=self.url))
 
