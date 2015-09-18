@@ -25,7 +25,6 @@ class RegionalFlavorCollection(object):
         """
         Retrieve a :obj:`Flavor` object by its ID.
         """
-
         self._create_flavors_list()
         for flavor in self.flavors_store:
             if flavor.flavor_id == flavor_id:
@@ -59,7 +58,6 @@ class RegionalFlavorCollection(object):
         """
         Return a list of flavors with details.
         """
-
         self._create_flavors_list()
         flavors = []
         for flavor in self.flavors_store:

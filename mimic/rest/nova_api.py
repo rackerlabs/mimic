@@ -338,7 +338,7 @@ class NovaRegion(object):
         Returns a get flavor response, for any given flavorid
         """
         flavor_collection = GlobalFlavorCollection(tenant_id=tenant_id,
-                                                    clock=self._session_store.clock)
+                                                   clock=self._session_store.clock)
         return(self._collection_for_tenant(tenant_id, flavor_collection)
                .get_flavor(request, flavor_id, absolutize_url=self.url))
 
@@ -349,7 +349,7 @@ class NovaRegion(object):
         docs: http://bit.ly/1eXTSDC
         """
         flavor_collection = GlobalFlavorCollection(tenant_id=tenant_id,
-                                                    clock=self._session_store.clock)
+                                                   clock=self._session_store.clock)
         return (self._collection_for_tenant(tenant_id, flavor_collection)
                 .list_flavors(include_details=False, absolutize_url=self.url))
 
@@ -359,7 +359,7 @@ class NovaRegion(object):
         Returns a list of flavor details with the response code 200.
         """
         flavor_collection = GlobalFlavorCollection(tenant_id=tenant_id,
-                                                    clock=self._session_store.clock)
+                                                   clock=self._session_store.clock)
         return (self._collection_for_tenant(tenant_id, flavor_collection)
                 .list_flavors(include_details=True, absolutize_url=self.url))
 
