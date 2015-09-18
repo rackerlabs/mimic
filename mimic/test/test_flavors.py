@@ -46,7 +46,7 @@ class NovaAPIFlavorsTests(SynchronousTestCase):
         :obj: `mimic_presets` is provided.
         """
         get_server_flavor = request(self, self.root, "GET", self.uri +
-                                    '/flavors/100')
+                                    '/flavors/negative-test-1')
         get_server_flavor_response = self.successResultOf(get_server_flavor)
         self.assertEqual(get_server_flavor_response.code, 404)
 
