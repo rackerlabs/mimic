@@ -33,24 +33,22 @@ class NovaAPIFlavorsTests(SynchronousTestCase):
         self.assertEqual(200, response.code)
         return content
 
+    def test_get_flavor(self):
+        """
+        Test to verify :func:`get_flavor` on ``GET /v2.0/<tenant_id>/flavors/<flavor_id>``
+        """
+        get_server_flavor = self.get_server_flavor('/flavors/2')
+        self.assertEqual(get_server_flavor['flavor']['id'], '2')
+
     def test_get_server_flavor_negative(self):
         """
         Test to verify :func:`get_flavor` when invalid flavor from the
         :obj: `mimic_presets` is provided.
         """
         get_server_flavor = request(self, self.root, "GET", self.uri +
-                                    '/flavors/1')
+                                    '/flavors/negative-test-1')
         get_server_flavor_response = self.successResultOf(get_server_flavor)
         self.assertEqual(get_server_flavor_response.code, 404)
-
-    def test_get_server_flavor(self):
-        """
-        Test to verify :func:`get_image` on ``GET /v2.0/<tenant_id>/flavors/<flavor_id>``
-        """
-        get_server_flavor_response_body = self.get_server_flavor(
-            '/flavors/test-flavor-id')
-        self.assertEqual(
-            get_server_flavor_response_body['flavor']['id'], 'test-flavor-id')
 
     def test_get_flavor_list(self):
         """
