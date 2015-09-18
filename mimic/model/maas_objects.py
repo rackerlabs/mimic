@@ -4,6 +4,7 @@ MaaS API data model
 
 import random
 import string
+from uuid import uuid4
 
 from characteristic import attributes, Attribute
 from six import text_type
@@ -16,7 +17,6 @@ METRIC_TYPE_STRING = 's'
 
 
 @attributes([Attribute('agent_id', default_value=None),
-             Attribute('alarm_states', default_factory=list, instance_of=list),
              Attribute('created_at', instance_of=int),
              Attribute('id',
                        default_factory=(lambda: u'en' + random_hex_generator(4)),
@@ -259,6 +259,48 @@ class Suppression(object):
         self.updated_at = int(1000 * kwargs['clock'].seconds())
 
 
+@attributes([Attribute('alarm_changelog_id',
+                       default_factory=(lambda: unicode(uuid4())),
+                       instance_of=text_type),
+             Attribute('alarm_id', instance_of=text_type),
+             Attribute('alarm_label', instance_of=text_type),
+             Attribute('analyzed_by_monitoring_zone_id', default_value=u'mzord', instance_of=text_type),
+             Attribute('check_id', instance_of=text_type),
+             Attribute('entity_id', instance_of=text_type),
+             Attribute('id',
+                       default_factory=(lambda: u'as' + random_hex_generator(4)),
+                       instance_of=text_type),
+             Attribute('previous_state', instance_of=text_type),
+             Attribute('state', instance_of=text_type),
+             Attribute('status', instance_of=text_type),
+             Attribute('timestamp', instance_of=int)])
+class AlarmState(object):
+    """
+    Models a MaaS alarm state.
+    """
+    def brief_json(self):
+        """
+        Serializes this alarm state to a JSON-encodable dict.
+        """
+        return {'timestamp': self.timestamp,
+                'entity_id': self.entity_id,
+                'alarm_id': self.alarm_id,
+                'check_id': self.check_id,
+                'status': self.status,
+                'state': self.state,
+                'previous_state': self.previous_state,
+                'alarm_changelog_id': self.alarm_changelog_id,
+                'analyzed_by_monitoring_zone_id': self.analyzed_by_monitoring_zone_id}
+
+    def detail_json(self):
+        """
+        Serializes this alarm state with additional details.
+        """
+        details = self.brief_json()
+        details.update(alarm_label=self.alarm_label)
+        return details
+
+
 @attributes(["name",
              "type",
              Attribute("_unit", default_value="other"),
@@ -468,3 +510,19 @@ class MaasStore(object):
                 Metric(name='count', type=METRIC_TYPE_INTEGER, unit='count'),
                 Metric(name='maximum', type=METRIC_TYPE_NUMBER),
                 Metric(name='minimum', type=METRIC_TYPE_NUMBER)])}
+
+        self.alarm_states = []
+
+    def latest_alarm_states_for_entity(self, entity_id):
+        """
+        Computes the latest alarm states for the specified entity.
+
+        Newer alarm states are assumed to be always appended to the list of
+        alarm states.
+        """
+        alarm_states_for_entity = [state for state in self.alarm_states
+                                   if state.entity_id == entity_id]
+        latest_alarm_states_by_alarm = {}
+        for state in alarm_states_for_entity:
+            latest_alarm_states_by_alarm[state.alarm_id] = state
+        return latest_alarm_states_by_alarm.values()

@@ -1250,3 +1250,87 @@ class MaasAPITests(SynchronousTestCase):
                              self.uri, 'enDoesNotExist')))
         self.assertEquals(resp.code, 404)
         self.assertEquals(data['type'], 'notFoundError')
+
+    def test_latest_alarm_states(self):
+        """
+        The /views/latest_alarm_states API recalls alarm states that were stored
+        using the control API.
+        """
+        resp = self.successResultOf(
+            request(self, self.root, "POST",
+                    '{0}/entities/{1}/alarms/{2}/states'.format(
+                        self.ctl_uri, self.entity_id, self.alarm_id),
+                    json.dumps({'state': 'CRITICAL',
+                                'analyzed_by_monitoring_zone_id': 'mzVegetaScouter',
+                                'status': 'It\'s OVER... NINE... THOUSAND!!1'})))
+        self.assertEquals(resp.code, 201)
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "GET", '{0}/views/latest_alarm_states'.format(self.uri)))
+        self.assertEquals(resp.code, 200)
+        self.assertEquals(data['values'][0]['latest_alarm_states'][0]['state'], 'CRITICAL')
+
+    def test_alarm_states_same_alarm_gets_previous_state(self):
+        """
+        When setting a new alarm state on the same entity and same alarm ID,
+        the previous state is set correctly.
+        """
+        resp = self.successResultOf(
+            request(self, self.root, "POST",
+                    '{0}/entities/{1}/alarms/{2}/states'.format(
+                        self.ctl_uri, self.entity_id, self.alarm_id),
+                    json.dumps({'state': 'CRITICAL',
+                                'analyzed_by_monitoring_zone_id': 'mzVegetaScouter',
+                                'status': 'It\'s OVER... NINE... THOUSAND!!1'})))
+        self.assertEquals(resp.code, 201)
+        resp = self.successResultOf(
+            request(self, self.root, "POST",
+                    '{0}/entities/{1}/alarms/{2}/states'.format(
+                        self.ctl_uri, self.entity_id, self.alarm_id),
+                    json.dumps({'state': 'OK',
+                                'status': 'Meh'})))
+        self.assertEquals(resp.code, 201)
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "GET", '{0}/views/latest_alarm_states'.format(self.uri)))
+        self.assertEquals(resp.code, 200)
+        self.assertEquals(data['values'][0]['latest_alarm_states'][0]['previous_state'], 'CRITICAL')
+
+    def test_create_alarm_state_missing_alarm_404s(self):
+        """
+        If the user tries to create an alarm state on an alarm that doesn't exist,
+        Mimic returns a 404.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         '{0}/entities/{1}/alarms/{2}/states'.format(
+                             self.ctl_uri, self.entity_id, 'alDoesNotExist'),
+                         json.dumps({'state': 'OK', 'status': 'bogus'})))
+        self.assertEquals(resp.code, 404)
+        self.assertEquals(data['type'], 'notFoundError')
+
+    def test_create_alarm_state_missing_state_400s(self):
+        """
+        If the user tries to create an alarm state without a `state` parameter,
+        Mimic returns 400 Bad Request.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         '{0}/entities/{1}/alarms/{2}/states'.format(
+                             self.ctl_uri, self.entity_id, self.alarm_id),
+                         json.dumps({'status': 'This wont work'})))
+        self.assertEquals(resp.code, 400)
+        self.assertEquals(data['type'], 'badRequest')
+        self.assertEquals(data['details'], 'Missing required key (state)')
+
+    def test_create_alarm_state_missing_status_400s(self):
+        """
+        If the user tries to create an alarm state without a `status` parameter,
+        Mimic returns 400 Bad Request.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         '{0}/entities/{1}/alarms/{2}/states'.format(
+                             self.ctl_uri, self.entity_id, self.alarm_id),
+                         json.dumps({'state': 'WARNING'})))
+        self.assertEquals(resp.code, 400)
+        self.assertEquals(data['type'], 'badRequest')
+        self.assertEquals(data['details'], 'Missing required key (status)')
