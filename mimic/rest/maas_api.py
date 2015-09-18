@@ -407,12 +407,11 @@ class MaasMock(object):
             pass
         entities = entities[:limit]
 
-        metadata = {}
-        metadata['count'] = len(entities)
-        metadata['limit'] = limit
-        metadata['marker'] = marker
-        metadata['next_marker'] = next_marker
-        metadata['next_href'] = next_href
+        metadata = {'count': len(entities),
+                    'limit': limit,
+                    'marker': marker,
+                    'next_marker': next_marker,
+                    'next_href': next_href}
         request.setResponseCode(200)
         return json.dumps({'metadata': metadata,
                            'values': [entity.to_json() for entity in entities]})
@@ -457,16 +456,14 @@ class MaasMock(object):
         """
         Returns all the checks for a paricular entity
         """
-        checks = []
-        for c in self._entity_cache_for_tenant(tenant_id).checks_list:
-            if c.entity_id == entity_id:
-                checks.append(c.to_json())
-        metadata = {}
-        metadata['count'] = len(checks)
-        metadata['limit'] = 1000
-        metadata['marker'] = None
-        metadata['next_marker'] = None
-        metadata['next_href'] = None
+        checks = [check.to_json()
+                  for check in self._entity_cache_for_tenant(tenant_id).checks_list
+                  if check.entity_id == entity_id]
+        metadata = {'count': len(checks),
+                    'limit': 1000,
+                    'marker': None,
+                    'next_marker': None,
+                    'next_href': None}
         request.setResponseCode(200)
         return json.dumps({'metadata': metadata, 'values': checks})
 
@@ -498,18 +495,17 @@ class MaasMock(object):
         Delete an entity, all checks that belong to entity, all alarms that belong to those checks
         """
         entities = self._entity_cache_for_tenant(tenant_id).entities_list
+        entities[:] = [entity for entity in entities
+                       if entity.id != entity_id]
+
         checks = self._entity_cache_for_tenant(tenant_id).checks_list
+        checks[:] = [check for check in checks
+                     if check.entity_id != entity_id]
+
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
-        for e in range(len(entities)):
-            if entities[e].id == entity_id:
-                del entities[e]
-                break
-        for c in checks:
-            if c.entity_id == entity_id:
-                del checks[checks.index(c)]
-        for a in alarms:
-            if a.entity_id == entity_id:
-                del alarms[alarms.index(a)]
+        alarms[:] = [alarm for alarm in alarms
+                     if alarm.entity_id != entity_id]
+
         status = 204
         request.setResponseCode(status)
         request.setHeader('content-type', 'text/plain')
@@ -575,14 +571,12 @@ class MaasMock(object):
         Deletes check and all alarms associated to it
         """
         checks = self._entity_cache_for_tenant(tenant_id).checks_list
+        checks[:] = [check for check in checks
+                     if not (check.entity_id == entity_id and check.id == check_id)]
+
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
-        for c in range(len(checks)):
-            if checks[c].entity_id == entity_id and checks[c].id == check_id:
-                del checks[c]
-                break
-        for a in alarms:
-            if a.check_id == check_id and a.entity_id == entity_id:
-                del alarms[alarms.index(a)]
+        alarms[:] = [alarm for alarm in alarms
+                     if not (alarm.check_id == check_id and alarm.entity_id == entity_id)]
         status = 204
         request.setResponseCode(status)
         request.setHeader('content-type', 'text/plain')
@@ -636,21 +630,18 @@ class MaasMock(object):
         """
         Gets an alarm by ID.
         """
-        alarm = None
-        for a in self._entity_cache_for_tenant(tenant_id).alarms_list:
-            if a.entity_id == entity_id and a.id == alarm_id:
-                alarm = a
-                break
-        else:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'message': 'Object does not exist',
-                               'details': 'Object "Alarm" with key "{0}:{1}" does not exist'.format(
-                                   entity_id, alarm_id)
-                               })
-        request.setResponseCode(200)
-        return json.dumps(alarm.to_json())
+        for alarm in self._entity_cache_for_tenant(tenant_id).alarms_list:
+            if alarm.entity_id == entity_id and alarm.id == alarm_id:
+                request.setResponseCode(200)
+                return json.dumps(alarm.to_json())
+
+        request.setResponseCode(404)
+        return json.dumps({'type': 'notFoundError',
+                           'code': 404,
+                           'message': 'Object does not exist',
+                           'details': 'Object "Alarm" with key "{0}:{1}" does not exist'.format(
+                               entity_id, alarm_id)
+                           })
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/<string:alarm_id>',
                methods=['PUT'])
@@ -689,10 +680,9 @@ class MaasMock(object):
         Delete an alarm
         """
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
-        for q in range(len(alarms)):
-            if alarms[q].entity_id == entity_id and alarms[q].id == alarm_id:
-                del alarms[q]
-                break
+        alarms[:] = [alarm for alarm in alarms
+                     if not (alarm.entity_id == entity_id and alarm.id == alarm_id)]
+
         status = 204
         request.setResponseCode(status)
         request.setHeader('content-type', 'text/plain')
@@ -733,7 +723,7 @@ class MaasMock(object):
                                              'status', 'Matched default return statement'),
                                          'timestamp': current_time_milliseconds})
         else:
-            for i in xrange(n_tests):
+            for _ in xrange(n_tests):
                 response_payload.append({'state': random.choice(['OK', 'WARNING', 'CRITICAL']),
                                          'status': random_hipsum(12),
                                          'timestamp': current_time_milliseconds})
@@ -747,18 +737,16 @@ class MaasMock(object):
         """
         Get all alarms for the specified entity.
         """
-        alarms = [
-            alarm for alarm in self._entity_cache_for_tenant(tenant_id).alarms_list
-            if alarm.entity_id == entity_id
-        ]
-        metadata = {}
-        metadata['count'] = len(alarms)
-        metadata['limit'] = 1000
-        metadata['marker'] = None
-        metadata['next_marker'] = None
-        metadata['next_href'] = None
+        alarms = [alarm.to_json()
+                  for alarm in self._entity_cache_for_tenant(tenant_id).alarms_list
+                  if alarm.entity_id == entity_id]
+        metadata = {'count': len(alarms),
+                    'limit': 1000,
+                    'marker': None,
+                    'next_marker': None,
+                    'next_href': None}
         request.setResponseCode(200)
-        return json.dumps({'metadata': metadata, 'values': [alarm.to_json() for alarm in alarms]})
+        return json.dumps({'metadata': metadata, 'values': alarms})
 
     @app.route('/v1.0/<string:tenant_id>/views/overview', methods=['GET'])
     def overview(self, request, tenant_id):
@@ -789,20 +777,15 @@ class MaasMock(object):
             'limit': page_limit,
             'next_href': None
         }
-        values = []
-        for e in entities:
-            v = {}
-            v['alarms'] = []
-            for a in alarms:
-                if a.entity_id == e.id:
-                    v['alarms'].append(a.to_json())
-            v['checks'] = []
-            for c in checks:
-                if c.entity_id == e.id:
-                    v['checks'].append(c.to_json())
-            v['entity'] = e.to_json()
-            v['latest_alarm_states'] = []
-            values.append(v)
+        values = [{'alarms': [alarm.to_json()
+                              for alarm in alarms
+                              if alarm.entity_id == entity.id],
+                   'checks': [check.to_json()
+                              for check in checks
+                              if check.entity_id == entity.id],
+                   'entity': entity.to_json(),
+                   'latest_alarm_states': []}
+                  for entity in entities]
         request.setResponseCode(200)
         return json.dumps({'metadata': metadata, 'values': values})
 
@@ -965,11 +948,10 @@ class MaasMock(object):
         """
         Delete a notification
         """
-        nt_list = self._entity_cache_for_tenant(tenant_id).notifications_list
-        for nt in nt_list:
-            if nt.id == nt_id:
-                del nt_list[nt_list.index(nt)]
-                break
+        notifications = self._entity_cache_for_tenant(tenant_id).notifications_list
+        notifications[:] = [nt for nt in notifications
+                            if nt.id != nt_id]
+
         status = 204
         request.setResponseCode(status)
         request.setHeader('content-type', 'text/plain')
@@ -1047,32 +1029,25 @@ class MaasMock(object):
         """
         Remove a notification plan
         """
-        allalarms = self._entity_cache_for_tenant(tenant_id).alarms_list
-        np_list = self._entity_cache_for_tenant(tenant_id).notificationplans_list
-        alarmids_using_np = []
-        for alarm in allalarms:
-            if alarm.notification_plan_id == np_id:
-                alarmids_using_np.append(alarm.id)
+        all_alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
+        nplist = self._entity_cache_for_tenant(tenant_id).notificationplans_list
+        alarmids_using_np = [alarm.id for alarm in all_alarms
+                             if alarm.notification_plan_id == np_id]
 
         if len(alarmids_using_np):
             status = 403
             request.setResponseCode(status)
-            errobj = {}
-            errobj['type'] = 'forbiddenError'
-            errobj['code'] = 403
-            errobj['txnId'] = '.rh-D0j7.h-dfw1-maas-prod-api0.r-doc8iigF.c-5540173.ts-' + \
-                str(self._session_store.clock.seconds()) + '.v-bfe87f0'
-            errobj['message'] = 'Notification plans cannot be removed while alarms are using it:'
-            for a_id in alarmids_using_np:
-                errobj['message'] += ' ' + a_id
-            errobj['details'] = errobj['message']
+            err_message = ('Notification plans cannot be removed while alarms ' +
+                           'are using it: {0}'.format(' '.join(alarmids_using_np)))
             self._audit('notification_plans', request, tenant_id, status)
-            return json.dumps(errobj)
+            return json.dumps({'type': 'forbiddenError',
+                               'code': status,
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
+                               'message': err_message,
+                               'details': err_message})
 
-        for np in np_list:
-            if np.id == np_id:
-                del np_list[np_list.index(np)]
-                break
+        nplist[:] = [np for np in nplist
+                     if np.id != np_id]
         status = 204
         request.setResponseCode(status)
         request.setHeader('content-type', 'text/plain')
@@ -1152,11 +1127,10 @@ class MaasMock(object):
         """
         Delete a suppression.
         """
-        sp_list = self._entity_cache_for_tenant(tenant_id).suppressions_list
-        for sp in sp_list:
-            if sp.id == sp_id:
-                del sp_list[sp_list.index(sp)]
-                break
+        suppressions = self._entity_cache_for_tenant(tenant_id).suppressions_list
+        suppressions[:] = [sp for sp in suppressions
+                           if sp.id != sp_id]
+
         status = 204
         request.setResponseCode(204)
         request.setHeader('content-type', 'text/plain')
@@ -1200,24 +1174,19 @@ class MaasMock(object):
         """
         All NotificationPlans a number of alarms pointing to them.
         """
-        allalarms = self._entity_cache_for_tenant(tenant_id).alarms_list
-        allnps = self._entity_cache_for_tenant(tenant_id).notificationplans_list
-        values = []
-        metadata = {}
-        metadata['limit'] = 100
-        metadata['marker'] = None
-        metadata['next_marker'] = None
-        metadata['next_href'] = None
-        for np in allnps:
-            alarm_count = 0
-            v = {}
-            v['notification_plan_id'] = np.id
-            for alarm in allalarms:
-                if alarm.notification_plan_id == np.id:
-                    alarm_count = alarm_count + 1
-            v['alarm_count'] = alarm_count
-            values.append(v)
-        metadata['count'] = len(values)
+        all_alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
+        all_nps = self._entity_cache_for_tenant(tenant_id).notificationplans_list
+
+        values = [{'notification_plan_id': np.id,
+                   'alarm_count': len([alarm for alarm in all_alarms
+                                       if alarm.notification_plan_id == np.id])}
+                  for np in all_nps]
+
+        metadata = {'limit': 100,
+                    'marker': None,
+                    'next_marker': None,
+                    'next_href': None,
+                    'count': len(values)}
         request.setResponseCode(200)
         return json.dumps({'values': values, 'metadata': metadata})
 
@@ -1226,17 +1195,14 @@ class MaasMock(object):
         """
         List of alarms pointing to a particular NotificationPlan
         """
-        allalarms = self._entity_cache_for_tenant(tenant_id).alarms_list
-        values = []
-        metadata = {}
-        metadata['limit'] = 100
-        metadata['marker'] = None
-        metadata['next_marker'] = None
-        metadata['next_href'] = None
-        for alarm in allalarms:
-            if alarm.notification_plan_id == np_id:
-                values.append(alarm.to_json())
-        metadata['count'] = len(values)
+        all_alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
+        values = [alarm.to_json() for alarm in all_alarms
+                  if alarm.notification_plan_id == np_id]
+        metadata = {'limit': 100,
+                    'marker': None,
+                    'next_marker': None,
+                    'next_href': None,
+                    'count': len(values)}
         request.setResponseCode(200)
         return json.dumps({'values': values, 'metadata': metadata})
 
@@ -1246,7 +1212,10 @@ class MaasMock(object):
         Get the types of notifications supported: pageduty,email,sms, etc
         """
         ntlist = self._entity_cache_for_tenant(tenant_id).notificationtypes_list
-        metadata = {'count': len(ntlist), 'limit': 100, 'marker': None, 'next_marker': None,
+        metadata = {'count': len(ntlist),
+                    'limit': 100,
+                    'marker': None,
+                    'next_marker': None,
                     'next_href': None}
         request.setResponseCode(200)
         return json.dumps({'values': ntlist, 'metadata': metadata})
@@ -1256,17 +1225,17 @@ class MaasMock(object):
         """
         All available metrics.
         """
-        allchecks = self._entity_cache_for_tenant(tenant_id).checks_list
-        values = []
         entities = self._entity_cache_for_tenant(tenant_id).entities_list
-        for e in entities:
-            values.append(create_metric_list_from_entity(e, allchecks))
-        metadata = {}
-        metadata['count'] = len(values)
-        metadata['marker'] = None
-        metadata['next_marker'] = None
-        metadata['limit'] = 1000
-        metadata['next_href'] = None
+        all_checks = self._entity_cache_for_tenant(tenant_id).checks_list
+        values = [create_metric_list_from_entity(entity, all_checks)
+                  for entity in entities]
+
+        metadata = {'count': len(values),
+                    'marker': None,
+                    'next_marker': None,
+                    'limit': 1000,
+                    'next_href': None}
+
         request.setResponseCode(200)
         return json.dumps({'metadata': metadata, 'values': values})
 
