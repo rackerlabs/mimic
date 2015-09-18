@@ -29,7 +29,7 @@ from mimic.model.nova_objects import (
     BadRequestError, GlobalServerCollections, LimitError, Server,
     bad_request, forbidden, not_found, server_creation)
 
-from mimic.model.flavor_objects import GlobalFlavorCollections
+from mimic.model.flavor_collections import GlobalFlavorCollection
 
 Request.defaultContentType = 'application/json'
 
@@ -337,7 +337,7 @@ class NovaRegion(object):
         """
         Returns a get flavor response, for any given flavorid
         """
-        flavor_collection = GlobalFlavorCollections(tenant_id=tenant_id,
+        flavor_collection = GlobalFlavorCollection(tenant_id=tenant_id,
                                                     clock=self._session_store.clock)
         return(self._collection_for_tenant(tenant_id, flavor_collection)
                .get_flavor(request, flavor_id, absolutize_url=self.url))
@@ -348,7 +348,7 @@ class NovaRegion(object):
         Returns a list of flavor with the response code 200.
         docs: http://bit.ly/1eXTSDC
         """
-        flavor_collection = GlobalFlavorCollections(tenant_id=tenant_id,
+        flavor_collection = GlobalFlavorCollection(tenant_id=tenant_id,
                                                     clock=self._session_store.clock)
         return (self._collection_for_tenant(tenant_id, flavor_collection)
                 .list_flavors(include_details=False, absolutize_url=self.url))
@@ -358,7 +358,7 @@ class NovaRegion(object):
         """
         Returns a list of flavor details with the response code 200.
         """
-        flavor_collection = GlobalFlavorCollections(tenant_id=tenant_id,
+        flavor_collection = GlobalFlavorCollection(tenant_id=tenant_id,
                                                     clock=self._session_store.clock)
         return (self._collection_for_tenant(tenant_id, flavor_collection)
                 .list_flavors(include_details=True, absolutize_url=self.url))

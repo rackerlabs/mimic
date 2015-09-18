@@ -25,13 +25,13 @@ class RegionalFlavorCollection(object):
         """
         Retrieve a :obj:`Flavor` object by its ID.
         """
-        if len(self.flavors_store) < 1:
-            self.create_flavors_list()
+
+        self._create_flavors_list()
         for flavor in self.flavors_store:
             if flavor.flavor_id == flavor_id:
                 return flavor
 
-    def create_flavors_list(self):
+    def _create_flavors_list(self):
         """
         Generates the data for each flavor in each flavor class
         """
@@ -59,8 +59,8 @@ class RegionalFlavorCollection(object):
         """
         Return a list of flavors with details.
         """
-        if len(self.flavors_store) < 1:
-            self.create_flavors_list()
+
+        self._create_flavors_list()
         flavors = []
         for flavor in self.flavors_store:
             if self.region_name != "IAD" and isinstance(flavor, RackspaceOnMetalFlavor):
@@ -89,9 +89,9 @@ class RegionalFlavorCollection(object):
 
 @attributes(["tenant_id", "clock",
              Attribute("regional_collections", default_factory=dict)])
-class GlobalFlavorCollections(object):
+class GlobalFlavorCollection(object):
     """
-    A :obj:`GlobalFlavorCollections` is a set of all the
+    A :obj:`GlobalFlavorCollection` is a set of all the
     :obj:`RegionalFlavorCollection` objects owned by a given tenant.  In other
     words, all the flavor objects that a single tenant owns globally.
     """
