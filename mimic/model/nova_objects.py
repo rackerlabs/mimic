@@ -932,16 +932,6 @@ class RegionalServerCollection(object):
         else:
             return dumps(bad_request("There is no such action currently supported", http_action_request))
 
-    # Server Images
-
-    def image_by_name(self, image_name):
-        """
-        Retrieve a :obj:`Image` object by its ID.
-        """
-        for image in self.image_store:
-            if image.name == image_name:
-                return image
-
 
 @attributes(["tenant_id", "clock",
              Attribute("regional_collections", default_factory=dict)])
