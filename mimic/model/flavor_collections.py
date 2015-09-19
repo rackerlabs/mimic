@@ -8,8 +8,6 @@ from mimic.model.flavors import (
     RackspaceStandardFlavor, RackspaceComputeFlavor, RackspaceMemoryFlavor,
     RackspaceOnMetalFlavor, RackspaceIOFlavor, RackspaceGeneralFlavor,
     RackspacePerformance1Flavor, RackspacePerformance2Flavor)
-
-
 from mimic.model.nova_objects import not_found
 
 

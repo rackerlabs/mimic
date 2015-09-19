@@ -4,17 +4,17 @@ Model objects for mimic glance images.
 
 from characteristic import attributes, Attribute
 from json import dumps
-from mimic.model.image_objects import (RackspaceWindowsImage, RackspaceArchImage,
-                                       RackspaceCentOSPVImage, RackspaceCentOSPVHMImage,
-                                       RackspaceCoreOSImage, RackspaceDebianImage,
-                                       RackspaceFedoraImage, RackspaceFreeBSDImage,
-                                       RackspaceGentooImage, RackspaceOpenSUSEImage,
-                                       RackspaceRedHatPVImage, RackspaceRedHatPVHMImage,
-                                       RackspaceUbuntuPVImage, RackspaceUbuntuPVHMImage,
-                                       RackspaceVyattaImage, RackspaceScientificImage,
-                                       RackspaceOnMetalCentOSImage, RackspaceOnMetalCoreOSImage,
-                                       RackspaceOnMetalDebianImage, RackspaceOnMetalFedoraImage,
-                                       RackspaceOnMetalUbuntuImage, OnMetalImage)
+from mimic.model.images import (RackspaceWindowsImage, RackspaceArchImage,
+                                RackspaceCentOSPVImage, RackspaceCentOSPVHMImage,
+                                RackspaceCoreOSImage, RackspaceDebianImage,
+                                RackspaceFedoraImage, RackspaceFreeBSDImage,
+                                RackspaceGentooImage, RackspaceOpenSUSEImage,
+                                RackspaceRedHatPVImage, RackspaceRedHatPVHMImage,
+                                RackspaceUbuntuPVImage, RackspaceUbuntuPVHMImage,
+                                RackspaceVyattaImage, RackspaceScientificImage,
+                                RackspaceOnMetalCentOSImage, RackspaceOnMetalCoreOSImage,
+                                RackspaceOnMetalDebianImage, RackspaceOnMetalFedoraImage,
+                                RackspaceOnMetalUbuntuImage, OnMetalImage)
 
 
 @attributes([Attribute("images_store", default_factory=list)])
