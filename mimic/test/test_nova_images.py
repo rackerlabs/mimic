@@ -104,3 +104,13 @@ class NovaAPIImagesTests(SynchronousTestCase):
         self.assertEqual(200, response.code)
         self.assertEqual(body['image']['id'], onmetal_id)
         self.assertEqual(body['image']['metadata']['flavor_classes'], 'onmetal')
+
+    def test_OnMetal_image_list(self):
+        helper = APIMockHelper(self, [NovaApi(['IAD'])])
+        root = helper.root
+        uri = helper.uri
+        response, body = self.successResultOf(json_request(self, root, "GET", uri + '/images'))
+        self.assertEqual(200, response.code)
+        image_list = body['images']
+        for each_image in image_list:
+            self.assertEqual(sorted(each_image.keys()), sorted(['id', 'links', 'name']))
