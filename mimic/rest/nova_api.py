@@ -350,7 +350,9 @@ class NovaRegion(object):
         """
         Returns a get flavor response, for any given flavorid
         """
-        return(self._flavor_collection_for_tenant(tenant_id)
+        flavor_collection = GlobalFlavorCollection(tenant_id=tenant_id,
+                                                   clock=self._session_store.clock)
+        return(flavor_collection.collection_for_region(region_name=self._name)
                .get_flavor(request, flavor_id, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/flavors', methods=['GET'])
@@ -359,7 +361,9 @@ class NovaRegion(object):
         Returns a list of flavor with the response code 200.
         docs: http://bit.ly/1eXTSDC
         """
-        return (self._flavor_collection_for_tenant(tenant_id)
+        flavor_collection = GlobalFlavorCollection(tenant_id=tenant_id,
+                                                   clock=self._session_store.clock)
+        return(flavor_collection.collection_for_region(region_name=self._name)
                 .list_flavors(include_details=False, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/flavors/detail', methods=['GET'])
@@ -367,7 +371,9 @@ class NovaRegion(object):
         """
         Returns a list of flavor details with the response code 200.
         """
-        return (self._flavor_collection_for_tenant(tenant_id)
+        flavor_collection = GlobalFlavorCollection(tenant_id=tenant_id,
+                                                   clock=self._session_store.clock)
+        return(flavor_collection.collection_for_region(region_name=self._name)
                 .list_flavors(include_details=True, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/limits', methods=['GET'])
