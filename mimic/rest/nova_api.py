@@ -351,7 +351,7 @@ class NovaRegion(object):
         flavor_collection = GlobalFlavorCollection(tenant_id=tenant_id,
                                                    clock=self._session_store.clock)
         return(flavor_collection.collection_for_region(region_name=self._name)
-                .list_flavors(include_details=False, absolutize_url=self.url))
+               .list_flavors(include_details=False, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/flavors/detail', methods=['GET'])
     def get_flavor_list_with_details(self, request, tenant_id):
@@ -361,7 +361,7 @@ class NovaRegion(object):
         flavor_collection = GlobalFlavorCollection(tenant_id=tenant_id,
                                                    clock=self._session_store.clock)
         return(flavor_collection.collection_for_region(region_name=self._name)
-                .list_flavors(include_details=True, absolutize_url=self.url))
+               .list_flavors(include_details=True, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/limits', methods=['GET'])
     def get_limit(self, request, tenant_id):
