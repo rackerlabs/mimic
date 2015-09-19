@@ -222,15 +222,18 @@ class NovaRegion(object):
         return (self._api_mock._get_session(self._session_store, tenant_id)
                 .collection_for_region(self._name))
 
-    def _collection_for_tenant(self, tenant_id, collections):
+    def _flavor_collection_for_tenant(self, tenant_id):
         """
         Gets a session for a particular tenant, creating one if there isn't
         one.
         """
         tenant_session = self._session_store.session_for_tenant_id(tenant_id)
-        global_collection = tenant_session.data_for_api(self._api_mock, lambda: collections)
-        region_collection = global_collection.collection_for_region(region_name=self._name)
-        return region_collection
+        flavor_global_collection = tenant_session.data_for_api(
+            self._api_mock,
+            lambda: GlobalFlavorCollection(tenant_id=tenant_id,
+                                           clock=self._session_store.clock))
+        flavor_region_collection = flavor_global_collection.collection_for_region(region_name=self._name)
+        return flavor_region_collection
 
     def _image_collection_for_tenant(self, tenant_id):
         tenant_session = self._session_store.session_for_tenant_id(tenant_id)
@@ -347,9 +350,7 @@ class NovaRegion(object):
         """
         Returns a get flavor response, for any given flavorid
         """
-        flavor_collection = GlobalFlavorCollection(tenant_id=tenant_id,
-                                                   clock=self._session_store.clock)
-        return(self._collection_for_tenant(tenant_id, flavor_collection)
+        return(self._flavor_collection_for_tenant(tenant_id)
                .get_flavor(request, flavor_id, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/flavors', methods=['GET'])
@@ -358,9 +359,7 @@ class NovaRegion(object):
         Returns a list of flavor with the response code 200.
         docs: http://bit.ly/1eXTSDC
         """
-        flavor_collection = GlobalFlavorCollection(tenant_id=tenant_id,
-                                                   clock=self._session_store.clock)
-        return (self._collection_for_tenant(tenant_id, flavor_collection)
+        return (self._flavor_collection_for_tenant(tenant_id)
                 .list_flavors(include_details=False, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/flavors/detail', methods=['GET'])
@@ -368,9 +367,7 @@ class NovaRegion(object):
         """
         Returns a list of flavor details with the response code 200.
         """
-        flavor_collection = GlobalFlavorCollection(tenant_id=tenant_id,
-                                                   clock=self._session_store.clock)
-        return (self._collection_for_tenant(tenant_id, flavor_collection)
+        return (self._flavor_collection_for_tenant(tenant_id)
                 .list_flavors(include_details=True, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/limits', methods=['GET'])
