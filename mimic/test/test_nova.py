@@ -411,36 +411,6 @@ class NovaAPITests(SynchronousTestCase):
         delete_server_response = self.successResultOf(delete_server)
         self.assertEqual(delete_server_response.code, 404)
 
-    def test_get_virtual_server_image(self):
-        """
-        Test to verify :func:`get_image` on ``GET /v2.0/<tenant_id>/images/<image_id>``
-        """
-        get_server_image = request(
-            self, self.root, "GET", self.uri + '/images/c934d497-7b45-4764-ac63-5b67e1458a20')
-        get_server_image_response = self.successResultOf(get_server_image)
-        get_server_image_response_body = self.successResultOf(
-            treq.json_content(get_server_image_response))
-        self.assertEqual(get_server_image_response.code, 200)
-        self.assertEqual(
-            get_server_image_response_body['image']['id'], 'c934d497-7b45-4764-ac63-5b67e1458a20')
-        self.assertEqual(
-            get_server_image_response_body['image']['metadata']['status'], 'active')
-
-    def test_get_OnMetal_server_image(self):
-        """
-        Test to verify :func:`get_image` on ``GET /v2.0/<tenant_id>/images/<image_id>``
-        """
-        get_server_image = request(
-            self, self.root, "GET", self.uri + '/images/dfce8398-39f0-40a1-99fe-6323ea3641c8')
-        get_server_image_response = self.successResultOf(get_server_image)
-        get_server_image_response_body = self.successResultOf(
-            treq.json_content(get_server_image_response))
-        self.assertEqual(get_server_image_response.code, 200)
-        self.assertEqual(
-            get_server_image_response_body['image']['id'], 'dfce8398-39f0-40a1-99fe-6323ea3641c8')
-        self.assertEqual(
-            get_server_image_response_body['image']['metadata']['flavor_classes'], 'onmetal')
-
     def test_get_server_limits(self):
         """
         Test to verify :func:`get_limit` on ``GET /v2.0/<tenant_id>/limits``

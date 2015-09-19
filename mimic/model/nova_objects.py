@@ -17,16 +17,6 @@ from mimic.util.helper import (
     timestamp_to_seconds
 )
 
-from mimic.model.image_objects import (
-    RackspaceWindowsImage, RackspaceArchImage, RackspaceCentOSPVImage,
-    RackspaceCentOSPVHMImage, RackspaceCoreOSImage, RackspaceDebianImage,
-    RackspaceFedoraImage, RackspaceFreeBSDImage, RackspaceGentooImage, RackspaceOpenSUSEImage,
-    RackspaceRedHatPVImage, RackspaceRedHatPVHMImage, RackspaceUbuntuPVImage, RackspaceUbuntuPVHMImage,
-    RackspaceVyattaImage, RackspaceScientificImage, RackspaceOnMetalCentOSImage,
-    RackspaceOnMetalCoreOSImage, RackspaceOnMetalDebianImage, RackspaceOnMetalFedoraImage,
-    RackspaceOnMetalUbuntuImage, OnMetalImage)
-
-from mimic.canned_responses.mimic_presets import get_presets
 from mimic.model.behaviors import (
     BehaviorRegistryCollection, EventDescription, Criterion, regexp_predicate
 )
@@ -671,14 +661,6 @@ class RegionalServerCollection(object):
             if server.server_id == server_id and server.status != u"DELETED":
                 return server
 
-    def image_by_id(self, image_id):
-        """
-        Retrieve a :obj:`Image` object by its ID.
-        """
-        for image in self.images_store:
-            if image.image_id == image_id:
-                return image
-
     def request_creation(self, creation_http_request, creation_json,
                          absolutize_url):
         """
@@ -945,63 +927,6 @@ class RegionalServerCollection(object):
 
         else:
             return dumps(bad_request("There is no such action currently supported", http_action_request))
-
-    def create_images_list(self):
-        """
-        Generates the data for each image in each image class
-        """
-        image_classes = [RackspaceWindowsImage, RackspaceArchImage, RackspaceCentOSPVImage,
-                         RackspaceCentOSPVHMImage, RackspaceCoreOSImage, RackspaceDebianImage,
-                         RackspaceFedoraImage, RackspaceFreeBSDImage, RackspaceGentooImage,
-                         RackspaceOpenSUSEImage, RackspaceRedHatPVImage, RackspaceRedHatPVHMImage,
-                         RackspaceUbuntuPVImage, RackspaceUbuntuPVHMImage, RackspaceVyattaImage,
-                         RackspaceScientificImage, RackspaceOnMetalCentOSImage,
-                         RackspaceOnMetalCoreOSImage, RackspaceOnMetalDebianImage,
-                         RackspaceOnMetalFedoraImage, RackspaceOnMetalUbuntuImage]
-
-        for image_class in image_classes:
-            for image, image_spec in image_class.images.iteritems():
-                if not self.image_by_id(image_spec['id']):
-                    image_name = image
-                    image_id = image_spec['id']
-                    minRam = image_spec['minRam']
-                    minDisk = image_spec['minDisk']
-                    image_size = image_spec['OS-EXT-IMG-SIZE:size']
-                    tenant_id = self.tenant_id
-                    image = image_class(image_id=image_id, tenant_id=tenant_id, image_size=image_size,
-                                        name=image_name, minRam=minRam, minDisk=minDisk)
-                    self.images_store.append(image)
-
-    def list_images(self, include_details, absolutize_url):
-        """
-        Return a list of images.
-        """
-        self.create_images_list()
-        images = []
-        for image in self.images_store:
-            if self.region_name != "IAD" and isinstance(image, OnMetalImage):
-                continue
-            if include_details:
-                images.append(image.detailed_json(absolutize_url))
-            else:
-                images.append(image.brief_json(absolutize_url))
-        result = {"images": images}
-
-        return dumps(result)
-
-    def get_image(self, http_get_request, image_id, absolutize_url):
-        """
-        Return an image object if one exists from the list `/images` api,
-        else return 404 Image not found.
-        """
-        if image_id in get_presets['servers']['invalid_image_ref']:
-            return dumps(not_found("The resource could not be found.",
-                                   http_get_request))
-        self.create_images_list()
-        image = self.image_by_id(image_id)
-        if image is None:
-            return dumps(not_found('Image not found.', http_get_request))
-        return dumps({"image": image.detailed_json(absolutize_url)})
 
 
 @attributes(["tenant_id", "clock",
