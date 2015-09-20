@@ -299,6 +299,19 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(1, data['metadata']['count'])
         self.assertEquals(self.check_id, data['values'][0]['id'])
 
+    def test_create_check_missing_type_400s(self):
+        """
+        When trying to create a check and missing a `type` property,
+        MaaS returns 400 Bad Request.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         '{0}/entities/{1}/checks'.format(self.uri, self.entity_id),
+                         json.dumps({'label': 'wow-check'})))
+        self.assertEquals(resp.code, 400)
+        self.assertEquals(data['type'], 'badRequest')
+        self.assertEquals(data['message'], 'Validation error for key \'type\'')
+
     def test_update_entity(self):
         """
         update entity
@@ -355,6 +368,34 @@ class MaasAPITests(SynchronousTestCase):
                       self.uri + '/entities/' + self.entity_id + '/alarms/alDoesNotExist', '')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 404)
+
+    def test_create_alarm_missing_check_id_400s(self):
+        """
+        When trying to create an alarm and missing a `check_id` property,
+        MaaS returns 400 Bad Request.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         '{0}/entities/{1}/alarms'.format(self.uri, self.entity_id),
+                         json.dumps({'label': 'wow-alarm',
+                                     'notification_plan_id': self.np_id})))
+        self.assertEquals(resp.code, 400)
+        self.assertEquals(data['type'], 'badRequest')
+        self.assertEquals(data['message'], 'Validation error for key \'check_id\'')
+
+    def test_create_alarm_missing_np_id_400s(self):
+        """
+        When trying to create an alarm and missing a `notification_plan_id`
+        property, MaaS returns 400 Bad Request.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         '{0}/entities/{1}/alarms'.format(self.uri, self.entity_id),
+                         json.dumps({'label': 'wow-alarm',
+                                     'check_id': self.check_id})))
+        self.assertEquals(resp.code, 400)
+        self.assertEquals(data['type'], 'badRequest')
+        self.assertEquals(data['message'], 'Validation error for key \'notification_plan_id\'')
 
     def test_update_check(self):
         """
