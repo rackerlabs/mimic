@@ -143,6 +143,13 @@ class MCache(object):
         self.test_alarm_errors = {}
 
 
+def _only_keys(dict_ins, keys):
+    """
+    Filters out unwanted keys of a dict.
+    """
+    return dict([(k, dict_ins[k]) for k in dict_ins if k in keys])
+
+
 def create_entity(clock, params):
     """
     Returns a dictionary representing an entity
@@ -154,7 +161,12 @@ def create_entity(clock, params):
         ``bool``, ``dict`` or ``NoneType``.
     """
     current_time_milliseconds = int(1000 * clock.seconds())
-    params_copy = dict(params)
+    params_copy = _only_keys(params, ['agent_id',
+                                      'ip_addresses',
+                                      'label',
+                                      'managed',
+                                      'metadata',
+                                      'uri'])
     params_copy['created_at'] = params_copy['updated_at'] = current_time_milliseconds
     return Entity(**params_copy)
 
@@ -170,7 +182,17 @@ def create_check(clock, entity_id, params):
         ``int``, ``bool``, ``dict`` or ``NoneType``.
     """
     current_time_milliseconds = int(1000 * clock.seconds())
-    params_copy = dict(params)
+    params_copy = _only_keys(params, ['details',
+                                      'disabled',
+                                      'label',
+                                      'metadata',
+                                      'monitoring_zones_poll',
+                                      'period',
+                                      'target_alias',
+                                      'target_hostname',
+                                      'target_resolver',
+                                      'timeout',
+                                      'type'])
     params_copy['entity_id'] = entity_id
     params_copy['created_at'] = params_copy['updated_at'] = current_time_milliseconds
     return Check(**params_copy)
@@ -187,7 +209,12 @@ def create_alarm(clock, entity_id, params):
         ``bool``, ``dict``, or ``NoneType``.
     """
     current_time_milliseconds = int(1000 * clock.seconds())
-    params_copy = dict(params)
+    params_copy = _only_keys(params, ['check_id',
+                                      'criteria',
+                                      'disabled',
+                                      'label',
+                                      'metadata',
+                                      'notification_plan_id'])
     params_copy['entity_id'] = entity_id
     params_copy['created_at'] = params_copy['updated_at'] = current_time_milliseconds
     return Alarm(**params_copy)
@@ -204,7 +231,11 @@ def create_notification_plan(clock, params):
         ``dict`` or ``NoneType``.
     """
     current_time_milliseconds = int(1000 * clock.seconds())
-    params_copy = dict(params)
+    params_copy = _only_keys(params, ['critical_state',
+                                      'label',
+                                      'metadata',
+                                      'ok_state',
+                                      'warning_state'])
     params_copy['created_at'] = params_copy['updated_at'] = current_time_milliseconds
     return NotificationPlan(**params_copy)
 
@@ -220,7 +251,10 @@ def create_notification(clock, params):
         ``dict`` or ``NoneType``.
     """
     current_time_milliseconds = int(1000 * clock.seconds())
-    params_copy = dict(params)
+    params_copy = _only_keys(params, ['details',
+                                      'label',
+                                      'metadata',
+                                      'type'])
     params_copy['created_at'] = params_copy['updated_at'] = current_time_milliseconds
     return Notification(**params_copy)
 
@@ -234,7 +268,13 @@ def create_suppression(clock, params):
         <http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-suppressions.html>`_
     :rtype: ``dict`` mapping ``unicode`` to ``unicode`` or ``list``.
     """
-    params_copy = dict(params)
+    params_copy = _only_keys(params, ['alarms',
+                                      'checks',
+                                      'end_time',
+                                      'entities',
+                                      'label',
+                                      'notification_plans',
+                                      'start_time'])
     params_copy['created_at'] = params_copy['updated_at'] = int(1000 * clock.seconds())
     return Suppression(**params_copy)
 
@@ -997,7 +1037,7 @@ class MaasMock(object):
         """
         content = request.content.read()
         postdata = json.loads(content)
-        newnp = create_notification_plan(self._session_store.clock, {'label': postdata['label']})
+        newnp = create_notification_plan(self._session_store.clock, postdata)
         self._entity_cache_for_tenant(tenant_id).notificationplans_list.append(newnp)
         status = 201
         request.setResponseCode(status)
