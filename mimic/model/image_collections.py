@@ -30,12 +30,12 @@ class RegionalImageCollection(object):
         """
         Retrieve a :obj:`Image` object by its ID.
         """
-        self.create_images_list()
+        self._create_images_list()
         for image in self.images_store:
             if image.image_id == image_id:
                 return image
 
-    def create_images_list(self):
+    def _create_images_list(self):
         """
         Generates the data for each image in each image class
         """
@@ -65,7 +65,7 @@ class RegionalImageCollection(object):
         """
         Return a list of images.
         """
-        self.create_images_list()
+        self._create_images_list()
         images = []
         for image in self.images_store:
             if self.region_name != "IAD" and isinstance(image, OnMetalImage):
@@ -85,7 +85,7 @@ class RegionalImageCollection(object):
         if image_id in get_presets['servers']['invalid_image_ref']:
             return dumps(not_found("The resource could not be found.",
                                    http_get_request))
-        self.create_images_list()
+        self._create_images_list()
         image = self.image_by_id(image_id)
         if image is None:
             return dumps(not_found('Image not found.', http_get_request))
