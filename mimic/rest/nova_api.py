@@ -20,7 +20,7 @@ from twisted.web.http import CREATED, BAD_REQUEST
 
 from mimic.canned_responses.nova import get_limit, get_key_pairs,\
     get_networks, get_os_volume_attachments
-from mimic.model.keypair_objects import GlobalKeyPairCollections
+from mimic.model.keypair_objects import GlobalKeyPairCollections, KeyPair
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint

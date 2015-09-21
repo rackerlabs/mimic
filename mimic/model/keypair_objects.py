@@ -49,7 +49,7 @@ class RegionalKeyPairCollection(object):
                 keypairs_json
             ]
         }
-        return dumps(result)
+        return result
 
     def remove_keypair(self, name):
         kp_to_remove = self.keypair_by_name(name)
