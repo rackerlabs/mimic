@@ -130,6 +130,7 @@ class Alarm(object):
                 'label': self.label,
                 'criteria': self.criteria,
                 'check_id': self.check_id,
+                'entity_id': self.entity_id,
                 'notification_plan_id': self.notification_plan_id,
                 'created_at': self.created_at,
                 'updated_at': self.updated_at,

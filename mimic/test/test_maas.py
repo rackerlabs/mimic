@@ -321,6 +321,17 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(data['type'], 'badRequest')
         self.assertEquals(data['message'], 'Validation error for key \'type\'')
 
+    def test_create_entity_with_unrecognized_keys(self):
+        """
+        When creating an entity with properties that are not
+        recognized by MaaS, MaaS creates the entity and stores keys
+        that it knows how to use.
+        """
+        resp = self.successResultOf(
+            request(self, self.root, "POST", '{0}/entities'.format(self.uri),
+                    json.dumps({'label': 'foo', 'whut': 'WAT'})))
+        self.assertEquals(resp.code, 201)
+
     def test_update_entity(self):
         """
         update entity
@@ -445,6 +456,20 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals('internet7_v4', data['target_alias'])
         self.assertEquals('ItsAcheck', data['label'])
 
+    def test_create_check_with_unrecognized_keys(self):
+        """
+        When creating a check with properties that are not
+        recognized by MaaS, MaaS creates the entity and stores keys
+        that it knows how to use.
+        """
+        resp = self.successResultOf(
+            request(self, self.root, "POST",
+                    '{0}/entities/{1}/checks'.format(self.uri, self.entity_id),
+                    json.dumps({'label': 'check-foo',
+                                'type': 'remote.ping',
+                                'whut': 'WAT'})))
+        self.assertEquals(resp.code, 201)
+
     def test_update_alarm(self):
         """
         update alarm
@@ -485,6 +510,22 @@ class MaasAPITests(SynchronousTestCase):
         data = self.get_responsebody(resp)
         self.assertEquals('np123456', data['notification_plan_id'])
         self.assertEquals('ItsAnAlarm', data['label'])
+
+    def test_create_alarm_with_unrecognized_keys(self):
+        """
+        When creating an alarm with properties that are not
+        recognized by MaaS, MaaS creates the entity and stores keys
+        that it knows how to use.
+        """
+        resp = self.successResultOf(
+            request(self, self.root, "POST",
+                    '{0}/entities/{1}/alarms'.format(self.uri, self.entity_id),
+                    json.dumps({'label': 'alarm-foo',
+                                'check_id': self.check_id,
+                                'criteria': 'return new AlarmStatus(OK);',
+                                'notification_plan_id': 'npL01Wu7',
+                                'whut': 'WAT'})))
+        self.assertEquals(resp.code, 201)
 
     def test_delete_alarm(self):
         """
@@ -824,6 +865,47 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
         self.assertEquals(True, 'npTechnicalContactsEmail' in json.dumps(data))
+
+    def test_create_notification_plan_with_unrecognized_keys(self):
+        """
+        When creating a notification plan with properties that are not
+        recognized by MaaS, MaaS creates the entity and stores keys
+        that it knows how to use.
+        """
+        resp = self.successResultOf(
+            request(self, self.root, "POST",
+                    '{0}/notification_plans'.format(self.uri),
+                    json.dumps({'label': 'np-foo',
+                                'whut': 'WAT'})))
+        self.assertEquals(resp.code, 201)
+
+    def test_create_notification_with_unrecognized_keys(self):
+        """
+        When creating a notification with properties that are not
+        recognized by MaaS, MaaS creates the entity and stores keys
+        that it knows how to use.
+        """
+        resp = self.successResultOf(
+            request(self, self.root, "POST",
+                    '{0}/notifications'.format(self.uri),
+                    json.dumps({'label': 'nt-foo',
+                                'details': {'address': 'bob@company.com'},
+                                'type': 'email',
+                                'whut': 'WAT'})))
+        self.assertEquals(resp.code, 201)
+
+    def test_create_suppression_with_unrecognized_keys(self):
+        """
+        When creating a suppression with properties that are not
+        recognized by MaaS, MaaS creates the entity and stores keys
+        that it knows how to use.
+        """
+        resp = self.successResultOf(
+            request(self, self.root, "POST",
+                    '{0}/suppressions'.format(self.uri),
+                    json.dumps({'label': 'sp-foo',
+                                'whut': 'WAT'})))
+        self.assertEquals(resp.code, 201)
 
     def test_agenthostinfo(self):
         """
