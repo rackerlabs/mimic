@@ -139,16 +139,6 @@ class NovaControlApiRegion(object):
     Klein resources for the Nova Control plane API
     """
 
-    def _keypair_collection_for_tenant(self, tenant_id):
-        tenant_session = self._session_store.session_for_tenant_id(tenant_id)
-        kp_global_collection = tenant_session.data_for_api(
-            self._api_mock,
-            lambda: GlobalKeyPairCollections(tenant_id=tenant_id,
-                                             clock=self._session_store.clock))
-        kp_region_collection = kp_global_collection.collection_for_region(
-            self._name)
-        return kp_region_collection
-
     app = MimicApp()
 
     @app.route('/v2/<string:tenant_id>/behaviors', branch=True)
@@ -243,6 +233,16 @@ class NovaRegion(object):
         image_region_collection = image_global_collection.collection_for_region(
             self._name)
         return image_region_collection
+
+    def _keypair_collection_for_tenant(self, tenant_id):
+        tenant_session = self._session_store.session_for_tenant_id(tenant_id)
+        kp_global_collection = tenant_session.data_for_api(
+            self._api_mock,
+            lambda: GlobalKeyPairCollections(tenant_id=tenant_id,
+                                             clock=self._session_store.clock))
+        kp_region_collection = kp_global_collection.collection_for_region(
+            self._name)
+        return kp_region_collection
 
     app = MimicApp()
 
