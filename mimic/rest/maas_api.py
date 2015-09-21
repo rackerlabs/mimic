@@ -35,6 +35,9 @@ from mimic.model.maas_objects import (Alarm,
 from mimic.util.helper import random_hex_generator, random_hipsum
 
 
+MISSING_REQUIRED_KEY_REGEX = re.compile(r'Missing keyword value for \'(\w+)\'.')
+
+
 class _MatchesID(object):
     """
     Class for implementing equality based on the id field.
@@ -518,7 +521,22 @@ class MaasMock(object):
         """
         content = request.content.read()
         postdata = json.loads(content)
-        newcheck = create_check(self._session_store.clock, entity_id, postdata)
+
+        newcheck = None
+        try:
+            newcheck = create_check(self._session_store.clock, entity_id, postdata)
+        except ValueError as err:
+            match = MISSING_REQUIRED_KEY_REGEX.match(err.message)
+            missing_key = match.group(1)
+            status = 400
+            request.setResponseCode(status)
+            self._audit('checks', request, tenant_id, status, content)
+            return json.dumps({'type': 'badRequest',
+                               'code': status,
+                               'message': 'Validation error for key \'{0}\''.format(missing_key),
+                               'details': 'Missing required key ({0})'.format(missing_key),
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+
         self._entity_cache_for_tenant(tenant_id).checks_list.append(newcheck)
         status = 201
         request.setResponseCode(status)
@@ -613,7 +631,21 @@ class MaasMock(object):
         """
         content = request.content.read()
         postdata = json.loads(content)
-        newalarm = create_alarm(self._session_store.clock, entity_id, postdata)
+
+        try:
+            newalarm = create_alarm(self._session_store.clock, entity_id, postdata)
+        except ValueError as err:
+            match = MISSING_REQUIRED_KEY_REGEX.match(err.message)
+            missing_key = match.group(1)
+            status = 400
+            request.setResponseCode(status)
+            self._audit('alarms', request, tenant_id, status, content)
+            return json.dumps({'type': 'badRequest',
+                               'code': status,
+                               'message': 'Validation error for key \'{0}\''.format(missing_key),
+                               'details': 'Missing required key ({0})'.format(missing_key),
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+
         self._entity_cache_for_tenant(tenant_id).alarms_list.append(newalarm)
         status = 201
         request.setResponseCode(status)
