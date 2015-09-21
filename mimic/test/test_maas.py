@@ -226,13 +226,12 @@ class MaasAPITests(SynchronousTestCase):
 
     def test_fail_get_entity(self):
         """
-        test get entity
+        Attempting to get an entity with a nonexistent ID returns 404.
         """
-        req = request(self, self.root, "GET", self.uri + '/entities/whatever')
-        resp = self.successResultOf(req)
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "GET", '{0}/entities/whatever'.format(self.uri)))
         self.assertEquals(resp.code, 404)
-        data = self.get_responsebody(resp)
-        self.assertEquals({}, data)
+        self.assertEquals(data['type'], 'notFoundError')
 
     def test_list_audits(self):
         """
@@ -286,6 +285,16 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
         self.assertEquals(self.check_id, data['id'])
+
+    def test_get_missing_check_404s(self):
+        """
+        Trying to GET a nonexistent check causes a 404.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "GET", '{0}/entities/{1}/checks/Whut'.format(
+                self.uri, self.entity_id)))
+        self.assertEquals(resp.code, 404)
+        self.assertEquals(data['type'], 'notFoundError')
 
     def test_get_checks_for_entity(self):
         """
