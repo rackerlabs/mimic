@@ -54,6 +54,16 @@ script:
   - ./.travis/run.sh
 
 after_success:
+  - cat .coverage
+  - python -c "import pickle;print(pickle.loads(open('.coverage').read()))" || true
+  - coverage xml
+  - cat coverage.xml
+  - coverage xml -i
+  - cat coverage.xml
+  - "source ~/.venv/bin/activate && coverage xml"
+  - "source ~/.venv/bin/activate && cat coverage.xml"
+  - "source ~/.venv/bin/activate && coverage xml -i"
+  - "source ~/.venv/bin/activate && cat coverage.xml"
   - "source ~/.venv/bin/activate && codecov"
 
 notifications:
