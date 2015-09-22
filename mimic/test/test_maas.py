@@ -959,6 +959,40 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(self.entity_id, data['values'][0]['entity_id'])
         self.assertEquals(self.check_id, data['values'][0]['checks'][0]['id'])
 
+    def test_unknown_check_type_returns_empty_metrics_list(self):
+        """
+        A check type that Mimic doesn't know about causes the list
+        of metrics on that check to be empty.
+        """
+        resp = self.successResultOf(
+            request(self, self.root, "POST",
+                    '{0}/entities/{1}/checks'.format(self.uri, self.entity_id),
+                    json.dumps({'type': 'agent.chupacabra'})))
+        self.assertEquals(resp.code, 201)
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "GET", '{0}/views/metric_list'.format(self.uri)))
+        self.assertEquals(resp.code, 200)
+        chupacabra_check = [check for check in data['values'][0]['checks']
+                            if check['type'] == 'agent.chupacabra']
+        self.assertEquals(chupacabra_check[0]['metrics'], [])
+
+    def test_metrics_list_agent_check(self):
+        """
+        A known agent check type returns appropriate metrics for
+        that check type.
+        """
+        resp = self.successResultOf(
+            request(self, self.root, "POST",
+                    '{0}/entities/{1}/checks'.format(self.uri, self.entity_id),
+                    json.dumps({'type': 'agent.cpu'})))
+        self.assertEquals(resp.code, 201)
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "GET", '{0}/views/metric_list'.format(self.uri)))
+        self.assertEquals(resp.code, 200)
+        cpu_check = [check for check in data['values'][0]['checks']
+                     if check['type'] == 'agent.cpu']
+        self.assertEquals(cpu_check[0]['metrics'][0]['name'], 'user_percent_average')
+
     def test_multiplot(self):
         """
         get datapoints for graph
