@@ -18,8 +18,7 @@ from twisted.python.urlpath import URLPath
 from twisted.plugin import IPlugin
 from twisted.web.http import CREATED, BAD_REQUEST
 
-from mimic.canned_responses.nova import get_limit, get_key_pairs,\
-    get_networks, get_os_volume_attachments
+from mimic.canned_responses.nova import get_limit, get_networks, get_os_volume_attachments
 from mimic.model.keypair_objects import GlobalKeyPairCollections, KeyPair
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
@@ -227,7 +226,7 @@ class NovaRegion(object):
     def _image_collection_for_tenant(self, tenant_id):
         tenant_session = self._session_store.session_for_tenant_id(tenant_id)
         image_global_collection = tenant_session.data_for_api(
-            self._api_mock,
+            "image_collection",
             lambda: GlobalImageCollection(tenant_id=tenant_id,
                                           clock=self._session_store.clock))
         image_region_collection = image_global_collection.collection_for_region(
@@ -237,7 +236,7 @@ class NovaRegion(object):
     def _keypair_collection_for_tenant(self, tenant_id):
         tenant_session = self._session_store.session_for_tenant_id(tenant_id)
         kp_global_collection = tenant_session.data_for_api(
-            self._api_mock,
+            "keypair_collection",
             lambda: GlobalKeyPairCollections(tenant_id=tenant_id,
                                              clock=self._session_store.clock))
         kp_region_collection = kp_global_collection.collection_for_region(
@@ -319,12 +318,29 @@ class NovaRegion(object):
             self._region_collection_for_tenant(tenant_id)
             .request_delete(request, server_id)
         )
+    # def getcollection(self):
+    #     image_collection = GlobalImageCollection(tenant_id=tenant_id,
+    #                                              clock=self._session_store.clock)
+    #     image_object = []
+    #     if len(image_object) < 1:
+    #         image_collection = GlobalImageCollection(tenant_id=tenant_id,
+    #                                                  clock=self._session_store.clock)
+    #         image_object.append(image_collection)
+    #     else:
+    #         return im
+
 
     @app.route('/v2/<string:tenant_id>/images/<string:image_id>', methods=['GET'])
     def get_image(self, request, tenant_id, image_id):
         """
         Returns a get image response, for any given imageid
         """
+        # return(self._image_collection_for_tenant(tenant_id)
+        image_collection = GlobalImageCollection(tenant_id=tenant_id,
+                                                 clock=self._session_store.clock)
+        # print 'GET IMAGE BY ID: '
+        # print id(image_collection)
+        # return(image_collection.collection_for_region(region_name=self._name)
         return(self._image_collection_for_tenant(tenant_id)
                .get_image(request, image_id, absolutize_url=self.url))
 
@@ -333,6 +349,13 @@ class NovaRegion(object):
         """
         Returns details
         """
+        # return (self._image_collection_for_tenant(tenant_id)
+        # image_collection = GlobalImageCollection(tenant_id=tenant_id,
+        #                                          clock=self._session_store.clock)
+        # print 'GET IMAGE DETAILS: '
+        # print id(image_collection)
+        # return(image_collection.collection_for_region(region_name=self._name)
+        #        .list_images(include_details=True, absolutize_url=self.url))
         return (self._image_collection_for_tenant(tenant_id)
                 .list_images(include_details=True, absolutize_url=self.url))
 
@@ -341,8 +364,15 @@ class NovaRegion(object):
         """
         Return images
         """
-        return(self._image_collection_for_tenant(tenant_id)
-               .list_images(include_details=False, absolutize_url=self.url))
+        # return(self._image_collection_for_tenant(tenant_id)
+        # image_collection = GlobalImageCollection(tenant_id=tenant_id,
+        #                                          clock=self._session_store.clock)
+        # print 'GET IMAGES: '
+        # print id(image_collection)
+        # return(image_collection.collection_for_region(region_name=self._name)
+        #        .list_images(include_details=False, absolutize_url=self.url))
+        return (self._image_collection_for_tenant(tenant_id)
+                .list_images(include_details=False, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/flavors/<string:flavor_id>', methods=['GET'])
     def get_flavor_details(self, request, tenant_id, flavor_id):
@@ -406,12 +436,6 @@ class NovaRegion(object):
         """
         return json.dumps(get_os_volume_attachments())
 
-    @app.route('/v2/<string:tenant_id>/os-keypairs', methods=['GET'])
-    def get_key_pairs(self, request, tenant_id):
-        """
-        Returns key pairs
-        """
-        return json.dumps(get_key_pairs())
 
     @app.route('/v2/<string:tenant_id>/servers/<string:server_id>/metadata',
                branch=True)
@@ -434,13 +458,6 @@ class NovaRegion(object):
         Perform the requested action on the server
         """
         return self._region_collection_for_tenant(tenant_id).request_action(request, server_id, self.url)
-
-    @app.route("/v2/<string:tenant_id>/os-keypairs", methods=['GET'])
-    def get_key_pairs(self, request, tenant_id):
-        """
-        Returns current key pairs
-        """
-        return json.dumps(self._keypair_collection_for_tenant(tenant_id).json_list())
 
     @app.route("/v2/<string:tenant_id>/os-keypairs", methods=['POST'])
     def create_key_pair(self, request, tenant_id):

@@ -39,6 +39,7 @@ class Session(object):
         """
         Get the application data for a given API, creating it if necessary.
         """
+
         if api_mock not in self._api_objects:
             self._api_objects[api_mock] = data_factory()
         return self._api_objects[api_mock]
