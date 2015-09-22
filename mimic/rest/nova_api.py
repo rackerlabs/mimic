@@ -18,8 +18,7 @@ from twisted.python.urlpath import URLPath
 from twisted.plugin import IPlugin
 from twisted.web.http import CREATED, BAD_REQUEST
 
-from mimic.canned_responses.nova import get_limit, get_key_pairs,\
-    get_networks, get_os_volume_attachments
+from mimic.canned_responses.nova import get_limit, get_networks, get_os_volume_attachments
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
@@ -31,6 +30,7 @@ from mimic.model.nova_objects import (
 
 from mimic.model.flavor_collections import GlobalFlavorCollection
 from mimic.model.image_collections import GlobalImageCollection
+from mimic.model.keypair_objects import GlobalKeyPairCollections, KeyPair
 Request.defaultContentType = 'application/json'
 
 
@@ -232,6 +232,16 @@ class NovaRegion(object):
             self._name)
         return image_region_collection
 
+    def _keypair_collection_for_tenant(self, tenant_id):
+        tenant_session = self._session_store.session_for_tenant_id(tenant_id)
+        kp_global_collection = tenant_session.data_for_api(
+            "keypair_collection",
+            lambda: GlobalKeyPairCollections(tenant_id=tenant_id,
+                                             clock=self._session_store.clock))
+        kp_region_collection = kp_global_collection.collection_for_region(
+            self._name)
+        return kp_region_collection
+
     app = MimicApp()
 
     @app.route('/v2/<string:tenant_id>/servers', methods=['POST'])
@@ -394,13 +404,6 @@ class NovaRegion(object):
         """
         return json.dumps(get_os_volume_attachments())
 
-    @app.route('/v2/<string:tenant_id>/os-keypairs', methods=['GET'])
-    def get_key_pairs(self, request, tenant_id):
-        """
-        Returns key pairs
-        """
-        return json.dumps(get_key_pairs())
-
     @app.route('/v2/<string:tenant_id>/servers/<string:server_id>/metadata',
                branch=True)
     def handle_server_metadata(self, request, tenant_id, server_id):
@@ -422,6 +425,42 @@ class NovaRegion(object):
         Perform the requested action on the server
         """
         return self._region_collection_for_tenant(tenant_id).request_action(request, server_id, self.url)
+
+    @app.route('/v2/<string:tenant_id>/os-keypairs', methods=['GET'])
+    def get_key_pairs(self, request, tenant_id):
+        """
+        Returns key pairs
+        """
+        return json.dumps(self._keypair_collection_for_tenant(
+            tenant_id).json_list())
+
+    @app.route("/v2/<string:tenant_id>/os-keypairs", methods=['POST'])
+    def create_key_pair(self, request, tenant_id):
+        """
+        Returns a newly created key pair with the specified name.
+        """
+        try:
+            content = json.loads(request.content.read())
+        except ValueError:
+            request.setResponseCode(400)
+            return json.dumps(bad_request("Malformed request body", request))
+
+        keypair = content["keypair"]
+        name = keypair["name"]
+        pub_key = keypair["public_key"]
+        keypair_from_request = KeyPair(name=name, public_key=pub_key)
+        keypair_response = self._keypair_collection_for_tenant(
+            tenant_id).create_keypair(keypair=keypair_from_request)
+        return json.dumps(keypair_response)
+
+    @app.route("/v2/<string:tenant_id>/os-keypairs/<string:keypairname>", methods=['DELETE'])
+    def delete_key_pair(self, request, tenant_id, keypairname):
+        """
+        Removes a key by its name
+        """
+        self._keypair_collection_for_tenant(
+            tenant_id).remove_keypair(keypairname)
+        request.setResponseCode(202)
 
 
 class ServerMetadata(object):
