@@ -225,7 +225,7 @@ class NovaRegion(object):
     def _image_collection_for_tenant(self, tenant_id):
         tenant_session = self._session_store.session_for_tenant_id(tenant_id)
         image_global_collection = tenant_session.data_for_api(
-            self._api_mock,
+            "image_collection",
             lambda: GlobalImageCollection(tenant_id=tenant_id,
                                           clock=self._session_store.clock))
         image_region_collection = image_global_collection.collection_for_region(
