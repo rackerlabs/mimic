@@ -1024,6 +1024,19 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
 
         self.assertEqual(self._get_nodes(self.lb_id)[0], expected)
 
+        # check if feed is updated
+        d = request(
+            self, self.root, "GET",
+            "{}/loadbalancers/{}/nodes/{}.atom".format(self.uri, self.lb_id,
+                                                       self.node[0]["id"]))
+        feed_response = self.successResultOf(d)
+        self.assertEqual(
+            self.successResultOf(treq.content(feed_response)),
+            ("<feed xmlns=\"http://www.w3.org/2005/Atom\"><entry>"
+             "<summary>Node successfully updated with address: '127.0.0.1', "
+             "port: '80', weight: '100', condition: 'DISABLED'</summary>"
+             "<updated>1970-01-01T00:00:00.000000Z</updated></entry></feed>"))
+
 
 class LoadbalancerAPINegativeTests(SynchronousTestCase):
     """
