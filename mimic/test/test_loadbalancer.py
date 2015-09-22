@@ -1030,6 +1030,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
             "{}/loadbalancers/{}/nodes/{}.atom".format(self.uri, self.lb_id,
                                                        self.node[0]["id"]))
         feed_response = self.successResultOf(d)
+        self.assertEqual(feed_response.code, 200)
         self.assertEqual(
             self.successResultOf(treq.content(feed_response)),
             ("<feed xmlns=\"http://www.w3.org/2005/Atom\"><entry>"
@@ -1037,6 +1038,37 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
              "port: '80', weight: '100', condition: 'DISABLED'</summary>"
              "<updated>1970-01-01T00:00:00.000000Z</updated></entry></feed>"))
 
+    def test_get_feed_node_404(self):
+        """
+        Getting feed of non-existent node returns 404 with "Node not found"
+        XML
+        """
+        d = request(
+            self, self.root, "GET",
+            "{}/loadbalancers/{}/nodes/{}.atom".format(self.uri, self.lb_id, 0))
+        feed_response = self.successResultOf(d)
+        self.assertEqual(feed_response.code, 404)
+        self.assertEqual(
+            self.successResultOf(treq.content(feed_response)),
+            ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+             '<itemNotFound xmlns="http://docs.openstack.org/loadbalancers/api/v1.0" code="404">'
+             '<message>Node not found</message></itemNotFound>'))
+
+    def test_get_feed_clb_404(self):
+        """
+        Getting feed of node of non-existent CLB returns 404 with
+        "load balancer not found" XML
+        """
+        d = request(
+            self, self.root, "GET",
+            "{}/loadbalancers/{}/nodes/{}.atom".format(self.uri, 0, 0))
+        feed_response = self.successResultOf(d)
+        self.assertEqual(feed_response.code, 404)
+        self.assertEqual(
+            self.successResultOf(treq.content(feed_response)),
+            ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+             '<itemNotFound xmlns="http://docs.openstack.org/loadbalancers/api/v1.0" code="404">'
+             '<message>Load balancer not found</message></itemNotFound>'))
 
 class LoadbalancerAPINegativeTests(SynchronousTestCase):
     """

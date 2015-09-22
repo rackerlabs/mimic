@@ -310,7 +310,7 @@ class RegionalCLBCollection(object):
         Return load balancer's node's atom feed
         """
         if lb_id not in self.lbs:
-            return not_found_xml("load balancer"), 404
+            return not_found_xml("Load balancer"), 404
 
         _verify_and_update_lb_state(self, lb_id, False,
                                     self.clock.seconds())
@@ -325,7 +325,7 @@ class RegionalCLBCollection(object):
             if node_id == node.id:
                 return node_feed_xml(node.feed_events), 200
 
-        return not_found_xml("node"), 404
+        return not_found_xml("Node"), 404
 
 
     def list_load_balancers(self):
