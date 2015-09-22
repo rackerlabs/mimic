@@ -260,11 +260,11 @@ class LoadBalancerRegion(object):
 
     @app.route('/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/nodes/<int:node_id>',
                methods=['GET'])
-    def get_nodes(self, request, tenant_id, lb_id, node_id):
+    def get_node(self, request, tenant_id, lb_id, node_id):
         """
-        Returns a 200 response code and list of nodes on the load balancer
+        Returns a 200 response code and a particular nodes on the load balancer
         """
-        response_data = self.session(tenant_id).get_nodes(lb_id, node_id)
+        response_data = self.session(tenant_id).get_node(lb_id, node_id)
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 

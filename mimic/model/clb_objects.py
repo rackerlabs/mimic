@@ -267,7 +267,7 @@ class RegionalCLBCollection(object):
             return {'loadBalancer': self.lbs[lb_id].full_json()}, 200
         return not_found_response("loadbalancer"), 404
 
-    def get_nodes(self, lb_id, node_id):
+    def get_node(self, lb_id, node_id):
         """
         Returns the node on the load balancer
         """
