@@ -35,7 +35,8 @@ def setup_options(name, version):
             "xmltodict>=0.9.1",
             "attrs>=15.0.0",
             "testtools>=1.7.1,<1.8.0",
-            "iso8601>=0.1.10"
+            "iso8601>=0.1.10",
+            "toolz>=0.7.4"
         ],
         package_dir={"mimic": "mimic"},
         packages=find_packages(exclude=[]) + ["twisted.plugins"],
