@@ -1,5 +1,4 @@
 Tommy Walton
+Gabe Case
 Travis
 Codecov
-White
-Red
