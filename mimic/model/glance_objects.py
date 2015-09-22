@@ -4,6 +4,7 @@ Model objects for mimic glance images.
 
 from characteristic import attributes, Attribute
 from json import dumps
+import uuid
 from mimic.model.images import (RackspaceWindowsImage, RackspaceArchImage,
                                 RackspaceCentOSPVImage, RackspaceCentOSPVHMImage,
                                 RackspaceCoreOSImage, RackspaceDebianImage,
@@ -60,17 +61,16 @@ class GlanceImage(object):
                          RackspaceOnMetalCentOSImage, RackspaceOnMetalCoreOSImage]
         for image_class in image_classes:
             for image, image_spec in image_class.images.iteritems():
-                if not self.image_by_id(image_spec['id']):
-                    image_name = image
-                    image_id = image_spec['id']
-                    minRam = image_spec['minRam']
-                    minDisk = image_spec['minDisk']
-                    image_size = image_spec['OS-EXT-IMG-SIZE:size']
-                    image = image_class(image_id=image_id, tenant_id=33333, name=image_name,
-                                        minRam=minRam, minDisk=minDisk, image_size=image_size)
-                    if 'com.rackspace__1__ui_default_show' in image_spec:
-                        image.set_is_default()
-                    self.images_store.append(image)
+                image_name = image
+                image_id = str(uuid.uuid4())
+                minRam = image_spec['minRam']
+                minDisk = image_spec['minDisk']
+                image_size = image_spec['OS-EXT-IMG-SIZE:size']
+                image = image_class(image_id=image_id, tenant_id=33333, name=image_name,
+                                    minRam=minRam, minDisk=minDisk, image_size=image_size)
+                if 'com.rackspace__1__ui_default_show' in image_spec:
+                    image.set_is_default()
+                self.images_store.append(image)
 
     def list_images(self, region_name, include_details):
         """
