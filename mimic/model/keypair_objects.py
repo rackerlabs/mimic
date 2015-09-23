@@ -2,7 +2,6 @@
 Keypair objects for mimic
 """
 
-from json import dumps
 import json
 
 from characteristic import attributes, Attribute
@@ -16,6 +15,9 @@ class KeyPair(object):
     fingerprint = "TEST::TEST::TEST::TEST:TEST"
 
     def key_json(self):
+        """
+        Serialize a :obj:`Keypair` into JSON
+        """
         return {
             "keypair": {
                 "name": self.name,
@@ -30,17 +32,30 @@ class KeyPair(object):
      Attribute("keypairs", default_factory=list)]
 )
 class RegionalKeyPairCollection(object):
+    """
+    A :obj:`ReionalKeyPairCollection` is a collection of
+    :obj:`KeyPair` objects owned by a given tenant for a region.
+    """
 
     def create_keypair(self, keypair):
+        """
+        Add a :obj:`KeyPair` to the list of keypairs
+        """
         self.keypairs.append(keypair)
         return self.keypair_by_name(keypair.name).key_json()
 
     def keypair_by_name(self, name):
+        """
+        Return a :obj:`KeyPair` by name from the current keypairs list
+        """
         for keypair in self.keypairs:
             if keypair.name == name:
                 return keypair
 
     def json_list(self):
+        """
+        JSON List of all :obj:`KeyPair` for a region
+        """
         keypairs_json = {}
         for keypair in self.keypairs:
             keypairs_json.update(keypair.key_json())
@@ -53,6 +68,9 @@ class RegionalKeyPairCollection(object):
         return json.dumps(result)
 
     def remove_keypair(self, name):
+        """
+        Remove a :obj:`KeyPair` from the list of keypairs
+        """
         kp_to_remove = self.keypair_by_name(name)
         self.keypairs.remove(kp_to_remove)
 
