@@ -25,38 +25,10 @@ class RegionalImageCollection(object):
             if image.image_id == image_id:
                 return image
 
-    # def create_images_list(self):
-    #     """
-    #     Generates the data for each image in each image class
-    #     """
-    #     image_classes = [RackspaceWindowsImage, RackspaceArchImage, RackspaceCentOSPVImage,
-    #                      RackspaceCentOSPVHMImage, RackspaceCoreOSImage, RackspaceDebianImage,
-    #                      RackspaceFedoraImage, RackspaceFreeBSDImage, RackspaceGentooImage,
-    #                      RackspaceOpenSUSEImage, RackspaceRedHatPVImage, RackspaceRedHatPVHMImage,
-    #                      RackspaceUbuntuPVImage, RackspaceUbuntuPVHMImage, RackspaceVyattaImage,
-    #                      RackspaceScientificImage, RackspaceOnMetalCentOSImage,
-    #                      RackspaceOnMetalCoreOSImage, RackspaceOnMetalDebianImage,
-    #                      RackspaceOnMetalFedoraImage, RackspaceOnMetalUbuntuImage]
-    #     if len(self.images_store) < 1:
-    #         for image_class in image_classes:
-    #             for image, image_spec in image_class.images.iteritems():
-    #                 image_name = image
-    #                 image_id = image_spec['id']
-    #                 minRam = image_spec['minRam']
-    #                 minDisk = image_spec['minDisk']
-    #                 image_size = image_spec['OS-EXT-IMG-SIZE:size']
-    #                 tenant_id = self.tenant_id
-    #                 image = image_class(image_id=image_id, tenant_id=tenant_id,
-    #                                     image_size=image_size, name=image_name, minRam=minRam,
-    #                                     minDisk=minDisk)
-    #                 self.images_store.append(image)
-    #     return self.images_store
-
     def list_images(self, include_details, absolutize_url):
         """
         Return a list of images.
         """
-        # self.create_images_list()
         images_store = ImageStore.create_image_store(self.tenant_id)
         images = []
         for image in images_store:
