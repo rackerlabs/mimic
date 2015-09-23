@@ -4,24 +4,14 @@ Model objects for images.
 
 from characteristic import attributes, Attribute
 from json import dumps
-from mimic.model.images import (
-    RackspaceWindowsImage, RackspaceArchImage, RackspaceCentOSPVImage,
-    RackspaceCentOSPVHMImage, RackspaceCoreOSImage, RackspaceDebianImage,
-    RackspaceFedoraImage, RackspaceFreeBSDImage, RackspaceGentooImage, RackspaceOpenSUSEImage,
-    RackspaceRedHatPVImage, RackspaceRedHatPVHMImage, RackspaceUbuntuPVImage, RackspaceUbuntuPVHMImage,
-    RackspaceVyattaImage, RackspaceScientificImage, RackspaceOnMetalCentOSImage,
-    RackspaceOnMetalCoreOSImage, RackspaceOnMetalDebianImage, RackspaceOnMetalFedoraImage,
-    RackspaceOnMetalUbuntuImage, OnMetalImage)
+from mimic.model.rackspace_images import (ImageStore, OnMetalImage)
 
 from mimic.model.nova_objects import not_found
 from mimic.canned_responses.mimic_presets import get_presets
-import uuid
 
 
 @attributes(
-    ["tenant_id", "region_name", "clock",
-     Attribute("images_store", default_factory=list)]
-)
+    ["tenant_id", "region_name", "clock"])
 class RegionalImageCollection(object):
     """
     A collection of images, in a given region, for a given tenant.
@@ -30,44 +20,18 @@ class RegionalImageCollection(object):
         """
         Retrieve a :obj:`Image` object by its ID.
         """
-        self.create_images_list()
-        for image in self.images_store:
+        images_store = ImageStore.create_image_store(self.tenant_id)
+        for image in images_store:
             if image.image_id == image_id:
                 return image
-
-    def create_images_list(self):
-        """
-        Generates the data for each image in each image class
-        """
-        image_classes = [RackspaceWindowsImage, RackspaceArchImage, RackspaceCentOSPVImage,
-                         RackspaceCentOSPVHMImage, RackspaceCoreOSImage, RackspaceDebianImage,
-                         RackspaceFedoraImage, RackspaceFreeBSDImage, RackspaceGentooImage,
-                         RackspaceOpenSUSEImage, RackspaceRedHatPVImage, RackspaceRedHatPVHMImage,
-                         RackspaceUbuntuPVImage, RackspaceUbuntuPVHMImage, RackspaceVyattaImage,
-                         RackspaceScientificImage, RackspaceOnMetalCentOSImage,
-                         RackspaceOnMetalCoreOSImage, RackspaceOnMetalDebianImage,
-                         RackspaceOnMetalFedoraImage, RackspaceOnMetalUbuntuImage]
-        if len(self.images_store) < 1:
-            for image_class in image_classes:
-                for image, image_spec in image_class.images.iteritems():
-                    image_name = image
-                    image_id = str(uuid.uuid4())
-                    minRam = image_spec['minRam']
-                    minDisk = image_spec['minDisk']
-                    image_size = image_spec['OS-EXT-IMG-SIZE:size']
-                    tenant_id = self.tenant_id
-                    image = image_class(image_id=image_id, tenant_id=tenant_id,
-                                        image_size=image_size, name=image_name, minRam=minRam,
-                                        minDisk=minDisk)
-                    self.images_store.append(image)
 
     def list_images(self, include_details, absolutize_url):
         """
         Return a list of images.
         """
-        self.create_images_list()
+        images_store = ImageStore.create_image_store(self.tenant_id)
         images = []
-        for image in self.images_store:
+        for image in images_store:
             if self.region_name != "IAD" and isinstance(image, OnMetalImage):
                 continue
             if include_details:
@@ -85,7 +49,7 @@ class RegionalImageCollection(object):
         if image_id in get_presets['servers']['invalid_image_ref']:
             return dumps(not_found("The resource could not be found.",
                                    http_get_request))
-        self.create_images_list()
+        ImageStore.create_image_store(self.tenant_id)
         image = self.image_by_id(image_id)
         if image is None:
             return dumps(not_found('Image not found.', http_get_request))
