@@ -11,12 +11,15 @@ from six import text_type
 
 from zope.interface import implementer
 
+from twisted.web.server import Request
+
 from twisted.python.urlpath import URLPath
 
 from twisted.plugin import IPlugin
 from twisted.web.http import CREATED, BAD_REQUEST
 
-from mimic.canned_responses.nova import get_limit
+from mimic.canned_responses.nova import get_limit, get_key_pairs, \
+    get_networks, get_os_volume_attachments
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
@@ -25,7 +28,10 @@ from mimic.model.behaviors import make_behavior_api
 from mimic.model.nova_objects import (
     BadRequestError, GlobalServerCollections, LimitError, Server,
     bad_request, forbidden, not_found, server_creation)
+
 from mimic.model.flavor_collections import GlobalFlavorCollection
+from mimic.model.image_collections import GlobalImageCollection
+Request.defaultContentType = 'application/json'
 
 
 @implementer(IAPIMock, IPlugin)
@@ -35,7 +41,7 @@ class NovaApi(object):
     Rest endpoints for mocked Nova Api.
     """
 
-    def __init__(self, regions=["ORD"]):
+    def __init__(self, regions=["ORD", "DFW", "IAD"]):
         """
         Create a NovaApi with an empty region cache, no servers or tenants yet.
         """
@@ -97,7 +103,7 @@ class NovaControlApi(object):
         """
         return [
             Entry(
-                tenant_id, "compute", "cloudServersBehavior",
+                tenant_id, "computeBehavior", "cloudServersBehavior",
                 [
                     Endpoint(tenant_id, region, text_type(uuid4()),
                              prefix="v2")
@@ -216,6 +222,16 @@ class NovaRegion(object):
         return (self._api_mock._get_session(self._session_store, tenant_id)
                 .collection_for_region(self._name))
 
+    def _image_collection_for_tenant(self, tenant_id):
+        tenant_session = self._session_store.session_for_tenant_id(tenant_id)
+        image_global_collection = tenant_session.data_for_api(
+            "image_collection",
+            lambda: GlobalImageCollection(tenant_id=tenant_id,
+                                          clock=self._session_store.clock))
+        image_region_collection = image_global_collection.collection_for_region(
+            self._name)
+        return image_region_collection
+
     app = MimicApp()
 
     @app.route('/v2/<string:tenant_id>/servers', methods=['POST'])
@@ -282,8 +298,7 @@ class NovaRegion(object):
             )
         )
 
-    @app.route('/v2/<string:tenant_id>/servers/<string:server_id>',
-               methods=['DELETE'])
+    @app.route('/v2/<string:tenant_id>/servers/<string:server_id>', methods=['DELETE'])
     def delete_server(self, request, tenant_id, server_id):
         """
         Returns a 204 response code, for any server id'
@@ -298,30 +313,24 @@ class NovaRegion(object):
         """
         Returns a get image response, for any given imageid
         """
-        return (
-            self._region_collection_for_tenant(tenant_id)
-            .get_image(request, image_id, absolutize_url=self.url)
-        )
+        return(self._image_collection_for_tenant(tenant_id)
+               .get_image(request, image_id, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/images/detail', methods=['GET'])
-    def get_server_image_list_with_details(self, request, tenant_id):
+    def get_image_details(self, request, tenant_id):
         """
-        Returns a image list with details.
+        Returns details
         """
-        return (
-            self._region_collection_for_tenant(tenant_id)
-            .list_images(include_details=True, absolutize_url=self.url)
-        )
+        return (self._image_collection_for_tenant(tenant_id)
+                .list_images(include_details=True, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/images', methods=['GET'])
-    def get_server_image_list(self, request, tenant_id):
+    def get_images(self, request, tenant_id):
         """
-        Returns a image list.
+        Return images
         """
-        return (
-            self._region_collection_for_tenant(tenant_id)
-            .list_images(include_details=False, absolutize_url=self.url)
-        )
+        return(self._image_collection_for_tenant(tenant_id)
+               .list_images(include_details=False, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/flavors/<string:flavor_id>', methods=['GET'])
     def get_flavor_details(self, request, tenant_id, flavor_id):
@@ -330,33 +339,29 @@ class NovaRegion(object):
         """
         flavor_collection = GlobalFlavorCollection(tenant_id=tenant_id,
                                                    clock=self._session_store.clock)
-        return (flavor_collection.collection_for_region(region_name=self._name)
-                .get_flavor(request, flavor_id, absolutize_url=self.url))
+        return(flavor_collection.collection_for_region(region_name=self._name)
+               .get_flavor(request, flavor_id, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/flavors', methods=['GET'])
     def get_flavor_list(self, request, tenant_id):
         """
         Returns a list of flavor with the response code 200.
         docs: http://bit.ly/1eXTSDC
-        TO DO: The length of flavor list can be set using the control plane.
-               Also be able to set different flavor types in the future.
         """
         flavor_collection = GlobalFlavorCollection(tenant_id=tenant_id,
                                                    clock=self._session_store.clock)
-        return (flavor_collection.collection_for_region(region_name=self._name)
-                .list_flavors(include_details=False, absolutize_url=self.url))
+        return(flavor_collection.collection_for_region(region_name=self._name)
+               .list_flavors(include_details=False, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/flavors/detail', methods=['GET'])
     def get_flavor_list_with_details(self, request, tenant_id):
         """
         Returns a list of flavor details with the response code 200.
-        TO DO: The length of flavor list can be set using the control plane.
-               Also be able to set different flavor types in the future.
         """
         flavor_collection = GlobalFlavorCollection(tenant_id=tenant_id,
                                                    clock=self._session_store.clock)
-        return (flavor_collection.collection_for_region(region_name=self._name)
-                .list_flavors(include_details=True, absolutize_url=self.url))
+        return(flavor_collection.collection_for_region(region_name=self._name)
+               .list_flavors(include_details=True, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/limits', methods=['GET'])
     def get_limit(self, request, tenant_id):
@@ -371,11 +376,30 @@ class NovaRegion(object):
         """
         Returns the IP addresses for the specified server.
         """
-        return (
-            self._region_collection_for_tenant(tenant_id).request_ips(
-                request, server_id
-            )
-        )
+        return (self._region_collection_for_tenant(tenant_id).
+                request_ips(request, server_id))
+
+    @app.route('/v2/<string:tenant_id>/os-networksv2', methods=['GET'])
+    def get_networks(self, request, tenant_id):
+        """
+        Returns networks
+        """
+        return json.dumps(get_networks())
+
+    @app.route('/v2/<string:tenant_id>/servers/<string:server_id>/os-volume_attachments',
+               methods=['GET'])
+    def get_volume_attachments(self, request, tenant_id, server_id):
+        """
+        Returns volume attachments
+        """
+        return json.dumps(get_os_volume_attachments())
+
+    @app.route('/v2/<string:tenant_id>/os-keypairs', methods=['GET'])
+    def get_key_pairs(self, request, tenant_id):
+        """
+        Returns key pairs
+        """
+        return json.dumps(get_key_pairs())
 
     @app.route('/v2/<string:tenant_id>/servers/<string:server_id>/metadata',
                branch=True)
