@@ -51,12 +51,3 @@ class GlanceImage(object):
                   "first": "/v2/images?limit=1000"}
 
         return dumps(result)
-
-    def image_by_id(self, image_id):
-        """
-        Retrieve a :obj:`Glance Image` object by its ID.
-        """
-        images_store = ImageStore.create_image_store(self.tenant_id)
-        for image in images_store:
-            if image.image_id == image_id:
-                return image
