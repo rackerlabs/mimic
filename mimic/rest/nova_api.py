@@ -26,6 +26,7 @@ from mimic.model.nova_objects import (
     BadRequestError, GlobalServerCollections, LimitError, Server,
     bad_request, forbidden, not_found, server_creation)
 from mimic.model.flavor_collections import GlobalFlavorCollection
+from mimic.model.image_collections import GlobalImageCollection
 
 
 @implementer(IAPIMock, IPlugin)
@@ -216,6 +217,16 @@ class NovaRegion(object):
         return (self._api_mock._get_session(self._session_store, tenant_id)
                 .collection_for_region(self._name))
 
+    def _image_collection_for_tenant(self, tenant_id):
+        tenant_session = self._session_store.session_for_tenant_id(tenant_id)
+        image_global_collection = tenant_session.data_for_api(
+            self._api_mock,
+            lambda: GlobalImageCollection(tenant_id=tenant_id,
+                                          clock=self._session_store.clock))
+        image_region_collection = image_global_collection.collection_for_region(
+            self._name)
+        return image_region_collection
+
     app = MimicApp()
 
     @app.route('/v2/<string:tenant_id>/servers', methods=['POST'])
@@ -298,30 +309,24 @@ class NovaRegion(object):
         """
         Returns a get image response, for any given imageid
         """
-        return (
-            self._region_collection_for_tenant(tenant_id)
-            .get_image(request, image_id, absolutize_url=self.url)
-        )
+        return(self._image_collection_for_tenant(tenant_id)
+               .get_image(request, image_id, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/images/detail', methods=['GET'])
-    def get_server_image_list_with_details(self, request, tenant_id):
+    def get_image_details(self, request, tenant_id):
         """
-        Returns a image list.
+        Returns details
         """
-        return (
-            self._region_collection_for_tenant(tenant_id)
-            .list_server_image(include_details=True, absolutize_url=self.url)
-        )
+        return (self._image_collection_for_tenant(tenant_id)
+                .list_images(include_details=True, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/images', methods=['GET'])
-    def get_server_image_list(self, request, tenant_id):
+    def get_images(self, request, tenant_id):
         """
-        Returns a image list.
+        Return images
         """
-        return (
-            self._region_collection_for_tenant(tenant_id)
-            .list_server_image(include_details=False, absolutize_url=self.url)
-        )
+        return(self._image_collection_for_tenant(tenant_id)
+               .list_images(include_details=False, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/flavors/<string:flavor_id>', methods=['GET'])
     def get_flavor_details(self, request, tenant_id, flavor_id):
