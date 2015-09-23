@@ -210,7 +210,7 @@ class RackspaceCoreOSImage(Image):
               "CoreOS (Alpha)": {"minRam": 512, "minDisk": 20, "OS-EXT-IMG-SIZE:size": 239664114,
                                  "id": Image.image_id()},
               "CoreOS (Stable)": {"minRam": 512, "minDisk": 20, "OS-EXT-IMG-SIZE:size": 224241308,
-                                  "com.rackspace__1__ui_default_show": "True", "id": str(uuid.uuid4())}}
+                                  "com.rackspace__1__ui_default_show": "True", "id": Image.image_id()}}
 
     def metadata_json(self):
         """
