@@ -95,10 +95,10 @@ class GlanceMock(object):
             visible = request.args.get('visibility')[0]
             if visible == 'public':
                 image = GlanceImage()
-                return image.list_images(self._region, include_details=True)
+                return image.list_images(self._region, tenant_id, include_details=True)
             else:
                 return dumps({"images": [], "schema": "/v2/schemas/images",
                               "first": "/v2/images?limit=1000&visibility=private"})
         else:
             image = GlanceImage()
-            return image.list_images(self._region, include_details=True)
+            return image.list_images(self._region, tenant_id, include_details=True)
