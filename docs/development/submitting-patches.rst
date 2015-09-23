@@ -38,17 +38,43 @@ Additionally, every Python code file must contain
 Tests
 -----
 
-All code changes must be accompanied by unit tests with 100% code coverage (as
-measured by the tool `coverage`_.  To test coverage, use our ``tox`` job:
+All code changes must be accompanied by unit tests with 100% branch code
+coverage (as measured by the tool `coverage`_.) Test coverage is displayed as
+part of our ``tox`` test jobs:
 
 .. code-block:: console
 
-    $ tox -e cover
-    Name                                   Stmts   Miss  Cover   Missing
-    --------------------------------------------------------------------
+    $ tox
     ...
-      cover: commands succeeded
-      congratulations :)
+    mimic.test.test_auth
+      AuthIntegrationTests
+        test_api_key_then_other_token_same_tenant ...                          [OK]
+      ...
+      TestRandomString
+        test_length ...                                                        [OK]
+        test_selectable ...                                                    [OK]
+
+    -------------------------------------------------------------------------------
+    Ran 389 tests in 5.000s
+
+    PASSED (successes=389)
+    py27-twisted_new_logging runtests: commands[2] | coverage report -m
+    Name                                                    Stmts   Miss Branch BrMiss  Cover   Missing
+    ---------------------------------------------------------------------------------------------------
+    mimic/__init__                                              1      0      0      0   100%
+    mimic/canned_responses/__init__                             0      0      0      0   100%
+    mimic/canned_responses/auth                                29      0     10      0   100%
+    ...
+    mimic/session                                              72      0     28      2    98%
+    mimic/tap                                                  19      0      2      0   100%
+    mimic/util/__init__                                         0      0      0      0   100%
+    mimic/util/helper                                          43      0      6      0   100%
+    twisted/plugins/mimic                                       2      2      0      0     0%   4-7
+    ---------------------------------------------------------------------------------------------------
+    TOTAL                                                    2812      6    801     57    98%
+
+To view per-line branch coverage, open the file `_htmlcov/<tox environment>/index.html`.
+
 
 Documentation
 -------------
