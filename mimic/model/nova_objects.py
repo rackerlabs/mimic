@@ -16,21 +16,7 @@ from mimic.util.helper import (
     random_string,
     timestamp_to_seconds
 )
-from mimic.model.flavor_objects import (
-    Flavor, RackspaceStandardFlavor, RackspaceComputeFlavor, RackspaceMemoryFlavor,
-    RackspaceOnMetalFlavor, RackspaceIOFlavor, RackspaceGeneralFlavor,
-    RackspacePerformance1Flavor, RackspacePerformance2Flavor)
 
-from mimic.model.image_objects import (
-    RackspaceWindowsImage, RackspaceArchImage, RackspaceCentOSPVImage,
-    RackspaceCentOSPVHMImage, RackspaceCoreOSImage, RackspaceDebianImage,
-    RackspaceFedoraImage, RackspaceFreeBSDImage, RackspaceGentooImage, RackspaceOpenSUSEImage,
-    RackspaceRedHatPVImage, RackspaceRedHatPVHMImage, RackspaceUbuntuPVImage, RackspaceUbuntuPVHMImage,
-    RackspaceVyattaImage, RackspaceScientificImage, RackspaceOnMetalCentOSImage,
-    RackspaceOnMetalCoreOSImage, RackspaceOnMetalDebianImage, RackspaceOnMetalFedoraImage,
-    RackspaceOnMetalUbuntuImage, OnMetalImage)
-
-from mimic.canned_responses.mimic_presets import get_presets
 from mimic.model.behaviors import (
     BehaviorRegistryCollection, EventDescription, Criterion, regexp_predicate
 )
@@ -209,14 +195,17 @@ class Server(object):
             "flavor": {
                 "id": self.flavor_ref,
                 "links": [{
-                    "href": absolutize_url("{0}/flavors/{1}".format(tenant_id, self.flavor_ref)),
-                    "rel": "bookmark"}],
-            },
+                              "href": absolutize_url(
+                                  "{0}/flavors/{1}".format(tenant_id, self.flavor_ref)),
+                              "rel": "bookmark"}],
+                },
             "image": {
                 "id": self.image_ref,
                 "links": [{
-                    "href": absolutize_url("{0}/images/{1}".format(tenant_id, self.flavor_ref)),
-                    "rel": "bookmark"}]
+                              "href": absolutize_url("{0}/images/{1}".format(
+                                  tenant_id, self.flavor_ref)),
+                              "rel": "bookmark"
+                          }]
             }
             if self.image_ref is not None else '',
             "links": self.links_json(absolutize_url),
@@ -323,7 +312,7 @@ class Server(object):
             private_ips=[
                 IPv4Address(address="10.180.{0}.{1}"
                             .format(ipsegment(), ipsegment())),
-            ],
+                ],
             public_ips=[
                 IPv4Address(address="198.101.241.{0}".format(ipsegment())),
                 IPv6Address(address="2001:4800:780e:0510:d87b:9cbc:ff04:513a")
@@ -654,7 +643,6 @@ def metadata_to_creation_behavior(metadata):
 @attributes(
     ["tenant_id", "region_name", "clock",
      Attribute("servers", default_factory=list),
-     Attribute("flavors_store", default_factory=list),
      Attribute("images_store", default_factory=list),
      Attribute(
          "behavior_registry_collection",
@@ -672,22 +660,6 @@ class RegionalServerCollection(object):
         for server in self.servers:
             if server.server_id == server_id and server.status != u"DELETED":
                 return server
-
-    def flavor_by_id(self, flavor_id):
-        """
-        Retrieve a :obj:`Flavor` object by its ID.
-        """
-        for flavor in self.flavors_store:
-            if flavor.flavor_id == flavor_id:
-                return flavor
-
-    def image_by_id(self, image_id):
-        """
-        Retrieve a :obj:`Image` object by its ID.
-        """
-        for image in self.images_store:
-            if image.image_id == image_id:
-                return image
 
     def request_creation(self, creation_http_request, creation_json,
                          absolutize_url):
@@ -810,8 +782,10 @@ class RegionalServerCollection(object):
                 self.tenant_id,
                 "/detail" if include_details else "",
                 urlencode(query_params))
-            result["servers_links"] = [{"href": absolutize_url(path),
-                                        "rel": "next"}]
+            result["servers_links"] = [{
+                                           "href": absolutize_url(path),
+                                           "rel": "next"
+                                       }]
 
         return dumps(result)
 
@@ -953,121 +927,6 @@ class RegionalServerCollection(object):
 
         else:
             return dumps(bad_request("There is no such action currently supported", http_action_request))
-
-    def create_flavors_list(self, flavor_classes):
-        """
-        Generates the data for each flavor in each flavor class
-        """
-        for flavor_class in flavor_classes:
-            for flavor, flavor_spec in flavor_class.flavors.iteritems():
-                if not self.flavor_by_id(flavor_spec['id']):
-                    flavor_name = flavor
-                    flavor_id = flavor_spec['id']
-                    ram = flavor_spec['ram']
-                    vcpus = flavor_spec['vcpus']
-                    network = flavor_spec['rxtx_factor']
-                    disk = flavor_spec['disk']
-                    tenant_id = self.tenant_id
-                    flavor = flavor_class(flavor_id=flavor_id, tenant_id=tenant_id,
-                                          name=flavor_name, ram=ram, vcpus=vcpus,
-                                          rxtx=network, disk=disk)
-                    self.flavors_store.append(flavor)
-
-    def list_flavors(self, include_details, absolutize_url):
-        """
-        Return a list of flavors with details.
-        Creates a random list of flavors if flavors were not created.
-        """
-        flavors = [RackspaceStandardFlavor, RackspaceComputeFlavor, RackspacePerformance1Flavor,
-                   RackspaceOnMetalFlavor, RackspacePerformance2Flavor, RackspaceMemoryFlavor,
-                   RackspaceIOFlavor, RackspaceGeneralFlavor]
-        self.create_flavors_list(flavors)
-        flavors = []
-        for flavor in self.flavors_store:
-            if self.region_name != "IAD" and isinstance(flavor, RackspaceOnMetalFlavor):
-                continue
-            if include_details:
-                flavors.append(flavor.detailed_json(absolutize_url))
-            else:
-                flavors.append(flavor.brief_json(absolutize_url))
-        result = {"flavors": flavors}
-
-        return dumps(result)
-
-    def get_flavor(self, http_get_request, flavor_id, absolutize_url):
-        """
-        Return a flavor object if one exists from the list `/flavors` api,
-        else creates and adds the flavor to the :obj: `flavors_store`.
-        If the `flavor_id` is listed in `mimic.canned_responses.mimic_presets`,
-        then will return 404.
-        """
-        if flavor_id in get_presets['servers']['invalid_flavor_ref']:
-            return dumps(not_found("The resource could not be found.",
-                                   http_get_request))
-        flavor = self.flavor_by_id(flavor_id)
-        if flavor is None:
-            flavor = Flavor(flavor_id=flavor_id,
-                            name=flavor_id + "Mimic Test Instance",
-                            ram=1, tenant_id=self.tenant_id, vcpus=2, rxtx=200, disk=3)
-            self.flavors_store.append(flavor)
-        return dumps({"flavor": flavor.detailed_json(absolutize_url)})
-
-    def create_images_list(self):
-        """
-        Generates the data for each image in each image class
-        """
-        image_classes = [RackspaceWindowsImage, RackspaceArchImage, RackspaceCentOSPVImage,
-                         RackspaceCentOSPVHMImage, RackspaceCoreOSImage, RackspaceDebianImage,
-                         RackspaceFedoraImage, RackspaceFreeBSDImage, RackspaceGentooImage,
-                         RackspaceOpenSUSEImage, RackspaceRedHatPVImage, RackspaceRedHatPVHMImage,
-                         RackspaceUbuntuPVImage, RackspaceUbuntuPVHMImage, RackspaceVyattaImage,
-                         RackspaceScientificImage, RackspaceOnMetalCentOSImage,
-                         RackspaceOnMetalCoreOSImage, RackspaceOnMetalDebianImage,
-                         RackspaceOnMetalFedoraImage, RackspaceOnMetalUbuntuImage]
-
-        for image_class in image_classes:
-            for image, image_spec in image_class.images.iteritems():
-                if not self.image_by_id(image_spec['id']):
-                    image_name = image
-                    image_id = image_spec['id']
-                    minRam = image_spec['minRam']
-                    minDisk = image_spec['minDisk']
-                    image_size = image_spec['OS-EXT-IMG-SIZE:size']
-                    tenant_id = self.tenant_id
-                    image = image_class(image_id=image_id, tenant_id=tenant_id, image_size=image_size,
-                                        name=image_name, minRam=minRam, minDisk=minDisk)
-                    self.images_store.append(image)
-
-    def list_images(self, include_details, absolutize_url):
-        """
-        Return a list of images.
-        """
-        self.create_images_list()
-        images = []
-        for image in self.images_store:
-            if self.region_name != "IAD" and isinstance(image, OnMetalImage):
-                continue
-            if include_details:
-                images.append(image.detailed_json(absolutize_url))
-            else:
-                images.append(image.brief_json(absolutize_url))
-        result = {"images": images}
-
-        return dumps(result)
-
-    def get_image(self, http_get_request, image_id, absolutize_url):
-        """
-        Return an image object if one exists from the list `/images` api,
-        else return 404 Image not found.
-        """
-        if image_id in get_presets['servers']['invalid_image_ref']:
-            return dumps(not_found("The resource could not be found.",
-                                   http_get_request))
-        self.create_images_list()
-        image = self.image_by_id(image_id)
-        if image is None:
-            return dumps(not_found('Image not found.', http_get_request))
-        return dumps({"image": image.detailed_json(absolutize_url)})
 
 
 @attributes(["tenant_id", "clock",

@@ -51,6 +51,27 @@ def random_string(length, selectable=None):
     return ''.join([choice(selectable) for _ in xrange(length)])
 
 
+def random_hipsum(length):
+    """
+    Generates a random sentence using Hipsum ( http://hipsum.co/ ).
+
+    :param length The number of words in the desired sentence.
+    :returns: A Unicode string containing `length` words.
+    """
+    hipsum = ''.join([
+        "Retro squid Portland raw denim Austin, normcore slow-carb Brooklyn. ",
+        "Deep v organic VHS drinking vinegar. Fingerstache locavore kogi Tumblr ",
+        "cred. Vice typewriter retro iPhone pour-over cred XOXO church-key, ",
+        "post-ironic kogi. Selvage polaroid retro, cold-pressed meh craft beer ",
+        "artisan pour-over taxidermy sartorial art party. Food truck church-key ",
+        "four loko wayfarers craft beer dreamcatcher normcore yr, jean shorts ",
+        "bespoke migas art party crucifix next level. Street art chia bitters, ",
+        "gastropub mixtape flexitarian Godard occupy lumbersexual."]).split(' ')
+    offset = randint(1, len(hipsum))
+    rotated = hipsum[offset:] + hipsum[:offset]
+    return ' '.join(rotated[:length])
+
+
 def random_ipv4(*numbers):
     """
     Return a random IPv4 address - parts of the IP address can be provided.
