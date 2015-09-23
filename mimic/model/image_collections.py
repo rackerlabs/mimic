@@ -4,7 +4,7 @@ Model objects for images.
 
 from characteristic import attributes, Attribute
 from json import dumps
-from mimic.model.images import (ImageStore, OnMetalImage)
+from mimic.model.rackspace_images import (ImageStore, OnMetalImage)
 
 from mimic.model.nova_objects import not_found
 from mimic.canned_responses.mimic_presets import get_presets

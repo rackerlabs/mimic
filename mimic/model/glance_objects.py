@@ -4,7 +4,7 @@ Model objects for mimic glance images.
 
 from characteristic import attributes, Attribute
 from json import dumps
-from mimic.model.images import (ImageStore, OnMetalImage)
+from mimic.model.rackspace_images import (ImageStore, OnMetalImage)
 
 
 @attributes([Attribute("images_store", default_factory=list)])
