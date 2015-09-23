@@ -19,6 +19,8 @@ from mimic.test.behavior_tests import (
     register_behavior)
 from mimic.test.fixtures import APIMockHelper, TenantAuthentication
 from mimic.util.helper import seconds_to_timestamp
+from mimic.model.nova_objects import (
+    RegionalServerCollection, Server, IPv4Address)
 
 
 def status_of_server(test_case, server_id):
