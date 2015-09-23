@@ -327,7 +327,6 @@ class RegionalCLBCollection(object):
 
         return not_found_xml("Node"), 404
 
-
     def list_load_balancers(self):
         """
         Returns the list of load balancers with the given tenant id with response

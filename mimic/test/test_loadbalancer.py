@@ -1070,6 +1070,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
              '<itemNotFound xmlns="http://docs.openstack.org/loadbalancers/api/v1.0" code="404">'
              '<message>Load balancer not found</message></itemNotFound>'))
 
+
 class LoadbalancerAPINegativeTests(SynchronousTestCase):
     """
     Tests for the Loadbalancer plugin API for error injection
