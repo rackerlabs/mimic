@@ -195,16 +195,16 @@ class Server(object):
             "flavor": {
                 "id": self.flavor_ref,
                 "links": [{
-                              "href": absolutize_url(
-                                  "{0}/flavors/{1}".format(tenant_id, self.flavor_ref)),
-                              "rel": "bookmark"}],
-                },
+                          "href": absolutize_url(
+                              "{0}/flavors/{1}".format(tenant_id, self.flavor_ref)),
+                          "rel": "bookmark"}],
+            },
             "image": {
                 "id": self.image_ref,
                 "links": [{
-                              "href": absolutize_url("{0}/images/{1}".format(
-                                  tenant_id, self.flavor_ref)),
-                              "rel": "bookmark"
+                          "href": absolutize_url("{0}/images/{1}".format(
+                              tenant_id, self.flavor_ref)),
+                          "rel": "bookmark"
                           }]
             }
             if self.image_ref is not None else '',
@@ -312,7 +312,7 @@ class Server(object):
             private_ips=[
                 IPv4Address(address="10.180.{0}.{1}"
                             .format(ipsegment(), ipsegment())),
-                ],
+            ],
             public_ips=[
                 IPv4Address(address="198.101.241.{0}".format(ipsegment())),
                 IPv6Address(address="2001:4800:780e:0510:d87b:9cbc:ff04:513a")
@@ -783,8 +783,8 @@ class RegionalServerCollection(object):
                 "/detail" if include_details else "",
                 urlencode(query_params))
             result["servers_links"] = [{
-                                           "href": absolutize_url(path),
-                                           "rel": "next"
+                                       "href": absolutize_url(path),
+                                       "rel": "next"
                                        }]
 
         return dumps(result)

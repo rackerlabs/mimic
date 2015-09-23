@@ -18,8 +18,7 @@ from twisted.python.urlpath import URLPath
 from twisted.plugin import IPlugin
 from twisted.web.http import CREATED, BAD_REQUEST
 
-from mimic.canned_responses.nova import get_limit, get_key_pairs, \
-    get_networks, get_os_volume_attachments
+from mimic.canned_responses.nova import get_limit
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
@@ -378,28 +377,6 @@ class NovaRegion(object):
         """
         return (self._region_collection_for_tenant(tenant_id).
                 request_ips(request, server_id))
-
-    @app.route('/v2/<string:tenant_id>/os-networksv2', methods=['GET'])
-    def get_networks(self, request, tenant_id):
-        """
-        Returns networks
-        """
-        return json.dumps(get_networks())
-
-    @app.route('/v2/<string:tenant_id>/servers/<string:server_id>/os-volume_attachments',
-               methods=['GET'])
-    def get_volume_attachments(self, request, tenant_id, server_id):
-        """
-        Returns volume attachments
-        """
-        return json.dumps(get_os_volume_attachments())
-
-    @app.route('/v2/<string:tenant_id>/os-keypairs', methods=['GET'])
-    def get_key_pairs(self, request, tenant_id):
-        """
-        Returns key pairs
-        """
-        return json.dumps(get_key_pairs())
 
     @app.route('/v2/<string:tenant_id>/servers/<string:server_id>/metadata',
                branch=True)
