@@ -2,6 +2,9 @@
 Keypair objects for mimic
 """
 
+from json import dumps
+import json
+
 from characteristic import attributes, Attribute
 
 
@@ -47,7 +50,7 @@ class RegionalKeyPairCollection(object):
                 keypairs_json
             ]
         }
-        return result
+        return json.dumps(result)
 
     def remove_keypair(self, name):
         kp_to_remove = self.keypair_by_name(name)

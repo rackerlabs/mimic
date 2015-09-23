@@ -10,7 +10,6 @@ from mimic.test.fixtures import APIMockHelper
 
 
 class KeyPairTests(SynchronousTestCase):
-
     """
     Tests for keypairs
     """
@@ -31,13 +30,14 @@ class KeyPairTests(SynchronousTestCase):
         self.keypair_name = self.create_keypair_response_body[
             'keypair']['name']
 
-    def create_keypair(self):
-        kp_body = {
-            "keypair": {
-                "name": "setUP_test_lp",
-                "public_key": "ssh-rsa testkey/"
+    def create_keypair(self, kp_body=None):
+        if kp_body is None:
+            kp_body = {
+                "keypair": {
+                    "name": "setUP_test_lp",
+                    "public_key": "ssh-rsa testkey/"
+                }
             }
-        }
 
         resp, body = self.successResultOf(json_request(
             self, self.helper.root, "POST", self.helper.uri + '/os-keypairs',
@@ -45,29 +45,30 @@ class KeyPairTests(SynchronousTestCase):
         ))
         return resp, body
 
+    def get_keypairs_list(self):
+        resp, body = self.successResultOf(json_request(
+            self, self.helper.root, "GET", self.helper.uri + '/os-keypairs'
+        ))
+        return resp, body
+
     def test_create_keypair(self):
-        kp_body = {
+        kp_test_body = {
             "keypair": {
                 "name": "test_lp",
                 "public_key": "ssh-rsa testkey/"
             }
         }
-        kp_name = kp_body['keypair']['name']
-
-        resp, body = self.successResultOf(json_request(
-            self, self.helper.root, "POST", self.helper.uri + '/os-keypairs',
-            kp_body
-        ))
+        resp, body = self.create_keypair(kp_test_body)
 
         self.assertEqual(resp.code, 200)
-        self.assertEqual(body['keypair']['name'], kp_name)
+        self.assertEqual(body['keypair']['name'],
+                         kp_test_body['keypair']['name'])
 
     def test_list_keypair(self):
-        resp, body = self.successResultOf(json_request(
-            self, self.helper.root, "GET", self.helper.uri + '/os-keypairs'
-        ))
+        resp, body = self.get_keypairs_list()
         self.assertEqual(resp.code, 200)
-        # assert for good servers in response here
+        self.assertEqual(body['keypairs'][0]['keypair']
+                         ['name'], self.keypair_name)
 
     def test_delete_keypair(self):
         resp = self.successResultOf(request(
@@ -76,4 +77,5 @@ class KeyPairTests(SynchronousTestCase):
         ))
 
         self.assertEqual(resp.code, 202)
-        # assert server is gone
+        resp, body = self.get_keypairs_list()
+        self.assertTrue(len(body['keypairs']) < 2)

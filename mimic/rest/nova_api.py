@@ -17,8 +17,9 @@ from twisted.python.urlpath import URLPath
 
 from twisted.plugin import IPlugin
 from twisted.web.http import CREATED, BAD_REQUEST
-
-from mimic.canned_responses.nova import get_limit, get_networks, get_os_volume_attachments
+from mimic.canned_responses.nova import get_limit, \
+    get_networks, get_os_volume_attachments
+from mimic.model.keypair_objects import GlobalKeyPairCollections, KeyPair
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
@@ -30,7 +31,6 @@ from mimic.model.nova_objects import (
 
 from mimic.model.flavor_collections import GlobalFlavorCollection
 from mimic.model.image_collections import GlobalImageCollection
-from mimic.model.keypair_objects import GlobalKeyPairCollections, KeyPair
 Request.defaultContentType = 'application/json'
 
 
@@ -137,6 +137,7 @@ class NovaControlApiRegion(object):
     """
     Klein resources for the Nova Control plane API
     """
+
     app = MimicApp()
 
     @app.route('/v2/<string:tenant_id>/behaviors', branch=True)
@@ -339,8 +340,8 @@ class NovaRegion(object):
         """
         Return images
         """
-        return(self._image_collection_for_tenant(tenant_id)
-               .list_images(include_details=False, absolutize_url=self.url))
+        return (self._image_collection_for_tenant(tenant_id)
+                .list_images(include_details=False, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/flavors/<string:flavor_id>', methods=['GET'])
     def get_flavor_details(self, request, tenant_id, flavor_id):
@@ -426,13 +427,12 @@ class NovaRegion(object):
         """
         return self._region_collection_for_tenant(tenant_id).request_action(request, server_id, self.url)
 
-    @app.route('/v2/<string:tenant_id>/os-keypairs', methods=['GET'])
+    @app.route("/v2/<string:tenant_id>/os-keypairs", methods=['GET'])
     def get_key_pairs(self, request, tenant_id):
         """
-        Returns key pairs
+        Returns current key pairs
         """
-        return json.dumps(self._keypair_collection_for_tenant(
-            tenant_id).json_list())
+        return self._keypair_collection_for_tenant(tenant_id).json_list()
 
     @app.route("/v2/<string:tenant_id>/os-keypairs", methods=['POST'])
     def create_key_pair(self, request, tenant_id):
@@ -446,9 +446,8 @@ class NovaRegion(object):
             return json.dumps(bad_request("Malformed request body", request))
 
         keypair = content["keypair"]
-        name = keypair["name"]
-        pub_key = keypair["public_key"]
-        keypair_from_request = KeyPair(name=name, public_key=pub_key)
+        keypair_from_request = KeyPair(
+            name=keypair["name"], public_key=keypair["public_key"])
         keypair_response = self._keypair_collection_for_tenant(
             tenant_id).create_keypair(keypair=keypair_from_request)
         return json.dumps(keypair_response)
