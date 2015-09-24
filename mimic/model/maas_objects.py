@@ -31,6 +31,13 @@ class Entity(object):
     """
     Models a MaaS Entity.
     """
+    USER_SPECIFIABLE_KEYS = ['agent_id',
+                             'ip_addresses',
+                             'label',
+                             'managed',
+                             'metadata',
+                             'uri']
+
     def to_json(self):
         """
         Serializes the Entity to a JSON-encodable dict.
@@ -49,7 +56,7 @@ class Entity(object):
         """
         Updates this Entity.
         """
-        for key in ['agent_id', 'managed', 'metadata', 'ip_addresses', 'uri', 'label']:
+        for key in Entity.USER_SPECIFIABLE_KEYS:
             if key in kwargs:
                 setattr(self, key, kwargs[key])
         self.updated_at = int(1000 * kwargs['clock'].seconds())
@@ -76,6 +83,18 @@ class Check(object):
     """
     Models a MaaS Check.
     """
+    USER_SPECIFIABLE_KEYS = ['details',
+                             'disabled',
+                             'label',
+                             'metadata',
+                             'monitoring_zones_poll',
+                             'period',
+                             'target_alias',
+                             'target_hostname',
+                             'target_resolver',
+                             'timeout',
+                             'type']
+
     def to_json(self):
         """
         Serializes the Check to a JSON-encodable dict.
@@ -99,8 +118,7 @@ class Check(object):
         """
         Updates this Check.
         """
-        for key in ['type', 'details', 'disabled', 'label', 'metadata', 'period', 'timeout',
-                    'monitoring_zones_poll', 'target_alias', 'target_hostname', 'target_resolver']:
+        for key in Check.USER_SPECIFIABLE_KEYS:
             if key in kwargs:
                 setattr(self, key, kwargs[key])
         self.updated_at = int(1000 * kwargs['clock'].seconds())
@@ -122,6 +140,13 @@ class Alarm(object):
     """
     Models a MaaS Alarm.
     """
+    USER_SPECIFIABLE_KEYS = ['check_id',
+                             'criteria',
+                             'disabled',
+                             'label',
+                             'metadata',
+                             'notification_plan_id']
+
     def to_json(self):
         """
         Serializes the Alarm to a JSON-encodable dict.
@@ -141,8 +166,7 @@ class Alarm(object):
         """
         Updates this Alarm.
         """
-        for key in ['check_id', 'notification_plan_id', 'criteria', 'disabled', 'label',
-                    'metadata']:
+        for key in Alarm.USER_SPECIFIABLE_KEYS:
             if key in kwargs:
                 setattr(self, key, kwargs[key])
         self.updated_at = int(1000 * kwargs['clock'].seconds())
@@ -161,6 +185,8 @@ class Notification(object):
     """
     Models a MaaS Notification.
     """
+    USER_SPECIFIABLE_KEYS = ['details', 'label', 'metadata', 'type']
+
     def to_json(self):
         """
         Serializes the Notification to a JSON-encodable dict.
@@ -177,7 +203,7 @@ class Notification(object):
         """
         Updates this Notification.
         """
-        for key in ['details', 'label', 'metadata', 'type']:
+        for key in Notification.USER_SPECIFIABLE_KEYS:
             if key in kwargs:
                 setattr(self, key, kwargs[key])
         self.updated_at = int(1000 * kwargs['clock'].seconds())
@@ -197,6 +223,12 @@ class NotificationPlan(object):
     """
     Models a MaaS notification plan.
     """
+    USER_SPECIFIABLE_KEYS = ['critical_state',
+                             'label',
+                             'metadata',
+                             'ok_state',
+                             'warning_state']
+
     def to_json(self):
         """
         Serializes the Notification Plan to a JSON-encodable dict.
@@ -214,7 +246,7 @@ class NotificationPlan(object):
         """
         Updates this Notification Plan.
         """
-        for key in ['critical_state', 'label', 'metadata', 'ok_state', 'warning_state']:
+        for key in NotificationPlan.USER_SPECIFIABLE_KEYS:
             if key in kwargs:
                 setattr(self, key, kwargs[key])
         self.updated_at = int(1000 * kwargs['clock'].seconds())
@@ -236,6 +268,14 @@ class Suppression(object):
     """
     Models a MaaS suppression.
     """
+    USER_SPECIFIABLE_KEYS = ['alarms',
+                             'checks',
+                             'end_time',
+                             'entities',
+                             'label',
+                             'notification_plans',
+                             'start_time']
+
     def to_json(self):
         """
         Serializes the Suppression to a JSON-encodable dict.
@@ -253,8 +293,7 @@ class Suppression(object):
         """
         Updates this Suppression.
         """
-        for key in ['alarms', 'checks', 'end_time', 'entities', 'label',
-                    'notification_plans', 'start_time']:
+        for key in Suppression.USER_SPECIFIABLE_KEYS:
             if key in kwargs:
                 setattr(self, key, kwargs[key])
         self.updated_at = int(1000 * kwargs['clock'].seconds())
