@@ -26,6 +26,7 @@ from mimic.canned_responses.maas_agent_info import agent_info
 from mimic.canned_responses.maas_monitoring_zones import monitoring_zones
 from mimic.canned_responses.maas_alarm_examples import alarm_examples
 from mimic.model.maas_objects import (Alarm,
+                                      AlarmState,
                                       Check,
                                       Entity,
                                       MaasStore,
@@ -810,6 +811,7 @@ class MaasMock(object):
 
         checks = self._entity_cache_for_tenant(tenant_id).checks_list
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
+        maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
         page_limit = min(int(request.args.get('limit', [100])[0]), 1000)
         offset = 0
         current_marker = request.args.get('marker', [None])[0]
@@ -838,7 +840,10 @@ class MaasMock(object):
                               for check in checks
                               if check.entity_id == entity.id],
                    'entity': entity.to_json(),
-                   'latest_alarm_states': []}
+                   'latest_alarm_states': [
+                       state.brief_json()
+                       for state in maas_store.latest_alarm_states_for_entity(entity.id)]}
+
                   for entity in entities]
         request.setResponseCode(200)
         return json.dumps({'metadata': metadata, 'values': values})
@@ -1306,6 +1311,31 @@ class MaasMock(object):
         self._audit('rollups', request, tenant_id, status, content)
         return json.dumps({'metrics': metrics_replydata})
 
+    @app.route('/v1.0/<string:tenant_id>/views/latest_alarm_states', methods=['GET'])
+    def latest_alarm_states(self, request, tenant_id):
+        """
+        Gets entities grouped with their latest alarm states.
+        """
+        entities = self._entity_cache_for_tenant(tenant_id).entities_list
+        maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
+
+        values = [{'entity_id': entity.id,
+                   'entity_uri': entity.uri,
+                   'entity_label': entity.label,
+                   'latest_alarm_states': [
+                       state.detail_json()
+                       for state in maas_store.latest_alarm_states_for_entity(entity.id)]}
+                  for entity in entities]
+
+        metadata = {'count': len(values),
+                    'marker': None,
+                    'next_marker': None,
+                    'limit': 1000,
+                    'next_href': None}
+
+        request.setResponseCode(200)
+        return json.dumps({'values': values, 'metadata': metadata})
+
 
 @implementer(IAPIMock, IPlugin)
 @attributes(["maas_api"])
@@ -1445,4 +1475,65 @@ class MaasController(object):
         check_type_ins = maas_store.check_types[check_type]
         check_type_ins.clear_overrides()
         request.setResponseCode(204)
+        return b''
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms' +
+               '/<string:alarm_id>/states', methods=['POST'])
+    def create_alarm_state(self, request, tenant_id, entity_id, alarm_id):
+        """
+        Adds a new alarm state to the collection of alarm states.
+        """
+        maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
+        request_body = json.loads(request.content.read())
+
+        check_id = None
+        alarm_label = None
+        for al in self._entity_cache_for_tenant(tenant_id).alarms_list:
+            if al.entity_id == entity_id and al.id == alarm_id:
+                alarm_label = al.label
+                check_id = al.check_id
+                break
+        else:
+            request.setResponseCode(404)
+            return json.dumps({'type': 'notFoundError',
+                               'code': 404,
+                               'message': 'Object does not exist',
+                               'details': 'Object "Alarm" with key "{0}:{1}" does not exist'.format(
+                                   entity_id, alarm_id)
+                               })
+
+        previous_state = u'UNKNOWN'
+        alarm_states_same_entity_and_alarm = [
+            state for state in maas_store.alarm_states
+            if state.entity_id == entity_id and state.alarm_id == alarm_id]
+        if len(alarm_states_same_entity_and_alarm) > 0:
+            previous_state = alarm_states_same_entity_and_alarm[-1].state
+
+        monitoring_zone_id = request_body.get('analyzed_by_monitoring_zone_id', u'mzord')
+
+        new_state = None
+        try:
+            new_state = AlarmState(alarm_id=alarm_id,
+                                   entity_id=entity_id,
+                                   check_id=check_id,
+                                   alarm_label=alarm_label,
+                                   analyzed_by_monitoring_zone_id=monitoring_zone_id,
+                                   previous_state=previous_state,
+                                   state=request_body['state'],
+                                   status=request_body['status'],
+                                   timestamp=int(1000 * self.session_store.clock.seconds()))
+        except KeyError as e:
+            missing_key = e.message
+            status = 400
+            request.setResponseCode(status)
+            return json.dumps({'type': 'badRequest',
+                               'code': status,
+                               'message': 'Validation error for key \'{0}\''.format(missing_key),
+                               'details': 'Missing required key ({0})'.format(missing_key),
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+
+        maas_store.alarm_states.append(new_state)
+        request.setResponseCode(201)
+        request.setHeader('x-object-id', new_state.id.encode('utf-8'))
+        request.setHeader('content-type', 'text/plain')
         return b''
