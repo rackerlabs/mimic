@@ -262,11 +262,11 @@ class LoadBalancerRegion(object):
                methods=['GET'])
     def get_node(self, request, tenant_id, lb_id, node_id):
         """
-        Returns a 200 response code and a particular nodes on the load balancer
+        Returns a 200 response code and a particular node on the load balancer
         """
-        response_data = self.session(tenant_id).get_node(lb_id, node_id)
-        request.setResponseCode(response_data[1])
-        return json.dumps(response_data[0])
+        body, code = self.session(tenant_id).get_node(lb_id, node_id)
+        request.setResponseCode(code)
+        return json.dumps(body)
 
     @app.route('/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/nodes/<int:node_id>.atom',
                methods=['GET'])
@@ -274,10 +274,10 @@ class LoadBalancerRegion(object):
         """
         Returns a 200 response code and node's feed on the load balancer
         """
-        response_data = self.session(tenant_id).get_node_feed(lb_id, node_id)
-        request.setResponseCode(response_data[1])
+        body, code = self.session(tenant_id).get_node_feed(lb_id, node_id)
+        request.setResponseCode(code)
         request.setHeader("Content-Type", "application/atom+xml")
-        return response_data[0]
+        return body
 
     @app.route(
         '/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/nodes/<int:node_id>',
