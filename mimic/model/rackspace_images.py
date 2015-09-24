@@ -79,6 +79,9 @@ class Image(object):
             "minDisk": self.minDisk,
             "OS-EXT-IMG-SIZE:size": self.image_size,
             "com.rackspace__1__ui_default_show": self.is_default,
+            "created": "1972-01-01_15-59-11",
+            "updated": "1972-01-01_15-59-11",
+            "progress": 100,
             "metadata": self.metadata_json()
         })
         return template
@@ -575,6 +578,9 @@ class OnMetalImage(object):
             "minDisk": self.minDisk,
             "OS-EXT-IMG-SIZE:size": self.image_size,
             "com.rackspace__1__ui_default_show": self.is_default,
+            "created": "1972-01-01_15-59-11",
+            "updated": "1972-01-01_15-59-11",
+            "progress": 100,
             "metadata": self.metadata_json()
         })
         return template

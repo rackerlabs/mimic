@@ -55,16 +55,18 @@ class NovaAPIImagesTests(SynchronousTestCase):
         get_server_image_response = self.successResultOf(get_server_image)
         self.assertEqual(get_server_image_response.code, 404)
 
-    def test_get_server_image(self):
+    def test_get_virtual_server_image(self):
         """
         Test to verify :func:`get_image` on ``GET /v2.0/<tenant_id>/images/<image_id>``
         """
-        get_server_image_response_body = self.get_server_image(
-            '/images/test-image-id')
+        get_image_list_response_body = self.get_server_image('/images')
+        image_list = get_image_list_response_body['images']
+        image_id = image_list[7]['id']
+        get_image_response_body = self.get_server_image('/images/' + image_id)
         self.assertEqual(
-            get_server_image_response_body['image']['id'], 'test-image-id')
+            get_image_response_body['image']['id'], image_id)
         self.assertEqual(
-            get_server_image_response_body['image']['status'], 'ACTIVE')
+            get_image_response_body['image']['metadata']['status'], 'active')
 
     def test_get_image_list(self):
         """
@@ -87,9 +89,9 @@ class NovaAPIImagesTests(SynchronousTestCase):
         for each_image in image_list:
             self.assertEqual(
                 sorted(each_image.keys()),
-                sorted(['id', 'name', 'links', 'status', 'progress', 'minRam',
-                        'OS-DCF:diskConfig', 'OS-EXT-IMG-SIZE:size', 'metadata',
-                        'minDisk', 'created', 'updated']))
+                sorted(['id', 'name', 'links', 'minRam',
+                        'OS-EXT-IMG-SIZE:size', 'metadata', 'progress', 'created', 'updated',
+                        'minDisk', 'com.rackspace__1__ui_default_show']))
 
     def test_get_image_list_with_details_is_consistent(self):
         """
@@ -112,3 +114,34 @@ class NovaAPIImagesTests(SynchronousTestCase):
                              get_server_image_response_body['image']['id'])
             self.assertEqual(each_image['name'],
                              get_server_image_response_body['image']['name'])
+
+    def test_get_OnMetal_server_image(self):
+        """
+        Test to verify :func:`get_image` on ``GET /v2.0/<tenant_id>/images/<image_id>``
+        """
+        helper = APIMockHelper(self, [NovaApi(['IAD'])])
+        root = helper.root
+        uri = helper.uri
+        response, body = self.successResultOf(json_request(
+            self, root, "GET", uri + '/images/detail'))
+        self.assertEqual(200, response.code)
+        images = body['images']
+        for image in images:
+            if image['metadata']['flavor_classes'] == 'onmetal':
+                onmetal_id = image['id']
+                break
+        response, body = self.successResultOf(json_request(
+            self, root, "GET", uri + '/images/' + onmetal_id))
+        self.assertEqual(200, response.code)
+        self.assertEqual(body['image']['id'], onmetal_id)
+        self.assertEqual(body['image']['metadata']['flavor_classes'], 'onmetal')
+
+    def test_OnMetal_image_list(self):
+        helper = APIMockHelper(self, [NovaApi(['IAD'])])
+        root = helper.root
+        uri = helper.uri
+        response, body = self.successResultOf(json_request(self, root, "GET", uri + '/images'))
+        self.assertEqual(200, response.code)
+        image_list = body['images']
+        for each_image in image_list:
+            self.assertEqual(sorted(each_image.keys()), sorted(['id', 'links', 'name']))

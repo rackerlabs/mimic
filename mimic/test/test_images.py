@@ -50,7 +50,8 @@ class NovaAPIImagesTests(SynchronousTestCase):
         image_list = get_image_list_response_body['images']
         self.assertTrue(len(image_list) > 1)
         for each_image in image_list:
-            self.assertEqual(sorted(each_image.keys()), sorted(['OS-EXT-IMG-SIZE:size',
+            self.assertEqual(sorted(each_image.keys()), sorted(['OS-EXT-IMG-SIZE:size', 'created',
+                                                                'progress', 'updated',
                                                                 'com.rackspace__1__ui_default_show',
                                                                 'id', 'links', 'metadata', 'minDisk',
                                                                 'minRam', 'name']))
@@ -72,7 +73,8 @@ class NovaAPIImagesTests(SynchronousTestCase):
         self.assertEquals(True, 'onmetal' in json.dumps(image_list))
 
         for each_image in image_list:
-            self.assertEqual(sorted(each_image.keys()), sorted(['OS-EXT-IMG-SIZE:size',
+            self.assertEqual(sorted(each_image.keys()), sorted(['OS-EXT-IMG-SIZE:size', 'created',
+                                                                'progress', 'updated',
                                                                 'com.rackspace__1__ui_default_show',
                                                                 'id', 'links', 'metadata', 'minDisk',
                                                                 'minRam', 'name']))
