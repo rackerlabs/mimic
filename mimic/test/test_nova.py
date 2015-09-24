@@ -37,7 +37,7 @@ def status_of_server(test_case, server_id):
 
 def create_server(helper, name=None, imageRef=None, flavorRef=None,
                   metadata=None, diskConfig=None, body_override=None,
-                  region="ORD", request_func=json_request):
+                  region="ORD", key_name=None, request_func=json_request):
     """
     Create a server with the given body and returns the response object and
     body.
@@ -62,6 +62,7 @@ def create_server(helper, name=None, imageRef=None, flavorRef=None,
     if body is None:
         data = {
             "name": name if name is not None else 'test_server',
+            "key_name": key_name if key_name is not None else 'test_key',
             "imageRef": imageRef if imageRef is not None else "test-image",
             "flavorRef": flavorRef if flavorRef is not None else "test-flavor"
         }
