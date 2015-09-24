@@ -34,19 +34,19 @@ class KeyPair(object):
 class RegionalKeyPairCollection(object):
     """
     A :obj:`ReionalKeyPairCollection` is a collection of
-    :obj:`KeyPair` objects owned by a given tenant for a region.
+    :obj:`KeyPair` objects owned by a given tenant for a  region.
     """
 
     def create_keypair(self, keypair):
         """
-        Add a :obj:`KeyPair` to the list of keypairs
+        Add a :obj:`KeyPair` to the list of  keypairs
         """
         self.keypairs.append(keypair)
         return self.keypair_by_name(keypair.name).key_json()
 
     def keypair_by_name(self, name):
         """
-        Return a :obj:`KeyPair` by name from the current keypairs list
+        Return a :obj:`KeyPair` by name from the current keypairs  list
         """
         for keypair in self.keypairs:
             if keypair.name == name:
@@ -54,7 +54,7 @@ class RegionalKeyPairCollection(object):
 
     def json_list(self):
         """
-        JSON List of all :obj:`KeyPair` for a region
+        JSON List of all :obj:`KeyPair` for a  region
         """
         result = {"keypairs": []}
         if len(self.keypairs) > 0:
@@ -71,7 +71,7 @@ class RegionalKeyPairCollection(object):
 
     def remove_keypair(self, name):
         """
-        Remove a :obj:`KeyPair` from the list of keypairs
+        Remove a :obj:`KeyPair` from the list of  keypairs
         """
         kp_to_remove = self.keypair_by_name(name)
         self.keypairs.remove(kp_to_remove)
