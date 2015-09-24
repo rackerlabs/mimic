@@ -12,7 +12,7 @@ class KeyPair(object):
     """
     A KeyPair object
     """
-    fingerprint = "TEST::TEST::TEST::TEST:TEST"
+    fingerprint = "aa:aa:aa:aa:aa:aa:aa:aa:aa:aa:aa:aa:aa:aa:aa:aa"
 
     def key_json(self):
         """
@@ -56,15 +56,17 @@ class RegionalKeyPairCollection(object):
         """
         JSON List of all :obj:`KeyPair` for a region
         """
-        keypairs_json = {}
-        for keypair in self.keypairs:
-            keypairs_json.update(keypair.key_json())
+        result = {"keypairs": []}
+        if len(self.keypairs) > 0:
+            keypairs_json = {}
+            for keypair in self.keypairs:
+                keypairs_json.update(keypair.key_json())
+            result = {
+                "keypairs": [
+                    keypairs_json
+                ]
+            }
 
-        result = {
-            "keypairs": [
-                keypairs_json
-            ]
-        }
         return json.dumps(result)
 
     def remove_keypair(self, name):
