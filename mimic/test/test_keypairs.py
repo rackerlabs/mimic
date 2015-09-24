@@ -64,6 +64,12 @@ class KeyPairTests(SynchronousTestCase):
         self.assertEqual(body['keypair']['name'],
                          kp_test_body['keypair']['name'])
 
+    def test_error_create_keypair(self):
+        test_error_body = "{{a]"
+        resp, body = self.create_keypair(test_error_body)
+        self.assertEqual(resp.code, 400)
+        self.assertSubstring("Malformed", str(body))
+
     def test_list_keypair(self):
         resp, body = self.get_keypairs_list()
         self.assertEqual(resp.code, 200)
