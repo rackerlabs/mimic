@@ -114,7 +114,7 @@ def conflicting(message, request):
 
 @attributes(["collection", "server_id", "server_name", "metadata",
              "creation_time", "update_time", "public_ips", "private_ips",
-             "status", "flavor_ref", "image_ref", "disk_config",
+             "status", "flavor_ref", "image_ref", "disk_config", "key_name",
              "admin_password", "creation_request_json",
              Attribute('max_metadata_items', instance_of=int,
                        default_value=40)])
@@ -130,7 +130,6 @@ class Server(object):
         "OS-EXT-STS:task_state": None,
         "accessIPv4": "198.101.241.238",  # TODO: same as public IP
         "accessIPv6": "2001:4800:780e:0510:d87b:9cbc:ff04:513a",
-        "key_name": None,
         "hostId": "33ccb6c82f3625748b6f2338f54d8e9df07cc583251e001355569056",
         "progress": 100,
         "user_id": "170454"
