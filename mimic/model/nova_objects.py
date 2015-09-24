@@ -16,13 +16,11 @@ from mimic.util.helper import (
     random_string,
     timestamp_to_seconds
 )
-from mimic.canned_responses.mimic_presets import get_presets
-from mimic.model.glance_objects import Image, random_image_list
 
 from mimic.model.behaviors import (
     BehaviorRegistryCollection, EventDescription, Criterion, regexp_predicate
 )
-from twisted.web.http import ACCEPTED, BAD_REQUEST, FORBIDDEN, NOT_FOUND, CONFLICT
+from twisted.web.http import ACCEPTED, BAD_REQUEST, FORBIDDEN, NOT_FOUND
 
 
 @attributes(['nova_message'])
@@ -87,6 +85,18 @@ def not_found(message, request):
     return _nova_error_message("itemNotFound", message, NOT_FOUND, request)
 
 
+def conflicting(message, request):
+    """
+    Return a 409 error body associated with a Nova conflicting request error.
+
+    :param str message: The message to include in the bad request body.
+    :param request: The request on which to set the response code.
+
+    :return: dictionary representing the error body.
+    """
+    return _nova_error_message("conflictingRequest", message, 409, request)
+
+
 def forbidden(message, request):
     """
     Return a 403 error body associated with a Nova forbidden error.
@@ -98,18 +108,6 @@ def forbidden(message, request):
     :return: dictionary representing the error body.
     """
     return _nova_error_message("forbidden", message, FORBIDDEN, request)
-
-
-def conflicting(message, request):
-    """
-    Return a 409 error body associated with a Nova conflicting request error.
-
-    :param str message: The message to include in the bad request body.
-    :param request: The request on which to set the response code.
-
-    :return: dictionary representing the error body.
-    """
-    return _nova_error_message("conflictingRequest", message, CONFLICT, request)
 
 
 @attributes(["collection", "server_id", "server_name", "metadata",
@@ -197,17 +195,17 @@ class Server(object):
             "flavor": {
                 "id": self.flavor_ref,
                 "links": [{
-                    "href": absolutize_url(
-                        "{0}/flavors/{1}".format(tenant_id, self.flavor_ref)),
-                    "rel": "bookmark"}],
+                          "href": absolutize_url(
+                              "{0}/flavors/{1}".format(tenant_id, self.flavor_ref)),
+                          "rel": "bookmark"}],
             },
             "image": {
                 "id": self.image_ref,
                 "links": [{
-                    "href": absolutize_url("{0}/images/{1}".format(
-                        tenant_id, self.flavor_ref)),
-                    "rel": "bookmark"
-                }]
+                          "href": absolutize_url("{0}/images/{1}".format(
+                              tenant_id, self.flavor_ref)),
+                          "rel": "bookmark"
+                          }]
             }
             if self.image_ref is not None else '',
             "links": self.links_json(absolutize_url),
@@ -228,7 +226,7 @@ class Server(object):
                 "OS-DCF:diskConfig": self.disk_config,
                 "id": self.server_id,
                 "links": self.links_json(absolutize_url),
-                "adminPass": self.admin_password,
+                "adminPass": self.admin_password
             }
         }
 
@@ -303,13 +301,6 @@ class Server(object):
         metadata = server_json.get("metadata") or {}
         cls.validate_metadata(metadata, max_metadata_items)
 
-        while True:
-            private_ip = IPv4Address(
-                address="10.180.{0}.{1}".format(ipsegment(), ipsegment()))
-            if private_ip not in [addr for server in collection.servers
-                                  for addr in server.private_ips]:
-                break
-
         self = cls(
             collection=collection,
             server_name=server_json['name'],
@@ -318,7 +309,10 @@ class Server(object):
             metadata=metadata,
             creation_time=now,
             update_time=now,
-            private_ips=[private_ip],
+            private_ips=[
+                IPv4Address(address="10.180.{0}.{1}"
+                            .format(ipsegment(), ipsegment())),
+            ],
             public_ips=[
                 IPv4Address(address="198.101.241.{0}".format(ipsegment())),
                 IPv6Address(address="2001:4800:780e:0510:d87b:9cbc:ff04:513a")
@@ -649,7 +643,7 @@ def metadata_to_creation_behavior(metadata):
 @attributes(
     ["tenant_id", "region_name", "clock",
      Attribute("servers", default_factory=list),
-     Attribute("image_store", default_factory=list),
+     Attribute("images_store", default_factory=list),
      Attribute(
          "behavior_registry_collection",
          default_factory=lambda: BehaviorRegistryCollection())]
@@ -789,9 +783,9 @@ class RegionalServerCollection(object):
                 "/detail" if include_details else "",
                 urlencode(query_params))
             result["servers_links"] = [{
-                "href": absolutize_url(path),
-                "rel": "next"
-            }]
+                                       "href": absolutize_url(path),
+                                       "rel": "next"
+                                       }]
 
         return dumps(result)
 
@@ -851,26 +845,6 @@ class RegionalServerCollection(object):
             else:
                 return dumps(conflicting("Cannot '" + action_json.keys()[0] + "' instance " + server_id +
                                          " while it is in vm_state active", http_action_request))
-        elif 'rescue' in action_json:
-            if server.status != 'ACTIVE':
-                return dumps(conflicting("Cannot 'rescue' instance " + server_id +
-                                         " while it is in task state other than active",
-                                         http_action_request))
-            else:
-                server.status = 'RESCUE'
-                http_action_request.setResponseCode(200)
-                password = random_string(12)
-                return dumps({"adminPass": password})
-
-        elif 'unrescue' in action_json:
-            if server.status == 'RESCUE':
-                server.status = 'ACTIVE'
-                http_action_request.setResponseCode(200)
-                return b''
-            else:
-                return dumps(conflicting("Cannot 'unrescue' instance " + server_id +
-                                         " while it is in task state other than rescue",
-                                         http_action_request))
 
         elif 'reboot' in action_json:
             reboot_type = action_json['reboot'].get('type')
@@ -895,6 +869,27 @@ class RegionalServerCollection(object):
                 return b''
             else:
                 return dumps(bad_request("Argument 'type' for reboot is not HARD or SOFT",
+                                         http_action_request))
+
+        elif 'rescue' in action_json:
+            if server.status == 'ACTIVE':
+                server.status = 'RESCUE'
+                http_action_request.setResponseCode(200)
+                password = random_string(12)
+                return dumps({"adminPass": password})
+            else:
+                return dumps(conflicting("Cannot 'rescue' instance " + server_id +
+                                         " while it is in task state other than active",
+                                         http_action_request))
+
+        elif 'unrescue' in action_json:
+            if server.status == 'RESCUE':
+                server.status = 'ACTIVE'
+                http_action_request.setResponseCode(200)
+                return b''
+            else:
+                return dumps(conflicting("Cannot '" + action_json.keys()[0] + "' instance " + server_id +
+                                         " while it is in task state other than active",
                                          http_action_request))
 
         elif 'changePassword' in action_json:
@@ -932,67 +927,6 @@ class RegionalServerCollection(object):
 
         else:
             return dumps(bad_request("There is no such action currently supported", http_action_request))
-
-    # Server Images
-
-    def image_by_id(self, image_id):
-        """
-        Retrieve a :obj:`Image` object by its ID.
-        """
-        for image in self.image_store:
-            if image.image_id == image_id and image.status != u"DELETED":
-                return image
-
-    def image_by_name(self, image_name):
-        """
-        Retrieve a :obj:`Image` object by its ID.
-        """
-        for image in self.image_store:
-            if image.name == image_name:
-                return image
-
-    def _create_random_list_of_images(self):
-        """
-        Creates a list of images.
-        """
-        for each_image in random_image_list:
-            if not self.image_by_name(each_image['name']):
-                image = Image(image_id=each_image['id'], name=each_image['name'],
-                              distro=each_image['distro'], tenant_id=self.tenant_id)
-                self.image_store.append(image)
-
-    def list_server_image(self, include_details, absolutize_url):
-        """
-        Return a list of images with details.
-        """
-        self._create_random_list_of_images()
-        result = {
-            "images": [
-                image.brief_json(absolutize_url) if not include_details
-                else image.get_server_image_details_json(absolutize_url)
-                for image in self.image_store
-            ]
-        }
-        return dumps(result)
-
-    def get_image(self, http_get_request, image_id, absolutize_url):
-        """
-        Return a image object if one exists from the list `/images` api,
-        else creates and adds the image to the :obj: `images_store`.
-        If the `image_id` is listed in `mimic.canned_responses.mimic_presets`,
-        then will return 404.
-        """
-        if (
-            image_id in get_presets['servers']['invalid_image_ref'] or
-            image_id.endswith('Z')
-        ):
-            return dumps(not_found("Image not found.", http_get_request))
-        image = self.image_by_id(image_id)
-        if image is None:
-            image = Image(image_id=image_id, name='mimic-test-image-coreos-instance',
-                          distro='linux', tenant_id=self.tenant_id)
-            self.image_store.append(image)
-        return dumps({"image": image.get_server_image_details_json(absolutize_url)})
 
 
 @attributes(["tenant_id", "clock",
