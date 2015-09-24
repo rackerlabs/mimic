@@ -16,8 +16,6 @@ from mimic.util.helper import (
     random_string,
     timestamp_to_seconds
 )
-from mimic.canned_responses.mimic_presets import get_presets
-from mimic.model.glance_objects import Image, random_image_list
 
 from mimic.model.behaviors import (
     BehaviorRegistryCollection, EventDescription, Criterion, regexp_predicate

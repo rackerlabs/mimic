@@ -328,7 +328,6 @@ class NovaRegion(object):
         return(self._image_collection_for_tenant(tenant_id)
                .list_images(include_details=False, absolutize_url=self.url))
 
-
     @app.route('/v2/<string:tenant_id>/flavors/<string:flavor_id>', methods=['GET'])
     def get_flavor_details(self, request, tenant_id, flavor_id):
         """
