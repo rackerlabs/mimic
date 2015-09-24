@@ -1027,7 +1027,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         # check if feed is updated
         d = request(
             self, self.root, "GET",
-            "{}/loadbalancers/{}/nodes/{}.atom".format(self.uri, self.lb_id,
+            "{0}/loadbalancers/{1}/nodes/{2}.atom".format(self.uri, self.lb_id,
                                                        self.node[0]["id"]))
         feed_response = self.successResultOf(d)
         self.assertEqual(feed_response.code, 200)
@@ -1045,7 +1045,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         """
         d = request(
             self, self.root, "GET",
-            "{}/loadbalancers/{}/nodes/{}.atom".format(self.uri, self.lb_id, 0))
+            "{0}/loadbalancers/{1}/nodes/{2}.atom".format(self.uri, self.lb_id, 0))
         feed_response = self.successResultOf(d)
         self.assertEqual(feed_response.code, 404)
         self.assertEqual(
@@ -1061,7 +1061,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         """
         d = request(
             self, self.root, "GET",
-            "{}/loadbalancers/{}/nodes/{}.atom".format(self.uri, 0, 0))
+            "{0}/loadbalancers/{1}/nodes/{2}.atom".format(self.uri, 0, 0))
         feed_response = self.successResultOf(d)
         self.assertEqual(feed_response.code, 404)
         self.assertEqual(
