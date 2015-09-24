@@ -33,7 +33,7 @@ class Image(object):
         """
         Generate a random size for images
         """
-        return random.randint(250000, 12000000)
+        return random.randint(250000, 80000000000)
 
     def links_json(self, absolutize_url):
         """
