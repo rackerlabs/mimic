@@ -84,4 +84,12 @@ class KeyPairTests(SynchronousTestCase):
 
         self.assertEqual(resp.code, 202)
         resp, body = self.get_keypairs_list()
-        self.assertTrue(len(body['keypairs']) < 2)
+        self.assertNotIn(self.keypair_name, str(body['keypairs']))
+
+    def test_error_delete_keypair(self):
+        resp = self.successResultOf(request(
+            self, self.helper.root, "DELETE", self.helper.uri +
+            '/os-keypairs/keydoesntexist'
+        ))
+
+        self.assertEqual(resp.code, 404)

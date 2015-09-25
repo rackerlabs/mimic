@@ -74,6 +74,9 @@ class RegionalKeyPairCollection(object):
         Remove a :obj:`KeyPair` from the list of keypairs
         """
         kp_to_remove = self.keypair_by_name(name)
+        if kp_to_remove is None:
+            raise ValueError("Keypair Not Found")
+
         self.keypairs.remove(kp_to_remove)
 
 
