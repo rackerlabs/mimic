@@ -34,15 +34,6 @@ class Flavor(object):
             }
         ]
 
-    def extra_specs_json(self):
-        """
-        Create a JSON-serializable data structure describing
-        ``OS-FLV-WITH-EXT-SPECS:extra_specs`` for a flavor.
-        """
-        return {
-            "quota_resources": "instances=mimic-instances,ram=mimic-ram",
-        }
-
     def brief_json(self, absolutize_url):
         """
         Brief JSON-serializable version of this flavor, for the non-details

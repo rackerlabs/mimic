@@ -92,7 +92,6 @@ class MaasAPITests(SynchronousTestCase):
         """
         postdata = {}
         postdata['check_id'] = check_id
-        postdata['entityId'] = entity_id
         postdata['label'] = label
         postdata['notification_plan_id'] = 'npTechnicalContactsEmail'
         alarms_endpoint = '{0}/entities/{1}/alarms'.format(self.uri, entity_id)
@@ -227,13 +226,12 @@ class MaasAPITests(SynchronousTestCase):
 
     def test_fail_get_entity(self):
         """
-        test get entity
+        Attempting to get an entity with a nonexistent ID returns 404.
         """
-        req = request(self, self.root, "GET", self.uri + '/entities/whatever')
-        resp = self.successResultOf(req)
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "GET", '{0}/entities/whatever'.format(self.uri)))
         self.assertEquals(resp.code, 404)
-        data = self.get_responsebody(resp)
-        self.assertEquals({}, data)
+        self.assertEquals(data['type'], 'notFoundError')
 
     def test_list_audits(self):
         """
@@ -288,6 +286,16 @@ class MaasAPITests(SynchronousTestCase):
         data = self.get_responsebody(resp)
         self.assertEquals(self.check_id, data['id'])
 
+    def test_get_missing_check_404s(self):
+        """
+        Trying to GET a nonexistent check causes a 404.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "GET", '{0}/entities/{1}/checks/Whut'.format(
+                self.uri, self.entity_id)))
+        self.assertEquals(resp.code, 404)
+        self.assertEquals(data['type'], 'notFoundError')
+
     def test_get_checks_for_entity(self):
         """
         test get check
@@ -299,6 +307,30 @@ class MaasAPITests(SynchronousTestCase):
         data = self.get_responsebody(resp)
         self.assertEquals(1, data['metadata']['count'])
         self.assertEquals(self.check_id, data['values'][0]['id'])
+
+    def test_create_check_missing_type_400s(self):
+        """
+        When trying to create a check and missing a `type` property,
+        MaaS returns 400 Bad Request.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         '{0}/entities/{1}/checks'.format(self.uri, self.entity_id),
+                         json.dumps({'label': 'wow-check'})))
+        self.assertEquals(resp.code, 400)
+        self.assertEquals(data['type'], 'badRequest')
+        self.assertEquals(data['message'], 'Validation error for key \'type\'')
+
+    def test_create_entity_with_unrecognized_keys(self):
+        """
+        When creating an entity with properties that are not
+        recognized by MaaS, MaaS creates the entity and stores keys
+        that it knows how to use.
+        """
+        resp = self.successResultOf(
+            request(self, self.root, "POST", '{0}/entities'.format(self.uri),
+                    json.dumps({'label': 'foo', 'whut': 'WAT'})))
+        self.assertEquals(resp.code, 201)
 
     def test_update_entity(self):
         """
@@ -357,6 +389,34 @@ class MaasAPITests(SynchronousTestCase):
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 404)
 
+    def test_create_alarm_missing_check_id_400s(self):
+        """
+        When trying to create an alarm and missing a `check_id` property,
+        MaaS returns 400 Bad Request.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         '{0}/entities/{1}/alarms'.format(self.uri, self.entity_id),
+                         json.dumps({'label': 'wow-alarm',
+                                     'notification_plan_id': self.np_id})))
+        self.assertEquals(resp.code, 400)
+        self.assertEquals(data['type'], 'badRequest')
+        self.assertEquals(data['message'], 'Validation error for key \'check_id\'')
+
+    def test_create_alarm_missing_np_id_400s(self):
+        """
+        When trying to create an alarm and missing a `notification_plan_id`
+        property, MaaS returns 400 Bad Request.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         '{0}/entities/{1}/alarms'.format(self.uri, self.entity_id),
+                         json.dumps({'label': 'wow-alarm',
+                                     'check_id': self.check_id})))
+        self.assertEquals(resp.code, 400)
+        self.assertEquals(data['type'], 'badRequest')
+        self.assertEquals(data['message'], 'Validation error for key \'notification_plan_id\'')
+
     def test_update_check(self):
         """
         update check
@@ -395,6 +455,20 @@ class MaasAPITests(SynchronousTestCase):
         data = self.get_responsebody(resp)
         self.assertEquals('internet7_v4', data['target_alias'])
         self.assertEquals('ItsAcheck', data['label'])
+
+    def test_create_check_with_unrecognized_keys(self):
+        """
+        When creating a check with properties that are not
+        recognized by MaaS, MaaS creates the entity and stores keys
+        that it knows how to use.
+        """
+        resp = self.successResultOf(
+            request(self, self.root, "POST",
+                    '{0}/entities/{1}/checks'.format(self.uri, self.entity_id),
+                    json.dumps({'label': 'check-foo',
+                                'type': 'remote.ping',
+                                'whut': 'WAT'})))
+        self.assertEquals(resp.code, 201)
 
     def test_update_alarm(self):
         """
@@ -436,6 +510,22 @@ class MaasAPITests(SynchronousTestCase):
         data = self.get_responsebody(resp)
         self.assertEquals('np123456', data['notification_plan_id'])
         self.assertEquals('ItsAnAlarm', data['label'])
+
+    def test_create_alarm_with_unrecognized_keys(self):
+        """
+        When creating an alarm with properties that are not
+        recognized by MaaS, MaaS creates the entity and stores keys
+        that it knows how to use.
+        """
+        resp = self.successResultOf(
+            request(self, self.root, "POST",
+                    '{0}/entities/{1}/alarms'.format(self.uri, self.entity_id),
+                    json.dumps({'label': 'alarm-foo',
+                                'check_id': self.check_id,
+                                'criteria': 'return new AlarmStatus(OK);',
+                                'notification_plan_id': 'npL01Wu7',
+                                'whut': 'WAT'})))
+        self.assertEquals(resp.code, 201)
 
     def test_delete_alarm(self):
         """
@@ -775,6 +865,47 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
         self.assertEquals(True, 'npTechnicalContactsEmail' in json.dumps(data))
+
+    def test_create_notification_plan_with_unrecognized_keys(self):
+        """
+        When creating a notification plan with properties that are not
+        recognized by MaaS, MaaS creates the entity and stores keys
+        that it knows how to use.
+        """
+        resp = self.successResultOf(
+            request(self, self.root, "POST",
+                    '{0}/notification_plans'.format(self.uri),
+                    json.dumps({'label': 'np-foo',
+                                'whut': 'WAT'})))
+        self.assertEquals(resp.code, 201)
+
+    def test_create_notification_with_unrecognized_keys(self):
+        """
+        When creating a notification with properties that are not
+        recognized by MaaS, MaaS creates the entity and stores keys
+        that it knows how to use.
+        """
+        resp = self.successResultOf(
+            request(self, self.root, "POST",
+                    '{0}/notifications'.format(self.uri),
+                    json.dumps({'label': 'nt-foo',
+                                'details': {'address': 'bob@company.com'},
+                                'type': 'email',
+                                'whut': 'WAT'})))
+        self.assertEquals(resp.code, 201)
+
+    def test_create_suppression_with_unrecognized_keys(self):
+        """
+        When creating a suppression with properties that are not
+        recognized by MaaS, MaaS creates the entity and stores keys
+        that it knows how to use.
+        """
+        resp = self.successResultOf(
+            request(self, self.root, "POST",
+                    '{0}/suppressions'.format(self.uri),
+                    json.dumps({'label': 'sp-foo',
+                                'whut': 'WAT'})))
+        self.assertEquals(resp.code, 201)
 
     def test_agenthostinfo(self):
         """
@@ -1177,3 +1308,111 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
         self.assertEquals(data['values'][0]['entity']['label'], 'ItsAnEntity')
+
+    def test_overview_filters_by_entity(self):
+        """
+        The overview call restricts results to the desired entity,
+        regardless if other entities exist.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "GET",
+                         '{0}/views/overview?entityId={1}'.format(
+                             self.uri, self.entity_id)))
+        self.assertEquals(resp.code, 200)
+        self.assertEquals(len(data['values']), 1)
+        self.assertEquals(data['values'][0]['entity']['label'], 'ItsAnEntity')
+
+    def test_overview_missing_entity_404s(self):
+        """
+        If the user passes in a non-existing entity ID, a 404 is returned.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "GET",
+                         '{0}/views/overview?entityId={1}'.format(
+                             self.uri, 'enDoesNotExist')))
+        self.assertEquals(resp.code, 404)
+        self.assertEquals(data['type'], 'notFoundError')
+
+    def test_latest_alarm_states(self):
+        """
+        The /views/latest_alarm_states API recalls alarm states that were stored
+        using the control API.
+        """
+        resp = self.successResultOf(
+            request(self, self.root, "POST",
+                    '{0}/entities/{1}/alarms/{2}/states'.format(
+                        self.ctl_uri, self.entity_id, self.alarm_id),
+                    json.dumps({'state': 'CRITICAL',
+                                'analyzed_by_monitoring_zone_id': 'mzVegetaScouter',
+                                'status': 'It\'s OVER... NINE... THOUSAND!!1'})))
+        self.assertEquals(resp.code, 201)
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "GET", '{0}/views/latest_alarm_states'.format(self.uri)))
+        self.assertEquals(resp.code, 200)
+        self.assertEquals(data['values'][0]['latest_alarm_states'][0]['state'], 'CRITICAL')
+
+    def test_alarm_states_same_alarm_gets_previous_state(self):
+        """
+        When setting a new alarm state on the same entity and same alarm ID,
+        the previous state is set correctly.
+        """
+        resp = self.successResultOf(
+            request(self, self.root, "POST",
+                    '{0}/entities/{1}/alarms/{2}/states'.format(
+                        self.ctl_uri, self.entity_id, self.alarm_id),
+                    json.dumps({'state': 'CRITICAL',
+                                'analyzed_by_monitoring_zone_id': 'mzVegetaScouter',
+                                'status': 'It\'s OVER... NINE... THOUSAND!!1'})))
+        self.assertEquals(resp.code, 201)
+        resp = self.successResultOf(
+            request(self, self.root, "POST",
+                    '{0}/entities/{1}/alarms/{2}/states'.format(
+                        self.ctl_uri, self.entity_id, self.alarm_id),
+                    json.dumps({'state': 'OK',
+                                'status': 'Meh'})))
+        self.assertEquals(resp.code, 201)
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "GET", '{0}/views/latest_alarm_states'.format(self.uri)))
+        self.assertEquals(resp.code, 200)
+        self.assertEquals(data['values'][0]['latest_alarm_states'][0]['previous_state'], 'CRITICAL')
+
+    def test_create_alarm_state_missing_alarm_404s(self):
+        """
+        If the user tries to create an alarm state on an alarm that doesn't exist,
+        Mimic returns a 404.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         '{0}/entities/{1}/alarms/{2}/states'.format(
+                             self.ctl_uri, self.entity_id, 'alDoesNotExist'),
+                         json.dumps({'state': 'OK', 'status': 'bogus'})))
+        self.assertEquals(resp.code, 404)
+        self.assertEquals(data['type'], 'notFoundError')
+
+    def test_create_alarm_state_missing_state_400s(self):
+        """
+        If the user tries to create an alarm state without a `state` parameter,
+        Mimic returns 400 Bad Request.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         '{0}/entities/{1}/alarms/{2}/states'.format(
+                             self.ctl_uri, self.entity_id, self.alarm_id),
+                         json.dumps({'status': 'This wont work'})))
+        self.assertEquals(resp.code, 400)
+        self.assertEquals(data['type'], 'badRequest')
+        self.assertEquals(data['details'], 'Missing required key (state)')
+
+    def test_create_alarm_state_missing_status_400s(self):
+        """
+        If the user tries to create an alarm state without a `status` parameter,
+        Mimic returns 400 Bad Request.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         '{0}/entities/{1}/alarms/{2}/states'.format(
+                             self.ctl_uri, self.entity_id, self.alarm_id),
+                         json.dumps({'state': 'WARNING'})))
+        self.assertEquals(resp.code, 400)
+        self.assertEquals(data['type'], 'badRequest')
+        self.assertEquals(data['details'], 'Missing required key (status)')
