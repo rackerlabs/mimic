@@ -323,7 +323,7 @@ class Server(object):
                 IPv4Address(address="198.101.241.{0}".format(ipsegment())),
                 IPv6Address(address="2001:4800:780e:0510:d87b:9cbc:ff04:513a")
             ],
-            key_name= None if 'key_name' not in server_json else server_json['key_name'],
+            key_name=None if 'key_name' not in server_json else server_json['key_name'],
             creation_request_json=creation_json,
             flavor_ref=server_json['flavorRef'],
             image_ref=server_json['imageRef'] or '',
