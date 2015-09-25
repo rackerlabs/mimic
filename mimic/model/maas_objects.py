@@ -343,7 +343,7 @@ class AlarmState(object):
 
 @attributes(["name",
              "type",
-             Attribute("_unit", default_value="other"),
+             Attribute("unit", default_value="other"),
              Attribute("_overrides", default_factory=dict)])
 class Metric(object):
     """
@@ -380,7 +380,7 @@ class Metric(object):
         if self.type == METRIC_TYPE_INTEGER:
             return random.randint(0, 100000)
         elif self.type == METRIC_TYPE_NUMBER:
-            if self._unit == 'percent':
+            if self.unit == 'percent':
                 return random.uniform(0, 100)
             else:
                 return random.uniform(0, 100000)
@@ -401,7 +401,7 @@ class Metric(object):
             data = data_fn(timestamp)
 
         return {'type': self.type,
-                'unit': self._unit,
+                'unit': self.unit,
                 'data': data}
 
 

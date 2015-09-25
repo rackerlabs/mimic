@@ -37,6 +37,7 @@ from mimic.util.helper import random_hex_generator, random_hipsum
 
 
 MISSING_REQUIRED_KEY_REGEX = re.compile(r'Missing keyword value for \'(\w+)\'.')
+REMOTE_CHECK_TYPE_REGEX = re.compile(r'^remote\.')
 
 
 class _MatchesID(object):
@@ -265,28 +266,42 @@ def _object_getter(collection, matcher, request, object_type, object_key):
                        })
 
 
-def create_metric_list_from_entity(entity, allchecks):
+def _metric_list_for_check(maas_store, entity, check):
     """
-    To respond to the metrics_list api call, we must have the entity and allchecks
-    and assemble the structure to reply with.
+    Computes the metrics list for a given check.
+
+    Remote checks return a metric for each monitoring zone and
+    each type of metric for the check type. Agent checks return
+    a metric for each metric type on the check type. Check types
+    that Mimic doesn't know about generate an empty list.
     """
-    v = {'entity_id': entity.id,
-         'entity_label': entity.label,
-         'checks': []}
-    for c in allchecks:
-        if c.type == 'remote.ping' and c.entity_id == entity.id:
-            metricscheck = {}
-            metricscheck['id'] = c.id
-            metricscheck['label'] = c.label
-            metricscheck['type'] = 'remote.ping'
-            metricscheck['metrics'] = []
-            for mz in c.monitoring_zones_poll:
-                metricscheck['metrics'].append(
-                    {'name': mz + '.available', 'unit': 'percent', 'type': 'D'})
-                metricscheck['metrics'].append(
-                    {'name': mz + '.average', 'unit': 'seconds', 'type': 'D'})
-            v['checks'].append(metricscheck)
-    return v
+    if check.type not in maas_store.check_types:
+        return []
+
+    if REMOTE_CHECK_TYPE_REGEX.match(check.type):
+        return [{'name': '{0}.{1}'.format(mz, metric.name),
+                 'type': metric.type,
+                 'unit': metric.unit}
+                for metric in maas_store.check_types[check.type].metrics
+                for mz in check.monitoring_zones_poll]
+
+    return [{'name': metric.name,
+             'type': metric.type,
+             'unit': metric.unit}
+            for metric in maas_store.check_types[check.type].metrics]
+
+
+def _metric_list_for_entity(maas_store, entity, checks):
+    """
+    Creates the metrics list for one entity.
+    """
+    return {'entity_id': entity.id,
+            'entity_label': entity.label,
+            'checks': [{'id': check.id,
+                        'label': check.label,
+                        'type': check.type,
+                        'metrics': _metric_list_for_check(maas_store, entity, check)}
+                       for check in checks if check.entity_id == entity.id]}
 
 
 def create_multiplot_from_metric(metric, reqargs, allchecks):
@@ -1280,7 +1295,8 @@ class MaasMock(object):
         """
         entities = self._entity_cache_for_tenant(tenant_id).entities_list
         all_checks = self._entity_cache_for_tenant(tenant_id).checks_list
-        values = [create_metric_list_from_entity(entity, all_checks)
+        maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
+        values = [_metric_list_for_entity(maas_store, entity, all_checks)
                   for entity in entities]
 
         metadata = {'count': len(values),
