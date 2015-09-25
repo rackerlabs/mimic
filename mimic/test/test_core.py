@@ -6,7 +6,7 @@ from twisted.trial.unittest import SynchronousTestCase
 from mimic.core import MimicCore
 from mimic.plugins import (nova_plugin, loadbalancer_plugin, swift_plugin,
                            queue_plugin, maas_plugin, rackconnect_v3_plugin,
-                           glance_plugin, cloudfeeds_plugin)
+                           glance_plugin, cloudfeeds_plugin, heat_plugin)
 
 
 class CoreBuildingTests(SynchronousTestCase):
@@ -31,6 +31,7 @@ class CoreBuildingTests(SynchronousTestCase):
         core = MimicCore.fromPlugins(Clock())
         plugin_apis = set((
             glance_plugin.glance,
+            heat_plugin.heat,
             loadbalancer_plugin.loadbalancer,
             loadbalancer_plugin.loadbalancer_control,
             maas_plugin.maas,
