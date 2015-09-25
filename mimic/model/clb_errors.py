@@ -133,4 +133,4 @@ def not_found_xml(item):
     return (
         '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
         '<itemNotFound xmlns="http://docs.openstack.org/loadbalancers/api/v1.0" code="404">'
-        '<message>{} not found</message></itemNotFound>').format(item)
+        '<message>{0} not found</message></itemNotFound>').format(item)
