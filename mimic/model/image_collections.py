@@ -46,7 +46,7 @@ class RegionalImageCollection(object):
         Return an image object if one exists from the list `/images` api,
         else return 404 Image not found.
         """
-        if image_id in get_presets['servers']['invalid_image_ref']:
+        if image_id in get_presets['servers']['invalid_image_ref'] or image_id.endswith('Z'):
             return dumps(not_found("The resource could not be found.",
                                    http_get_request))
         ImageStore.create_image_store(self.tenant_id)
