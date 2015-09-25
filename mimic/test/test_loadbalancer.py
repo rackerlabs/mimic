@@ -1028,7 +1028,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         d = request(
             self, self.root, "GET",
             "{0}/loadbalancers/{1}/nodes/{2}.atom".format(self.uri, self.lb_id,
-                                                       self.node[0]["id"]))
+                                                          self.node[0]["id"]))
         feed_response = self.successResultOf(d)
         self.assertEqual(feed_response.code, 200)
         self.assertEqual(
