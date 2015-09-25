@@ -2307,7 +2307,7 @@ class NovaServerTests(SynchronousTestCase):
             tenant_id='abc123', region_name='ORD', clock=self.helper.clock,
             servers=[])
         creation_json = {
-            'server': {'name': 'foo', 'flavorRef': 'bar', 'imageRef': 'baz'}}
+            'server': {'name': 'foo', 'flavorRef': 'bar', 'imageRef': 'baz', 'key_name': 'fake_key'}}
 
         def ipsegment():
             yield 1
