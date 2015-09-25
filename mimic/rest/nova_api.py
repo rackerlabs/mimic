@@ -35,7 +35,7 @@ class NovaApi(object):
     Rest endpoints for mocked Nova Api.
     """
 
-    def __init__(self, regions=["ORD"]):
+    def __init__(self, regions=["ORD", "IAD"]):
         """
         Create a NovaApi with an empty region cache, no servers or tenants yet.
         """
