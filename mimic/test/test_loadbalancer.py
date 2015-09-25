@@ -1004,7 +1004,8 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         """
         Updating a node successfully changes its values.  The response from a
         successful change is just the values that changed.  The body is an
-        empty string.
+        empty string. It also updates the atom feed of the node and returns
+        that when GETing ../loadbalancers/lbid/nodes/nodeid.atom
         """
         original = self.node[0]
         expected = original.copy()
