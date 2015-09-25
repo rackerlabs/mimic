@@ -167,3 +167,20 @@ def set_resource_status(updated_time, time_delta, status='ACTIVE',
 
     if current_datetime >= expiration_datetime:
         return status
+
+
+class Matcher(object):
+    """
+    Class for implementing custom matching.
+    """
+    def __init__(self, match_fn):
+        """
+        Set a matcher function on self so that objects can be tested against it.
+        """
+        self._match_fn = match_fn
+
+    def __eq__(self, other):
+        """
+        Implements the == comparison based on the custom matcher.
+        """
+        return self._match_fn(other)

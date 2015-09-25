@@ -540,6 +540,17 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 200)
         self.assertEquals(0, len(self.get_responsebody(resp)['values'][0]['alarms']))
 
+    def test_delete_nonexistent_alarm_404s(self):
+        """
+        Deleting an alarm that does not exist causes a 404.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "DELETE",
+                         '{0}/entities/{1}/alarms/alWhut'.format(self.uri, self.entity_id)))
+        self.assertEquals(resp.code, 404)
+        self.assertEquals(data['details'],
+                          'Object "Alarm" with key "{0}:alWhut" does not exist'.format(self.entity_id))
+
     def test_test_check(self):
         """
         The test-check API should return fake test-check results.
@@ -834,6 +845,17 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(0, len(data['values'][0]['checks']))
         self.assertEquals(0, len(data['values'][0]['alarms']))
 
+    def test_delete_nonexistent_check_404s(self):
+        """
+        Deleting a check that does not exist causes a 404.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "DELETE",
+                         '{0}/entities/{1}/checks/chWhut'.format(self.uri, self.entity_id)))
+        self.assertEquals(resp.code, 404)
+        self.assertEquals(data['details'],
+                          'Object "Check" with key "{0}:chWhut" does not exist'.format(self.entity_id))
+
     def test_delete_entity(self):
         """
         delete entity
@@ -848,6 +870,15 @@ class MaasAPITests(SynchronousTestCase):
         data = self.get_responsebody(resp)
         self.assertEquals(0, len(data['values']))
         self.assertEquals(0, data['metadata']['count'])
+
+    def test_delete_nonexistent_entity_404s(self):
+        """
+        Deleting an entity that does not exist causes a 404.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "DELETE", '{0}/entities/whut'.format(self.uri)))
+        self.assertEquals(resp.code, 404)
+        self.assertEquals(data['details'], 'Object "Entity" with key "whut" does not exist')
 
     def test_jsonhome(self):
         req = request(self, self.root, "GET", self.uri + '/__experiments/json_home')
@@ -1160,6 +1191,15 @@ class MaasAPITests(SynchronousTestCase):
                 break
         self.assertEquals(None, mynt)
 
+    def test_delete_nonexistent_notification_404s(self):
+        """
+        Deleting a notification that does not exist causes a 404.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "DELETE", '{0}/notifications/ntWhut'.format(self.uri)))
+        self.assertEquals(resp.code, 404)
+        self.assertEquals(data['details'], 'Object "Notification" with key "ntWhut" does not exist')
+
     def test_update_notificationplan(self):
         """
         Update a notification plan
@@ -1192,6 +1232,15 @@ class MaasAPITests(SynchronousTestCase):
                 mynp = np
                 break
         self.assertEquals(None, mynp)
+
+    def test_delete_nonexistent_notification_plan_404s(self):
+        """
+        Deleting a notification plan that does not exist causes a 404.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "DELETE", '{0}/notification_plans/npWhut'.format(self.uri)))
+        self.assertEquals(resp.code, 404)
+        self.assertEquals(data['details'], 'Object "NotificationPlan" with key "npWhut" does not exist')
 
     def test_get_notificationtypes(self):
         """
@@ -1260,6 +1309,15 @@ class MaasAPITests(SynchronousTestCase):
                 mysp = sp
                 break
         self.assertEquals(None, mysp)
+
+    def test_delete_nonexistent_suppression_404s(self):
+        """
+        Deleting a suppression that does not exist causes a 404.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "DELETE", '{0}/suppressions/spWhut'.format(self.uri)))
+        self.assertEquals(resp.code, 404)
+        self.assertEquals(data['details'], 'Object "Suppression" with key "spWhut" does not exist')
 
     def test_list_monitoring_zones(self):
         """
