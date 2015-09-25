@@ -362,8 +362,7 @@ class RegionalCLBCollection(object):
         if lb_id not in self.lbs:
             return not_found_xml("Load balancer"), 404
 
-        _verify_and_update_lb_state(self, lb_id, False,
-                                    self.clock.seconds())
+        self._verify_and_update_lb_state(lb_id, False, self.clock.seconds())
 
         if self.lbs[lb_id]["status"] == "DELETED":
             return (
