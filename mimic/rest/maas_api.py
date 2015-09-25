@@ -304,52 +304,48 @@ def _metric_list_for_entity(maas_store, entity, checks):
                        for check in checks if check.entity_id == entity.id]}
 
 
-def create_multiplot_from_metric(metric, reqargs, allchecks):
+def _compute_multiplot(maas_store, entity_id, check, metric_name, from_date, to_date, points):
     """
-    Given a metric, this will produce fake datapoints to graph
-    This is for the multiplot API call
-
-    Also, if you name a PING check "squarewave", you will get
-    datapoints that form such a wave. This is for testing the
-    graphing-solution you have in place. Produces a static, yet
-    unique-looking, graph for screen comparison solutions.
+    Computes multiplot data for a single (entity, check, metric) group.
     """
-    fromdate = int(reqargs['from'][0])
-    todate = int(reqargs['to'][0])
-    points = int(reqargs['points'][0])
-    multiplot = {}
-    squarewave_downtrend = 1
-    for c in allchecks:
-        if c.entity_id == metric['entity_id']:
-            if c.type == 'remote.ping':
-                multiplot['entity_id'] = metric['entity_id']
-                multiplot['check_id'] = metric['check_id']
-                multiplot['type'] = 'number'
-                multiplot['metric'] = metric['metric']
-                if metric['metric'].endswith('available'):
-                    multiplot['unit'] = 'percent'
-                else:
-                    multiplot['unit'] = 'seconds'
-                multiplot['data'] = []
-                interval = (todate - fromdate) / points
-                timestamp = fromdate
-                for q in range(points):
-                    d = {}
-                    d['numPoints'] = 4
-                    d['timestamp'] = timestamp
-                    if not q % (points / 4):
-                        squarewave_downtrend = squarewave_downtrend ^ 1
-                    if c.label == 'squarewave':
-                        if squarewave_downtrend:
-                            d['average'] = 15
-                        else:
-                            d['average'] = 85
-                    else:
-                        d['average'] = random.randint(1, 99)
-                    multiplot['data'].append(d)
-                    timestamp += interval
+    fallback = {'entity_id': entity_id,
+                'check_id': check.id,
+                'metric': metric_name,
+                'unit': 'unknown',
+                'type': 'unknown',
+                'data': []}
 
-    return multiplot
+    if check.type not in maas_store.check_types:
+        return fallback
+
+    interval = (to_date - from_date) / points
+    metric = None
+    base_metric_name = metric_name
+    metric_value_kwargs = {'entity_id': entity_id,
+                           'check_id': check.id}
+    if re.match(r'^remote\.', check.type):
+        match = re.match(r'^(mz\w+)\.(\w+)$', metric_name)
+        if not match:
+            return fallback
+        metric_value_kwargs['monitoring_zone'] = match.group(1)
+        base_metric_name = match.group(2)
+
+    try:
+        metric = maas_store.check_types[check.type].get_metric_by_name(base_metric_name)
+    except NameError:
+        return fallback
+
+    return {'entity_id': entity_id,
+            'check_id': check.id,
+            'metric': metric_name,
+            'unit': metric.unit,
+            'type': metric.type,
+            'data': [{'numPoints': 4,
+                      'timestamp': int(from_date + (i * interval)),
+                      'average': metric.get_value(
+                          timestamp=int(from_date + (i * interval)),
+                          **metric_value_kwargs)}
+                     for i in range(points)]}
 
 
 def parse_and_flatten_qs(url):
@@ -1314,18 +1310,41 @@ class MaasMock(object):
         datapoints for all metrics requested
         Right now, only checks of type remote.ping work
         """
-        allchecks = self._entity_cache_for_tenant(tenant_id).checks_list
+        checks = self._entity_cache_for_tenant(tenant_id).checks_list
+        maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
         content = request.content.read()
-        metrics_requested = json.loads(content)
-        metrics_replydata = []
-        for m in metrics_requested['metrics']:
-            mp = create_multiplot_from_metric(m, request.args, allchecks)
-            if mp:
-                metrics_replydata.append(mp)
+        multiplot_request = json.loads(content)
+
+        requested_check_ids = set([metric['check_id'] for metric in multiplot_request['metrics']])
+        checks_by_id = dict([(check.id, check)
+                             for check in checks
+                             if check.id in requested_check_ids])
+
+        for requested_metric in multiplot_request['metrics']:
+            if requested_metric['check_id'] not in checks_by_id:
+                status = 400
+                request.setResponseCode(status)
+                self._audit('rollups', request, tenant_id, status, content)
+                return json.dumps({
+                    'type': 'requiredNotFoundError',
+                    'code': status,
+                    'message': 'Required object does not exist',
+                    'details': 'Object "Check" with key "{0},{1}" does not exist'.format(
+                        requested_metric['entity_id'], requested_metric['check_id']),
+                    'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+
+        multiplot_metrics = [_compute_multiplot(maas_store,
+                                                metric['entity_id'],
+                                                checks_by_id[metric['check_id']],
+                                                metric['metric'],
+                                                int(request.args['from'][0]),
+                                                int(request.args['to'][0]),
+                                                int(request.args['points'][0]))
+                             for metric in multiplot_request['metrics']]
         status = 200
         request.setResponseCode(200)
         self._audit('rollups', request, tenant_id, status, content)
-        return json.dumps({'metrics': metrics_replydata})
+        return json.dumps({'metrics': multiplot_metrics})
 
     @app.route('/v1.0/<string:tenant_id>/views/latest_alarm_states', methods=['GET'])
     def latest_alarm_states(self, request, tenant_id):

@@ -1013,27 +1013,77 @@ class MaasAPITests(SynchronousTestCase):
         data = self.get_responsebody(resp)
         self.assertEquals(500, len(data['metrics'][0]['data']))
 
-    def test_multiplot_squarewave(self):
+    def test_multiplot_missing_check_returns_400(self):
         """
-        get datapoints for graph, specifically squarewave PING check graph
+        When POSTing to /__experiments/multiplot and the check does not
+        exist, the MaaS API returns a 400.
         """
-        metrics = []
-        squarewave_check_id = self.getXobjectIDfromResponse(self.createCheck('squarewave',
-                                                                             self.entity_id))
-        req = request(self, self.root, "GET", self.uri + '/views/metric_list')
-        resp = self.successResultOf(req)
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         '{0}/__experiments/multiplot?from={1}&to={2}&points={3}'.format(
+                             self.uri, '1412902262560', '1412988662560', 500),
+                         json.dumps({'metrics': [{'entity_id': self.entity_id,
+                                                  'check_id': 'bogus',
+                                                  'metric': 'mzord.available'}]})))
+        self.assertEquals(resp.code, 400)
+        self.assertEquals(data['type'], 'requiredNotFoundError')
+
+    def test_multiplot_unknown_check_type(self):
+        """
+        Creating a check with a type unknown to Mimic causes an unknown
+        metric and empty data to be returned.
+        """
+        resp = self.successResultOf(
+            request(self, self.root, "POST",
+                    '{0}/entities/{1}/checks'.format(self.uri, self.entity_id),
+                    json.dumps({'type': 'agent.whatever'})))
+        self.assertEquals(resp.code, 201)
+        check_id = resp.headers.getRawHeaders('x-object-id')[0]
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         '{0}/__experiments/multiplot?from={1}&to={2}&points={3}'.format(
+                             self.uri, '1412902262560', '1412988662560', 500),
+                         json.dumps({'metrics': [{'entity_id': self.entity_id,
+                                                  'check_id': check_id,
+                                                  'metric': 'whut'}]})))
         self.assertEquals(resp.code, 200)
-        data = self.get_responsebody(resp)
-        for m in data['values'][0]['checks'][0]['metrics']:
-            mq = {'entity_id': self.entity_id, 'check_id': squarewave_check_id, 'metric': m['name']}
-            metrics.append(mq)
-        qstring = '?from=1412902262560&points=500&to=1412988662560'
-        req = request(self, self.root, "POST",
-                      self.uri + '/__experiments/multiplot' + qstring, json.dumps({'metrics': metrics}))
-        resp = self.successResultOf(req)
+        self.assertEquals(data['metrics'][0]['type'], 'unknown')
+        self.assertEquals(len(data['metrics'][0]['data']), 0)
+
+    def test_multiplot_malformatted_remote_metric(self):
+        """
+        Multiplot metrics for remote checks must stuff the monitoring
+        zone in the front of the metric name, e.g., mzord.duration.
+        Requesting an incorrectly formatted metric name causes an unknown
+        metric and empty data to be returned.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         '{0}/__experiments/multiplot?from={1}&to={2}&points={3}'.format(
+                             self.uri, '1412902262560', '1412988662560', 500),
+                         json.dumps({'metrics': [{'entity_id': self.entity_id,
+                                                  'check_id': self.check_id,
+                                                  'metric': 'LOLWUT'}]})))
         self.assertEquals(resp.code, 200)
-        data = self.get_responsebody(resp)
-        self.assertEquals(500, len(data['metrics'][0]['data']))
+        self.assertEquals(data['metrics'][0]['type'], 'unknown')
+        self.assertEquals(len(data['metrics'][0]['data']), 0)
+
+    def test_multiplot_nonexistent_metric(self):
+        """
+        Getting multiplot metrics that Mimic doesn't know about cause
+        an unknown metric and empty data to be returned, if the check
+        type is one that Mimic knows about.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         '{0}/__experiments/multiplot?from={1}&to={2}&points={3}'.format(
+                             self.uri, '1412902262560', '1412988662560', 500),
+                         json.dumps({'metrics': [{'entity_id': self.entity_id,
+                                                  'check_id': self.check_id,
+                                                  'metric': 'mzord.nonexistent'}]})))
+        self.assertEquals(resp.code, 200)
+        self.assertEquals(data['metrics'][0]['type'], 'unknown')
+        self.assertEquals(len(data['metrics'][0]['data']), 0)
 
     def test_get_all_notification_plans(self):
         """

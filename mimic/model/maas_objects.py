@@ -388,21 +388,25 @@ class Metric(object):
             return random_string(random.randint(12, 30), selectable=(string.letters + string.digits))
         raise ValueError('No default data getter for type {0}!'.format(self.type))
 
+    def get_value(self, **kwargs):
+        """
+        Gets the value of the metric at the specified timestamp.
+
+        Overrides will be applied as necessary.
+        """
+        override_key = self._override_key(**kwargs)
+        timestamp = kwargs['timestamp']
+        if override_key in self._overrides:
+            return self._overrides[override_key](timestamp)
+        return self._get_default_data()
+
     def get_value_for_test_check(self, **kwargs):
         """
         Gets the metric data object as returned from the test-check API.
         """
-        override_key = self._override_key(**kwargs)
-        timestamp = kwargs['timestamp']
-        data = self._get_default_data()
-
-        if override_key in self._overrides:
-            data_fn = self._overrides[override_key]
-            data = data_fn(timestamp)
-
         return {'type': self.type,
                 'unit': self.unit,
-                'data': data}
+                'data': self.get_value(**kwargs)}
 
 
 @attributes(["metrics",
