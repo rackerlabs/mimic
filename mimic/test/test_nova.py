@@ -171,8 +171,8 @@ class NovaAPITests(SynchronousTestCase):
             self, [nova_api, NovaControlApi(nova_api=nova_api)]
         )
         self.root = self.helper.root
-        self.uri = self.helper.uri
         self.clock = self.helper.clock
+        self.uri = self.helper.uri
         self.server_name = 'test_server'
 
         self.create_server_response, self.create_server_response_body = (
@@ -663,6 +663,69 @@ class NovaAPITests(SynchronousTestCase):
             treq.json_content(reverted_server_response))
         self.assertEqual(reverted_server_response_body['server']['flavor']['id'], '2')
 
+    def test_rescue(self):
+        """
+        Attempting to rescue a server that is not in ACTIVE state
+            returns conflictingRequest with response code 409.
+        If the server is in ACTIVE state, then a new password is returned
+            for the server with a response code of 200.
+        http://docs.rackspace.com/servers/api/v2/cs-devguide/content/rescue_mode.html
+        """
+        metadata = {"server_error": "1"}
+        server_id = quick_create_server(self.helper, metadata=metadata)
+
+        rescue_request = json.dumps({"rescue": "none"})
+
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + server_id + '/action', rescue_request))
+        self.assertEqual(response.code, 409)
+        self.assertEqual(body, {
+            "conflictingRequest": {
+                "message": "Cannot 'rescue' instance " + server_id +
+                           " while it is in task state other than active",
+                "code": 409
+            }
+        })
+
+        rescue = request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', rescue_request)
+        rescue_response = self.successResultOf(rescue)
+        rescue_response_body = self.successResultOf(treq.json_content(rescue_response))
+        self.assertEqual(rescue_response.code, 200)
+        self.assertTrue('"adminPass":' in json.dumps(rescue_response_body))
+
+    def test_unrescue(self):
+        """
+        Attempting to unrescue a server that is not in RESCUE state a response body
+            of conflicting request and response code of 409
+        Unsrescuing a server that is in ACTIVE state, returns a 200.
+        http://docs.rackspace.com/servers/api/v2/cs-devguide/content/exit_rescue_mode.html
+        """
+        rescue_request = json.dumps({"rescue": "none"})
+        unrescue_request = json.dumps({"unrescue": "null"})
+        response, body = self.successResultOf(json_request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', unrescue_request))
+        self.assertEqual(response.code, 409)
+        self.assertEqual(body, {
+            "conflictingRequest": {
+                "message": "Cannot 'unrescue' instance " + self.server_id +
+                           " while it is in task state other than rescue",
+                "code": 409
+            }
+        })
+        # Put a server in rescue status
+        request(
+            self, self.root, "POST",
+            self.uri + '/servers/' + self.server_id + '/action', rescue_request)
+
+        unrescue = request(self, self.root, "POST",
+                           self.uri + '/servers/' + self.server_id + '/action', unrescue_request)
+        unrescue_response = self.successResultOf(unrescue)
+        self.assertEqual(unrescue_response.code, 200)
+
     def test_reboot_server(self):
         """
         A hard reboot of a server sets the server status to HARD_REBOOT and returns a 202
@@ -706,15 +769,13 @@ class NovaAPITests(SynchronousTestCase):
         soft_reboot = request(
             self, self.root, "POST",
             self.uri + '/servers/' + self.server_id + '/action', soft_reboot_request)
+
         soft_reboot_response = self.successResultOf(soft_reboot)
         self.assertEqual(soft_reboot_response.code, 202)
 
-        soft_reboot_server = request(
-            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
-        soft_reboot_server_response = self.successResultOf(soft_reboot_server)
-        soft_reboot_server_response_body = self.successResultOf(
-            treq.json_content(soft_reboot_server_response))
-        self.assertEqual(soft_reboot_server_response_body['server']['status'], 'REBOOT')
+        response, body = self.successResultOf(json_request(
+            self, self.root, "GET", self.uri + '/servers/' + self.server_id))
+        self.assertEqual(body['server']['status'], 'REBOOT')
 
         # Advance the clock 3 seconds and check status
         self.clock.advance(3)
@@ -749,86 +810,15 @@ class NovaAPITests(SynchronousTestCase):
             treq.json_content(rebooted_server_response))
         self.assertEqual(rebooted_server_response_body['server']['status'], 'ACTIVE')
 
-    def test_rescue(self):
-        """
-        Attempting to rescue a server that is not in ACTIVE state
-           returns conflictingRequest with response code 409.
-        If the server is in ACTIVE state, then a new password is returned
-           for the server with a response code of 200.
-        http://docs.rackspace.com/servers/api/v2/cs-devguide/content/rescue_mode.html
-        """
-        rescue_request = json.dumps({"rescue": "none"})
-        rescue = request(
-            self, self.root, "POST",
-            self.uri + '/servers/' + self.server_id + '/action', rescue_request)
-        rescue_response = self.successResultOf(rescue)
-        rescue_response_body = self.successResultOf(treq.json_content(rescue_response))
-        self.assertEqual(rescue_response.code, 200)
-        self.assertTrue('"adminPass":' in json.dumps(rescue_response_body))
-
-        metadata = {"server_error": "1"}
-        server_id = quick_create_server(self.helper, metadata=metadata)
-        response, body = self.successResultOf(json_request(
-            self, self.root, "POST",
-            self.uri + '/servers/' + server_id + '/action', rescue_request))
-        self.assertEqual(response.code, 409)
-        self.assertEqual(body, {
-            "conflictingRequest": {
-                "message": "Cannot 'rescue' instance " + server_id +
-                           " while it is in task state other than active",
-                "code": 409
-            }
-        })
-
-    def test_unrescue(self):
-        """
-        Attempting to unrescue a server that is not in RESCUE state a response body
-            of conflicting request and response code of 409
-        Unsrescuing a server that is in ACTIVE state, returns a 200.
-        http://docs.rackspace.com/servers/api/v2/cs-devguide/content/exit_rescue_mode.html
-        """
-        rescue_request = json.dumps({"rescue": "none"})
-        unrescue_request = json.dumps({"unrescue": "null"})
-        response, body = self.successResultOf(json_request(
-            self, self.root, "POST",
-            self.uri + '/servers/' + self.server_id + '/action', unrescue_request))
-        self.assertEqual(response.code, 409)
-        self.assertEqual(body, {
-            "conflictingRequest": {
-                "message": "Cannot 'unrescue' instance " + self.server_id +
-                           " while it is in task state other than rescue",
-                "code": 409
-            }
-        })
-        # Put a server in rescue status
-        request(
-            self, self.root, "POST",
-            self.uri + '/servers/' + self.server_id + '/action', rescue_request)
-
-        unrescue = request(self, self.root, "POST",
-                           self.uri + '/servers/' + self.server_id + '/action', unrescue_request)
-        unrescue_response = self.successResultOf(unrescue)
-        self.assertEqual(unrescue_response.code, 200)
-
-        # Put a server in rescue status
-        request(
-            self, self.root, "POST",
-            self.uri + '/servers/' + self.server_id + '/action', rescue_request)
-
-        unrescue = request(self, self.root, "POST",
-                           self.uri + '/servers/' + self.server_id + '/action', unrescue_request)
-        unrescue_response = self.successResultOf(unrescue)
-        self.assertEqual(unrescue_response.code, 200)
-
     def test_change_password(self):
         """
-       Resetting the password on a non ACTIVE server responds with a
-           conflictingRequest and response code 409
-       adminPass is required as part of the request body, if missing a badRequest
-           is returned with response code 400
-       A successful password reset returns 202
-       http://docs.rackspace.com/servers/api/v2/cs-devguide/content/Change_Password-d1e3234.html
-       """
+        Resetting the password on a non ACTIVE server responds with a
+            conflictingRequest and response code 409
+        adminPass is required as part of the request body, if missing a badRequest
+            is returned with response code 400
+        A successful password reset returns 202
+        http://docs.rackspace.com/servers/api/v2/cs-devguide/content/Change_Password-d1e3234.html
+        """
         password_request = json.dumps({"changePassword": {"adminPass": "password"}})
         bad_password_request = json.dumps({"changePassword": {"Pass": "password"}})
         response, body = self.successResultOf(json_request(
@@ -1629,10 +1619,13 @@ class NovaAPINegativeTests(SynchronousTestCase):
         # create server with metadata to set status in ERROR
         server_id = quick_create_server(self.helper, metadata=metadata)
         # get server and verify status is ERROR
-        get_server = request(self, self.root, "GET", self.uri + '/servers/' + server_id)
+        get_server = request(self, self.root, "GET", self.uri + '/servers/' +
+                             server_id)
         get_server_response = self.successResultOf(get_server)
-        get_server_response_body = self.successResultOf(treq.json_content(get_server_response))
-        self.assertEquals(get_server_response_body['server']['status'], "ERROR")
+        get_server_response_body = self.successResultOf(
+            treq.json_content(get_server_response))
+        self.assertEquals(
+            get_server_response_body['server']['status'], "ERROR")
 
     def test_delete_server_fails_specified_number_of_times(self):
         """
@@ -2192,7 +2185,7 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         """
         self.assert_malformed_body(
             *self.set_metadata_item({}, "meh",
-                                    {"metadata": {"meh": "value"}}))
+                                        {"metadata": {"meh": "value"}}))
 
     def test_set_metadata_item_with_mismatching_key_and_body(self):
         """
