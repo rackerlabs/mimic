@@ -321,9 +321,9 @@ class NovaRegion(object):
                 .list_images(include_details=True, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/images', methods=['GET'])
-    def get_images(self, request, tenant_id):
+    def get_server_image_list(self, request, tenant_id):
         """
-        Return images
+        Returns a image list.
         """
         return(self._image_collection_for_tenant(tenant_id)
                .list_images(include_details=False, absolutize_url=self.url))
