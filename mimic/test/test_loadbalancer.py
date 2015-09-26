@@ -1264,6 +1264,13 @@ class LoadbalancerAPINegativeTests(SynchronousTestCase):
         get_node_response = self.successResultOf(get_node)
         self.assertEqual(get_node_response.code, 410)
 
+        # GET node feed on load balancer in DELETED status results in 410
+        node_feed = request(
+            self, self.root, "GET", self.uri + '/loadbalancers/' +
+            str(lb["id"]) + '/nodes/123.atom')
+        node_feed_response = self.successResultOf(node_feed)
+        self.assertEqual(node_feed_response.code, 410)
+
         # List node on load balancer in DELETED status results in 410
         list_nodes = request(
             self, self.root, "GET", self.uri + '/loadbalancers/' + str(lb["id"])

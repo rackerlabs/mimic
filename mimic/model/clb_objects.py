@@ -23,6 +23,7 @@ from mimic.model.clb_errors import (
     considered_immutable_error,
     invalid_json_schema,
     loadbalancer_not_found,
+    lb_deleted_xml,
     node_not_found,
     not_found_xml,
     updating_node_validation_error
@@ -360,21 +361,18 @@ class RegionalCLBCollection(object):
         Return load balancer's node's atom feed
         """
         if lb_id not in self.lbs:
-            return not_found_xml("Load balancer"), 404
+            return not_found_xml("Load balancer")
 
         self._verify_and_update_lb_state(lb_id, False, self.clock.seconds())
 
         if self.lbs[lb_id]["status"] == "DELETED":
-            return (
-                invalid_resource(
-                    "The loadbalancer is marked as deleted.", 410),
-                410)
+            return lb_deleted_xml()
 
         for node in self.lbs[lb_id].nodes:
             if node_id == node.id:
                 return node_feed_xml(node.feed_events), 200
 
-        return not_found_xml("Node"), 404
+        return not_found_xml("Node")
 
     def list_load_balancers(self):
         """
