@@ -195,7 +195,7 @@ class NovaAPIOnMetalImageTests(SynchronousTestCase):
         self.assertTrue(len(image_list), 52)
         for each_image in image_list:
             self.assertEqual(sorted(each_image.keys()), sorted(['id', 'name', 'links', 'minRam',
-                                                                'status','OS-EXT-IMG-SIZE:size',
+                                                                'status', 'OS-EXT-IMG-SIZE:size',
                                                                 'metadata', 'progress', 'created',
                                                                 'updated', 'minDisk',
                                                                 'com.rackspace__1__ui_default_show']))
