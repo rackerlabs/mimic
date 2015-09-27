@@ -64,11 +64,13 @@ class Image(object):
         Brief JSON-serializable version of this flavor, for the non-details
         list flavors request.
         """
-        return {
+        template = {}
+        template.update({
             "id": self.image_id,
             "links": self.links_json(absolutize_url),
             "name": self.name
-        }
+        })
+        return template
 
     def detailed_json(self, absolutize_url):
         """
@@ -85,6 +87,10 @@ class Image(object):
             "minDisk": self.minDisk,
             "OS-EXT-IMG-SIZE:size": self.image_size,
             "com.rackspace__1__ui_default_show": self.is_default,
+            "created": "1972-01-01_15-59-11",
+            "updated": "1972-01-01_15-59-11",
+            "progress": 100,
+            "status": "ACTIVE",
             "metadata": self.metadata_json()
         })
         return template
@@ -131,7 +137,8 @@ class RackspaceWindowsImage(Image):
             "flavor_classes": "*,!onmetal",
             "image_type": "base",
             "os_type": "windows",
-            "status": "active",
+            "vm_mode": "",
+            "auto_disk_config": "disabled",
             "org.openstack__1__os_distro": "com.microsoft.server"
         }
 
@@ -153,7 +160,6 @@ class RackspaceArchImage(Image):
             "flavor_classes": "*,!onmetal",
             "image_type": "base",
             "os_type": "linux",
-            "status": "active",
             "org.openstack__1__os_distro": "org.archlinux",
             "vm_mode": "hvm",
             "auto_disk_config": "disabled"
@@ -180,7 +186,6 @@ class RackspaceCentOSPVHMImage(Image):
             "flavor_classes": "*,!onmetal",
             "image_type": "base",
             "os_type": "linux",
-            "status": "active",
             "org.openstack__1__os_distro": "org.centos",
             "vm_mode": "hvm",
             "auto_disk_config": "disabled"
@@ -205,7 +210,6 @@ class RackspaceCentOSPVImage(Image):
             "flavor_classes": "*,!io1,!memory1,!compute1,!onmetal",
             "image_type": "base",
             "os_type": "linux",
-            "status": "active",
             "org.openstack__1__os_distro": "org.centos",
             "vm_mode": "xen",
             "auto_disk_config": "True"
@@ -234,7 +238,6 @@ class RackspaceCoreOSImage(Image):
             "flavor_classes": "*,!onmetal",
             "image_type": "base",
             "os_type": "linux",
-            "status": "active",
             "org.openstack__1__os_distro": "org.coreos",
             "vm_mode": "hvm",
             "auto_disk_config": "disabled"
@@ -265,7 +268,6 @@ class RackspaceDebianImage(Image):
             "flavor_classes": "*,!onmetal",
             "image_type": "base",
             "os_type": "linux",
-            "status": "active",
             "org.openstack__1__os_distro": "org.debian",
             "vm_mode": "hvm",
             "auto_disk_config": "disabled"
@@ -294,7 +296,6 @@ class RackspaceFedoraImage(Image):
             "flavor_classes": "*,!onmetal",
             "image_type": "base",
             "os_type": "linux",
-            "status": "active",
             "org.openstack__1__os_distro": "org.fedoraproject",
             "vm_mode": "hvm",
             "auto_disk_config": "disabled"
@@ -318,7 +319,6 @@ class RackspaceFreeBSDImage(Image):
             "flavor_classes": "*,!onmetal",
             "image_type": "base",
             "os_type": "linux",
-            "status": "active",
             "org.openstack__1__os_distro": "org.freebsd",
             "vm_mode": "hvm",
             "auto_disk_config": "disabled"
@@ -591,6 +591,10 @@ class OnMetalImage(object):
             "minDisk": self.minDisk,
             "OS-EXT-IMG-SIZE:size": self.image_size,
             "com.rackspace__1__ui_default_show": self.is_default,
+            "created": "1972-01-01_15-59-11",
+            "updated": "1972-01-01_15-59-11",
+            "status": "ACTIVE",
+            "progress": 100,
             "metadata": self.metadata_json()
         })
         return template
