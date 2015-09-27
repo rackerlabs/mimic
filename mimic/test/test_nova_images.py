@@ -132,6 +132,15 @@ class NovaAPIVirtualImageTests(SynchronousTestCase):
             self.assertEqual(each_image['name'],
                              get_server_image_response_body['image']['name'])
 
+    def test_no_OnMetal_images_in_ORD(self):
+        """
+        Test to verify OnMetal images are not in ORD region
+        """
+        get_image_list_response_body = self.get_server_image('/images/detail')
+        image_list = get_image_list_response_body['images']
+        for image in image_list:
+            self.assertTrue('!onmetal' in image['metadata']['flavor_classes'])
+
 
 class NovaAPIOnMetalImageTests(SynchronousTestCase):
 
