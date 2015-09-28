@@ -13,6 +13,7 @@ class KeyPair(object):
     A KeyPair object
     """
     fingerprint = "aa:aa:aa:aa:aa:aa:aa:aa:aa:aa:aa:aa:aa:aa:aa:aa"
+    user_id = "fake"
 
     def key_json(self):
         """
@@ -22,7 +23,8 @@ class KeyPair(object):
             "keypair": {
                 "name": self.name,
                 "public_key": self.public_key,
-                "fingerprint": self.fingerprint
+                "fingerprint": self.fingerprint,
+                "user_id": self.user_id
             }
         }
 

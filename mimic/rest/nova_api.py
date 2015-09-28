@@ -421,7 +421,8 @@ class NovaRegion(object):
     @app.route("/v2/<string:tenant_id>/os-keypairs", methods=['GET'])
     def get_key_pairs(self, request, tenant_id):
         """
-        Returns current key pairs
+        Returns current key pairs.
+        http://docs.rackspace.com/servers/api/v2/cs-devguide/content/ListKeyPairs.html
         """
         return self._keypair_collection_for_tenant(tenant_id).json_list()
 
@@ -429,6 +430,7 @@ class NovaRegion(object):
     def create_key_pair(self, request, tenant_id):
         """
         Returns a newly created key pair with the specified name.
+        http://docs.rackspace.com/servers/api/v2/cs-devguide/content/UploadKeyPair.html
         """
         try:
             content = json.loads(request.content.read())
@@ -445,7 +447,8 @@ class NovaRegion(object):
     @app.route("/v2/<string:tenant_id>/os-keypairs/<string:keypairname>", methods=['DELETE'])
     def delete_key_pair(self, request, tenant_id, keypairname):
         """
-        Removes a key by its name
+        Removes a key by its name.
+        http://docs.rackspace.com/servers/api/v2/cs-devguide/content/DeleteKeyPair.html
         """
         try:
             self._keypair_collection_for_tenant(
