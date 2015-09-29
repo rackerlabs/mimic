@@ -63,6 +63,8 @@ class KeyPairTests(SynchronousTestCase):
         self.assertEqual(resp.code, 200)
         self.assertEqual(body['keypair']['name'],
                          kp_test_body['keypair']['name'])
+        self.assertTrue(len(body['keypair']['fingerprint']) > 1)
+        self.assertTrue(len(body['keypair']['user_id']) > 1)
 
     def test_error_create_keypair(self):
         test_error_body = "{{a]"
