@@ -251,6 +251,44 @@ class NovaAPITests(SynchronousTestCase):
         )
         validate_link_json(self, self.create_server_response_body['server'])
 
+    def test_create_server_with_keypair_name(self):
+        """
+        Test to verify creating a server with a named keypair works
+        """
+        keypair_name = "server_keypair"
+        resp, body = create_server(self.helper, key_name=keypair_name)
+        self.assertEqual(resp.code, 202)
+        server_id = body['server']['id']
+        get_server = request(
+            self, self.root, "GET", self.uri + '/servers/' + server_id
+        )
+        get_server_response = self.successResultOf(get_server)
+        response_body = self.successResultOf(
+            treq.json_content(get_server_response))
+        self.assertEqual(
+            response_body['server']['key_name'], keypair_name)
+
+    def test_create_server_without_keypair_name(self):
+        """
+        Test to verify creating a server without a named keypair returns None
+        """
+        data = {
+            "name": "fake_server",
+            "imageRef": "test-image",
+            "flavorRef": "test-flavor"
+        }
+        body = json.dumps({"server": data})
+        create_resp, create_body = create_server(self.helper, body_override=body)
+        server_id = create_body['server']['id']
+        get_server = request(
+            self, self.root, "GET", self.uri + '/servers/' + server_id
+        )
+        get_server_response = self.successResultOf(get_server)
+        response_body = self.successResultOf(
+            treq.json_content(get_server_response))
+        self.assertEqual(
+            response_body['server']['key_name'], None)
+
     def test_created_servers_have_dissimilar_admin_passwords(self):
         """
         Two (or more) servers created should not share passwords.
