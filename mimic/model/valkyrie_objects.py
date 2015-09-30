@@ -93,6 +93,7 @@ class ValkyrieStore(object):
     permissions.append(AccountContactPermission(123456, 56, 12, 256, 2))
 
     permissions.append(AccountContactPermission(654321, 78, 14, 262144, 2))
+    permissions.append(AccountContactPermission(654321, 90, 12, 1048576, 2))
     permissions.append(AccountContactPermission(654321, 90, 15, 654321, 1))
 
     def create_token(self, request):
@@ -110,7 +111,7 @@ class ValkyrieStore(object):
         """
         pm = [p for p in self.permissions if (p.account_number == account_number and
                                               p.contact_id == contact_id and
-                                              p.item_type_id == item_type)]
+                                              (item_type is None or p.item_type_id == item_type))]
 
         response_message = {"contact_permissions": []}
         for p in pm:

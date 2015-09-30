@@ -76,6 +76,7 @@ class ValkyrieAPITests(SynchronousTestCase):
         self.assertTrue(content["contact_permissions"])
         self.assertEqual(len(content["contact_permissions"]), 1)
         self.assertEqual(content["contact_permissions"][0]["permission_type"], 15)
+        self.assertEqual(content["contact_permissions"][0]["item_type_name"], "accounts")
 
     def test_get_empty_devices_effective_permissions(self):
         """
@@ -102,3 +103,24 @@ class ValkyrieAPITests(SynchronousTestCase):
         permission = content["contact_permissions"][0]
         self.assertEqual(permission["permission_type"], 14)
         self.assertEqual(permission["item_id"], 262144)
+        self.assertEqual(permission["item_type_name"], "devices")
+
+    def test_get_any_permissions(self):
+        """
+        Obtain list of all permissions for contact 90 on account 654321
+        """
+        (response, content) = self.successResultOf(
+            json_request(self, self.root, "GET",
+                         self.url +
+                         "/account/654321/permissions/contacts/any/by_contact/90/effective"))
+        self.assertEqual(200, response.code)
+        self.assertTrue(content["contact_permissions"])
+        self.assertEqual(len(content["contact_permissions"]), 2)
+        device_permission = content["contact_permissions"][0]
+        self.assertEqual(device_permission["permission_type"], 12)
+        self.assertEqual(device_permission["item_id"], 1048576)
+        self.assertEqual(device_permission["item_type_name"], "devices")
+        account_permission = content["contact_permissions"][1]
+        self.assertEqual(account_permission["permission_type"], 15)
+        self.assertEqual(account_permission["item_id"], 654321)
+        self.assertEqual(account_permission["item_type_name"], "accounts")

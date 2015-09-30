@@ -36,6 +36,20 @@ class ValkyrieApi(object):
         """
         return self.core.valkyrie_store.create_token(request)
 
+    effective_any_permissions_route = ('/account/<int:account_number>'
+                                       '/permissions/contacts/any'
+                                       '/by_contact/<int:contact_id>/effective')
+
+    @app.route(effective_any_permissions_route, methods=['GET'])
+    def effective_any_permissions(self, request, account_number, contact_id):
+        """
+        Responds with response code 200 and returns a list of all permissions
+        for the given account and contact
+        See https://valkyrie.my.rackspace.com/#managed-accounts
+        """
+        return self.core.valkyrie_store.get_permissions(request,
+                                                        account_number, contact_id, None)
+
     effective_accounts_permissions_route = ('/account/<int:account_number>'
                                             '/permissions/contacts/accounts'
                                             '/by_contact/<int:contact_id>/effective')
