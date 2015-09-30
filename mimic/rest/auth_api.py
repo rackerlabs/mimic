@@ -345,6 +345,120 @@ class AuthApi(object):
                 {"id": "observer",
                  "description": "Global Observer Role.",
                  "name": "observer"}]
+
+        if token_id in get_presets["identity"]["non_dedicated_observer"]:
+                response["access"]["token"]["tenant"] = {
+                    "id": "135790",
+                    "name": "135790",
+                }
+                response["access"]["user"] = {
+                    "name": "OneTwo",
+                    "roles": [{"id": "1",
+                               "name": "monitoring:observer",
+                               "description": "Monitoring Observer"}]
+                }
+
+        if token_id in get_presets["identity"]["non_dedicated_admin"]:
+                response["access"]["token"]["tenant"] = {
+                    "id": "135790",
+                    "name": "135790",
+                }
+                response["access"]["user"] = {
+                    "name": "ThreeFour",
+                    "roles": [{"id": "1",
+                               "name": "monitoring:admin",
+                               "description": "Monitoring Admin"},
+                              {"id": "2",
+                               "name": "admin",
+                               "description": "Admin"}]
+                }
+
+        if token_id in get_presets["identity"]["dedicated_full_device_permission_holder"]:
+                response["access"]["token"]["tenant"] = {
+                    "id": "hybrid:123456",
+                    "name": "hybrid:123456",
+                }
+                response["access"]["user"] = {
+                    "id": "12",
+                    "name": "HybridOneTwo",
+                    "roles": [{"id": "1",
+                               "name": "monitoring:observer",
+                               "description": "Monitoring Observer"},
+                              {"id": "3",
+                               "name": "hybridRole",
+                               "description": "Hybrid Admin",
+                               "tenantId": "hybrid:123456"}],
+                    "RAX-AUTH:contactId": "12"
+                }
+
+        if token_id in get_presets["identity"]["dedicated_account_permission_holder"]:
+                response["access"]["token"]["tenant"] = {
+                    "id": "hybrid:123456",
+                    "name": "hybrid:123456",
+                }
+                response["access"]["user"] = {
+                    "id": "34",
+                    "name": "HybridThreeFour",
+                    "roles": [{"id": "1",
+                               "name": "monitoring:creator",
+                               "description": "Monitoring Creator"},
+                              {"id": "2",
+                               "name": "creator",
+                               "description": "Creator"}],
+                    "RAX-AUTH:contactId": "34"
+                }
+
+        if token_id in get_presets["identity"]["dedicated_limited_device_permission_holder"]:
+                response["access"]["token"]["tenant"] = {
+                    "id": "hybrid:123456",
+                    "name": "hybrid:123456",
+                }
+                response["access"]["user"] = {
+                    "id": "56",
+                    "name": "HybridFiveSix",
+                    "roles": [{"id": "1",
+                               "name": "monitoring:observer",
+                               "description": "Monitoring Observer"},
+                              {"id": "2",
+                               "name": "observer",
+                               "description": "Observer"}],
+                    "RAX-AUTH:contactId": "56"
+                }
+
+        if token_id in get_presets["identity"]["dedicated_other_account_observer"]:
+                response["access"]["token"]["tenant"] = {
+                    "id": "hybrid:654321",
+                    "name": "hybrid:654321",
+                }
+                response["access"]["user"] = {
+                    "id": "78",
+                    "name": "HybridSevenEight",
+                    "roles": [{"id": "1",
+                               "name": "monitoring:observer",
+                               "description": "Observer"},
+                              {"id": "2",
+                               "name": "observer",
+                               "description": "Observer"}],
+                    "RAX-AUTH:contactId": "78"
+                }
+
+        if token_id in get_presets["identity"]["dedicated_other_account_admin"]:
+                response["access"]["token"]["tenant"] = {
+                    "id": "hybrid:654321",
+                    "name": "hybrid:654321",
+                }
+                response["access"]["user"] = {
+                    "id": "90",
+                    "name": "HybridNineZero",
+                    "roles": [{"id": "1",
+                               "name": "monitoring:admin",
+                               "description": "Admin"},
+                              {"id": "2",
+                               "name": "admin",
+                               "description": "Admin"}],
+                    "RAX-AUTH:contactId": "90"
+                }
+
         return json.dumps(response)
 
     @app.route('/v2.0/tokens/<string:token_id>/endpoints', methods=['GET'])

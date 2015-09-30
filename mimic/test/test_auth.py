@@ -1286,3 +1286,60 @@ class IdentityBehaviorInjectionTests(SynchronousTestCase):
             self, root, username="failme", request_func=request_with_content)
         self.assertEqual(response.code, 500)
         self.assertEqual(body, "Failure of JSON")
+
+
+class IdentityNondedicatedFixtureTests(SynchronousTestCase):
+
+    def test_non_dedicated_tokens(self):
+        """
+        Obtain Identity entries when presented tokens issued to non-dedicated users
+        """
+        url = "/identity/v2.0/tokens"
+        core, root = core_and_root([])
+        (response, content) = self.successResultOf(
+            json_request(self, root, "GET", url + "/OneTwo"))
+        self.assertEqual(200, response.code)
+        self.assertEqual(content["access"]["token"]["tenant"]["id"], "135790")
+
+        (response, content) = self.successResultOf(
+            json_request(self, root, "GET", url + "/ThreeFour"))
+        self.assertEqual(200, response.code)
+
+
+class IdentityDedicatedFixtureTests(SynchronousTestCase):
+
+    def test_dedicated_tokens(self):
+        """
+        Obtain Identity entries when presented tokens issued to dedicated users
+        """
+        url = "/identity/v2.0/tokens"
+        core, root = core_and_root([])
+        (response, content) = self.successResultOf(
+            json_request(self, root, "GET", url + "/HybridOneTwo"))
+        self.assertEqual(200, response.code)
+        self.assertEqual(content["access"]["token"]["tenant"]["id"], "hybrid:123456")
+        self.assertEqual(content["access"]["user"]["RAX-AUTH:contactId"], "12")
+
+        (response, content) = self.successResultOf(
+            json_request(self, root, "GET", url + "/HybridThreeFour"))
+        self.assertEqual(200, response.code)
+        self.assertEqual(content["access"]["token"]["tenant"]["id"], "hybrid:123456")
+        self.assertEqual(content["access"]["user"]["RAX-AUTH:contactId"], "34")
+
+        (response, content) = self.successResultOf(
+            json_request(self, root, "GET", url + "/HybridFiveSix"))
+        self.assertEqual(200, response.code)
+        self.assertEqual(content["access"]["token"]["tenant"]["id"], "hybrid:123456")
+        self.assertEqual(content["access"]["user"]["RAX-AUTH:contactId"], "56")
+
+        (response, content) = self.successResultOf(
+            json_request(self, root, "GET", url + "/HybridSevenEight"))
+        self.assertEqual(200, response.code)
+        self.assertEqual(content["access"]["token"]["tenant"]["id"], "hybrid:654321")
+        self.assertEqual(content["access"]["user"]["RAX-AUTH:contactId"], "78")
+
+        (response, content) = self.successResultOf(
+            json_request(self, root, "GET", url + "/HybridNineZero"))
+        self.assertEqual(200, response.code)
+        self.assertEqual(content["access"]["token"]["tenant"]["id"], "hybrid:654321")
+        self.assertEqual(content["access"]["user"]["RAX-AUTH:contactId"], "90")
