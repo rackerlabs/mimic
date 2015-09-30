@@ -33,30 +33,11 @@ from mimic.model.maas_objects import (Alarm,
                                       Notification,
                                       NotificationPlan,
                                       Suppression)
-from mimic.util.helper import random_hex_generator, random_hipsum
+from mimic.util.helper import Matcher, random_hex_generator, random_hipsum
 
 
 MISSING_REQUIRED_KEY_REGEX = re.compile(r'Missing keyword value for \'(\w+)\'.')
 REMOTE_CHECK_TYPE_REGEX = re.compile(r'^remote\.')
-
-
-class _MatchesID(object):
-    """
-    Class for implementing equality based on the id field.
-    """
-    def __init__(self, id):
-        """
-        Set id on self so that other objects can be compared against this one.
-        """
-        self.id = id
-
-    def __eq__(self, other):
-        """
-        Implements the == comparison based on the id field (and nothing else).
-        """
-        if hasattr(other, '__getitem__'):
-            return other['id'] == self.id
-        return other.id == self.id
 
 
 @implementer(IAPIMock, IPlugin)
@@ -529,8 +510,19 @@ class MaasMock(object):
         Delete an entity, all checks that belong to entity, all alarms that belong to those checks
         """
         entities = self._entity_cache_for_tenant(tenant_id).entities_list
-        entities[:] = [entity for entity in entities
-                       if entity.id != entity_id]
+
+        try:
+            entities.remove(Matcher(lambda entity: entity.id == entity_id))
+        except ValueError:
+            status = 404
+            request.setResponseCode(status)
+            self._audit('entities', request, tenant_id, status)
+            return json.dumps({'type': 'notFoundError',
+                               'code': status,
+                               'message': 'Object does not exist',
+                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
+                                   entity_id),
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
 
         checks = self._entity_cache_for_tenant(tenant_id).checks_list
         checks[:] = [check for check in checks
@@ -544,6 +536,7 @@ class MaasMock(object):
         request.setResponseCode(status)
         request.setHeader('content-type', 'text/plain')
         self._audit('entities', request, tenant_id, status)
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks', methods=['POST'])
     def create_check(self, request, tenant_id, entity_id):
@@ -619,8 +612,20 @@ class MaasMock(object):
         Deletes check and all alarms associated to it
         """
         checks = self._entity_cache_for_tenant(tenant_id).checks_list
-        checks[:] = [check for check in checks
-                     if not (check.entity_id == entity_id and check.id == check_id)]
+
+        try:
+            checks.remove(Matcher(
+                lambda check: check.id == check_id and check.entity_id == entity_id))
+        except ValueError:
+            status = 404
+            request.setResponseCode(status)
+            self._audit('checks', request, tenant_id, status)
+            return json.dumps({'type': 'notFoundError',
+                               'code': status,
+                               'message': 'Object does not exist',
+                               'details': 'Object "Check" with key "{0}:{1}" does not exist'.format(
+                                   entity_id, check_id),
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
 
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
         alarms[:] = [alarm for alarm in alarms
@@ -735,13 +740,25 @@ class MaasMock(object):
         Delete an alarm
         """
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
-        alarms[:] = [alarm for alarm in alarms
-                     if not (alarm.entity_id == entity_id and alarm.id == alarm_id)]
+
+        try:
+            alarms.remove(Matcher(
+                lambda alarm: alarm.entity_id == entity_id and alarm.id == alarm_id))
+        except ValueError:
+            status = 404
+            request.setResponseCode(status)
+            self._audit('alarms', request, tenant_id, status)
+            return json.dumps({'type': 'notFoundError',
+                               'code': status,
+                               'message': 'Object does not exist',
+                               'details': 'Object "Alarm" with key "{0}:{1}" does not exist'.format(
+                                   entity_id, alarm_id),
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
 
         status = 204
         request.setResponseCode(status)
-        request.setHeader('content-type', 'text/plain')
         self._audit('alarms', request, tenant_id, status)
+        request.setHeader('content-type', 'text/plain')
         return b''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/test-alarm', methods=['POST'])
@@ -828,7 +845,7 @@ class MaasMock(object):
         current_marker = request.args.get('marker', [None])[0]
         if current_marker is not None:
             try:
-                offset = all_entities.index(_MatchesID(current_marker))
+                offset = all_entities.index(Matcher(lambda entity: entity.id == current_marker))
             except ValueError:
                 offset = 0
 
@@ -871,7 +888,7 @@ class MaasMock(object):
         current_marker = request.args.get('marker', [None])[0]
         if current_marker is not None:
             try:
-                offset = all_audits.index(_MatchesID(current_marker))
+                offset = all_audits.index(Matcher(lambda audit: audit['id'] == current_marker))
             except ValueError:
                 offset = 0
 
@@ -1019,13 +1036,24 @@ class MaasMock(object):
         Delete a notification
         """
         notifications = self._entity_cache_for_tenant(tenant_id).notifications_list
-        notifications[:] = [nt for nt in notifications
-                            if nt.id != nt_id]
+
+        try:
+            notifications.remove(Matcher(lambda nt: nt.id == nt_id))
+        except ValueError:
+            status = 404
+            request.setResponseCode(status)
+            self._audit('notifications', request, tenant_id, status)
+            return json.dumps({'type': 'notFoundError',
+                               'code': status,
+                               'message': 'Object does not exist',
+                               'details': 'Object "Notification" with key "{0}" does not exist'.format(
+                                   nt_id),
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
 
         status = 204
         request.setResponseCode(status)
-        request.setHeader('content-type', 'text/plain')
         self._audit('notifications', request, tenant_id, status)
+        request.setHeader('content-type', 'text/plain')
         return b''
 
     @app.route('/v1.0/<string:tenant_id>/notification_plans', methods=['POST'])
@@ -1113,12 +1141,23 @@ class MaasMock(object):
                                'message': err_message,
                                'details': err_message})
 
-        nplist[:] = [np for np in nplist
-                     if np.id != np_id]
+        try:
+            nplist.remove(Matcher(lambda np: np.id == np_id))
+        except ValueError:
+            status = 404
+            request.setResponseCode(status)
+            self._audit('notification_plans', request, tenant_id, status)
+            return json.dumps({'type': 'notFoundError',
+                               'code': status,
+                               'message': 'Object does not exist',
+                               'details': ('Object "NotificationPlan" with key "{0}" '.format(np_id) +
+                                           'does not exist'),
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+
         status = 204
         request.setResponseCode(status)
-        request.setHeader('content-type', 'text/plain')
         self._audit('notification_plans', request, tenant_id, status)
+        request.setHeader('content-type', 'text/plain')
         return b''
 
     @app.route('/v1.0/<string:tenant_id>/suppressions', methods=['GET'])
@@ -1192,13 +1231,24 @@ class MaasMock(object):
         Delete a suppression.
         """
         suppressions = self._entity_cache_for_tenant(tenant_id).suppressions_list
-        suppressions[:] = [sp for sp in suppressions
-                           if sp.id != sp_id]
+
+        try:
+            suppressions.remove(Matcher(lambda sp: sp.id == sp_id))
+        except ValueError:
+            status = 404
+            request.setResponseCode(status)
+            self._audit('suppressions', request, tenant_id, status)
+            return json.dumps({'type': 'notFoundError',
+                               'code': status,
+                               'message': 'Object does not exist',
+                               'details': 'Object "Suppression" with key "{0}" does not exist'.format(
+                                   sp_id),
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
 
         status = 204
-        request.setResponseCode(204)
-        request.setHeader('content-type', 'text/plain')
+        request.setResponseCode(status)
         self._audit('suppressions', request, tenant_id, status)
+        request.setHeader('content-type', 'text/plain')
         return b''
 
     @app.route('/v1.0/<string:tenant_id>/monitoring_zones', methods=['GET'])
