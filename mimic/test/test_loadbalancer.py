@@ -1004,7 +1004,8 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         """
         Updating a node successfully changes its values.  The response from a
         successful change is just the values that changed.  The body is an
-        empty string.
+        empty string. It also updates the atom feed of the node and returns
+        that when GETing ../loadbalancers/lbid/nodes/nodeid.atom
         """
         original = self.node[0]
         expected = original.copy()
@@ -1023,6 +1024,52 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         self.assertEqual(body, "")
 
         self.assertEqual(self._get_nodes(self.lb_id)[0], expected)
+
+        # check if feed is updated
+        d = request(
+            self, self.root, "GET",
+            "{0}/loadbalancers/{1}/nodes/{2}.atom".format(self.uri, self.lb_id,
+                                                          self.node[0]["id"]))
+        feed_response = self.successResultOf(d)
+        self.assertEqual(feed_response.code, 200)
+        self.assertEqual(
+            self.successResultOf(treq.content(feed_response)),
+            ("<feed xmlns=\"http://www.w3.org/2005/Atom\"><entry>"
+             "<summary>Node successfully updated with address: '127.0.0.1', "
+             "port: '80', weight: '100', condition: 'DISABLED'</summary>"
+             "<updated>1970-01-01T00:00:00.000000Z</updated></entry></feed>"))
+
+    def test_get_feed_node_404(self):
+        """
+        Getting feed of non-existent node returns 404 with "Node not found"
+        XML
+        """
+        d = request(
+            self, self.root, "GET",
+            "{0}/loadbalancers/{1}/nodes/{2}.atom".format(self.uri, self.lb_id, 0))
+        feed_response = self.successResultOf(d)
+        self.assertEqual(feed_response.code, 404)
+        self.assertEqual(
+            self.successResultOf(treq.content(feed_response)),
+            ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+             '<itemNotFound xmlns="http://docs.openstack.org/loadbalancers/api/v1.0" code="404">'
+             '<message>Node not found</message></itemNotFound>'))
+
+    def test_get_feed_clb_404(self):
+        """
+        Getting feed of node of non-existent CLB returns 404 with
+        "load balancer not found" XML
+        """
+        d = request(
+            self, self.root, "GET",
+            "{0}/loadbalancers/{1}/nodes/{2}.atom".format(self.uri, 0, 0))
+        feed_response = self.successResultOf(d)
+        self.assertEqual(feed_response.code, 404)
+        self.assertEqual(
+            self.successResultOf(treq.content(feed_response)),
+            ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+             '<itemNotFound xmlns="http://docs.openstack.org/loadbalancers/api/v1.0" code="404">'
+             '<message>Load balancer not found</message></itemNotFound>'))
 
 
 class LoadbalancerAPINegativeTests(SynchronousTestCase):
@@ -1216,6 +1263,13 @@ class LoadbalancerAPINegativeTests(SynchronousTestCase):
             str(lb["id"]) + '/nodes/123')
         get_node_response = self.successResultOf(get_node)
         self.assertEqual(get_node_response.code, 410)
+
+        # GET node feed on load balancer in DELETED status results in 410
+        node_feed = request(
+            self, self.root, "GET", self.uri + '/loadbalancers/' +
+            str(lb["id"]) + '/nodes/123.atom')
+        node_feed_response = self.successResultOf(node_feed)
+        self.assertEqual(node_feed_response.code, 410)
 
         # List node on load balancer in DELETED status results in 410
         list_nodes = request(

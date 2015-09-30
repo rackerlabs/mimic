@@ -13,6 +13,8 @@ from characteristic import attributes, Attribute
 
 from six import string_types
 
+from toolz.dicttoolz import dissoc
+
 from twisted.internet.interfaces import IReactorTime
 from twisted.python import log
 
@@ -21,7 +23,9 @@ from mimic.model.clb_errors import (
     considered_immutable_error,
     invalid_json_schema,
     loadbalancer_not_found,
+    lb_deleted_xml,
     node_not_found,
+    not_found_xml,
     updating_node_validation_error
 )
 from mimic.util.helper import (EMPTY_RESPONSE,
@@ -74,6 +78,7 @@ class Node(object):
                  default=attr.Factory(lambda: randrange(999999)))
     status = attr.ib(validator=attr.validators.instance_of(str),
                      default="ONLINE")
+    feed_events = attr.ib(default=[])
 
     @classmethod
     def from_json(cls, json_blob):
@@ -97,7 +102,7 @@ class Node(object):
         """
         :return: a JSON dictionary representing the node.
         """
-        return attr.asdict(self)
+        return dissoc(attr.asdict(self), "feed_events")
 
     def same_as(self, other):
         """
@@ -177,6 +182,18 @@ class BadValueError(Exception):
     When trying to alter the settings of a load balancer, this exception will
     be raised if you attempt to set a valid attribute to an invalid setting.
     """
+
+
+def node_feed_xml(events):
+    """
+    Return feed of node events
+    """
+    feed = '<feed xmlns="http://www.w3.org/2005/Atom">{entries}</feed>'
+    entry = ('<entry><summary>{summary}</summary>'
+             '<updated>{updated}</updated></entry>')
+    entries = [entry.format(summary=summary, updated=updated)
+               for summary, updated in events]
+    return feed.format(entries=''.join(entries))
 
 
 @attr.s
@@ -318,7 +335,7 @@ class RegionalCLBCollection(object):
             return {'loadBalancer': self.lbs[lb_id].full_json()}, 200
         return not_found_response("loadbalancer"), 404
 
-    def get_nodes(self, lb_id, node_id):
+    def get_node(self, lb_id, node_id):
         """
         Returns the node on the load balancer
         """
@@ -338,6 +355,24 @@ class RegionalCLBCollection(object):
             return not_found_response("node"), 404
 
         return not_found_response("loadbalancer"), 404
+
+    def get_node_feed(self, lb_id, node_id):
+        """
+        Return load balancer's node's atom feed
+        """
+        if lb_id not in self.lbs:
+            return not_found_xml("Load balancer")
+
+        self._verify_and_update_lb_state(lb_id, False, self.clock.seconds())
+
+        if self.lbs[lb_id]["status"] == "DELETED":
+            return lb_deleted_xml()
+
+        for node in self.lbs[lb_id].nodes:
+            if node_id == node.id:
+                return node_feed_xml(node.feed_events), 200
+
+        return not_found_xml("Node")
 
     def list_load_balancers(self):
         """
@@ -519,6 +554,9 @@ class RegionalCLBCollection(object):
 
         :return: a `tuple` of (json response as a dict, http status code)
         """
+        feed_summary = (
+            "Node successfully updated with address: '{address}', port: '{port}', "
+            "weight: '{weight}', condition: '{condition}'")
         # first, store whether address and port were provided - if they were
         # that's a validation error not a schema error
         things_wrong = dict([(k, True) for k in ("address", "port", "id")
@@ -550,6 +588,9 @@ class RegionalCLBCollection(object):
                     params = attr.asdict(node)
                     params.update(node_updates)
                     self.lbs[lb_id].nodes[i] = Node(**params)
+                    self.lbs[lb_id].nodes[i].feed_events.append(
+                        (feed_summary.format(**params),
+                         seconds_to_timestamp(self.clock.seconds())))
                     return ("", 202)
 
             return node_not_found()

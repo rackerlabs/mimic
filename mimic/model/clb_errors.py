@@ -124,3 +124,23 @@ def loadbalancer_not_found():
         },
         404
     )
+
+
+def not_found_xml(item):
+    """
+    Return XML representation of CLB item not found.
+    """
+    return (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<itemNotFound xmlns="http://docs.openstack.org/loadbalancers/api/v1.0" code="404">'
+        '<message>{0} not found</message></itemNotFound>').format(item), 404
+
+
+def lb_deleted_xml():
+    """
+    Return XML representation of CLB marked as DELETED
+    """
+    return (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<message xmlns="http://docs.openstack.org/loadbalancers/api/v1.0" code="410">'
+        'The loadbalancer is marked as deleted.</message>'), 410
