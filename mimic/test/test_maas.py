@@ -1116,6 +1116,19 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(data['metrics'][0]['type'], 'unknown')
         self.assertEquals(len(data['metrics'][0]['data']), 0)
 
+    def test_multiplot_single_point(self):
+        """
+        Plotting a single point should not cause a server error.
+        """
+        resp = self.successResultOf(
+            request(self, self.root, "POST",
+                    '{0}/__experiments/multiplot?from={1}&to={2}&points={3}'.format(
+                        self.uri, '1412902262560', '1412988662560', 1),
+                    json.dumps({'metrics': [{'entity_id': self.entity_id,
+                                             'check_id': self.check_id,
+                                             'metric': 'mzord.available'}]})))
+        self.assertEquals(resp.code, 200)
+
     def test_get_all_notification_plans(self):
         """
         get all notification plans
@@ -1558,3 +1571,56 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 400)
         self.assertEquals(data['type'], 'badRequest')
         self.assertEquals(data['details'], 'Missing required key (status)')
+
+    def test_set_overrides_missing_check(self):
+        """
+        Trying to set the overrides on a check that does not exist causes a 404.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "PUT",
+                         '{0}/entities/{1}/checks/chWhut/metrics/available'.format(
+                             self.ctl_uri, self.entity_id),
+                         json.dumps({'type': 'squarewave'})))
+        self.assertEquals(resp.code, 404)
+        self.assertEquals(data['type'], 'notFoundError')
+        self.assertEquals(data['details'], ('Object "Check" with key ' +
+                                            '"{0}:chWhut" does not exist'.format(self.entity_id)))
+
+    def test_set_overrides_unknown_type(self):
+        """
+        Trying to set the overrides using an unknown metric type
+        causes a 400 Bad Request response.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "PUT",
+                         '{0}/entities/{1}/checks/{2}/metrics/available'.format(
+                             self.ctl_uri, self.entity_id, self.check_id),
+                         json.dumps({'type': 'lolwut'})))
+        self.assertEquals(resp.code, 400)
+        self.assertEquals(data['type'], 'badRequest')
+        self.assertEquals(data['details'], 'Unknown value for "type": "lolwut"')
+
+    def test_set_overrides_squarewave(self):
+        """
+        Users can override metrics using a square wave function.
+        """
+        resp = self.successResultOf(
+            request(self, self.root, "PUT",
+                    '{0}/entities/{1}/checks/{2}/metrics/available'.format(
+                        self.ctl_uri, self.entity_id, self.check_id),
+                    json.dumps({'type': 'squarewave',
+                                'options': {'min': 11,
+                                            'max': 22,
+                                            'offset': 0,
+                                            'period': 100},
+                                'monitoring_zones': ['mzord']})))
+        self.assertEquals(resp.code, 204)
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, "POST",
+                         '{0}/__experiments/multiplot?from=1&to=99&points=2'.format(self.uri),
+                         json.dumps({'metrics': [{'entity_id': self.entity_id,
+                                                  'check_id': self.check_id,
+                                                  'metric': 'mzord.available'}]})))
+        self.assertEquals(resp.code, 200)
+        self.assertEquals(data['metrics'][0]['data'][0]['average'], 11)
+        self.assertEquals(data['metrics'][0]['data'][1]['average'], 22)

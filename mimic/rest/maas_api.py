@@ -2,6 +2,8 @@
 MAAS Mock API
 """
 
+from __future__ import division
+
 import json
 import collections
 import urlparse
@@ -285,6 +287,18 @@ def _metric_list_for_entity(maas_store, entity, checks):
                        for check in checks if check.entity_id == entity.id]}
 
 
+def _multiplot_interval(from_date, to_date, points):
+    """
+    Computes the size of the interval between points in a multiplot.
+
+    :return: the multiplot interval size.
+    :rtype: ``float``
+    """
+    if points < 2:
+        return 0.0
+    return (to_date - from_date) / (points - 1)
+
+
 def _compute_multiplot(maas_store, entity_id, check, metric_name, from_date, to_date, points):
     """
     Computes multiplot data for a single (entity, check, metric) group.
@@ -299,7 +313,7 @@ def _compute_multiplot(maas_store, entity_id, check, metric_name, from_date, to_
     if check.type not in maas_store.check_types:
         return fallback
 
-    interval = (to_date - from_date) / points
+    interval = _multiplot_interval(from_date, to_date, points)
     metric = None
     base_metric_name = metric_name
     metric_value_kwargs = {'entity_id': entity_id,
@@ -1621,4 +1635,58 @@ class MaasController(object):
         request.setResponseCode(201)
         request.setHeader('x-object-id', new_state.id.encode('utf-8'))
         request.setHeader('content-type', 'text/plain')
+        return b''
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks' +
+               '/<string:check_id>/metrics/<string:metric_name>', methods=['PUT'])
+    def set_metric_override(self, request, tenant_id, entity_id, check_id, metric_name):
+        """
+        Sets overrides on a metric.
+        """
+        checks = self._entity_cache_for_tenant(tenant_id).checks_list
+        check = None
+
+        for c in checks:
+            if c.id == check_id and c.entity_id == entity_id:
+                check = c
+                break
+        else:
+            request.setResponseCode(404)
+            return json.dumps({'type': 'notFoundError',
+                               'code': 404,
+                               'message': 'Object does not exist',
+                               'details': 'Object "Check" with key "{0}:{1}" does not exist'.format(
+                                   entity_id, check_id)})
+
+        maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
+        metric = maas_store.check_types[check.type].get_metric_by_name(metric_name)
+        request_body = json.loads(request.content.read())
+        monitoring_zones = request_body.get('monitoring_zones', ['__AGENT__'])
+        override_type = request_body['type']
+        override_options = request_body.get('options', {})
+        override_fn = None
+
+        if override_type == 'squarewave':
+            fn_period = int(override_options.get('period', 10 * 60 * 1000))
+            half_period = fn_period / 2
+            fn_min = override_options.get('min', 20)
+            fn_max = override_options.get('max', 80)
+            fn_offset = int(override_options.get('offset', 0))
+            override_fn = (lambda t: (fn_min
+                                      if ((t + fn_offset) % fn_period) < half_period
+                                      else fn_max))
+        else:
+            request.setResponseCode(400)
+            return json.dumps({'type': 'badRequest',
+                               'code': 400,
+                               'message': 'Validation error for key \'type\'',
+                               'details': 'Unknown value for "type": "{0}"'.format(override_type)})
+
+        for monitoring_zone in monitoring_zones:
+            metric.set_override(
+                entity_id=entity_id,
+                check_id=check_id,
+                monitoring_zone=monitoring_zone,
+                override_fn=override_fn)
+        request.setResponseCode(204)
         return b''
