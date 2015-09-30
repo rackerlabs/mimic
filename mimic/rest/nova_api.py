@@ -227,7 +227,7 @@ class NovaRegion(object):
         image_region_collection = image_global_collection.collection_for_region(
             self._name)
         return image_region_collection
-        
+
     def _keypair_collection_for_tenant(self, tenant_id):
         """
         Returns the keypairs for a region
@@ -435,7 +435,8 @@ class NovaRegion(object):
         try:
             content = json.loads(request.content.read())
             keypair = content["keypair"]
-            keypair_from_request = KeyPair(name=keypair["name"], public_key=keypair["public_key"])
+            keypair_from_request = KeyPair(
+                name=keypair["name"], public_key=keypair["public_key"])
         except (ValueError or KeyError):
             request.setResponseCode(400)
             return json.dumps(bad_request("Malformed request body", request))
