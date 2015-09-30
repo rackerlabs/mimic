@@ -34,7 +34,7 @@ from mimic.rest.auth_api import (
 )
 from mimic.rest.noit_api import NoitApi
 from mimic.rest import (fastly_api, mailgun_api, customer_api,
-                        ironic_api, glance_api)
+                        ironic_api, glance_api, valkyrie_api)
 from mimic.util.helper import seconds_to_timestamp
 
 
@@ -116,6 +116,13 @@ class MimicRoot(object):
         Mock Ironic API.
         """
         return ironic_api.IronicApi(self.core).app.resource()
+
+    @app.route("/valkyrie/v2.0", branch=True)
+    def valkyrie_api(self, request):
+        """
+        Mock Valkyrie API.
+        """
+        return valkyrie_api.ValkyrieApi(self.core).app.resource()
 
     @app.route('/mimic/v1.0/presets', methods=['GET'])
     def get_mimic_presets(self, request):
