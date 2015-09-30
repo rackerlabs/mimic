@@ -1089,7 +1089,7 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
         servers = self.list_servers('/servers')['servers']
 
         combos = ({}, {'marker': servers[0]['id']}, {'name': 'server'},
-                  {'marker': servers[0]['id'], 'name': 'server'})
+                      {'marker': servers[0]['id'], 'name': 'server'})
 
         for path in ('/servers', '/servers/detail'):
             for combo in combos:
@@ -1130,7 +1130,7 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
         servers = self.list_servers('/servers')['servers']
 
         combos = ({}, {'marker': servers[0]['id']}, {'name': 'server'},
-                  {'marker': servers[0]['id'], 'name': 'server'})
+                      {'marker': servers[0]['id'], 'name': 'server'})
 
         for path in ('/servers', '/servers/detail'):
             for combo in combos:
@@ -2185,7 +2185,7 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         """
         self.assert_malformed_body(
             *self.set_metadata_item({}, "meh",
-                                    {"metadata": {"meh": "value"}}))
+                                        {"metadata": {"meh": "value"}}))
 
     def test_set_metadata_item_with_mismatching_key_and_body(self):
         """
@@ -2218,8 +2218,7 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         metadata-item-only error message saying there are too many items.
         """
         response, body = self.set_metadata_item(
-            {}, 'key',
-            {"meta": {"key": "value", "otherkey": "otherval"}})
+            {}, 'key', {"meta": {"key": "value", "otherkey": "otherval"}})
         self.assertEqual(response.code, 400)
         self.assertEqual(body, {
             "badRequest": {
