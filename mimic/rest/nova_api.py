@@ -234,6 +234,9 @@ class NovaRegion(object):
         return image_region_collection
 
     def _keypair_collection_for_tenant(self, tenant_id):
+        """
+        Returns the keypairs for a region
+        """
         tenant_session = self._session_store.session_for_tenant_id(tenant_id)
         kp_global_collection = tenant_session.data_for_api(
             "keypair_collection",
@@ -430,7 +433,8 @@ class NovaRegion(object):
     @app.route("/v2/<string:tenant_id>/os-keypairs", methods=['GET'])
     def get_key_pairs(self, request, tenant_id):
         """
-        Returns current key pairs
+        Returns current key pairs.
+        http://docs.rackspace.com/servers/api/v2/cs-devguide/content/ListKeyPairs.html
         """
         return self._keypair_collection_for_tenant(tenant_id).json_list()
 
@@ -438,16 +442,17 @@ class NovaRegion(object):
     def create_key_pair(self, request, tenant_id):
         """
         Returns a newly created key pair with the specified name.
+        http://docs.rackspace.com/servers/api/v2/cs-devguide/content/UploadKeyPair.html
         """
         try:
             content = json.loads(request.content.read())
-        except ValueError:
+            keypair = content["keypair"]
+            keypair_from_request = KeyPair(
+                name=keypair["name"], public_key=keypair["public_key"])
+        except (ValueError or KeyError):
             request.setResponseCode(400)
             return json.dumps(bad_request("Malformed request body", request))
 
-        keypair = content["keypair"]
-        keypair_from_request = KeyPair(
-            name=keypair["name"], public_key=keypair["public_key"])
         keypair_response = self._keypair_collection_for_tenant(
             tenant_id).create_keypair(keypair=keypair_from_request)
         return json.dumps(keypair_response)
@@ -455,10 +460,16 @@ class NovaRegion(object):
     @app.route("/v2/<string:tenant_id>/os-keypairs/<string:keypairname>", methods=['DELETE'])
     def delete_key_pair(self, request, tenant_id, keypairname):
         """
-        Removes a key by its name
+        Removes a key by its name.
+        http://docs.rackspace.com/servers/api/v2/cs-devguide/content/DeleteKeyPair.html
         """
-        self._keypair_collection_for_tenant(
-            tenant_id).remove_keypair(keypairname)
+        try:
+            self._keypair_collection_for_tenant(
+                tenant_id).remove_keypair(keypairname)
+        except ValueError:
+            request.setResponseCode(404)
+            return json.dumps("KeyPair not found: " + keypairname)
+
         request.setResponseCode(202)
 
 

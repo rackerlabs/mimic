@@ -13,6 +13,7 @@ class KeyPair(object):
     A KeyPair object
     """
     fingerprint = "aa:aa:aa:aa:aa:aa:aa:aa:aa:aa:aa:aa:aa:aa:aa:aa"
+    user_id = "fake"
 
     def key_json(self):
         """
@@ -22,7 +23,8 @@ class KeyPair(object):
             "keypair": {
                 "name": self.name,
                 "public_key": self.public_key,
-                "fingerprint": self.fingerprint
+                "fingerprint": self.fingerprint,
+                "user_id": self.user_id
             }
         }
 
@@ -74,6 +76,9 @@ class RegionalKeyPairCollection(object):
         Remove a :obj:`KeyPair` from the list of keypairs
         """
         kp_to_remove = self.keypair_by_name(name)
+        if kp_to_remove is None:
+            raise ValueError("Keypair Not Found")
+
         self.keypairs.remove(kp_to_remove)
 
 

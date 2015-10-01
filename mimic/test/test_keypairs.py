@@ -63,6 +63,8 @@ class KeyPairTests(SynchronousTestCase):
         self.assertEqual(resp.code, 200)
         self.assertEqual(body['keypair']['name'],
                          kp_test_body['keypair']['name'])
+        self.assertTrue(len(body['keypair']['fingerprint']) > 1)
+        self.assertTrue(len(body['keypair']['user_id']) > 1)
 
     def test_error_create_keypair(self):
         test_error_body = "{{a]"
@@ -84,4 +86,12 @@ class KeyPairTests(SynchronousTestCase):
 
         self.assertEqual(resp.code, 202)
         resp, body = self.get_keypairs_list()
-        self.assertTrue(len(body['keypairs']) < 2)
+        self.assertNotIn(self.keypair_name, str(body['keypairs']))
+
+    def test_error_delete_keypair(self):
+        resp = self.successResultOf(request(
+            self, self.helper.root, "DELETE", self.helper.uri +
+            '/os-keypairs/keydoesntexist'
+        ))
+
+        self.assertEqual(resp.code, 404)
