@@ -96,6 +96,83 @@ class Image(object):
         return template
 
 
+@attributes(['image_id', 'tenant_id', 'name', 'minDisk', 'minRam', 'image_size', 'server_id', 'links',
+             'flavor_classes', 'os_type', 'os_distro', 'vm_mode', 'disk_config'])
+class RackspaceSavedImage(object):
+    """
+    A Rackspace saved image object representation
+    """
+    is_default = False
+
+    def metadata_json(self):
+        """
+        Create a JSON-serializable data structure describing
+        ``metadata`` for an image.
+        """
+        return {
+            "image_type": "snapshot",
+            "flavor_classes": self.flavor_classes,
+            "os_type": self.os_type,
+            "org.openstack__1__os_distro": self.os_distro,
+            "vm_mode": self.vm_mode,
+            "auto_disk_config": self.disk_config
+        }
+
+    def server_json(self):
+        """
+        Create a JSON-serializable data structure describing ``server`` info for a saved image
+        """
+        return {
+            "id": self.server_id,
+            "links": self.links
+        }
+
+    def links_json(self, absolutize_url):
+        """
+        Create a JSON-serializable data structure describing the links to this
+        image.
+        """
+        return [
+            {
+                "href": absolutize_url("v2/{0}/images/{1}"
+                                       .format(self.tenant_id, self.image_id)),
+                "rel": "self"
+            },
+            {
+                "href": absolutize_url("{0}/images/{1}"
+                                       .format(self.tenant_id, self.image_id)),
+                "rel": "bookmark"
+            },
+            {
+                "href": absolutize_url("/images/{0}"
+                                       .format(self.image_id)),
+                "type": "application/vnd.openstack.image",
+                "rel": "alternate"
+            }
+        ]
+
+    def detailed_json(self, absolutize_url):
+        """
+        Long-form JSON-serializable object representation of this flavor, as
+        returned by either a GET on this individual flavor or a member in the
+        list returned by the list-details request.
+        """
+        template = {}
+        template.update({
+            "id": self.image_id,
+            "status": "ACTIVE",
+            "links": self.links_json(absolutize_url),
+            "name": self.name,
+            "minRam": self.minRam,
+            "minDisk": self.minDisk,
+            "OS-EXT-IMG-SIZE:size": self.image_size,
+            "com.rackspace__1__ui_default_show": self.is_default,
+            "server": self.server_json(),
+            "metadata": self.metadata_json()
+        })
+        return template
+
+
 class RackspaceWindowsImage(Image):
     """
     A Rackspace window image object representation
@@ -769,3 +846,10 @@ class ImageStore(object):
                         image.set_is_default()
                     cls._images_store.append(image)
         return cls._images_store
+
+    @classmethod
+    def add_image_to_store(cls, image):
+        """
+        Add a new image to the images store
+        """
+        cls._images_store.append(image)
