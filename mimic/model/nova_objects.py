@@ -112,7 +112,7 @@ def conflicting(message, request):
 
 @attributes(["collection", "server_id", "server_name", "metadata",
              "creation_time", "update_time", "public_ips", "private_ips",
-             "status", "flavor_ref", "image_ref", "disk_config",
+             "status", "flavor_ref", "image_ref", "disk_config", "key_name",
              "admin_password", "creation_request_json",
              Attribute('max_metadata_items', instance_of=int,
                        default_value=40)])
@@ -128,7 +128,6 @@ class Server(object):
         "OS-EXT-STS:task_state": None,
         "accessIPv4": "198.101.241.238",  # TODO: same as public IP
         "accessIPv6": "2001:4800:780e:0510:d87b:9cbc:ff04:513a",
-        "key_name": None,
         "hostId": "33ccb6c82f3625748b6f2338f54d8e9df07cc583251e001355569056",
         "progress": 100,
         "user_id": "170454"
@@ -209,6 +208,7 @@ class Server(object):
             }
             if self.image_ref is not None else '',
             "links": self.links_json(absolutize_url),
+            "key_name": self.key_name,
             "metadata": self.metadata,
             "name": self.server_name,
             "tenant_id": tenant_id,
@@ -321,6 +321,7 @@ class Server(object):
                 IPv4Address(address="198.101.241.{0}".format(ipsegment())),
                 IPv6Address(address="2001:4800:780e:0510:d87b:9cbc:ff04:513a")
             ],
+            key_name=None if 'key_name' not in server_json else server_json['key_name'],
             creation_request_json=creation_json,
             flavor_ref=server_json['flavorRef'],
             image_ref=server_json['imageRef'] or '',
