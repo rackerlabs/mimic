@@ -17,9 +17,9 @@ from twisted.python.urlpath import URLPath
 
 from twisted.plugin import IPlugin
 from twisted.web.http import CREATED, BAD_REQUEST
-
-from mimic.canned_responses.nova import get_limit, get_key_pairs,\
+from mimic.canned_responses.nova import get_limit, \
     get_networks, get_os_volume_attachments
+from mimic.model.keypair_objects import GlobalKeyPairCollections, KeyPair
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
@@ -137,6 +137,7 @@ class NovaControlApiRegion(object):
     """
     Klein resources for the Nova Control plane API
     """
+
     app = MimicApp()
 
     @app.route('/v2/<string:tenant_id>/behaviors', branch=True)
@@ -231,6 +232,19 @@ class NovaRegion(object):
         image_region_collection = image_global_collection.collection_for_region(
             self._name)
         return image_region_collection
+
+    def _keypair_collection_for_tenant(self, tenant_id):
+        """
+        Returns the keypairs for a region
+        """
+        tenant_session = self._session_store.session_for_tenant_id(tenant_id)
+        kp_global_collection = tenant_session.data_for_api(
+            "keypair_collection",
+            lambda: GlobalKeyPairCollections(tenant_id=tenant_id,
+                                             clock=self._session_store.clock))
+        kp_region_collection = kp_global_collection.collection_for_region(
+            self._name)
+        return kp_region_collection
 
     app = MimicApp()
 
@@ -329,8 +343,8 @@ class NovaRegion(object):
         """
         Return images
         """
-        return(self._image_collection_for_tenant(tenant_id)
-               .list_images(include_details=False, absolutize_url=self.url))
+        return (self._image_collection_for_tenant(tenant_id)
+                .list_images(include_details=False, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/flavors/<string:flavor_id>', methods=['GET'])
     def get_flavor_details(self, request, tenant_id, flavor_id):
@@ -394,13 +408,6 @@ class NovaRegion(object):
         """
         return json.dumps(get_os_volume_attachments())
 
-    @app.route('/v2/<string:tenant_id>/os-keypairs', methods=['GET'])
-    def get_key_pairs(self, request, tenant_id):
-        """
-        Returns key pairs
-        """
-        return json.dumps(get_key_pairs())
-
     @app.route('/v2/<string:tenant_id>/servers/<string:server_id>/metadata',
                branch=True)
     def handle_server_metadata(self, request, tenant_id, server_id):
@@ -422,6 +429,48 @@ class NovaRegion(object):
         Perform the requested action on the server
         """
         return self._region_collection_for_tenant(tenant_id).request_action(request, server_id, self.url)
+
+    @app.route("/v2/<string:tenant_id>/os-keypairs", methods=['GET'])
+    def get_key_pairs(self, request, tenant_id):
+        """
+        Returns current key pairs.
+        http://docs.rackspace.com/servers/api/v2/cs-devguide/content/ListKeyPairs.html
+        """
+        return self._keypair_collection_for_tenant(tenant_id).json_list()
+
+    @app.route("/v2/<string:tenant_id>/os-keypairs", methods=['POST'])
+    def create_key_pair(self, request, tenant_id):
+        """
+        Returns a newly created key pair with the specified name.
+        http://docs.rackspace.com/servers/api/v2/cs-devguide/content/UploadKeyPair.html
+        """
+        try:
+            content = json.loads(request.content.read())
+            keypair = content["keypair"]
+            keypair_from_request = KeyPair(
+                name=keypair["name"], public_key=keypair["public_key"])
+        except (ValueError or KeyError):
+            request.setResponseCode(400)
+            return json.dumps(bad_request("Malformed request body", request))
+
+        keypair_response = self._keypair_collection_for_tenant(
+            tenant_id).create_keypair(keypair=keypair_from_request)
+        return json.dumps(keypair_response)
+
+    @app.route("/v2/<string:tenant_id>/os-keypairs/<string:keypairname>", methods=['DELETE'])
+    def delete_key_pair(self, request, tenant_id, keypairname):
+        """
+        Removes a key by its name.
+        http://docs.rackspace.com/servers/api/v2/cs-devguide/content/DeleteKeyPair.html
+        """
+        try:
+            self._keypair_collection_for_tenant(
+                tenant_id).remove_keypair(keypairname)
+        except ValueError:
+            request.setResponseCode(404)
+            return json.dumps("KeyPair not found: " + keypairname)
+
+        request.setResponseCode(202)
 
 
 class ServerMetadata(object):
