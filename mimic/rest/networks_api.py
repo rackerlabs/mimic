@@ -1,5 +1,5 @@
 """
-Networks API Plugin
+Networks API Plugin --  This is just enough to add networks to the service catalog
 """
 
 from uuid import uuid4
@@ -7,7 +7,6 @@ from six import text_type
 from zope.interface import implementer
 from twisted.web.server import Request
 from twisted.plugin import IPlugin
-from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.imimic import IAPIMock
@@ -40,26 +39,3 @@ class NetworksApi(object):
                 ]
             )
         ]
-
-    def resource_for_region(self, region, uri_prefix, session_store):
-        """
-        Get an :obj:`twisted.web.iweb.IResource` for the given URI prefix;
-        implement :obj:`IAPIMock`.
-        """
-        return NetworksMock(self, uri_prefix, session_store, region).app.resource()
-
-
-class NetworksMock(object):
-    """
-    Networks Mock
-    """
-    def __init__(self, api_mock, uri_prefix, session_store, region_name):
-        """
-        Create a glance region with a given URI prefix.
-        """
-        self.uri_prefix = uri_prefix
-        self._api_mock = api_mock
-        self._session_store = session_store
-        self._region = region_name
-
-    app = MimicApp()
