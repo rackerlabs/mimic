@@ -1,15 +1,12 @@
-# -*- test-case-name: mimic.test.test_glance -*-
 """
-junk
+Networks API Plugin
 """
 
 from uuid import uuid4
-from json import dumps
 from six import text_type
 from zope.interface import implementer
 from twisted.web.server import Request
 from twisted.plugin import IPlugin
-from mimic.model.glance_objects import GlanceImage
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
