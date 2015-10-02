@@ -40,6 +40,13 @@ get_presets = {"loadbalancers": {"lb_building": "On create load balancer, keeps 
                    # Tenants with user admin role
                    "admin_role": ["9999"],
                    # Tenants with this token result in a 401 when validating the token
-                   "token_fail_to_auth": ["never-cache-this-and-fail-to-auth"]
-}
-}
+                   "token_fail_to_auth": ["never-cache-this-and-fail-to-auth"],
+                   # Users presenting these tokens have contact IDs that correspond
+                   # to presets in the Valkyrie plugin...
+                   "non_dedicated_observer": ["OneTwo"],
+                   "non_dedicated_admin": ["ThreeFour"],
+                   "dedicated_full_device_permission_holder": ["HybridOneTwo"],
+                   "dedicated_account_permission_holder": ["HybridThreeFour"],
+                   "dedicated_limited_device_permission_holder": ["HybridFiveSix"],
+                   "dedicated_other_account_observer": ["HybridSevenEight"],
+                   "dedicated_other_account_admin": ["HybridNineZero"]}}
