@@ -1,4 +1,4 @@
-# MIMIC #
+<img alt="MIMIC" src="http://i.imgur.com/eodn4M4.png" height="75">
 
 Mimic is an API-compatible mock service for  __Openstack Compute__ and __Rackspace's implementation of Identity and Cloud Load balancers__. It is backed by in-memory data structure rather than a potentially expensive database.
 
