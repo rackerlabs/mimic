@@ -36,7 +36,7 @@ def status_of_server(test_case, server_id):
 
 def create_server(helper, name=None, imageRef=None, flavorRef=None,
                   metadata=None, diskConfig=None, body_override=None,
-                  region="ORD", request_func=json_request):
+                  region="ORD", key_name=None, request_func=json_request):
     """
     Create a server with the given body and returns the response object and
     body.
@@ -61,6 +61,7 @@ def create_server(helper, name=None, imageRef=None, flavorRef=None,
     if body is None:
         data = {
             "name": name if name is not None else 'test_server',
+            "key_name": key_name if key_name is not None else 'test_key',
             "imageRef": imageRef if imageRef is not None else "test-image",
             "flavorRef": flavorRef if flavorRef is not None else "test-flavor"
         }
@@ -248,6 +249,44 @@ class NovaAPITests(SynchronousTestCase):
             "testpassword"
         )
         validate_link_json(self, self.create_server_response_body['server'])
+
+    def test_create_server_with_keypair_name(self):
+        """
+        Test to verify creating a server with a named keypair works
+        """
+        keypair_name = "server_keypair"
+        resp, body = create_server(self.helper, key_name=keypair_name)
+        self.assertEqual(resp.code, 202)
+        server_id = body['server']['id']
+        get_server = request(
+            self, self.root, "GET", self.uri + '/servers/' + server_id
+        )
+        get_server_response = self.successResultOf(get_server)
+        response_body = self.successResultOf(
+            treq.json_content(get_server_response))
+        self.assertEqual(
+            response_body['server']['key_name'], keypair_name)
+
+    def test_create_server_without_keypair_name(self):
+        """
+        Test to verify creating a server without a named keypair returns None
+        """
+        data = {
+            "name": "fake_server",
+            "imageRef": "test-image",
+            "flavorRef": "test-flavor"
+        }
+        body = json.dumps({"server": data})
+        create_resp, create_body = create_server(self.helper, body_override=body)
+        server_id = create_body['server']['id']
+        get_server = request(
+            self, self.root, "GET", self.uri + '/servers/' + server_id
+        )
+        get_server_response = self.successResultOf(get_server)
+        response_body = self.successResultOf(
+            treq.json_content(get_server_response))
+        self.assertEqual(
+            response_body['server']['key_name'], None)
 
     def test_created_servers_have_dissimilar_admin_passwords(self):
         """
