@@ -2014,7 +2014,7 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         there are too many items.
         """
         metadata = dict(("key{0}".format(i), "value{0}".format(i))
-                        for i in xrange(100))
+                        for i in range(100))
         self.assert_maximum_metadata(
             *create_server(self.helper, metadata=metadata))
 
@@ -2032,7 +2032,7 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         When ``create_server`` is passed metadata with too many items and
         invalid metadata values, the too many items error takes precedence.
         """
-        metadata = dict(("key{0}".format(i), []) for i in xrange(100))
+        metadata = dict(("key{0}".format(i), []) for i in range(100))
         self.assert_maximum_metadata(
             *create_server(self.helper, metadata=metadata))
 
@@ -2144,7 +2144,7 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         there are too many items.
         """
         metadata = dict(("key{0}".format(i), "value{0}".format(i))
-                        for i in xrange(100))
+                        for i in range(100))
         self.assert_maximum_metadata(
             *self.set_metadata({"metadata": metadata}))
 
@@ -2173,7 +2173,7 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         When ``set_metadata`` is passed metadata with too many items and
         invalid metadata values, the too many items error takes precedence.
         """
-        metadata = dict(("key{0}".format(i), []) for i in xrange(100))
+        metadata = dict(("key{0}".format(i), []) for i in range(100))
         self.assert_maximum_metadata(
             *self.set_metadata({"metadata": metadata}))
 
@@ -2274,7 +2274,7 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         saying there are too many items.
         """
         metadata = dict(("key{0}".format(i), "value{0}".format(i))
-                        for i in xrange(40))
+                        for i in range(40))
         self.assert_maximum_metadata(
             *self.set_metadata_item(metadata, 'newkey',
                                     {"meta": {"newkey": "newval"}}))
@@ -2287,14 +2287,14 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         item).
         """
         metadata = dict(("key{0}".format(i), "value{0}".format(i))
-                        for i in xrange(40))
+                        for i in range(40))
         response, body = self.set_metadata_item(
             metadata, 'key0', {"meta": {"key0": "newval"}})
         self.assertEqual(response.code, 200)
         self.assertEqual(body, {"meta": {"key0": "newval"}})
 
         expected = dict(("key{0}".format(i), "value{0}".format(i))
-                        for i in xrange(1, 40))
+                        for i in range(1, 40))
         expected['key0'] = 'newval'
         self.assertEqual(self.get_created_server_metadata(), expected)
 
@@ -2325,7 +2325,7 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         invalid metadata values, the too many items error takes precedence.
         """
         metadata = dict(("key{0}".format(i), "value{0}".format(i))
-                        for i in xrange(40))
+                        for i in range(40))
         self.assert_maximum_metadata(
             *self.set_metadata_item(metadata, 'key', {"meta": {"key": []}}))
 

@@ -48,7 +48,7 @@ def random_string(length, selectable=None):
     selectable = (
         selectable or (string.letters + string.digits + string.punctuation)
     )
-    return ''.join([choice(selectable) for _ in xrange(length)])
+    return ''.join([choice(selectable) for _ in range(length)])
 
 
 def random_hipsum(length):
