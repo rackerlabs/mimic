@@ -45,8 +45,12 @@ get_presets = {"loadbalancers": {"lb_building": "On create load balancer, keeps 
                    # to presets in the Valkyrie plugin...
                    "non_dedicated_observer": ["OneTwo"],
                    "non_dedicated_admin": ["ThreeFour"],
+                   "non_dedicated_impersonator": ["ThreeFourImpersonator"],
+                   "non_dedicated_racker": ["ThreeFourRacker"],
                    "dedicated_full_device_permission_holder": ["HybridOneTwo"],
                    "dedicated_account_permission_holder": ["HybridThreeFour"],
+                   "dedicated_impersonator": ["HybridThreeFourImpersonator"],
+                   "dedicated_racker": ["HybridOneTwoRacker"],
                    "dedicated_limited_device_permission_holder": ["HybridFiveSix"],
-                   "dedicated_other_account_observer": ["HybridSevenEight"],
+                   "dedicated_non_permission_holder": ["HybridSevenEight"],
                    "dedicated_other_account_admin": ["HybridNineZero"]}}
