@@ -13,7 +13,7 @@ except ImportError:
 
 
 _NAME = "mimic"
-_VERSION = "1.8.0"
+_VERSION = "1.9.0"
 
 
 def setup_options(name, version):
@@ -126,6 +126,7 @@ setup(
     version=_VERSION,
     description="An API-compatible mock service",
     license="Apache License, Version 2.0",
+    url="https://github.com/rackerlabs/mimic",
     include_package_data=True,
     **setup_options(_NAME, _VERSION)
 )
