@@ -802,14 +802,14 @@ class MaasMock(object):
             response_payload = error_response['response']
         elif entity_id in test_responses:
             n_responses = len(test_responses[entity_id])
-            for i in xrange(n_tests):
+            for i in range(n_tests):
                 test_response = test_responses[entity_id][i % n_responses]
                 response_payload.append({'state': test_response['state'],
                                          'status': test_response.get(
                                              'status', 'Matched default return statement'),
                                          'timestamp': current_time_milliseconds})
         else:
-            for _ in xrange(n_tests):
+            for _ in range(n_tests):
                 response_payload.append({'state': random.choice(['OK', 'WARNING', 'CRITICAL']),
                                          'status': random_hipsum(12),
                                          'timestamp': current_time_milliseconds})

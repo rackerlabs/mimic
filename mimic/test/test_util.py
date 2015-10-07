@@ -116,7 +116,7 @@ class TestRandomString(SynchronousTestCase):
         the characters you provide.
         """
         desired_chars = "02468"
-        for iteration in xrange(100):
+        for iteration in range(100):
             a_string = helper.random_string(1024, selectable=desired_chars)
             for char in a_string:
                 self.assertTrue(char in desired_chars)
