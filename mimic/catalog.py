@@ -2,6 +2,8 @@
 Classes which represent the objects within the service catalog.
 """
 
+from __future__ import unicode_literals
+
 __all__ = ("Endpoint", "Entry")
 
 

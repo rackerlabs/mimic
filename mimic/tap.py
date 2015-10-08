@@ -1,6 +1,9 @@
 """
 Twisted Application plugin for Mimic
 """
+
+from __future__ import unicode_literals
+
 from twisted.application.strports import service
 from twisted.application.service import MultiService
 from twisted.python import usage

@@ -3,6 +3,8 @@
 Defines get current customer
 """
 
+from __future__ import unicode_literals
+
 import json
 
 from mimic.rest.mimicapp import MimicApp

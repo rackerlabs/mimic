@@ -2,6 +2,8 @@
 Canned response for monitoring json home
 """
 
+from __future__ import unicode_literals
+
 
 def json_home(url):
     """

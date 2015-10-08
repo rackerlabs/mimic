@@ -2,7 +2,7 @@
 MAAS Mock API
 """
 
-from __future__ import division
+from __future__ import division, unicode_literals
 
 import json
 import collections
@@ -462,10 +462,10 @@ class MaasMock(object):
         self._entity_cache_for_tenant(tenant_id).entities_list.append(newentity)
         status = 201
         request.setResponseCode(status)
-        request.setHeader('location', base_uri_from_request(request).rstrip('/') +
-                          request.path + '/' + newentity.id.encode('utf-8'))
-        request.setHeader('x-object-id', newentity.id.encode('utf-8'))
-        request.setHeader('content-type', 'text/plain')
+        request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
+                          request.path + b'/' + newentity.id.encode('utf-8'))
+        request.setHeader(b'x-object-id', newentity.id.encode('utf-8'))
+        request.setHeader(b'content-type', b'text/plain')
         self._audit('entities', request, tenant_id, status, content)
         return b''
 
@@ -512,9 +512,10 @@ class MaasMock(object):
 
         status = 204
         request.setResponseCode(status)
-        request.setHeader('location', base_uri_from_request(request).rstrip('/') + request.path)
-        request.setHeader('x-object-id', entity_id.encode('utf-8'))
-        request.setHeader('content-type', 'text/plain')
+        request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
+                          request.path)
+        request.setHeader(b'x-object-id', entity_id.encode('utf-8'))
+        request.setHeader(b'content-type', b'text/plain')
         self._audit('entities', request, tenant_id, status, content)
         return b''
 
@@ -548,7 +549,7 @@ class MaasMock(object):
 
         status = 204
         request.setResponseCode(status)
-        request.setHeader('content-type', 'text/plain')
+        request.setHeader(b'content-type', b'text/plain')
         self._audit('entities', request, tenant_id, status)
         return b''
 
@@ -578,10 +579,10 @@ class MaasMock(object):
         self._entity_cache_for_tenant(tenant_id).checks_list.append(newcheck)
         status = 201
         request.setResponseCode(status)
-        request.setHeader('location', base_uri_from_request(request).rstrip('/') +
-                          request.path + '/' + newcheck.id.encode('utf-8'))
-        request.setHeader('x-object-id', newcheck.id.encode('utf-8'))
-        request.setHeader('content-type', 'text/plain')
+        request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
+                          request.path + b'/' + newcheck.id.encode('utf-8'))
+        request.setHeader(b'x-object-id', newcheck.id.encode('utf-8'))
+        request.setHeader(b'content-type', b'text/plain')
         self._audit('checks', request, tenant_id, status, content)
         return b''
 
@@ -613,9 +614,10 @@ class MaasMock(object):
                 break
         status = 204
         request.setResponseCode(status)
-        request.setHeader('location', base_uri_from_request(request).rstrip('/') + request.path)
-        request.setHeader('x-object-id', check_id.encode('utf-8'))
-        request.setHeader('content-type', 'text/plain')
+        request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
+                          request.path)
+        request.setHeader(b'x-object-id', check_id.encode('utf-8'))
+        request.setHeader(b'content-type', b'text/plain')
         self._audit('checks', request, tenant_id, status, content)
         return b''
 
@@ -646,7 +648,7 @@ class MaasMock(object):
                      if not (alarm.check_id == check_id and alarm.entity_id == entity_id)]
         status = 204
         request.setResponseCode(status)
-        request.setHeader('content-type', 'text/plain')
+        request.setHeader(b'content-type', b'text/plain')
         self._audit('checks', request, tenant_id, status)
         return b''
 
@@ -698,10 +700,10 @@ class MaasMock(object):
         self._entity_cache_for_tenant(tenant_id).alarms_list.append(newalarm)
         status = 201
         request.setResponseCode(status)
-        request.setHeader('location', base_uri_from_request(request).rstrip('/') +
-                          request.path + '/' + newalarm.id.encode('utf-8'))
-        request.setHeader('x-object-id', newalarm.id.encode('utf-8'))
-        request.setHeader('content-type', 'text/plain')
+        request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
+                          request.path + b'/' + newalarm.id.encode('utf-8'))
+        request.setHeader(b'x-object-id', newalarm.id.encode('utf-8'))
+        request.setHeader(b'content-type', b'text/plain')
         self._audit('alarms', request, tenant_id, status, content)
         return b''
 
@@ -741,9 +743,10 @@ class MaasMock(object):
 
         status = 204
         request.setResponseCode(status)
-        request.setHeader('location', base_uri_from_request(request).rstrip('/') + request.path)
-        request.setHeader('x-object-id', alarm_id.encode('utf-8'))
-        request.setHeader('content-type', 'text/plain')
+        request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
+                          request.path)
+        request.setHeader(b'x-object-id', alarm_id.encode('utf-8'))
+        request.setHeader(b'content-type', b'text/plain')
         self._audit('alarms', request, tenant_id, status, content)
         return b''
 
@@ -772,7 +775,7 @@ class MaasMock(object):
         status = 204
         request.setResponseCode(status)
         self._audit('alarms', request, tenant_id, status)
-        request.setHeader('content-type', 'text/plain')
+        request.setHeader(b'content-type', b'text/plain')
         return b''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/test-alarm', methods=['POST'])
@@ -984,11 +987,11 @@ class MaasMock(object):
         """
         URL of agent install script
         """
-        xsil = "https://monitoring.api.rackspacecloud.com/"
-        xsil += "v1.0/00000/agent_installers/c69b2ceafc0444506fb32255af3d9be3.sh"
+        xsil = (b'https://monitoring.api.rackspacecloud.com'
+                b'/v1.0/00000/agent_installers/c69b2ceafc0444506fb32255af3d9be3.sh')
         status = 201
         request.setResponseCode(status)
-        request.setHeader('x-shell-installer-location', xsil)
+        request.setHeader(b'x-shell-installer-location', xsil)
         self._audit('agent_installers', request, tenant_id, status, request.content.read())
         return b''
 
@@ -1002,10 +1005,10 @@ class MaasMock(object):
         self._entity_cache_for_tenant(tenant_id).notifications_list.append(new_n)
         status = 201
         request.setResponseCode(status)
-        request.setHeader('content-type', 'text/plain')
-        request.setHeader('location', base_uri_from_request(request).rstrip('/') +
-                          request.path + '/' + new_n.id.encode('utf-8'))
-        request.setHeader('x-object-id', new_n.id.encode('utf-8'))
+        request.setHeader(b'content-type', b'text/plain')
+        request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
+                          request.path + b'/' + new_n.id.encode('utf-8'))
+        request.setHeader(b'x-object-id', new_n.id.encode('utf-8'))
         self._audit('notifications', request, tenant_id, status, content)
         return b''
 
@@ -1040,7 +1043,7 @@ class MaasMock(object):
 
         status = 204
         request.setResponseCode(status)
-        request.setHeader('content-type', 'text/plain')
+        request.setHeader(b'content-type', b'text/plain')
         self._audit('notifications', request, tenant_id, status, content)
         return b''
 
@@ -1067,7 +1070,7 @@ class MaasMock(object):
         status = 204
         request.setResponseCode(status)
         self._audit('notifications', request, tenant_id, status)
-        request.setHeader('content-type', 'text/plain')
+        request.setHeader(b'content-type', b'text/plain')
         return b''
 
     @app.route('/v1.0/<string:tenant_id>/notification_plans', methods=['POST'])
@@ -1081,10 +1084,10 @@ class MaasMock(object):
         self._entity_cache_for_tenant(tenant_id).notificationplans_list.append(newnp)
         status = 201
         request.setResponseCode(status)
-        request.setHeader('content-type', 'text/plain')
-        request.setHeader('location', base_uri_from_request(request).rstrip('/') +
-                          request.path + '/' + newnp.id.encode('utf-8'))
-        request.setHeader('x-object-id', newnp.id.encode('utf-8'))
+        request.setHeader(b'content-type', b'text/plain')
+        request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
+                          request.path + b'/' + newnp.id.encode('utf-8'))
+        request.setHeader(b'x-object-id', newnp.id.encode('utf-8'))
         self._audit('notification_plans', request, tenant_id, status, content)
         return b''
 
@@ -1129,7 +1132,7 @@ class MaasMock(object):
                 break
         status = 204
         request.setResponseCode(status)
-        request.setHeader('content-type', 'text/plain')
+        request.setHeader(b'content-type', b'text/plain')
         self._audit('notification_plans', request, tenant_id, status, content)
         return b''
 
@@ -1171,7 +1174,7 @@ class MaasMock(object):
         status = 204
         request.setResponseCode(status)
         self._audit('notification_plans', request, tenant_id, status)
-        request.setHeader('content-type', 'text/plain')
+        request.setHeader(b'content-type', b'text/plain')
         return b''
 
     @app.route('/v1.0/<string:tenant_id>/suppressions', methods=['GET'])
@@ -1212,10 +1215,10 @@ class MaasMock(object):
         self._entity_cache_for_tenant(tenant_id).suppressions_list.append(newsp)
         status = 201
         request.setResponseCode(status)
-        request.setHeader('location', base_uri_from_request(request).rstrip('/') +
-                          request.path + '/' + newsp.id.encode('utf-8'))
-        request.setHeader('x-object-id', newsp.id.encode('utf-8'))
-        request.setHeader('content-type', 'text/plain')
+        request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
+                          request.path + b'/' + newsp.id.encode('utf-8'))
+        request.setHeader(b'x-object-id', newsp.id.encode('utf-8'))
+        request.setHeader(b'content-type', b'text/plain')
         self._audit('suppressions', request, tenant_id, status, content)
         return b''
 
@@ -1235,7 +1238,7 @@ class MaasMock(object):
                 break
         status = 204
         request.setResponseCode(status)
-        request.setHeader('content-type', 'text/plain')
+        request.setHeader(b'content-type', b'text/plain')
         self._audit('suppressions', request, tenant_id, status, content)
         return b''
 
@@ -1262,7 +1265,7 @@ class MaasMock(object):
         status = 204
         request.setResponseCode(status)
         self._audit('suppressions', request, tenant_id, status)
-        request.setHeader('content-type', 'text/plain')
+        request.setHeader(b'content-type', b'text/plain')
         return b''
 
     @app.route('/v1.0/<string:tenant_id>/monitoring_zones', methods=['GET'])
@@ -1519,7 +1522,7 @@ class MaasController(object):
                      'response': request_body['response']}
         test_alarm_errors[entity_id].append(error_obj)
         request.setResponseCode(201)
-        request.setHeader('x-object-id', error_obj['id'])
+        request.setHeader(b'x-object-id', error_obj['id'].encode('utf-8'))
         return b''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/test_response',
@@ -1633,8 +1636,8 @@ class MaasController(object):
 
         maas_store.alarm_states.append(new_state)
         request.setResponseCode(201)
-        request.setHeader('x-object-id', new_state.id.encode('utf-8'))
-        request.setHeader('content-type', 'text/plain')
+        request.setHeader(b'x-object-id', new_state.id.encode('utf-8'))
+        request.setHeader(b'content-type', b'text/plain')
         return b''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks' +

@@ -2,6 +2,8 @@
 Glance images
 """
 
+from __future__ import unicode_literals
+
 images = {
     "images":
         [{

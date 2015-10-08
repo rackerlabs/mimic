@@ -1,6 +1,9 @@
 """
 Unit tests for :mod:`mimic.util`
 """
+
+from __future__ import unicode_literals
+
 from twisted.trial.unittest import SynchronousTestCase
 from twisted.web.resource import Resource
 

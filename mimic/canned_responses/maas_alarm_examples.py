@@ -2,6 +2,8 @@
 Canned responses for MAAS alarm examples.
 """
 
+from __future__ import unicode_literals
+
 
 def alarm_examples():
     """

@@ -2,6 +2,8 @@
 MaaS API data model
 """
 
+from __future__ import unicode_literals
+
 import random
 import string
 from uuid import uuid4

@@ -2,6 +2,9 @@
 """
 Defines get token, impersonation
 """
+
+from __future__ import unicode_literals
+
 import xmltodict
 from uuid import UUID
 from mimic.rest.mimicapp import MimicApp
@@ -53,7 +56,7 @@ class NoitApi(object):
         """
         response = self.validate_check_payload(request)
         if (response[0] == 200):
-            request.setHeader("content-type", "application/xml")
+            request.setHeader(b"content-type", b"application/xml")
             response_body = test_check(response[1]["module"])
             return xmltodict.unparse(response_body)
         request.setResponseCode(response[0])
@@ -72,7 +75,7 @@ class NoitApi(object):
         except (ValueError, AttributeError):
             request.setResponseCode(500)
             return
-        request.setHeader("content-type", "application/xml")
+        request.setHeader(b"content-type", b"application/xml")
         response = self.validate_check_payload(request)
         request.setResponseCode(response[0])
         if (response[0] == 200):
@@ -85,7 +88,7 @@ class NoitApi(object):
         """
         Return the current configuration and state of the specified check.
         """
-        request.setHeader("content-type", "application/xml")
+        request.setHeader(b"content-type", b"application/xml")
         return xmltodict.unparse(get_check(check_id))
 
     @app.route('/config/checks', methods=['GET'])
@@ -93,7 +96,7 @@ class NoitApi(object):
         """
         Return the current configuration and state of all checks.
         """
-        request.setHeader("content-type", "application/xml")
+        request.setHeader(b"content-type", b"application/xml")
         return xmltodict.unparse(get_all_checks())
 
     @app.route('/checks/delete/<check_id>', methods=['DELETE'])
@@ -103,5 +106,5 @@ class NoitApi(object):
         """
         response_code = delete_check(check_id) or 200
         request.setResponseCode(response_code)
-        request.setHeader("content-type", "application/xml")
+        request.setHeader(b"content-type", b"application/xml")
         return

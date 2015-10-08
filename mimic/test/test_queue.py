@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import json
 import treq
 
@@ -24,7 +26,7 @@ class QueueAPITests(SynchronousTestCase):
         self.core = MimicCore(Clock(), [QueueApi()])
         self.root = MimicRoot(self.core).app.resource()
         self.response = request(
-            self, self.root, "POST", "/identity/v2.0/tokens",
+            self, self.root, b"POST", "/identity/v2.0/tokens",
             json.dumps({
                 "auth": {
                     "passwordCredentials": {
@@ -40,7 +42,7 @@ class QueueAPITests(SynchronousTestCase):
         self.uri = self.json_body['access']['serviceCatalog'][0]['endpoints'][0]['publicURL']
         self.queue_name = "test_queue"
         self.create_queue = request(
-            self, self.root, "PUT", self.uri + '/queues/' + self.queue_name)
+            self, self.root, b"PUT", self.uri + '/queues/' + self.queue_name)
         self.create_queue_response = self.successResultOf(self.create_queue)
 
     def test_create_queue(self):
@@ -56,7 +58,7 @@ class QueueAPITests(SynchronousTestCase):
         """
         Test to verify :func:`list_queues` on ``GET /v2.0/<tenant_id>/queues``
         """
-        list_queues = request(self, self.root, "GET", self.uri + '/queues')
+        list_queues = request(self, self.root, b"GET", self.uri + '/queues')
         list_queues_response = self.successResultOf(list_queues)
         self.assertEqual(list_queues_response.code, 200)
 
@@ -64,7 +66,7 @@ class QueueAPITests(SynchronousTestCase):
         """
         Test to verify :func:`del_queue` on ``DELETE /v2.0/<tenant_id>/servers/<queue_name>``
         """
-        delete_queue = request(self, self.root, "DELETE", self.uri + '/queues/' + self.queue_name)
+        delete_queue = request(self, self.root, b"DELETE", self.uri + '/queues/' + self.queue_name)
         delete_queue_response = self.successResultOf(delete_queue)
         self.assertEqual(delete_queue_response.code, 204)
         self.assertEqual(self.successResultOf(treq.content(delete_queue_response)), b"")

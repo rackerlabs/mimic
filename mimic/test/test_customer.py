@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import json
 
 from twisted.trial.unittest import SynchronousTestCase
@@ -32,7 +34,7 @@ class CustomerAPITests(SynchronousTestCase):
         Returns the contacts list
         """
         (response, content) = self.successResultOf(json_request(
-            self, root, "GET",
+            self, root, b"GET",
             "/v1/customer_accounts/CLOUD/{0}/contacts".format(tenant)))
         self.assertEqual(200, response.code)
         return content
@@ -77,7 +79,7 @@ class CustomerAPITests(SynchronousTestCase):
         expected_contacts = [{"email": "test@email.com", "role": "PRIMARY"},
                              {"email": "new@email.com", "role": "TECHNICAL"}]
         response = self.successResultOf(request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             "/v1/customer_accounts/CLOUD/555555/contacts",
             json.dumps(expected_contacts)))
         self.assertEqual(200, response.code)
@@ -94,7 +96,7 @@ class CustomerAPITests(SynchronousTestCase):
         expected_contacts = [{"email": "test1@email.com", "role": "PRIMARY"},
                              {"email": "new1@email.com", "role": "TECHNICAL"}]
         response = self.successResultOf(request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             "/v1/customer_accounts/CLOUD/555555/contacts",
             json.dumps(expected_contacts)))
         self.assertEqual(200, response.code)
@@ -108,7 +110,7 @@ class CustomerAPITests(SynchronousTestCase):
         """
         expected_contacts = []
         response = self.successResultOf(request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             "/v1/customer_accounts/CLOUD/77777/contacts",
             json.dumps(expected_contacts)))
         self.assertEqual(200, response.code)

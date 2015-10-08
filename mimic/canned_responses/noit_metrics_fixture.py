@@ -2,6 +2,8 @@
 Fixtures for metrics
 """
 
+from __future__ import unicode_literals
+
 # Remove this when changing over to object model
 # as this is repeated within the check_template
 

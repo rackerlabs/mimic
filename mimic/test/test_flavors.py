@@ -2,6 +2,8 @@
 Tests for :mod:`nova_api` and :mod:`nova_objects` for flavors.
 """
 
+from __future__ import unicode_literals
+
 from twisted.trial.unittest import SynchronousTestCase
 
 from mimic.test.helpers import json_request, request
@@ -29,7 +31,7 @@ class NovaAPIFlavorsTests(SynchronousTestCase):
         Get flavors, assert response code is 200 and return response body.
         """
         (response, content) = self.successResultOf(json_request(
-            self, self.root, "GET", self.uri + postfix))
+            self, self.root, b"GET", self.uri + postfix))
         self.assertEqual(200, response.code)
         return content
 
@@ -45,7 +47,7 @@ class NovaAPIFlavorsTests(SynchronousTestCase):
         Test to verify :func:`get_flavor` when invalid flavor from the
         :obj: `mimic_presets` is provided.
         """
-        get_server_flavor = request(self, self.root, "GET", self.uri +
+        get_server_flavor = request(self, self.root, b"GET", self.uri +
                                     '/flavors/negative-test-1')
         get_server_flavor_response = self.successResultOf(get_server_flavor)
         self.assertEqual(get_server_flavor_response.code, 404)

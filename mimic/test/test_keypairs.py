@@ -2,6 +2,8 @@
 Tests for :mod:`nova_api` and :mod:`nova_objects`.
 """
 
+from __future__ import unicode_literals
+
 from twisted.trial.unittest import SynchronousTestCase
 
 from mimic.test.helpers import json_request, request
@@ -40,14 +42,14 @@ class KeyPairTests(SynchronousTestCase):
             }
 
         resp, body = self.successResultOf(json_request(
-            self, self.helper.root, "POST", self.helper.uri + '/os-keypairs',
+            self, self.helper.root, b"POST", self.helper.uri + '/os-keypairs',
             kp_body
         ))
         return resp, body
 
     def get_keypairs_list(self):
         resp, body = self.successResultOf(json_request(
-            self, self.helper.root, "GET", self.helper.uri + '/os-keypairs'
+            self, self.helper.root, b"GET", self.helper.uri + '/os-keypairs'
         ))
         return resp, body
 
@@ -67,7 +69,7 @@ class KeyPairTests(SynchronousTestCase):
         self.assertTrue(len(body['keypair']['user_id']) > 1)
 
     def test_error_create_keypair(self):
-        test_error_body = "{{a]"
+        test_error_body = b"{{a]"
         resp, body = self.create_keypair(test_error_body)
         self.assertEqual(resp.code, 400)
         self.assertSubstring("Malformed", str(body))
@@ -80,7 +82,7 @@ class KeyPairTests(SynchronousTestCase):
 
     def test_delete_keypair(self):
         resp = self.successResultOf(request(
-            self, self.helper.root, "DELETE", self.helper.uri +
+            self, self.helper.root, b"DELETE", self.helper.uri +
             '/os-keypairs/' + self.keypair_name
         ))
 
@@ -90,7 +92,7 @@ class KeyPairTests(SynchronousTestCase):
 
     def test_error_delete_keypair(self):
         resp = self.successResultOf(request(
-            self, self.helper.root, "DELETE", self.helper.uri +
+            self, self.helper.root, b"DELETE", self.helper.uri +
             '/os-keypairs/keydoesntexist'
         ))
 

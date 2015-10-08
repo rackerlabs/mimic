@@ -1,6 +1,9 @@
 """
 Models relating to identity.
 """
+
+from __future__ import unicode_literals
+
 from uuid import uuid4
 
 from attr import Factory, attributes, attr, validators

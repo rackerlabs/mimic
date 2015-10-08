@@ -5,6 +5,9 @@ Helper methods
 
 :var fmt: strftime format for datetimes used in JSON.
 """
+
+from __future__ import unicode_literals
+
 import binascii
 import os
 import string

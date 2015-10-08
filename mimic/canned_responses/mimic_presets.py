@@ -2,6 +2,9 @@
 Defines the preset values in the mimic api.
 """
 
+from __future__ import unicode_literals
+
+
 get_presets = {"loadbalancers": {"lb_building": "On create load balancer, keeps the load balancer in "
                                                 "building state for given seconds",
                                  "lb_error_state": "Puts the LB in error state, and such an LB can only"

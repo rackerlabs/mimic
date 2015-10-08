@@ -2,6 +2,8 @@
 Tests for L{mimic.tap}
 """
 
+from __future__ import unicode_literals
+
 import sys
 import types
 
@@ -71,8 +73,8 @@ def addFakePluginObject(testCase, pluginPackage, pluginObject):
     """
     Add a fake plugin for the duration of the given test.
     """
-    dropinName = "a_fake_dropin"
-    dropinQualifiedName = pluginPackage.__name__ + "." + dropinName
+    dropinName = b"a_fake_dropin"
+    dropinQualifiedName = pluginPackage.__name__ + b"." + dropinName
     module = sys.modules[dropinQualifiedName] = types.ModuleType(
         dropinQualifiedName)
     testCase.addCleanup(lambda: sys.modules.pop(dropinQualifiedName))

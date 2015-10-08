@@ -2,6 +2,8 @@
 Dummy classes that can be shared across test cases
 """
 
+from __future__ import unicode_literals
+
 from zope.interface import implementer
 
 from twisted.plugin import IPlugin

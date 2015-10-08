@@ -2,6 +2,9 @@
 """
 Defines the control plane API endpoints for the Cloudfeeds Plugin.
 """
+
+from __future__ import unicode_literals
+
 from uuid import uuid4
 from six import text_type
 from zope.interface import implementer

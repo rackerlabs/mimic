@@ -1,6 +1,9 @@
 """
 Model objects for the Glance mimic.
 """
+
+from __future__ import unicode_literals
+
 from json import dumps, loads
 from characteristic import attributes, Attribute
 from uuid import uuid4

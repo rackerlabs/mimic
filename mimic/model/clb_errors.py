@@ -6,6 +6,8 @@ so the API will probably change.  But this seems better than sprinkling them
 all over the request code right now.
 """
 
+from __future__ import unicode_literals
+
 
 def considered_immutable_error(clb_state, lb_id):
     """

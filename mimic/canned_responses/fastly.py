@@ -1,6 +1,9 @@
 """
 Canned response for fastly
 """
+
+from __future__ import unicode_literals
+
 import random
 import string
 import uuid
