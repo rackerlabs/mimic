@@ -9,20 +9,7 @@ from six import text_type
 
 from twisted.web.resource import NoResource
 from twisted.web.server import Request, Site
-
-# Just import from twisted.logger if mimic drops support for twisted < 15.2.0
-try:
-    from twisted.logger import Logger
-except ImportError:
-    from twisted.python.log import msg
-
-    def log(message, **kwargs):
-        """
-        PEP3101-format the message string.
-        """
-        msg(message.format(**kwargs))
-else:
-    log = Logger("mimic").info
+from twisted.logger import Logger
 
 from mimic.canned_responses.mimic_presets import get_presets
 from mimic.model.behaviors import BehaviorRegistryCollection
@@ -36,6 +23,8 @@ from mimic.rest.noit_api import NoitApi
 from mimic.rest import (fastly_api, mailgun_api, customer_api,
                         ironic_api, glance_api, valkyrie_api)
 from mimic.util.helper import seconds_to_timestamp
+
+log = Logger("mimic").info
 
 
 class MimicRoot(object):

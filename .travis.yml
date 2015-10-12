@@ -12,17 +12,13 @@ env:
 matrix:
     include:
         - python: 2.6
-          env: TOXENV=py26-twisted_old_logging
-        - python: 2.6
-          env: TOXENV=py26-twisted_new_logging
+          env: TOXENV=py26
         - python: 2.7
-          env: TOXENV=py27-twisted_old_logging
-        - python: 2.7
-          env: TOXENV=py27-twisted_new_logging
+          env: TOXENV=py27
+        - python: 3.4
+          env: TOXENV=py34
         - python: pypy
-          env: TOXENV=pypy-twisted_old_logging
-        - python: pypy
-          env: TOXENV=pypy-twisted_new_logging
+          env: TOXENV=pypy
         - python: 2.7
           env: TOXENV=docs
         - python: 2.7
