@@ -28,7 +28,7 @@ def setup_options(name, version):
         install_requires=[
             "characteristic>=14.2.0",
             "klein>=0.2.1",
-            "twisted>=14.0.2",
+            "twisted>=15.4.0",
             "jsonschema>=2.0",
             "treq>=0.2.1",
             "six>=1.6.0",

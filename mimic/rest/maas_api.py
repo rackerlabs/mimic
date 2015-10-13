@@ -6,7 +6,7 @@ from __future__ import division
 
 import json
 import collections
-import urlparse
+from six.moves.urllib.parse import parse_qs
 import random
 import re
 from uuid import uuid4
@@ -347,7 +347,7 @@ def parse_and_flatten_qs(url):
     """
     Parses a querystring and flattens 1-arg arrays.
     """
-    qs = urlparse.parse_qs(url)
+    qs = parse_qs(url)
     flat_qs = {}
     for key in qs:
         flat_qs[key] = qs[key][0] if len(qs[key]) == 1 else qs[key]

@@ -2,8 +2,7 @@
 Tests for :mod:`nova_api` and :mod:`nova_objects`.
 """
 import json
-from urllib import urlencode
-from urlparse import parse_qs
+from six.moves.urllib.parse import urlencode, parse_qs
 
 from testtools.matchers import (
     ContainsDict, Equals, MatchesDict, MatchesListwise, StartsWith)
