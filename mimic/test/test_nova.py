@@ -973,6 +973,7 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual((image[0]['name']), "CreatedImage")
         self.assertEqual(image_list_size + 1, len(image_list_response_body['images']))
 
+
 class NovaAPIChangesSinceTests(SynchronousTestCase):
     """
     Tests for listing servers with changes-since filter

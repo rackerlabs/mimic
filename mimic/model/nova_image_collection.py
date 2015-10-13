@@ -12,7 +12,9 @@ from mimic.canned_responses.mimic_presets import get_presets
 
 @attributes(["tenant_id", "region_name", "clock"])
 class RegionalNovaImageCollection(object):
-
+    """
+    A collection of images, in a given region, for a given tenant.
+    """
     def list_images(self, image_store, include_details, absolutize_url):
         """
         Return a list of images.
