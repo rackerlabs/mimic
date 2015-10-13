@@ -42,6 +42,7 @@ matrix:
           env: MACAPP_ENV=system
     allow_failures:
       - env: TOXENV=docs-linkcheck
+      - env: TOXENV=py34
 
 install:
   - travis_retry ./.travis/install.sh
