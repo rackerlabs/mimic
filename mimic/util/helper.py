@@ -5,6 +5,7 @@ Helper methods
 
 :var fmt: strftime format for datetimes used in JSON.
 """
+import binascii
 import os
 import string
 import calendar
@@ -87,7 +88,7 @@ def random_hex_generator(num):
     """
     Returns randomly generated n bytes of encoded hex data for the given `num`
     """
-    return os.urandom(num).encode("hex")
+    return binascii.hexlify(os.urandom(num))
 
 
 def seconds_to_timestamp(seconds, format=fmt):
