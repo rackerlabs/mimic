@@ -7,7 +7,7 @@ import uuid
 import random
 
 
-@attributes(['image_id', 'tenant_id', 'name', 'minDisk', 'minRam', 'image_size'])
+@attributes(['image_id', 'tenant_id', 'name', 'minDisk', 'minRam', 'image_size', 'disk_config'])
 class Image(object):
     """
     A Image object
@@ -85,6 +85,7 @@ class Image(object):
             "name": self.name,
             "minRam": self.minRam,
             "minDisk": self.minDisk,
+            "OS-DCF:diskConfig": self.disk_config,
             "OS-EXT-IMG-SIZE:size": self.image_size,
             "com.rackspace__1__ui_default_show": self.is_default,
             "created": "1972-01-01_15-59-11",
@@ -179,31 +180,40 @@ class RackspaceWindowsImage(Image):
     """
     images = {"Windows Server 2008 R2 SP1 + SQL Server 2008 R2 SP2 Standard":
               {"minRam": 2048, "minDisk": 40, "OS-EXT-IMG-SIZE:size": Image.image_size(),
-               "id": Image.image_id(), "com.rackspace__1__ui_default_show": "True"},
+               "id": Image.image_id(), "com.rackspace__1__ui_default_show": "True",
+               "OS-DCF:diskConfig": "MANUAL"},
               "Windows Server 2008 R2 SP1 + SQL Server 2008 R2 SP2 Web":
               {"minRam": 2048, "minDisk": 40, "id": Image.image_id(),
-               "OS-EXT-IMG-SIZE:size": Image.image_size(), "com.rackspace__1__ui_default_show": "True"},
+               "OS-EXT-IMG-SIZE:size": Image.image_size(), "com.rackspace__1__ui_default_show": "True",
+               "OS-DCF:diskConfig": "MANUAL"},
               "Windows Server 2008 R2 SP1":
               {"minRam": 1024, "minDisk": 40, "id": Image.image_id(),
-               "OS-EXT-IMG-SIZE:size": Image.image_size(), "com.rackspace__1__ui_default_show": "True"},
+               "OS-EXT-IMG-SIZE:size": Image.image_size(), "com.rackspace__1__ui_default_show": "True",
+               "OS-DCF:diskConfig": "MANUAL"},
               "Windows Server 2012 R2":
               {"minRam": 1024, "minDisk": 40, "id": Image.image_id(),
-               "OS-EXT-IMG-SIZE:size": Image.image_size(), "com.rackspace__1__ui_default_show": "True"},
+               "OS-EXT-IMG-SIZE:size": Image.image_size(), "com.rackspace__1__ui_default_show": "True",
+               "OS-DCF:diskConfig": "MANUAL"},
               "Windows Server 2012 + SQL Server 2012 SP1 Web":
               {"minRam": 2048, "minDisk": 40, "id": Image.image_id(),
-               "OS-EXT-IMG-SIZE:size": Image.image_size(), "com.rackspace__1__ui_default_show": "True"},
+               "OS-EXT-IMG-SIZE:size": Image.image_size(), "com.rackspace__1__ui_default_show": "True",
+               "OS-DCF:diskConfig": "MANUAL"},
               "Windows Server 2012 + SQL Server 2012 SP1 Standard":
               {"minRam": 2048, "minDisk": 40, "id": Image.image_id(),
-               "OS-EXT-IMG-SIZE:size": Image.image_size(), "com.rackspace__1__ui_default_show": "True"},
+               "OS-EXT-IMG-SIZE:size": Image.image_size(), "com.rackspace__1__ui_default_show": "True",
+               "OS-DCF:diskConfig": "MANUAL"},
               "Windows Server 2012 R2 + SQL Server 2014 Standard":
               {"minRam": 2048, "minDisk": 40, "id": Image.image_id(),
-               "OS-EXT-IMG-SIZE:size": Image.image_size(), "com.rackspace__1__ui_default_show": "True"},
+               "OS-EXT-IMG-SIZE:size": Image.image_size(), "com.rackspace__1__ui_default_show": "True",
+               "OS-DCF:diskConfig": "MANUAL"},
               "Windows Server 2012 R2 + SQL Server 2014 Web":
               {"minRam": 2048, "minDisk": 40, "id": Image.image_id(),
-               "OS-EXT-IMG-SIZE:size": Image.image_size(), "com.rackspace__1__ui_default_show": "True"},
+               "OS-EXT-IMG-SIZE:size": Image.image_size(), "com.rackspace__1__ui_default_show": "True",
+               "OS-DCF:diskConfig": "MANUAL"},
               "Windows Server 2012":
               {"minRam": 1024, "minDisk": 40, "id": Image.image_id(),
-               "OS-EXT-IMG-SIZE:size": Image.image_size(), "com.rackspace__1__ui_default_show": "True"}}
+               "OS-EXT-IMG-SIZE:size": Image.image_size(), "com.rackspace__1__ui_default_show": "True",
+               "OS-DCF:diskConfig": "MANUAL"}}
 
     def metadata_json(self):
         """
@@ -224,7 +234,7 @@ class RackspaceArchImage(Image):
     """
     A Rackspace Arch image object representation
     """
-    images = {"Arch 2015.7 (PVHVM)": {"minRam": 512, "minDisk": 20,
+    images = {"Arch 2015.7 (PVHVM)": {"minRam": 512, "minDisk": 20, "OS-DCF:diskConfig": "MANUAL",
                                       "OS-EXT-IMG-SIZE:size": Image.image_size(),
                                       "id": Image.image_id()}}
 
@@ -247,10 +257,10 @@ class RackspaceCentOSPVHMImage(Image):
     """
     A Rackspace CentOS HVM image object representation
     """
-    images = {"CentOS 7 (PVHVM)": {"minRam": 512, "minDisk": 20,
+    images = {"CentOS 7 (PVHVM)": {"minRam": 512, "minDisk": 20, "OS-DCF:diskConfig": "MANUAL",
                                    "OS-EXT-IMG-SIZE:size": Image.image_size(),
                                    "com.rackspace__1__ui_default_show": "True", "id": Image.image_id()},
-              "CentOS 6 (PVHVM)": {"minRam": 512, "minDisk": 20,
+              "CentOS 6 (PVHVM)": {"minRam": 512, "minDisk": 20, "OS-DCF:diskConfig": "MANUAL",
                                    "OS-EXT-IMG-SIZE:size": Image.image_size(),
                                    "com.rackspace__1__ui_default_show": "True", "id": Image.image_id()}}
 
@@ -274,9 +284,9 @@ class RackspaceCentOSPVImage(Image):
     A Rackspace CentOS Xen image object representation
     """
     images = {"CentOS 6 (PV)": {"minRam": 512, "minDisk": 20, "OS-EXT-IMG-SIZE:size": Image.image_size(),
-                                "id": Image.image_id()},
+                                "id": Image.image_id(), "OS-DCF:diskConfig": "AUTO"},
               "CentOS 5 (PV)": {"minRam": 512, "minDisk": 20, "OS-EXT-IMG-SIZE:size": Image.image_size(),
-                                "id": Image.image_id()}}
+                                "id": Image.image_id(), "OS-DCF:diskConfig": "AUTO"}}
 
     def metadata_json(self):
         """
@@ -298,11 +308,11 @@ class RackspaceCoreOSImage(Image):
     A Rackspace CoreOS image object representation
     """
     images = {"CoreOS (Beta)": {"minRam": 512, "minDisk": 20, "OS-EXT-IMG-SIZE:size": Image.image_size(),
-                                "id": Image.image_id()},
+                                "id": Image.image_id(), "OS-DCF:diskConfig": "MANUAL"},
               "CoreOS (Alpha)": {"minRam": 512, "minDisk": 20,
                                  "OS-EXT-IMG-SIZE:size": Image.image_size(),
-                                 "id": Image.image_id()},
-              "CoreOS (Stable)": {"minRam": 512, "minDisk": 20,
+                                 "id": Image.image_id(), "OS-DCF:diskConfig": "MANUAL"},
+              "CoreOS (Stable)": {"minRam": 512, "minDisk": 20, "OS-DCF:diskConfig": "MANUAL",
                                   "OS-EXT-IMG-SIZE:size": Image.image_size(),
                                   "com.rackspace__1__ui_default_show": "True", "id": Image.image_id()}}
 
@@ -327,13 +337,17 @@ class RackspaceDebianImage(Image):
     """
     images = {"Debian 7 (Wheezy) (PVHVM)": {"minRam": 512, "minDisk": 20, "id": Image.image_id(),
                                             "OS-EXT-IMG-SIZE:size": Image.image_size(),
-                                            "com.rackspace__1__ui_default_show": "True"},
+                                            "com.rackspace__1__ui_default_show": "True",
+                                            "OS-DCF:diskConfig": "MANUAL"},
               "Debian Unstable (Sid) (PVHVM)": {"minRam": 512, "minDisk": 20, "id": Image.image_id(),
-                                                "OS-EXT-IMG-SIZE:size": Image.image_size()},
+                                                "OS-EXT-IMG-SIZE:size": Image.image_size(),
+                                                "OS-DCF:diskConfig": "MANUAL"},
               "Debian Testing (Stretch) (PVHVM)": {"minRam": 512, "minDisk": 20, "id": Image.image_id(),
-                                                   "OS-EXT-IMG-SIZE:size": Image.image_size()},
+                                                   "OS-EXT-IMG-SIZE:size": Image.image_size(),
+                                                   "OS-DCF:diskConfig": "MANUAL"},
               "Debian 8 (Jessie) (PVHVM)": {"minRam": 512, "minDisk": 20, "id": Image.image_id(),
                                             "OS-EXT-IMG-SIZE:size": Image.image_size(),
+                                            "OS-DCF:diskConfig": "MANUAL",
                                             "com.rackspace__1__ui_default_show": "True"}}
 
     def metadata_json(self):
@@ -355,11 +369,11 @@ class RackspaceFedoraImage(Image):
     """
     A Rackspace Fedora image object representation
     """
-    images = {"Fedora 21 (PVHVM)": {"minRam": 512, "minDisk": 20,
+    images = {"Fedora 21 (PVHVM)": {"minRam": 512, "minDisk": 20, "OS-DCF:diskConfig": "MANUAL",
                                     "OS-EXT-IMG-SIZE:size": Image.image_size(),
                                     "com.rackspace__1__ui_default_show": "True",
                                     "id": Image.image_id()},
-              "Fedora 22 (PVHVM)": {"minRam": 512, "minDisk": 20,
+              "Fedora 22 (PVHVM)": {"minRam": 512, "minDisk": 20, "OS-DCF:diskConfig": "MANUAL",
                                     "OS-EXT-IMG-SIZE:size": Image.image_size(),
                                     "com.rackspace__1__ui_default_show": "True",
                                     "id": Image.image_id()}}
@@ -383,7 +397,7 @@ class RackspaceFreeBSDImage(Image):
     """
     A Rackspace FreeBSD image object representation
     """
-    images = {"FreeBSD 10 (PVHVM)": {"minRam": 512, "minDisk": 20,
+    images = {"FreeBSD 10 (PVHVM)": {"minRam": 512, "minDisk": 20, "OS-DCF:diskConfig": "MANUAL",
                                      "OS-EXT-IMG-SIZE:size": Image.image_size(),
                                      "id": Image.image_id()}}
 
@@ -406,7 +420,7 @@ class RackspaceGentooImage(Image):
     """
     A Rackspace Gentoo image object representation
     """
-    images = {"Gentoo 15.3 (PVHVM)": {"minRam": 512, "minDisk": 20,
+    images = {"Gentoo 15.3 (PVHVM)": {"minRam": 512, "minDisk": 20, "OS-DCF:diskConfig": "MANUAL",
                                       "OS-EXT-IMG-SIZE:size": Image.image_size(),
                                       "id": Image.image_id()}}
 
@@ -429,7 +443,7 @@ class RackspaceOpenSUSEImage(Image):
     """
     A Rackspace OpenSUSE image object representation
     """
-    images = {"OpenSUSE 13.2 (PVHVM)": {"minRam": 512, "minDisk": 20,
+    images = {"OpenSUSE 13.2 (PVHVM)": {"minRam": 512, "minDisk": 20, "OS-DCF:diskConfig": "MANUAL",
                                         "OS-EXT-IMG-SIZE:size": Image.image_size(),
                                         "id": Image.image_id()}}
 
@@ -455,11 +469,13 @@ class RackspaceRedHatPVHMImage(Image):
     images = {"Red Hat Enterprise Linux 7 (PVHVM)": {"minRam": 512, "minDisk": 20,
                                                      "OS-EXT-IMG-SIZE:size": Image.image_size(),
                                                      "com.rackspace__1__ui_default_show": "True",
-                                                     "id": Image.image_id()},
+                                                     "id": Image.image_id(),
+                                                     "OS-DCF:diskConfig": "MANUAL"},
               "Red Hat Enterprise Linux 6 (PVHVM)": {"minRam": 512, "minDisk": 20,
                                                      "OS-EXT-IMG-SIZE:size": Image.image_size(),
                                                      "com.rackspace__1__ui_default_show": "True",
-                                                     "id": Image.image_id()}}
+                                                     "id": Image.image_id(),
+                                                     "OS-DCF:diskConfig": "MANUAL"}}
 
     def metadata_json(self):
         """
@@ -481,9 +497,11 @@ class RackspaceRedHatPVImage(Image):
     A Rackspace Red Hat image object representation
     """
     images = {"Red Hat Enterprise Linux 6 (PV)": {"minRam": 512, "minDisk": 20, "id": Image.image_id(),
-                                                  "OS-EXT-IMG-SIZE:size": Image.image_size()},
+                                                  "OS-EXT-IMG-SIZE:size": Image.image_size(),
+                                                  "OS-DCF:diskConfig": "AUTO"},
               "Red Hat Enterprise Linux 5 (PV)": {"minRam": 512, "minDisk": 20, "id": Image.image_id(),
-                                                  "OS-EXT-IMG-SIZE:size": Image.image_size()}}
+                                                  "OS-EXT-IMG-SIZE:size": Image.image_size(),
+                                                  "OS-DCF:diskConfig": "AUTO"}}
 
     def metadata_json(self):
         """
@@ -505,9 +523,11 @@ class RackspaceScientificImage(Image):
     A Rackspace Scientific image object representation
     """
     images = {"Scientific Linux 6 (PVHVM)": {"minRam": 512, "minDisk": 20, "id": Image.image_id(),
-                                             "OS-EXT-IMG-SIZE:size": Image.image_size()},
+                                             "OS-EXT-IMG-SIZE:size": Image.image_size(),
+                                             "OS-DCF:diskConfig": "MANUAL"},
               "Scientific Linux 7 (PVHVM)": {"minRam": 512, "minDisk": 20, "id": Image.image_id(),
-                                             "OS-EXT-IMG-SIZE:size": Image.image_size()}}
+                                             "OS-EXT-IMG-SIZE:size": Image.image_size(),
+                                             "OS-DCF:diskConfig": "MANUAL"}}
 
     def metadata_json(self):
         """
@@ -531,13 +551,16 @@ class RackspaceUbuntuPVHMImage(Image):
     images = {"Ubuntu 15.04 (Vivid Vervet) (PVHVM)": {"minRam": 512, "minDisk": 20,
                                                       "id": Image.image_id(),
                                                       "OS-EXT-IMG-SIZE:size": Image.image_size(),
+                                                      "OS-DCF:diskConfig": "MANUAL",
                                                       "com.rackspace__1__ui_default_show": "True"},
               "Ubuntu 12.04 LTS (Precise Pangolin) (PVHVM)":
                   {"minRam": 512, "minDisk": 20, "OS-EXT-IMG-SIZE:size": Image.image_size(),
-                   "id": Image.image_id(), "com.rackspace__1__ui_default_show": "True"},
+                   "id": Image.image_id(), "OS-DCF:diskConfig": "MANUAL",
+                   "com.rackspace__1__ui_default_show": "True"},
               "Ubuntu 14.04 LTS (Trusty Tahr) (PVHVM)": {"minRam": 512, "minDisk": 20,
                                                          "OS-EXT-IMG-SIZE:size": Image.image_size(),
                                                          "id": Image.image_id(),
+                                                         "OS-DCF:diskConfig": "MANUAL",
                                                          "com.rackspace__1__ui_default_show": "True"}}
 
     def metadata_json(self):
@@ -561,10 +584,12 @@ class RackspaceUbuntuPVImage(Image):
     """
     images = {"Ubuntu 12.04 LTS (Precise Pangolin) (PV)": {"minRam": 512, "minDisk": 20,
                                                            "id": Image.image_id(),
-                                                           "OS-EXT-IMG-SIZE:size": Image.image_size()},
+                                                           "OS-EXT-IMG-SIZE:size": Image.image_size(),
+                                                           "OS-DCF:diskConfig": "AUTO"},
               "Ubuntu 14.04 LTS (Trusty Tahr) (PV)": {"minRam": 512, "minDisk": 20,
                                                       "id": Image.image_id(),
-                                                      "OS-EXT-IMG-SIZE:size": Image.image_size()}}
+                                                      "OS-EXT-IMG-SIZE:size": Image.image_size(),
+                                                      "OS-DCF:diskConfig": "AUTO"}}
 
     def metadata_json(self):
         """
@@ -587,6 +612,7 @@ class RackspaceVyattaImage(Image):
     """
     images = {"Vyatta Network OS 6.7R9": {"minRam": 1024, "minDisk": 20, "id": Image.image_id(),
                                           "OS-EXT-IMG-SIZE:size": Image.image_size(),
+                                          "OS-DCF:diskConfig": "MANUAL",
                                           "com.rackspace__1__ui_default_show": "True"}}
 
     def metadata_json(self):
@@ -604,7 +630,7 @@ class RackspaceVyattaImage(Image):
         }
 
 
-@attributes(['image_id', 'tenant_id', 'name', 'minDisk', 'minRam', 'image_size'])
+@attributes(['image_id', 'tenant_id', 'name', 'minDisk', 'minRam', 'image_size', 'disk_config'])
 class OnMetalImage(object):
     """
     A Image object
@@ -667,6 +693,7 @@ class OnMetalImage(object):
             "minRam": self.minRam,
             "minDisk": self.minDisk,
             "OS-EXT-IMG-SIZE:size": self.image_size,
+            "OS-DCF:diskConfig": self.disk_config,
             "com.rackspace__1__ui_default_show": self.is_default,
             "created": "1972-01-01_15-59-11",
             "updated": "1972-01-01_15-59-11",
@@ -682,11 +709,14 @@ class RackspaceOnMetalCoreOSImage(OnMetalImage):
     A Rackspace OnMetal image object representation
     """
     images = {"OnMetal - CoreOS (Alpha)": {"minRam": 512, "minDisk": 20, "id": Image.image_id(),
-                                           "OS-EXT-IMG-SIZE:size": Image.image_size()},
+                                           "OS-EXT-IMG-SIZE:size": Image.image_size(),
+                                           "OS-DCF:diskConfig": "MANUAL"},
               "OnMetal - CoreOS (Beta)": {"minRam": 512, "minDisk": 20, "id": Image.image_id(),
-                                          "OS-EXT-IMG-SIZE:size": Image.image_size()},
+                                          "OS-EXT-IMG-SIZE:size": Image.image_size(),
+                                          "OS-DCF:diskConfig": "MANUAL"},
               "OnMetal - CoreOS (Stable)": {"minRam": 512, "minDisk": 20, "id": Image.image_id(),
-                                            "OS-EXT-IMG-SIZE:size": Image.image_size()}}
+                                            "OS-EXT-IMG-SIZE:size": Image.image_size(),
+                                            "OS-DCF:diskConfig": "MANUAL"}}
 
     def metadata_json(self):
         """
@@ -708,9 +738,11 @@ class RackspaceOnMetalFedoraImage(OnMetalImage):
     A Rackspace OnMetal image object representation
     """
     images = {"OnMetal - Fedora 22": {"minRam": 512, "minDisk": 20, "id": Image.image_id(),
-                                      "OS-EXT-IMG-SIZE:size": Image.image_size()},
+                                      "OS-EXT-IMG-SIZE:size": Image.image_size(),
+                                      "OS-DCF:diskConfig": "MANUAL"},
               "OnMetal - Fedora 21": {"minRam": 512, "minDisk": 20, "id": Image.image_id(),
-                                      "OS-EXT-IMG-SIZE:size": Image.image_size()}}
+                                      "OS-EXT-IMG-SIZE:size": Image.image_size(),
+                                      "OS-DCF:diskConfig": "MANUAL"}}
 
     def metadata_json(self):
         """
@@ -733,16 +765,20 @@ class RackspaceOnMetalDebianImage(OnMetalImage):
     """
     images = {"OnMetal - Debian Testing (Stretch)": {"minRam": 512, "minDisk": 20,
                                                      "id": Image.image_id(),
-                                                     "OS-EXT-IMG-SIZE:size": Image.image_size()},
+                                                     "OS-EXT-IMG-SIZE:size": Image.image_size(),
+                                                     "OS-DCF:diskConfig": "MANUAL"},
               "OnMetal - Debian Unstable (Sid)": {"minRam": 512, "minDisk": 20,
                                                   "id": Image.image_id(),
-                                                  "OS-EXT-IMG-SIZE:size": Image.image_size()},
+                                                  "OS-EXT-IMG-SIZE:size": Image.image_size(),
+                                                  "OS-DCF:diskConfig": "MANUAL"},
               "OnMetal - Debian 8 (Jessie)": {"minRam": 512, "minDisk": 20,
                                               "id": Image.image_id(),
-                                              "OS-EXT-IMG-SIZE:size": Image.image_size()},
+                                              "OS-EXT-IMG-SIZE:size": Image.image_size(),
+                                              "OS-DCF:diskConfig": "MANUAL"},
               "OnMetal - Debian 7 (Wheezy)": {"minRam": 512, "minDisk": 20,
                                               "id": Image.image_id(),
-                                              "OS-EXT-IMG-SIZE:size": Image.image_size()}}
+                                              "OS-EXT-IMG-SIZE:size": Image.image_size(),
+                                              "OS-DCF:diskConfig": "MANUAL"}}
 
     def metadata_json(self):
         """
@@ -765,13 +801,16 @@ class RackspaceOnMetalUbuntuImage(OnMetalImage):
     """
     images = {"OnMetal - Ubuntu 15.04 (Vivid Vervet)": {"minRam": 512, "minDisk": 20,
                                                         "id": Image.image_id(),
-                                                        "OS-EXT-IMG-SIZE:size": Image.image_size()},
+                                                        "OS-EXT-IMG-SIZE:size": Image.image_size(),
+                                                        "OS-DCF:diskConfig": "MANUAL"},
               "OnMetal - Ubuntu 14.04 LTS (Trusty Tahr)": {"minRam": 512, "minDisk": 20,
                                                            "id": Image.image_id(),
-                                                           "OS-EXT-IMG-SIZE:size": Image.image_size()},
+                                                           "OS-EXT-IMG-SIZE:size": Image.image_size(),
+                                                           "OS-DCF:diskConfig": "MANUAL"},
               "OnMetal - Ubuntu 12.04 LTS (Precise Pangolin)":
                   {"minRam": 512, "minDisk": 20, "id": Image.image_id(),
-                   "OS-EXT-IMG-SIZE:size": Image.image_size()}}
+                   "OS-EXT-IMG-SIZE:size": Image.image_size(),
+                   "OS-DCF:diskConfig": "MANUAL"}}
 
     def metadata_json(self):
         """
@@ -793,9 +832,11 @@ class RackspaceOnMetalCentOSImage(OnMetalImage):
     A Rackspace OnMetal image object representation
     """
     images = {"OnMetal - CentOS 6": {"minRam": 512, "minDisk": 20, "id": Image.image_id(),
-                                     "OS-EXT-IMG-SIZE:size": Image.image_size()},
+                                     "OS-EXT-IMG-SIZE:size": Image.image_size(),
+                                     "OS-DCF:diskConfig": "MANUAL"},
               "OnMetal - CentOS 7": {"minRam": 512, "minDisk": 20, "id": Image.image_id(),
-                                     "OS-EXT-IMG-SIZE:size": Image.image_size()}}
+                                     "OS-EXT-IMG-SIZE:size": Image.image_size(),
+                                     "OS-DCF:diskConfig": "MANUAL"}}
 
     def metadata_json(self):
         """
@@ -812,44 +853,46 @@ class RackspaceOnMetalCentOSImage(OnMetalImage):
         }
 
 
-class ImageStore(object):
-    """
-    A store for images to share between nova_api and glance_api
-    """
-    _images_store = []
-
-    @classmethod
-    def create_image_store(cls, tenant_id):
-        """
-        Generates the data for each image in each image class
-        """
-        image_classes = [RackspaceWindowsImage, RackspaceArchImage, RackspaceCentOSPVImage,
-                         RackspaceCentOSPVHMImage, RackspaceCoreOSImage, RackspaceDebianImage,
-                         RackspaceFedoraImage, RackspaceFreeBSDImage, RackspaceGentooImage,
-                         RackspaceOpenSUSEImage, RackspaceRedHatPVImage, RackspaceRedHatPVHMImage,
-                         RackspaceUbuntuPVImage, RackspaceUbuntuPVHMImage, RackspaceVyattaImage,
-                         RackspaceScientificImage, RackspaceOnMetalCentOSImage,
-                         RackspaceOnMetalCoreOSImage, RackspaceOnMetalDebianImage,
-                         RackspaceOnMetalFedoraImage, RackspaceOnMetalUbuntuImage]
-        if len(cls._images_store) < 1:
-            for image_class in image_classes:
-                for image, image_spec in image_class.images.iteritems():
-                    image_name = image
-                    image_id = image_spec['id']
-                    minRam = image_spec['minRam']
-                    minDisk = image_spec['minDisk']
-                    image_size = image_spec['OS-EXT-IMG-SIZE:size']
-                    image = image_class(image_id=image_id, tenant_id=tenant_id,
-                                        image_size=image_size, name=image_name, minRam=minRam,
-                                        minDisk=minDisk)
-                    if 'com.rackspace__1__ui_default_show' in image_spec:
-                        image.set_is_default()
-                    cls._images_store.append(image)
-        return cls._images_store
-
-    @classmethod
-    def add_image_to_store(cls, image):
-        """
-        Add a new image to the images store
-        """
-        cls._images_store.append(image)
+# class ImageStore(object):
+#     """
+#     A store for images to share between nova_api and glance_api
+#     """
+#     _images_store = []
+#
+#     @classmethod
+#     def create_image_store(cls, tenant_id):
+#         """
+#         Generates the data for each image in each image class
+#         """
+#         image_classes = [RackspaceWindowsImage, RackspaceArchImage, RackspaceCentOSPVImage,
+#                          RackspaceCentOSPVHMImage, RackspaceCoreOSImage, RackspaceDebianImage,
+#                          RackspaceFedoraImage, RackspaceFreeBSDImage, RackspaceGentooImage,
+#                          RackspaceOpenSUSEImage, RackspaceRedHatPVImage, RackspaceRedHatPVHMImage,
+#                          RackspaceUbuntuPVImage, RackspaceUbuntuPVHMImage, RackspaceVyattaImage,
+#                          RackspaceScientificImage, RackspaceOnMetalCentOSImage,
+#                          RackspaceOnMetalCoreOSImage, RackspaceOnMetalDebianImage,
+#                          RackspaceOnMetalFedoraImage, RackspaceOnMetalUbuntuImage]
+#         if len(cls._images_store) < 1:
+#             for image_class in image_classes:
+#                 for image, image_spec in image_class.images.iteritems():
+#                     print image
+#                     image_name = image
+#                     image_id = image_spec['id']
+#                     minRam = image_spec['minRam']
+#                     minDisk = image_spec['minDisk']
+#                     image_size = image_spec['OS-EXT-IMG-SIZE:size']
+#                     disk_config = image_spec['OS-DCF:diskConfig']
+#                     image = image_class(image_id=image_id, tenant_id=tenant_id,
+#                                         image_size=image_size, name=image_name, minRam=minRam,
+#                                         minDisk=minDisk, disk_config=disk_config)
+#                     if 'com.rackspace__1__ui_default_show' in image_spec:
+#                         image.set_is_default()
+#                     cls._images_store.append(image)
+#         return cls._images_store
+#
+#     @classmethod
+#     def add_image_to_store(cls, image):
+#         """
+#         Add a new image to the images store
+#         """
+#         cls._images_store.append(image)

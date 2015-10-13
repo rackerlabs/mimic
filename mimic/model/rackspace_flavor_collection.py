@@ -4,7 +4,7 @@ Model objects for the flavors.
 
 from characteristic import attributes, Attribute
 from json import dumps
-from mimic.model.flavors import (
+from mimic.model.rackspace_flavors import (
     RackspaceStandardFlavor, RackspaceComputeFlavor, RackspaceMemoryFlavor,
     RackspaceOnMetalFlavor, RackspaceIOFlavor, RackspaceGeneralFlavor,
     RackspacePerformance1Flavor, RackspacePerformance2Flavor)
