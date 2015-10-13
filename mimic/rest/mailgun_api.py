@@ -6,7 +6,7 @@ https://documentation.mailgun.com/api-sending.html
 
 import json
 import time
-import urlparse
+from urllib.parse import parse_qs
 
 from mimic.rest.mimicapp import MimicApp
 from mimic.util.helper import seconds_to_timestamp
@@ -36,7 +36,7 @@ class MailGunApi(object):
         If the `to` address is `bademail@example.com` results in error 500
         and if it is `failingemail@example.com` results in 400.
         """
-        content = urlparse.parse_qs(request.content.read())
+        content = parse_qs(request.content.read())
         to_address = content.get('to')
         headers = {}
         for key, value in content.items():
