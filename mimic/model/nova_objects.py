@@ -7,7 +7,7 @@ import re
 from characteristic import attributes, Attribute
 from random import randrange
 from json import loads, dumps
-from urllib import urlencode
+from six.moves.urllib.parse import urlencode
 
 from six import string_types
 

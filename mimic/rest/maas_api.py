@@ -6,7 +6,7 @@ from __future__ import division
 
 import json
 import collections
-from urllib.parse import parse_qs
+from six.moves.urllib.parse import parse_qs
 import random
 import re
 from uuid import uuid4

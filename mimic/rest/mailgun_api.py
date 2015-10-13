@@ -6,7 +6,7 @@ https://documentation.mailgun.com/api-sending.html
 
 import json
 import time
-from urllib.parse import parse_qs
+from six.moves.urllib.parse import parse_qs
 
 from mimic.rest.mimicapp import MimicApp
 from mimic.util.helper import seconds_to_timestamp
