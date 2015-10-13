@@ -3,6 +3,8 @@
 Defines create, delete, get, list servers and get images and flavors.
 """
 
+from __future__ import unicode_literals
+
 from uuid import uuid4
 import json
 

@@ -2,6 +2,8 @@
 Canned response for Queue
 """
 
+from __future__ import unicode_literals
+
 
 def queues_example(queue_name):
     """

@@ -1,6 +1,9 @@
 """
 Define fixtures to provide common functionality for Mimic testing
 """
+
+from __future__ import unicode_literals
+
 from mimic.test.helpers import json_request
 from mimic.core import MimicCore
 from mimic.resource import MimicRoot
@@ -23,7 +26,7 @@ class TenantAuthentication(object):
         :param password: the password with which to use to authenticate
         """
         _, self.service_catalog_json = test_case.successResultOf(json_request(
-            test_case, root, "POST", "/identity/v2.0/tokens",
+            test_case, root, b"POST", "/identity/v2.0/tokens",
             {
                 "auth": {
                     "passwordCredentials": {

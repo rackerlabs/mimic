@@ -4,6 +4,8 @@ API Mock for Mail Gun.
 https://documentation.mailgun.com/api-sending.html
 """
 
+from __future__ import unicode_literals
+
 import json
 import time
 from six.moves.urllib.parse import parse_qs

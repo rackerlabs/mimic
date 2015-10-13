@@ -2,6 +2,8 @@
 Model objects for images.
 """
 
+from __future__ import unicode_literals
+
 from characteristic import attributes, Attribute
 from json import dumps
 from mimic.model.rackspace_images import (ImageStore, OnMetalImage)

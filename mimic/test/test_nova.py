@@ -1,6 +1,8 @@
 """
 Tests for :mod:`nova_api` and :mod:`nova_objects`.
 """
+from __future__ import unicode_literals
+
 import json
 from six.moves.urllib.parse import urlencode, parse_qs
 
@@ -26,7 +28,7 @@ def status_of_server(test_case, server_id):
     """
     Retrieve the status of a server.
     """
-    get_server = request(test_case, test_case.root, "GET",
+    get_server = request(test_case, test_case.root, b"GET",
                          test_case.uri + '/servers/' + server_id)
     get_server_response = test_case.successResultOf(get_server)
     get_server_response_body = test_case.successResultOf(
@@ -74,7 +76,7 @@ def create_server(helper, name=None, imageRef=None, flavorRef=None,
     create_server = request_func(
         helper.test_case,
         helper.root,
-        "POST",
+        b"POST",
         '{0}/servers'.format(helper.get_service_endpoint(
             "cloudServersOpenStack", region)),
         body
@@ -102,7 +104,7 @@ def delete_server(helper, server_id):
     Delete server
     """
     d = request_with_content(
-        helper.test_case, helper.root, "DELETE",
+        helper.test_case, helper.root, b"DELETE",
         '{0}/servers/{1}'.format(helper.uri, server_id))
     resp, body = helper.test_case.successResultOf(d)
     helper.test_case.assertEqual(resp.code, 204)
@@ -113,7 +115,7 @@ def update_metdata_item(helper, server_id, key, value):
     Update metadata item
     """
     d = request_with_content(
-        helper.test_case, helper.root, "PUT",
+        helper.test_case, helper.root, b"PUT",
         '{0}/servers/{1}/metadata/{2}'.format(helper.uri, server_id, key),
         json.dumps({'meta': {key: value}}))
     resp, body = helper.test_case.successResultOf(d)
@@ -125,7 +127,7 @@ def update_metdata(helper, server_id, metadata):
     Update metadata
     """
     d = request_with_content(
-        helper.test_case, helper.root, "PUT",
+        helper.test_case, helper.root, b"PUT",
         '{0}/servers/{1}/metadata'.format(helper.uri, server_id),
         json.dumps({'metadata': metadata}))
     resp, body = helper.test_case.successResultOf(d)
@@ -137,7 +139,7 @@ def update_status(helper, control_endpoint, server_id, status):
     Update server status
     """
     d = request_with_content(
-        helper.test_case, helper.root, "POST",
+        helper.test_case, helper.root, b"POST",
         control_endpoint + "/attributes/",
         json.dumps({"status": {server_id: status}}))
     resp, body = helper.test_case.successResultOf(d)
@@ -192,7 +194,7 @@ class NovaAPITests(SynchronousTestCase):
         # Make sure we report on proper state.
         server_id = response_body['server']['id']
         get_server = request(
-            self, self.root, "GET", self.uri + '/servers/' + server_id
+            self, self.root, b"GET", self.uri + '/servers/' + server_id
         )
         get_server_response = self.successResultOf(get_server)
         response_body = self.successResultOf(
@@ -259,7 +261,7 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(resp.code, 202)
         server_id = body['server']['id']
         get_server = request(
-            self, self.root, "GET", self.uri + '/servers/' + server_id
+            self, self.root, b"GET", self.uri + '/servers/' + server_id
         )
         get_server_response = self.successResultOf(get_server)
         response_body = self.successResultOf(
@@ -280,7 +282,7 @@ class NovaAPITests(SynchronousTestCase):
         create_resp, create_body = create_server(self.helper, body_override=body)
         server_id = create_body['server']['id']
         get_server = request(
-            self, self.root, "GET", self.uri + '/servers/' + server_id
+            self, self.root, b"GET", self.uri + '/servers/' + server_id
         )
         get_server_response = self.successResultOf(get_server)
         response_body = self.successResultOf(
@@ -303,7 +305,7 @@ class NovaAPITests(SynchronousTestCase):
         """
         Test to verify :func:`list_servers` on ``GET /v2.0/<tenant_id>/servers``
         """
-        list_servers = request(self, self.root, "GET", self.uri + '/servers')
+        list_servers = request(self, self.root, b"GET", self.uri + '/servers')
         list_servers_response = self.successResultOf(list_servers)
         list_servers_response_body = self.successResultOf(
             treq.json_content(list_servers_response))
@@ -319,7 +321,7 @@ class NovaAPITests(SynchronousTestCase):
         when a server with that name exists
         """
         list_servers = request(
-            self, self.root, "GET", self.uri + '/servers?name=' + self.server_name)
+            self, self.root, b"GET", self.uri + '/servers?name=' + self.server_name)
         list_servers_response = self.successResultOf(list_servers)
         list_servers_response_body = self.successResultOf(
             treq.json_content(list_servers_response))
@@ -334,7 +336,7 @@ class NovaAPITests(SynchronousTestCase):
         when a server with that name does not exist
         """
         list_servers = request(
-            self, self.root, "GET", self.uri + '/servers?name=no_server')
+            self, self.root, b"GET", self.uri + '/servers?name=no_server')
         list_servers_response = self.successResultOf(list_servers)
         list_servers_response_body = self.successResultOf(
             treq.json_content(list_servers_response))
@@ -347,7 +349,7 @@ class NovaAPITests(SynchronousTestCase):
         when the server_id exists
         """
         get_server = request(
-            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+            self, self.root, b"GET", self.uri + '/servers/' + self.server_id)
         get_server_response = self.successResultOf(get_server)
         get_server_response_body = self.successResultOf(
             treq.json_content(get_server_response))
@@ -366,7 +368,7 @@ class NovaAPITests(SynchronousTestCase):
         when the server_id does not exist
         """
         response, body = self.successResultOf(json_request(
-            self, self.root, "GET", self.uri + '/servers/test-server-id'))
+            self, self.root, b"GET", self.uri + '/servers/test-server-id'))
         self.assertEqual(response.code, 404)
         self.assertEqual(body, {
             "itemNotFound": {
@@ -380,7 +382,7 @@ class NovaAPITests(SynchronousTestCase):
         Test to verify :func:`list_servers_with_details` on ``GET /v2.0/<tenant_id>/servers/detail``
         """
         list_servers_detail = request(
-            self, self.root, "GET", self.uri + '/servers/detail')
+            self, self.root, b"GET", self.uri + '/servers/detail')
         list_servers_detail_response = self.successResultOf(
             list_servers_detail)
         list_servers_detail_response_body = self.successResultOf(
@@ -403,7 +405,7 @@ class NovaAPITests(SynchronousTestCase):
         """
         create_server(self.helper, name="non-matching-name")
         response, body = self.successResultOf(json_request(
-            self, self.root, "GET",
+            self, self.root, b"GET",
             "{0}/servers/detail?name={1}".format(self.uri, self.server_name)))
         self.assertEqual(response.code, 200)
         self.assertIsNot(body['servers'], None)
@@ -420,7 +422,7 @@ class NovaAPITests(SynchronousTestCase):
         there aren't any that match the given name
         """
         response, body = self.successResultOf(json_request(
-            self, self.root, "GET",
+            self, self.root, b"GET",
             '{0}/servers/detail?name=no_server'.format(self.uri)))
         self.assertEqual(response.code, 200)
         self.assertEqual(len(body['servers']), 0)
@@ -430,14 +432,14 @@ class NovaAPITests(SynchronousTestCase):
         Test to verify :func:`delete_server` on ``DELETE /v2.0/<tenant_id>/servers/<server_id>``
         """
         delete_server = request(
-            self, self.root, "DELETE", self.uri + '/servers/' + self.server_id)
+            self, self.root, b"DELETE", self.uri + '/servers/' + self.server_id)
         delete_server_response = self.successResultOf(delete_server)
         self.assertEqual(delete_server_response.code, 204)
         self.assertEqual(self.successResultOf(treq.content(delete_server_response)),
                          b"")
         # Get and see if server actually got deleted
         get_server = request(
-            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+            self, self.root, b"GET", self.uri + '/servers/' + self.server_id)
         get_server_response = self.successResultOf(get_server)
         self.assertEqual(get_server_response.code, 404)
 
@@ -447,7 +449,7 @@ class NovaAPITests(SynchronousTestCase):
         when the server_id does not exist
         """
         delete_server = request(
-            self, self.root, "DELETE", self.uri + '/servers/test-server-id')
+            self, self.root, b"DELETE", self.uri + '/servers/test-server-id')
         delete_server_response = self.successResultOf(delete_server)
         self.assertEqual(delete_server_response.code, 404)
 
@@ -456,7 +458,7 @@ class NovaAPITests(SynchronousTestCase):
         Test to verify :func:`get_limit` on ``GET /v2.0/<tenant_id>/limits``
         """
         get_server_limits = request(
-            self, self.root, "GET", self.uri + '/limits')
+            self, self.root, b"GET", self.uri + '/limits')
         get_server_limits_response = self.successResultOf(get_server_limits)
         self.assertEqual(get_server_limits_response.code, 200)
         self.assertTrue(
@@ -466,14 +468,14 @@ class NovaAPITests(SynchronousTestCase):
         """
         Test to verify :func:`get_ips` on ``GET /v2.0/<tenant_id>/servers/<server_id>/ips``
         """
-        get_server_ips = request(self, self.root, "GET",
+        get_server_ips = request(self, self.root, b"GET",
                                  self.uri + '/servers/' + self.server_id + '/ips')
         get_server_ips_response = self.successResultOf(get_server_ips)
         get_server_ips_response_body = self.successResultOf(
             treq.json_content(get_server_ips_response))
         self.assertEqual(get_server_ips_response.code, 200)
         list_servers_detail = request(
-            self, self.root, "GET", self.uri + '/servers/detail')
+            self, self.root, b"GET", self.uri + '/servers/detail')
         list_servers_detail_response = self.successResultOf(
             list_servers_detail)
         list_servers_detail_response_body = self.successResultOf(
@@ -486,7 +488,7 @@ class NovaAPITests(SynchronousTestCase):
         Test to verify :func:`get_ips` on ``GET /v2.0/<tenant_id>/servers/<server_id>/ips``,
         when the server_id does not exist
         """
-        get_server_ips = request(self, self.root, "GET",
+        get_server_ips = request(self, self.root, b"GET",
                                  self.uri + '/servers/non-existant-server/ips')
         get_server_ips_response = self.successResultOf(get_server_ips)
         self.assertEqual(get_server_ips_response.code, 404)
@@ -501,7 +503,7 @@ class NovaAPITests(SynchronousTestCase):
                                                        "MIMIC")
         other_region_servers = self.successResultOf(
             treq.json_content(
-                self.successResultOf(request(self, self.root, "GET",
+                self.successResultOf(request(self, self.root, b"GET",
                                              service_uri + "/servers/")))
         )["servers"]
         self.assertEqual(other_region_servers, [])
@@ -517,7 +519,7 @@ class NovaAPITests(SynchronousTestCase):
 
         response, response_body = self.successResultOf(
             json_request(
-                self, self.root, "GET",
+                self, self.root, b"GET",
                 service_endpoint + '/servers'))
 
         self.assertEqual(response.code, 200)
@@ -538,7 +540,7 @@ class NovaAPITests(SynchronousTestCase):
         status = status_of_server(self, server_id)
         self.assertEqual(status, "ACTIVE")
         set_status = request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             nova_control_endpoint + "/attributes/",
             json.dumps(status_modification)
         )
@@ -566,7 +568,7 @@ class NovaAPITests(SynchronousTestCase):
         self.assertEqual(status, "ACTIVE")
         self.assertEqual(second_status, "ACTIVE")
         set_status = request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             nova_control_endpoint + "/attributes/",
             json.dumps(status_modification)
         )
@@ -586,7 +588,7 @@ class NovaAPITests(SynchronousTestCase):
         """
         resize_request = json.dumps({"resize": {"flavorRef": "2"}})
         response, body = self.successResultOf(json_request(
-            self, self.root, "POST", self.uri + '/servers/nothing/action', resize_request))
+            self, self.root, b"POST", self.uri + '/servers/nothing/action', resize_request))
         self.assertEqual(response.code, 404)
         self.assertEqual(body, {
             "itemNotFound": {
@@ -596,13 +598,13 @@ class NovaAPITests(SynchronousTestCase):
         })
 
         existing_server = request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             self.uri + '/servers/' + self.server_id + '/action', resize_request)
         existing_server_response = self.successResultOf(existing_server)
         self.assertEqual(existing_server_response.code, 202)
 
         get_resized_server = request(
-            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+            self, self.root, b"GET", self.uri + '/servers/' + self.server_id)
         get_server_response = self.successResultOf(get_resized_server)
         get_server_response_body = self.successResultOf(
             treq.json_content(get_server_response))
@@ -610,7 +612,7 @@ class NovaAPITests(SynchronousTestCase):
 
         no_resize_request = json.dumps({"non_supported_action": {"flavorRef": "2"}})
         response, body = self.successResultOf(json_request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             self.uri + '/servers/' + self.server_id + '/action', no_resize_request))
         self.assertEqual(response.code, 400)
         self.assertEqual(body, {
@@ -622,7 +624,7 @@ class NovaAPITests(SynchronousTestCase):
 
         no_flavorref_request = json.dumps({"resize": {"missingflavorRef": "5"}})
         response, body = self.successResultOf(json_request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             self.uri + '/servers/' + self.server_id + '/action', no_flavorref_request))
         self.assertEqual(response.code, 400)
         self.assertEqual(body, {
@@ -645,7 +647,7 @@ class NovaAPITests(SynchronousTestCase):
         resize_request = json.dumps({"resize": {"flavorRef": "2"}})
 
         response, body = self.successResultOf(json_request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             self.uri + '/servers/' + self.server_id + '/action', confirm_request))
         self.assertEqual(response.code, 409)
         self.assertEqual(body, {
@@ -657,7 +659,7 @@ class NovaAPITests(SynchronousTestCase):
         })
 
         response, body = self.successResultOf(json_request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             self.uri + '/servers/' + self.server_id + '/action', revert_request))
         self.assertEqual(response.code, 409)
         self.assertEqual(body, {
@@ -668,34 +670,34 @@ class NovaAPITests(SynchronousTestCase):
             }
         })
 
-        request(self, self.root, "POST",
+        request(self, self.root, b"POST",
                 self.uri + '/servers/' + self.server_id + '/action', resize_request)
         confirm = request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             self.uri + '/servers/' + self.server_id + '/action', confirm_request)
         confirm_response = self.successResultOf(confirm)
         self.assertEqual(confirm_response.code, 204)
 
         resize_request = json.dumps({"resize": {"flavorRef": "10"}})
 
-        request(self, self.root, "POST",
+        request(self, self.root, b"POST",
                 self.uri + '/servers/' + self.server_id + '/action', resize_request)
 
         resized_server = request(
-            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+            self, self.root, b"GET", self.uri + '/servers/' + self.server_id)
         resized_server_response = self.successResultOf(resized_server)
         resized_server_response_body = self.successResultOf(
             treq.json_content(resized_server_response))
         self.assertEqual(resized_server_response_body['server']['flavor']['id'], '10')
 
         revert = request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             self.uri + '/servers/' + self.server_id + '/action', revert_request)
         revert_response = self.successResultOf(revert)
         self.assertEqual(revert_response.code, 202)
 
         reverted_server = request(
-            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+            self, self.root, b"GET", self.uri + '/servers/' + self.server_id)
         reverted_server_response = self.successResultOf(reverted_server)
         reverted_server_response_body = self.successResultOf(
             treq.json_content(reverted_server_response))
@@ -715,7 +717,7 @@ class NovaAPITests(SynchronousTestCase):
         rescue_request = json.dumps({"rescue": "none"})
 
         response, body = self.successResultOf(json_request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             self.uri + '/servers/' + server_id + '/action', rescue_request))
         self.assertEqual(response.code, 409)
         self.assertEqual(body, {
@@ -727,7 +729,7 @@ class NovaAPITests(SynchronousTestCase):
         })
 
         rescue = request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             self.uri + '/servers/' + self.server_id + '/action', rescue_request)
         rescue_response = self.successResultOf(rescue)
         rescue_response_body = self.successResultOf(treq.json_content(rescue_response))
@@ -744,7 +746,7 @@ class NovaAPITests(SynchronousTestCase):
         rescue_request = json.dumps({"rescue": "none"})
         unrescue_request = json.dumps({"unrescue": "null"})
         response, body = self.successResultOf(json_request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             self.uri + '/servers/' + self.server_id + '/action', unrescue_request))
         self.assertEqual(response.code, 409)
         self.assertEqual(body, {
@@ -756,10 +758,10 @@ class NovaAPITests(SynchronousTestCase):
         })
         # Put a server in rescue status
         request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             self.uri + '/servers/' + self.server_id + '/action', rescue_request)
 
-        unrescue = request(self, self.root, "POST",
+        unrescue = request(self, self.root, b"POST",
                            self.uri + '/servers/' + self.server_id + '/action', unrescue_request)
         unrescue_response = self.successResultOf(unrescue)
         self.assertEqual(unrescue_response.code, 200)
@@ -780,7 +782,7 @@ class NovaAPITests(SynchronousTestCase):
         """
         no_reboot_type_request = json.dumps({"reboot": {"missing_type": "SOFT"}})
         response, body = self.successResultOf(json_request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             self.uri + '/servers/' + self.server_id + '/action', no_reboot_type_request))
         self.assertEqual(response.code, 400)
         self.assertEqual(body, {
@@ -792,7 +794,7 @@ class NovaAPITests(SynchronousTestCase):
 
         wrong_reboot_type_request = json.dumps({"reboot": {"type": "FIRM"}})
         response, body = self.successResultOf(json_request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             self.uri + '/servers/' + self.server_id + '/action', wrong_reboot_type_request))
         self.assertEqual(response.code, 400)
         self.assertEqual(body, {
@@ -805,20 +807,20 @@ class NovaAPITests(SynchronousTestCase):
         # Soft reboot tests
         soft_reboot_request = json.dumps({"reboot": {"type": "SOFT"}})
         soft_reboot = request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             self.uri + '/servers/' + self.server_id + '/action', soft_reboot_request)
 
         soft_reboot_response = self.successResultOf(soft_reboot)
         self.assertEqual(soft_reboot_response.code, 202)
 
         response, body = self.successResultOf(json_request(
-            self, self.root, "GET", self.uri + '/servers/' + self.server_id))
+            self, self.root, b"GET", self.uri + '/servers/' + self.server_id))
         self.assertEqual(body['server']['status'], 'REBOOT')
 
         # Advance the clock 3 seconds and check status
         self.clock.advance(3)
         rebooted_server = request(
-            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+            self, self.root, b"GET", self.uri + '/servers/' + self.server_id)
         rebooted_server_response = self.successResultOf(rebooted_server)
         rebooted_server_response_body = self.successResultOf(
             treq.json_content(rebooted_server_response))
@@ -827,13 +829,13 @@ class NovaAPITests(SynchronousTestCase):
         # Hard Reboot Tests
         hard_reboot_request = json.dumps({"reboot": {"type": "HARD"}})
         hard_reboot = request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             self.uri + '/servers/' + self.server_id + '/action', hard_reboot_request)
         hard_reboot_response = self.successResultOf(hard_reboot)
         self.assertEqual(hard_reboot_response.code, 202)
 
         hard_reboot_server = request(
-            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+            self, self.root, b"GET", self.uri + '/servers/' + self.server_id)
         hard_reboot_server_response = self.successResultOf(hard_reboot_server)
         hard_reboot_server_response_body = self.successResultOf(
             treq.json_content(hard_reboot_server_response))
@@ -842,7 +844,7 @@ class NovaAPITests(SynchronousTestCase):
         # Advance clock 6 seconds and check server status
         self.clock.advance(6)
         rebooted_server = request(
-            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+            self, self.root, b"GET", self.uri + '/servers/' + self.server_id)
         rebooted_server_response = self.successResultOf(rebooted_server)
         rebooted_server_response_body = self.successResultOf(
             treq.json_content(rebooted_server_response))
@@ -860,7 +862,7 @@ class NovaAPITests(SynchronousTestCase):
         password_request = json.dumps({"changePassword": {"adminPass": "password"}})
         bad_password_request = json.dumps({"changePassword": {"Pass": "password"}})
         response, body = self.successResultOf(json_request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             self.uri + '/servers/' + self.server_id + '/action', bad_password_request))
         self.assertEqual(response.code, 400)
         self.assertEqual(body, {
@@ -870,7 +872,7 @@ class NovaAPITests(SynchronousTestCase):
             }
         })
         password_reset = request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             self.uri + '/servers/' + self.server_id + '/action', password_request)
         password_reset_response = self.successResultOf(password_reset)
         self.assertEqual(password_reset_response.code, 202)
@@ -880,7 +882,7 @@ class NovaAPITests(SynchronousTestCase):
         metadata = {"server_error": "1"}
         server_id = quick_create_server(self.helper, metadata=metadata)
         response, body = self.successResultOf(json_request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             self.uri + '/servers/' + server_id + '/action', password_request))
         self.assertEqual(response.code, 409)
         self.assertEqual(body, {
@@ -896,7 +898,7 @@ class NovaAPITests(SynchronousTestCase):
         no_imageRef_request = json.dumps({"rebuild": {"name": "new_server"}})
 
         response, body = self.successResultOf(json_request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             self.uri + '/servers/' + self.server_id + '/action', no_imageRef_request))
         self.assertEqual(response.code, 400)
         self.assertEqual(body, {
@@ -907,7 +909,7 @@ class NovaAPITests(SynchronousTestCase):
         })
 
         response, body = self.successResultOf(json_request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             self.uri + '/servers/' + self.server_id + '/action', rebuild_request))
         self.assertEqual(response.code, 202)
         self.assertTrue('adminPass' in json.dumps(body))
@@ -916,7 +918,7 @@ class NovaAPITests(SynchronousTestCase):
 
         self.clock.advance(5)
         rebuilt_server = request(
-            self, self.root, "GET", self.uri + '/servers/' + self.server_id)
+            self, self.root, b"GET", self.uri + '/servers/' + self.server_id)
         rebuilt_server_response = self.successResultOf(rebuilt_server)
         rebuilt_server_response_body = self.successResultOf(
             treq.json_content(rebuilt_server_response))
@@ -927,7 +929,7 @@ class NovaAPITests(SynchronousTestCase):
         metadata = {"server_error": "1"}
         server_id = quick_create_server(self.helper, metadata=metadata)
         response, body = self.successResultOf(json_request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             self.uri + '/servers/' + server_id + '/action', rebuild_request))
         self.assertEqual(response.code, 409)
         self.assertEqual(body, {
@@ -968,7 +970,7 @@ class NovaAPIChangesSinceTests(SynchronousTestCase):
         params = urlencode({"changes-since": changes_since})
         resp, body = self.successResultOf(
             json_request(
-                self, self.root, "GET",
+                self, self.root, b"GET",
                 '{0}/servers/detail?{1}'.format(self.uri, params)))
         self.assertEqual(resp.code, 200)
         return body['servers']
@@ -1064,7 +1066,7 @@ class NovaAPIListServerPaginationTests(SynchronousTestCase):
             url = "{0}?{1}".format(url, urlencode(params))
 
         resp, body = self.successResultOf(
-            json_request(self, self.root, "GET", url))
+            json_request(self, self.root, b"GET", url))
 
         self.assertEqual(resp.code, code)
         return body
@@ -1518,7 +1520,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         request with no body.
         """
         create_server_response, _ = create_server(
-            self.helper, body_override="")
+            self.helper, body_override=b"")
         self.assertEquals(create_server_response.code, 400)
 
     def test_create_server_request_with_invalid_body_causes_bad_request(self):
@@ -1527,7 +1529,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         request with no body.
         """
         create_server_response, _ = create_server(
-            self.helper, body_override='{ bad request: }')
+            self.helper, body_override=b'{ bad request: }')
         self.assertEquals(create_server_response.code, 400)
 
     def test_create_server_failure(self):
@@ -1577,7 +1579,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         self.assertEquals(
             create_server_response_body['computeFault']['code'], 500)
         # List servers
-        list_servers = request(self, self.root, "GET", self.uri + '/servers')
+        list_servers = request(self, self.root, b"GET", self.uri + '/servers')
         list_servers_response = self.successResultOf(list_servers)
         self.assertEquals(list_servers_response.code, 200)
         list_servers_response_body = self.successResultOf(
@@ -1636,7 +1638,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
 
         # List servers with details and verify the server is in BUILD status
         list_servers = request(
-            self, self.root, "GET", self.uri + '/servers/detail')
+            self, self.root, b"GET", self.uri + '/servers/detail')
         list_servers_response = self.successResultOf(list_servers)
         self.assertEquals(list_servers_response.code, 200)
         list_servers_response_body = self.successResultOf(
@@ -1657,7 +1659,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         # create server with metadata to set status in ERROR
         server_id = quick_create_server(self.helper, metadata=metadata)
         # get server and verify status is ERROR
-        get_server = request(self, self.root, "GET", self.uri + '/servers/' +
+        get_server = request(self, self.root, b"GET", self.uri + '/servers/' +
                              server_id)
         get_server_response = self.successResultOf(get_server)
         get_server_response_body = self.successResultOf(
@@ -1677,24 +1679,24 @@ class NovaAPINegativeTests(SynchronousTestCase):
         server_id = quick_create_server(self.helper, metadata=metadata)
         # delete server and verify the response
         delete_server = request(
-            self, self.root, "DELETE", self.uri + '/servers/' + server_id)
+            self, self.root, b"DELETE", self.uri + '/servers/' + server_id)
         delete_server_response = self.successResultOf(delete_server)
         self.assertEqual(delete_server_response.code, 500)
         # get server and verify the server was not deleted
-        get_server = request(self, self.root, "GET", self.uri + '/servers/' +
+        get_server = request(self, self.root, b"GET", self.uri + '/servers/' +
                              server_id)
         get_server_response = self.successResultOf(get_server)
         self.assertEquals(get_server_response.code, 200)
         # delete server again and verify the response
         delete_server = request(
-            self, self.root, "DELETE", self.uri + '/servers/' + server_id)
+            self, self.root, b"DELETE", self.uri + '/servers/' + server_id)
         delete_server_response = self.successResultOf(delete_server)
         self.assertEqual(delete_server_response.code, 204)
         self.assertEqual(self.successResultOf(treq.content(delete_server_response)),
                          b"")
         # get server and verify the server was deleted this time
         get_server = request(
-            self, self.root, "GET", self.uri + '/servers/' + server_id)
+            self, self.root, b"GET", self.uri + '/servers/' + server_id)
         get_server_response = self.successResultOf(get_server)
         self.assertEquals(get_server_response.code, 404)
 
@@ -1755,7 +1757,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         """
         # List servers with details and verify there are no servers
         resp, list_body = self.successResultOf(json_request(
-            self, self.root, "GET", self.uri + '/servers'))
+            self, self.root, b"GET", self.uri + '/servers'))
         self.assertEqual(resp.code, 200)
         self.assertEqual(len(list_body['servers']), 0)
 
@@ -1777,7 +1779,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
 
         # List servers with details and verify there are no servers
         resp, list_body = self.successResultOf(json_request(
-            self, self.root, "GET", self.uri + '/servers'))
+            self, self.root, b"GET", self.uri + '/servers'))
         self.assertEqual(resp.code, 200)
         self.assertEqual(len(list_body['servers']), 1)
         return create_server_response, body
@@ -1839,7 +1841,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
             }
         }
         set_status = request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             nova_control_endpoint + "/attributes/",
             json.dumps(status_modification)
         )
@@ -1931,7 +1933,7 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         with the given request body.
         """
         return self.successResultOf(json_request(
-            self, self.root, "PUT", self.get_server_url(None) + '/metadata',
+            self, self.root, b"PUT", self.get_server_url(None) + '/metadata',
             request_body))
 
     def set_metadata_item(self, create_metadata, key, request_body):
@@ -1940,7 +1942,7 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         endpoint with the given request body.
         """
         return self.successResultOf(json_request(
-            self, self.root, "PUT",
+            self, self.root, b"PUT",
             self.get_server_url(create_metadata) + '/metadata/' + key,
             request_body))
 
@@ -1950,7 +1952,7 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         just be the one.  Get its metadata.
         """
         resp, body = self.successResultOf(json_request(
-            self, self.root, "GET", self.uri + '/servers/detail'))
+            self, self.root, b"GET", self.uri + '/servers/detail'))
         self.assertEqual(resp.code, 200)
 
         return body['servers'][0]['metadata']
@@ -2049,7 +2051,7 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         """
         metadata = {'key': 'value', 'key2': 'anothervalue'}
         response, body = self.successResultOf(json_request(
-            self, self.root, "GET",
+            self, self.root, b"GET",
             self.get_server_url(metadata) + '/metadata'))
         self.assertEqual(response.code, 200)
         self.assertEqual(body, {'metadata': metadata})
@@ -2063,7 +2065,7 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         Getting metadata on a non-existing server results in a 404.
         """
         response, body = self.successResultOf(json_request(
-            self, self.root, "GET",
+            self, self.root, b"GET",
             self.uri + '/servers/1234/metadata'))
         self.assert_no_such_server(response, body)
 
@@ -2072,7 +2074,7 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         Setting metadata on a non-existing server results in a 404.
         """
         response, body = self.successResultOf(json_request(
-            self, self.root, "PUT",
+            self, self.root, b"PUT",
             self.uri + '/servers/1234/metadata',
             {'metadata': {}}))
         self.assert_no_such_server(response, body)
@@ -2117,7 +2119,7 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         When setting metadata with an invalid request body (not a dict), it
         should return an HTTP status code of 400:malformed request body
         """
-        self.assert_malformed_body(*self.set_metadata('meh'))
+        self.assert_malformed_body(*self.set_metadata(b'meh'))
 
     def test_set_metadata_with_invalid_metadata_object(self):
         """
@@ -2162,9 +2164,9 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         how broken the metadata is.
         """
         response, body = self.successResultOf(json_request(
-            self, self.root, "PUT",
+            self, self.root, b"PUT",
             self.uri + '/servers/1234/metadata',
-            'meh'))
+            b'meh'))
         self.assert_no_such_server(response, body)
 
     def test_set_metadata_too_many_metadata_items_takes_precedence(self):
@@ -2181,7 +2183,7 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         Setting metadata item on a non-existing server results in a 404.
         """
         response, body = self.successResultOf(json_request(
-            self, self.root, "PUT",
+            self, self.root, b"PUT",
             self.uri + '/servers/1234/metadata/key',
             {'meta': {'key': 'value'}}))
         self.assert_no_such_server(response, body)
@@ -2214,7 +2216,7 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         When setting metadata item with an invalid request body, it should
         return an HTTP status code of 400:malformed request body
         """
-        self.assert_malformed_body(*self.set_metadata_item({}, "meh", "meh"))
+        self.assert_malformed_body(*self.set_metadata_item({}, "meh", b"meh"))
 
     def test_set_metadata_item_with_wrong_key_fails(self):
         """
@@ -2313,9 +2315,9 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         takes precedence over other errors.
         """
         response, body = self.successResultOf(json_request(
-            self, self.root, "PUT",
+            self, self.root, b"PUT",
             self.uri + '/servers/1234/metadata/key',
-            'meh'))
+            b'meh'))
         self.assert_no_such_server(response, body)
 
     def test_set_metadata_item_too_many_metadata_items_takes_precedence(self):

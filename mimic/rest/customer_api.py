@@ -3,6 +3,8 @@
 API Mock for the Customer API.
 """
 
+from __future__ import unicode_literals
+
 import json
 
 from mimic.rest.mimicapp import MimicApp

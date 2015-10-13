@@ -3,6 +3,8 @@
 Defines a list of images from glance
 """
 
+from __future__ import unicode_literals
+
 import json
 from uuid import uuid4
 from six import text_type

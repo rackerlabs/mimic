@@ -2,6 +2,9 @@
 """
 Canned response for get auth token
 """
+
+from __future__ import unicode_literals
+
 from datetime import datetime, timedelta
 
 

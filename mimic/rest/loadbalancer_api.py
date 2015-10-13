@@ -2,6 +2,9 @@
 """
 Defines add node and delete node from load balancers
 """
+
+from __future__ import unicode_literals
+
 import json
 from uuid import uuid4
 from six import string_types, text_type
@@ -276,7 +279,7 @@ class LoadBalancerRegion(object):
         """
         body, code = self.session(tenant_id).get_node_feed(lb_id, node_id)
         request.setResponseCode(code)
-        request.setHeader("Content-Type", "application/atom+xml")
+        request.setHeader(b"Content-Type", b"application/atom+xml")
         return body
 
     @app.route(

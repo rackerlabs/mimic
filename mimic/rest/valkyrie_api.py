@@ -3,6 +3,8 @@
 API Mock for Valkyrie.
 """
 
+from __future__ import unicode_literals
+
 from mimic.rest.mimicapp import MimicApp
 
 

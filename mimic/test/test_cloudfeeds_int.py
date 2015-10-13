@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from mimic.rest.cloudfeeds import (CloudFeedsApi, CloudFeedsControlApi)
 from mimic.test.fixtures import APIMockHelper
 from mimic.test.helpers import request
@@ -23,7 +25,7 @@ class TestCloudFeedsAPI(SynchronousTestCase):
         This is because the boilerplate is written but no endpoints.
         """
         r = request(
-            self, self.root, "GET", self.uri,
+            self, self.root, b"GET", self.uri,
         )
         resp = self.successResultOf(r)
         self.assertEquals(resp.code, 404)
@@ -35,7 +37,7 @@ class TestCloudFeedsAPI(SynchronousTestCase):
         endpoints.
         """
         r = request(
-            self, self.root, "GET", self.ctrl_uri,
+            self, self.root, b"GET", self.ctrl_uri,
         )
         resp = self.successResultOf(r)
         self.assertEquals(resp.code, 404)

@@ -2,6 +2,8 @@
 Model objects for mimic images.
 """
 
+from __future__ import unicode_literals
+
 from characteristic import attributes
 import uuid
 import random

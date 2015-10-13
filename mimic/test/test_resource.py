@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import json
 import re
 
@@ -60,7 +62,7 @@ class ServiceResourceTests(SynchronousTestCase):
         (region, service_id) = one_api(self, core)
 
         request(
-            self, root, "GET",
+            self, root, b"GET",
             "http://mybase/mimicking/{0}/{1}/more/stuff".format(service_id, region)
         )
 
@@ -83,7 +85,7 @@ class ServiceResourceTests(SynchronousTestCase):
         (region, service_id) = one_api(self, core)
 
         response = self.successResultOf(request(
-            self, root, "GET",
+            self, root, b"GET",
             "http://mybase/mimicking/not_{0}/{1}".format(service_id, region)
         ))
         self.assertEqual(404, response.code)
@@ -104,7 +106,7 @@ class ServiceResourceTests(SynchronousTestCase):
         (region, service_id) = one_api(self, core)
 
         response = self.successResultOf(request(
-            self, root, "GET",
+            self, root, b"GET",
             "http://mybase/mimicking/not_{0}/{1}".format(service_id, region)
         ))
         self.assertEqual(404, response.code)
@@ -116,14 +118,14 @@ class ServiceResourceTests(SynchronousTestCase):
         and right region, the service's resource is used to respond to the
         request.
         """
-        core = MimicCore(Clock(), [ExampleAPI('response!')])
+        core = MimicCore(Clock(), [ExampleAPI(b'response!')])
         root = MimicRoot(core).app.resource()
 
         # get the region and service id registered for the example API
         (region, service_id) = one_api(self, core)
 
         (response, content) = self.successResultOf(request_with_content(
-            self, root, "GET",
+            self, root, b"GET",
             "http://mybase/mimicking/{0}/{1}".format(service_id, region)
         ))
         self.assertEqual(200, response.code)
@@ -146,7 +148,7 @@ class RootAndPresetTests(SynchronousTestCase):
         root = MimicRoot(core).app.resource()
 
         (response, content) = self.successResultOf(request_with_content(
-            self, root, 'GET', '/'))
+            self, root, b'GET', '/'))
         self.assertEqual(200, response.code)
         self.assertEqual(['text/plain'],
                          response.headers.getRawHeaders('content-type'))
@@ -163,7 +165,7 @@ class RootAndPresetTests(SynchronousTestCase):
         root = MimicRoot(core).app.resource()
 
         (response, json_content) = self.successResultOf(json_request(
-            self, root, 'GET', '/mimic/v1.0/presets'))
+            self, root, b'GET', '/mimic/v1.0/presets'))
         self.assertEqual(200, response.code)
         self.assertEqual(['application/json'],
                          response.headers.getRawHeaders('content-type'))
@@ -185,7 +187,7 @@ class RootAndPresetTests(SynchronousTestCase):
         root = MimicRoot(core, clock).app.resource()
         self.assertEqual(do.done, False)
         jreq = json_request(
-            self, root, "POST", "/mimic/v1.1/tick", body={"amount": 3.6}
+            self, root, b"POST", "/mimic/v1.1/tick", body={"amount": 3.6}
         )
         [response, json_content] = self.successResultOf(jreq)
         self.assertEqual(response.code, 200)
@@ -204,7 +206,7 @@ class RootAndPresetTests(SynchronousTestCase):
         root = MimicRoot(core).app.resource()
 
         (response, json_content) = self.successResultOf(json_request(
-            self, root, 'GET', '/fastly'))
+            self, root, b'GET', '/fastly'))
         self.assertEqual(200, response.code)
         self.assertEqual(json_content, {'status': 'ok'})
 
@@ -216,7 +218,7 @@ class RootAndPresetTests(SynchronousTestCase):
         root = MimicRoot(core).app.resource()
 
         response = self.successResultOf(request(
-            self, root, "POST", "/sendgrid/mail.send.json"))
+            self, root, b"POST", "/sendgrid/mail.send.json"))
         self.assertEqual(200, response.code)
 
 
@@ -229,14 +231,14 @@ class RequestTests(SynchronousTestCase):
         """
         Make a request and return the response.
         """
-        core = MimicCore(Clock(), [ExampleAPI('response!')])
+        core = MimicCore(Clock(), [ExampleAPI(b'response!')])
         root = MimicRoot(core).app.resource()
 
         # get the region and service id registered for the example API
         (region, service_id) = one_api(self, core)
         url = "/mimicking/{0}/{1}".format(service_id, region)
         response = self.successResultOf(request(
-            self, root, "GET", url, headers={"one": ["two"]}
+            self, root, b"GET", url, headers={b"one": [b"two"]}
         ))
         return (response, url)
 

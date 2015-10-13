@@ -4,6 +4,9 @@ Balancer API docs
 <http://docs.rackspace.com/loadbalancers/api/v1.0/clb-devguide/content/API_Operations.html>`
  for more information.
 """
+
+from __future__ import unicode_literals
+
 from copy import deepcopy
 from random import randrange
 
@@ -77,7 +80,7 @@ class Node(object):
     id = attr.ib(validator=attr.validators.instance_of(int),
                  default=attr.Factory(lambda: randrange(999999)))
     status = attr.ib(validator=attr.validators.instance_of(str),
-                     default="ONLINE")
+                     default=b"ONLINE")
     feed_events = attr.ib(default=[])
 
     @classmethod

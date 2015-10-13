@@ -1,6 +1,9 @@
 """
 Tests for identity model objects.
 """
+
+from __future__ import unicode_literals
+
 from twisted.internet.task import Clock
 from twisted.trial.unittest import SynchronousTestCase
 

@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import json
 from uuid import uuid4
 
@@ -66,7 +68,7 @@ class IronicAPITests(SynchronousTestCase):
         """
         request = create_request or self.create_request
         (response, content) = self.successResultOf(json_request(
-            self, self.root, "POST", self.url, body=json.dumps(request)))
+            self, self.root, b"POST", self.url, body=json.dumps(request)))
         self.assertEqual(response.code, 201)
         return content
 
@@ -78,7 +80,7 @@ class IronicAPITests(SynchronousTestCase):
         if postfix:
             url = self.url + postfix
         (response, content) = self.successResultOf(json_request(
-            self, self.root, "GET", url))
+            self, self.root, b"GET", url))
         self.assertEqual(200, response.code)
         return content
 
@@ -96,7 +98,7 @@ class IronicAPITests(SynchronousTestCase):
         as expected.
         """
         response = self.successResultOf(request(
-            self, self.root, "POST", self.url, body=json.dumps("")))
+            self, self.root, b"POST", self.url, body=json.dumps("")))
         self.assertEqual(response.code, 400)
 
     def test_delete_node_when_node_does_not_exist(self):
@@ -105,7 +107,7 @@ class IronicAPITests(SynchronousTestCase):
         does not exist.
         """
         response = self.successResultOf(request(
-            self, self.root, "DELETE", self.url + "/1234"))
+            self, self.root, b"DELETE", self.url + "/1234"))
         self.assertEqual(response.code, 404)
 
     def test_delete_node(self):
@@ -117,12 +119,12 @@ class IronicAPITests(SynchronousTestCase):
 
         # delete node
         response = self.successResultOf(request(
-            self, self.root, "DELETE", self.url + '/' + node_id))
+            self, self.root, b"DELETE", self.url + '/' + node_id))
         self.assertEqual(response.code, 204)
 
         # get node
         response = self.successResultOf(request(
-            self, self.root, "GET", self.url + '/' + node_id))
+            self, self.root, b"GET", self.url + '/' + node_id))
         self.assertEqual(404, response.code)
 
     def test_create_then_get_node(self):
@@ -137,7 +139,7 @@ class IronicAPITests(SynchronousTestCase):
 
         # get node
         (response, get_content) = self.successResultOf(json_request(
-            self, self.root, "GET", self.url + '/' + node_id))
+            self, self.root, b"GET", self.url + '/' + node_id))
         self.assertEqual(200, response.code)
         self.assertEqual(content, get_content)
 
@@ -150,7 +152,7 @@ class IronicAPITests(SynchronousTestCase):
 
         # get node
         (response, get_content) = self.successResultOf(json_request(
-            self, self.root, "GET", self.url + '/' + node_id))
+            self, self.root, b"GET", self.url + '/' + node_id))
         self.assertEqual(200, response.code)
         self.assertEqual(content, get_content)
 
@@ -159,14 +161,14 @@ class IronicAPITests(SynchronousTestCase):
         Test create node then get the node and verify attributes
         """
         (response, content) = self.successResultOf(json_request(
-            self, self.root, "POST", self.url, body=json.dumps({})))
+            self, self.root, b"POST", self.url, body=json.dumps({})))
         self.assertEqual(response.code, 201)
         node_id = str(content['uuid'])
         self.assertFalse(content['properties']['memory_mb'])
 
         # get node
         (response, get_content) = self.successResultOf(json_request(
-            self, self.root, "GET", self.url + '/' + node_id))
+            self, self.root, b"GET", self.url + '/' + node_id))
         self.assertEqual(200, response.code)
         self.assertEqual(content, get_content)
 
@@ -263,7 +265,7 @@ class IronicAPITests(SynchronousTestCase):
         # Change the provision_state
         url = self.url + "/{0}/states/provision".format(node_id)
         response = self.successResultOf(request(
-            self, self.root, "PUT", url, body=json.dumps(
+            self, self.root, b"PUT", url, body=json.dumps(
                 {'target': new_provision_state})))
         self.assertEqual(response.code, 202)
 
@@ -308,7 +310,7 @@ class IronicAPITests(SynchronousTestCase):
         """
         url = self.url + "/111/states/provision"
         (response, content) = self.successResultOf(json_request(
-            self, self.root, "PUT", url, body=json.dumps({'target': 'active'})))
+            self, self.root, b"PUT", url, body=json.dumps({'target': 'active'})))
         self.assertEqual(response.code, 404)
         self.assertTrue('111' in content['error_message']['faultstring'])
 
@@ -319,7 +321,7 @@ class IronicAPITests(SynchronousTestCase):
         """
         url = self.url + "/222/vendor_passthru/cache_image"
         (response, content) = self.successResultOf(json_request(
-            self, self.root, "POST", url, body=json.dumps({})))
+            self, self.root, b"POST", url, body=json.dumps({})))
         self.assertEqual(response.code, 404)
         self.assertTrue('222' in content['error_message']['faultstring'])
 
@@ -333,7 +335,7 @@ class IronicAPITests(SynchronousTestCase):
 
         url = self.url + "/{0}/vendor_passthru/not_cache_image".format(node_id)
         response = self.successResultOf(request(
-            self, self.root, "POST", url, body=json.dumps({})))
+            self, self.root, b"POST", url, body=json.dumps({})))
         self.assertEqual(response.code, 400)
 
     def test_vendor_passthru_cache_image_fails_when_args_invalid(self):
@@ -349,7 +351,7 @@ class IronicAPITests(SynchronousTestCase):
         for each in body_list:
             url = "/ironic/v1/nodes/{0}/vendor_passthru/cache_image".format(node_id)
             response = self.successResultOf(request(
-                self, self.root, "POST", url, body=json.dumps(each)))
+                self, self.root, b"POST", url, body=json.dumps(each)))
             self.assertEqual(response.code, 400)
 
     def test_vendor_passthru_cache_image(self):
@@ -367,7 +369,7 @@ class IronicAPITests(SynchronousTestCase):
         body = {"image_info": {"id": image_id}}
         url = self.url + "/{0}/vendor_passthru/cache_image".format(node_id)
         response = self.successResultOf(request(
-            self, self.root, "POST", url, body=json.dumps(body)))
+            self, self.root, b"POST", url, body=json.dumps(body)))
         self.assertEqual(response.code, 202)
 
         # GET node and verify the cache attributes on `driver_info`
@@ -387,7 +389,7 @@ class IronicAPITests(SynchronousTestCase):
         body = {"image_info": {"id": image_id}}
         url = self.url + "/{0}/vendor_passthru/cache_image".format(node_id)
         response = self.successResultOf(request(
-            self, self.root, "POST", url, body=json.dumps(body)))
+            self, self.root, b"POST", url, body=json.dumps(body)))
         self.assertEqual(response.code, 202)
 
         # GET node and verify the cache attributes on `driver_info`

@@ -1,6 +1,9 @@
 """
 API mock for Rackspace Queues.
 """
+
+from __future__ import unicode_literals
+
 import json
 import collections
 from uuid import uuid4

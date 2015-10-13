@@ -4,6 +4,8 @@ API Mock for Ironic.
 http://docs.openstack.org/developer/ironic/webapi/v1.html
 """
 
+from __future__ import unicode_literals
+
 from mimic.rest.mimicapp import MimicApp
 
 

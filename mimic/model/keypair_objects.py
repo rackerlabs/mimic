@@ -2,6 +2,8 @@
 Keypair objects for mimic
 """
 
+from __future__ import unicode_literals
+
 import json
 
 from characteristic import attributes, Attribute

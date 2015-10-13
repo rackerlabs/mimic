@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from twisted.trial.unittest import SynchronousTestCase
 from twisted.internet.task import Clock
 
@@ -27,7 +29,7 @@ class FastlyAPITests(SynchronousTestCase):
         self.service_name = 'yumyum'
 
         (self.response, self.service_json) = self.successResultOf(json_request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             self.uri + '/service?customer_id={0}&name={1}'.format(
                 self.customer_id, self.service_name)))
 
@@ -40,7 +42,7 @@ class FastlyAPITests(SynchronousTestCase):
         JSON-serialized customer details.
         """
         (response, customer_json) = self.successResultOf(json_request(
-            self, self.root, "GET", self.uri + '/current_customer'))
+            self, self.root, b"GET", self.uri + '/current_customer'))
         customer_details = self.fastly_response.get_current_customer()
 
         self.assertEqual(200, response.code)
@@ -59,12 +61,12 @@ class FastlyAPITests(SynchronousTestCase):
         self.assertEqual(sorted(self.service_json), sorted(service_details))
 
         (response, json_by_service_name) = self.successResultOf(json_request(
-            self, self.root, "GET",
+            self, self.root, b"GET",
             self.uri + '/service/search?name={0}'.format(self.service_name)))
         self.assertEqual(200, self.response.code)
 
         (response, json_by_service_id) = self.successResultOf(json_request(
-            self, self.root, "GET",
+            self, self.root, b"GET",
             self.uri + '/service/{0}/details'.format(self.service_id)))
         self.assertEqual(200, self.response.code)
         self.assertEqual(sorted(json_by_service_name['service_details']),
@@ -77,7 +79,7 @@ class FastlyAPITests(SynchronousTestCase):
         version.
         """
         (response, version_json) = self.successResultOf(json_request(
-            self, self.root, "POST",
+            self, self.root, b"POST",
             self.uri + '/service/<{0}/version'.format(self.service_id)))
 
         version_details = self.fastly_response.create_version(
@@ -92,7 +94,7 @@ class FastlyAPITests(SynchronousTestCase):
         and returns JSON-serialized service details.
         """
         (response, json_body) = self.successResultOf(json_request(
-            self, self.root, "GET",
+            self, self.root, b"GET",
             self.uri + '/service/search?name={0}'.format(self.service_name)))
         service_details = self.fastly_response.get_service_by_name(
             service_name=self.service_name)
@@ -111,7 +113,7 @@ class FastlyAPITests(SynchronousTestCase):
                 self.service_id, self.version_id)
 
         (response, json_body) = self.successResultOf(json_request(
-            self, self.root, "POST", uri))
+            self, self.root, b"POST", uri))
         domain_details = self.fastly_response.create_domain(
             url_data=[('comment', ['comment']),
                       ('name', [self.service_name])],
@@ -132,14 +134,14 @@ class FastlyAPITests(SynchronousTestCase):
                 self.service_id, self.version_id)
 
         (response, json_body) = self.successResultOf(json_request(
-            self, self.root, "POST", uri))
+            self, self.root, b"POST", uri))
 
         uri = self.uri + '/service/{0}/version/{1}/domain/check_all' \
             '?name=llamallama&comment=redpajama'.format(
                 self.service_id, self.version_id)
 
         (response, json_body) = self.successResultOf(json_request(
-            self, self.root, "GET", uri))
+            self, self.root, b"GET", uri))
         domain_details = self.fastly_response.check_domains(
             service_id=self.service_id,
             service_version=self.version_id)
@@ -158,7 +160,7 @@ class FastlyAPITests(SynchronousTestCase):
                 self.service_id, self.version_id)
 
         (response, json_body) = self.successResultOf(json_request(
-            self, self.root, "POST", uri))
+            self, self.root, b"POST", uri))
 
         url_data = [('name', ['winniepoo']), ('address', ['honeytree']),
                     ('use_ssl', [False]), ('port', [80])]
@@ -181,7 +183,7 @@ class FastlyAPITests(SynchronousTestCase):
                 self.service_id, self.version_id)
 
         (response, json_body) = self.successResultOf(json_request(
-            self, self.root, "POST", uri))
+            self, self.root, b"POST", uri))
 
         url_data = [
             ('name', ['testcondition']),
@@ -207,7 +209,7 @@ class FastlyAPITests(SynchronousTestCase):
                 self.service_id, self.version_id)
 
         (response, json_body) = self.successResultOf(json_request(
-            self, self.root, "POST", uri))
+            self, self.root, b"POST", uri))
 
         url_data = [
             ('name', ['testcache']),
@@ -234,7 +236,7 @@ class FastlyAPITests(SynchronousTestCase):
                 self.service_id, self.version_id)
 
         (response, json_body) = self.successResultOf(json_request(
-            self, self.root, "POST", uri))
+            self, self.root, b"POST", uri))
 
         url_data = [
             ('status', ['200']),
@@ -266,7 +268,7 @@ class FastlyAPITests(SynchronousTestCase):
                 self.service_id, self.version_id)
 
         (response, json_body) = self.successResultOf(json_request(
-            self, self.root, "PUT", uri))
+            self, self.root, b"PUT", uri))
 
         url_data = [
             ('general.default_ttl', ['4242']),
@@ -287,7 +289,7 @@ class FastlyAPITests(SynchronousTestCase):
         response.
         """
         (response, version_json) = self.successResultOf(json_request(
-            self, self.root, "GET",
+            self, self.root, b"GET",
             self.uri + '/service/{0}/version'.format(self.service_id)))
 
         version_details = self.fastly_response.list_versions(
@@ -302,7 +304,7 @@ class FastlyAPITests(SynchronousTestCase):
         a JSON-serialized response.
         """
         (response, version_json) = self.successResultOf(json_request(
-            self, self.root, "PUT",
+            self, self.root, b"PUT",
             self.uri + '/service/{0}/version/{1}/activate'.format
                        (self.service_id, self.version_id)))
 
@@ -318,7 +320,7 @@ class FastlyAPITests(SynchronousTestCase):
         and returns a JSON-serialized response.
         """
         (response, version_json) = self.successResultOf(json_request(
-            self, self.root, "PUT",
+            self, self.root, b"PUT",
             self.uri + '/service/{0}/version/{1}/deactivate'.format
                        (self.service_id, self.version_id)))
 
@@ -334,7 +336,7 @@ class FastlyAPITests(SynchronousTestCase):
         response.
         """
         (response, service_json) = self.successResultOf(json_request(
-            self, self.root, "GET",
+            self, self.root, b"GET",
             self.uri + '/service/{0}/details'.format(self.service_id)))
 
         service_details = self.fastly_response.get_service_details(
@@ -348,7 +350,7 @@ class FastlyAPITests(SynchronousTestCase):
         specified service and returns a JSON-serialized response.
         """
         (response, delete_json) = self.successResultOf(json_request(
-            self, self.root, "DELETE",
+            self, self.root, b"DELETE",
             self.uri + '/service/{0}'.format(self.service_id)))
 
         self.assertEqual(200, response.code)
@@ -360,7 +362,7 @@ class FastlyAPITests(SynchronousTestCase):
         and returns a JSON-serialized response.
         """
         (response, delete_json) = self.successResultOf(json_request(
-            self, self.root, "GET", self.uri))
+            self, self.root, b"GET", self.uri))
 
         self.assertEqual(200, response.code)
         self.assertEqual(delete_json, {'status': 'ok'})

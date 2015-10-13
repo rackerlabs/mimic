@@ -3,6 +3,8 @@
 Canned responses for nova's GET limits API
 """
 
+from __future__ import unicode_literals
+
 
 def get_limit():
     """

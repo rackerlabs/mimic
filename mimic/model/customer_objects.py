@@ -1,6 +1,9 @@
 """
 Customer Contacts storage object
 """
+
+from __future__ import unicode_literals
+
 from characteristic import attributes, Attribute
 
 

@@ -2,6 +2,8 @@
 Model objects for mimic flavors.
 """
 
+from __future__ import unicode_literals
+
 from characteristic import attributes
 
 

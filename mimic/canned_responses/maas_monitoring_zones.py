@@ -2,6 +2,8 @@
 Canned responses for MAAS monitoring zones.
 """
 
+from __future__ import unicode_literals
+
 
 def monitoring_zones():
     """

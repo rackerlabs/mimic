@@ -1,6 +1,9 @@
 """
 Resources for Mimic's core application.
 """
+
+from __future__ import unicode_literals
+
 import json
 
 from io import StringIO
@@ -50,9 +53,9 @@ class MimicRoot(object):
         """
         A helpful greeting message.
         """
-        request.responseHeaders.setRawHeaders("content-type", ["text/plain"])
+        request.responseHeaders.setRawHeaders(b"content-type", [b"text/plain"])
         return ("To get started with Mimic, POST an authentication request to:"
-                "\n\n/identity/v2.0/tokens\n")
+                "\n\n/identity/v2.0/tokens\n").encode('utf-8')
 
     @app.route("/identity", branch=True)
     def get_auth_api(self, request):
@@ -172,7 +175,7 @@ class MimicRequest(Request, object):
     """
     Mimic requests by default are of content type application/json.
     """
-    defaultContentType = "application/json"
+    defaultContentType = b"application/json"
 
 
 class MimicLoggingRequest(MimicRequest, object):

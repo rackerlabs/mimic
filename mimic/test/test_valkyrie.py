@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 
 from twisted.trial.unittest import SynchronousTestCase
 from twisted.internet.task import Clock
@@ -27,7 +28,7 @@ class ValkyrieAPITests(SynchronousTestCase):
         """
         data = {"something": "anything"}
         (response, content) = self.successResultOf(json_request(self, self.root,
-                                                                "POST",
+                                                                b"POST",
                                                                 self.url + "/login", data))
         self.assertEqual(200, response.code)
 
@@ -37,7 +38,7 @@ class ValkyrieAPITests(SynchronousTestCase):
         """
         data = {"something": "anything"}
         (response, content) = self.successResultOf(json_request(self, self.root,
-                                                                "POST",
+                                                                b"POST",
                                                                 self.url + "/login_user", data))
         self.assertEqual(200, response.code)
 
@@ -46,7 +47,7 @@ class ValkyrieAPITests(SynchronousTestCase):
         Obtain list of device permissions for contact 12 on account 123456
         """
         (response, content) = self.successResultOf(
-            json_request(self, self.root, "GET",
+            json_request(self, self.root, b"GET",
                          self.url +
                          "/account/123456/permissions/contacts/devices/by_contact/12/effective"))
         self.assertEqual(200, response.code)
@@ -58,7 +59,7 @@ class ValkyrieAPITests(SynchronousTestCase):
         Obtain list of account permissions for contact 12 on account 123456
         """
         (response, content) = self.successResultOf(
-            json_request(self, self.root, "GET",
+            json_request(self, self.root, b"GET",
                          self.url +
                          "/account/123456/permissions/contacts/accounts/by_contact/12/effective"))
         self.assertEqual(200, response.code)
@@ -69,7 +70,7 @@ class ValkyrieAPITests(SynchronousTestCase):
         Obtain list of account permissions for contact 12 on account 123456
         """
         (response, content) = self.successResultOf(
-            json_request(self, self.root, "GET",
+            json_request(self, self.root, b"GET",
                          self.url +
                          "/account/123456/permissions/contacts/accounts/by_contact/34/effective"))
         self.assertEqual(200, response.code)
@@ -83,7 +84,7 @@ class ValkyrieAPITests(SynchronousTestCase):
         Obtain list of devices permissions for contact 34 on account 123456
         """
         (response, content) = self.successResultOf(
-            json_request(self, self.root, "GET",
+            json_request(self, self.root, b"GET",
                          self.url +
                          "/account/123456/permissions/contacts/devices/by_contact/34/effective"))
         self.assertEqual(200, response.code)
@@ -94,7 +95,7 @@ class ValkyrieAPITests(SynchronousTestCase):
         Obtain list of device permissions for contact 78 on account 654321
         """
         (response, content) = self.successResultOf(
-            json_request(self, self.root, "GET",
+            json_request(self, self.root, b"GET",
                          self.url +
                          "/account/654321/permissions/contacts/devices/by_contact/78/effective"))
         self.assertEqual(200, response.code)
@@ -110,7 +111,7 @@ class ValkyrieAPITests(SynchronousTestCase):
         Obtain list of all permissions for contact 90 on account 654321
         """
         (response, content) = self.successResultOf(
-            json_request(self, self.root, "GET",
+            json_request(self, self.root, b"GET",
                          self.url +
                          "/account/654321/permissions/contacts/any/by_contact/90/effective"))
         self.assertEqual(200, response.code)

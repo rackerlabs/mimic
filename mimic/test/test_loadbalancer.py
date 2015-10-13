@@ -2,6 +2,8 @@
 Unit tests for the
 """
 
+from __future__ import unicode_literals
+
 import json
 import treq
 
@@ -138,7 +140,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
             lb_body['loadBalancer']['nodes'] = nodes
 
         resp, body = self.successResultOf(json_request(
-            self, api_helper.root, "POST", api_helper.uri + '/loadbalancers',
+            self, api_helper.root, b"POST", api_helper.uri + '/loadbalancers',
             lb_body
         ))
         return body['loadBalancer']['id']
@@ -169,9 +171,9 @@ class LoadbalancerAPITests(SynchronousTestCase):
         lb_id = self._create_loadbalancer('test_lb') + lb_id_offset
         status_key = status_key or '"status"'
         status_val = status_val or 'PENDING_DELETE'
-        payload = '{{{0}: "{1}"}}'.format(status_key, status_val)
+        payload = b'{{{0}: "{1}"}}'.format(status_key, status_val)
         set_attributes_req = request(
-            self, self.root, "PATCH", "{0}/loadbalancer/{1}/attributes".format(
+            self, self.root, b"PATCH", "{0}/loadbalancer/{1}/attributes".format(
                 ctl_uri, lb_id
             ),
             payload
@@ -193,7 +195,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
         r = self._patch_attributes_request()
         self.assertEqual(r.resp.code, 204)
 
-        get_lb = request(self, self.root, "GET", self.uri + '/loadbalancers/' + str(r.lb_id))
+        get_lb = request(self, self.root, b"GET", self.uri + '/loadbalancers/' + str(r.lb_id))
         get_lb_response = self.successResultOf(get_lb)
         get_lb_response_body = self.successResultOf(
             treq.json_content(get_lb_response)
@@ -250,7 +252,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
         """
         lb_name = 'mimic_lb'
         resp, body = self.successResultOf(json_request(
-            self, self.root, "POST", self.uri + '/loadbalancers',
+            self, self.root, b"POST", self.uri + '/loadbalancers',
             {
                 "loadBalancer": {
                     "name": lb_name,
@@ -268,7 +270,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
         """
         Test to verify :func:`add_load_balancer` on ``POST /v1.0/<tenant_id>/loadbalancers``
         """
-        create_lb = request(self, self.root, "POST", self.uri + '/loadbalancers', "")
+        create_lb = request(self, self.root, b"POST", self.uri + '/loadbalancers', b"")
         create_lb_response = self.successResultOf(create_lb)
         self.assertEqual(create_lb_response.code, 400)
 
@@ -276,7 +278,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
         """
         Test to verify :func:`add_load_balancer` on ``POST /v1.0/<tenant_id>/loadbalancers``
         """
-        create_lb = request(self, self.root, "POST", self.uri + '/loadbalancers', "{ bad request: }")
+        create_lb = request(self, self.root, b"POST", self.uri + '/loadbalancers', b"{ bad request: }")
         create_lb_response = self.successResultOf(create_lb)
         self.assertEqual(create_lb_response.code, 400)
 
@@ -287,7 +289,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
         """
         lb_name = 'mimic_lb'
         resp, body = self.successResultOf(json_request(
-            self, self.root, "POST", self.uri + '/loadbalancers',
+            self, self.root, b"POST", self.uri + '/loadbalancers',
             {
                 "loadBalancer": {
                     "name": lb_name,
@@ -315,7 +317,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
         """
         test1_id = self._create_loadbalancer('test1')
         test2_id = self._create_loadbalancer('test2')
-        list_lb = request(self, self.root, "GET", self.uri + '/loadbalancers')
+        list_lb = request(self, self.root, b"GET", self.uri + '/loadbalancers')
         list_lb_response = self.successResultOf(list_lb)
         list_lb_response_body = self.successResultOf(treq.json_content(list_lb_response))
         self.assertEqual(list_lb_response.code, 200)
@@ -337,7 +339,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
                               "port": 80, "condition": "ENABLED"}
                              for i in range(1, 4)])
         list_resp, list_body = self.successResultOf(json_request(
-            self, self.root, "GET", self.uri + '/loadbalancers'))
+            self, self.root, b"GET", self.uri + '/loadbalancers'))
         self.assertEqual(list_resp.code, 200)
         self.assertEqual(len(list_body['loadBalancers']), 2)
 
@@ -356,7 +358,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
         # These will fail if the servers weren't created
         test1_id = self._create_loadbalancer('test1')
         test2_id = self._create_loadbalancer('test2')
-        delete_lb = request(self, self.root, 'DELETE', self.uri + '/loadbalancers/' + str(test1_id))
+        delete_lb = request(self, self.root, b'DELETE', self.uri + '/loadbalancers/' + str(test1_id))
         del_lb_response = self.successResultOf(delete_lb)
         # This response code does not match the Rackspace documentation which specifies a 200 response
         # See comment: http://bit.ly/1AVHs3v
@@ -364,7 +366,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
         del_lb_response_body = self.successResultOf(treq.content(del_lb_response))
         self.assertEqual(del_lb_response_body, '')
         # List lb to make sure the correct lb is gone and the other remains
-        list_lb = request(self, self.root, "GET", self.uri + '/loadbalancers')
+        list_lb = request(self, self.root, b"GET", self.uri + '/loadbalancers')
         list_lb_response = self.successResultOf(list_lb)
         list_lb_response_body = self.successResultOf(treq.json_content(list_lb_response))
         self.assertTrue(len(list_lb_response_body['loadBalancers']), 1)
@@ -379,7 +381,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
         lb_id = self._create_loadbalancer(
             nodes=[{"address": "1.2.3.4", "port": 80, "condition": "ENABLED"}])
         resp, body = self.successResultOf(json_request(
-            self, self.root, "GET", self.uri + '/loadbalancers/' + str(lb_id)))
+            self, self.root, b"GET", self.uri + '/loadbalancers/' + str(lb_id)))
         self.assertEqual(resp.code, 200)
         self.assertEqual(body['loadBalancer']['id'], lb_id)
         self.assertNotIn('nodeCount', body['loadBalancer'])
@@ -393,7 +395,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
         """
         lb_id = self._create_loadbalancer()
         resp, body = self.successResultOf(json_request(
-            self, self.root, "GET", self.uri + '/loadbalancers/' + str(lb_id)))
+            self, self.root, b"GET", self.uri + '/loadbalancers/' + str(lb_id)))
         self.assertEqual(resp.code, 200)
         self.assertEqual(body['loadBalancer']['id'], lb_id)
         self.assertNotIn('nodeCount', body['loadBalancer'])
@@ -403,7 +405,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
         """
         Test to verify :func:`get_load_balancers` for a non existant load balancer id.
         """
-        get_lb = request(self, self.root, "GET", self.uri + '/loadbalancers/123')
+        get_lb = request(self, self.root, b"GET", self.uri + '/loadbalancers/123')
         get_lb_response = self.successResultOf(get_lb)
         self.assertEqual(get_lb_response.code, 404)
 
@@ -411,7 +413,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
         """
         Test to verify :func:`delete_load_balancers` for a non existant load balancer.
         """
-        delete_lb = request(self, self.root, 'DELETE', self.uri + '/loadbalancers/123')
+        delete_lb = request(self, self.root, b'DELETE', self.uri + '/loadbalancers/123')
         delete_lb_response = self.successResultOf(delete_lb)
         self.assertEqual(delete_lb_response.code, 404)
 
@@ -419,7 +421,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
         """
         Test to verify :func:`list_load_balancers` when no loadbalancers exist.
         """
-        list_lb = request(self, self.root, 'GET', self.uri + '/loadbalancers')
+        list_lb = request(self, self.root, b'GET', self.uri + '/loadbalancers')
         list_lb_response = self.successResultOf(list_lb)
         self.assertEqual(list_lb_response.code, 200)
         list_lb_response_body = self.successResultOf(treq.json_content(list_lb_response))
@@ -436,7 +438,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
 
         list_lb_response, list_lb_response_body = self.successResultOf(
             request_with_content(
-                self, self.root, "GET",
+                self, self.root, b"GET",
                 other_tenant.get_service_endpoint("cloudLoadBalancers")
                 + "/loadbalancers"))
 
@@ -456,7 +458,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
 
         list_lb_response, list_lb_response_body = self.successResultOf(
             request_with_content(
-                self, helper.root, "GET",
+                self, helper.root, b"GET",
                 helper.get_service_endpoint("cloudLoadBalancers", "DFW")
                 + "/loadbalancers"))
 
@@ -470,7 +472,7 @@ def _bulk_delete(test_case, root, uri, lb_id, node_ids):
     """Bulk delete multiple nodes."""
     query = '?' + '&'.join('id=' + str(node_id) for node_id in node_ids)
     endpoint = uri + '/loadbalancers/' + str(lb_id) + '/nodes' + query
-    d = request(test_case, root, "DELETE", endpoint)
+    d = request(test_case, root, b"DELETE", endpoint)
     response = test_case.successResultOf(d)
     body = test_case.successResultOf(treq.content(response))
     if body == '':
@@ -486,7 +488,7 @@ def _update_clb_node(test_case, helper, lb_id, node_id, update_data,
     Return the response for updating a CLB node.
     """
     return test_case.successResultOf(request_func(
-        test_case, helper.root, "PUT",
+        test_case, helper.root, b"PUT",
         "{0}/loadbalancers/{1}/nodes/{2}".format(
             helper.get_service_endpoint("cloudLoadBalancers"),
             lb_id, node_id),
@@ -508,7 +510,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         self.root = self.helper.root
         self.uri = self.helper.uri
         create_lb = request(
-            self, self.root, "POST", self.uri + '/loadbalancers',
+            self, self.root, b"POST", self.uri + '/loadbalancers',
             json.dumps({
                 "loadBalancer": {
                     "name": "test_lb",
@@ -535,7 +537,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         """
         responses = [
             request(
-                self, self.root, "POST", self.uri + '/loadbalancers/' +
+                self, self.root, b"POST", self.uri + '/loadbalancers/' +
                 str(self.create_lb_response_body["loadBalancer"]["id"]) + '/nodes',
                 json.dumps({"nodes": [{"address": address,
                                        "port": 80,
@@ -551,7 +553,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
     def _get_nodes(self, lb_id):
         """Get all the nodes in a LB."""
         list_nodes = request(
-            self, self.root, "GET", self.uri + '/loadbalancers/' +
+            self, self.root, b"GET", self.uri + '/loadbalancers/' +
             str(lb_id) + '/nodes')
         response = self.successResultOf(list_nodes)
         body = self.successResultOf(treq.json_content(response))
@@ -578,7 +580,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         Test to verify :func: `add_node` creates multiple node successfully.
         """
         create_multiple_nodes = request(
-            self, self.root, "POST", self.uri + '/loadbalancers/' +
+            self, self.root, b"POST", self.uri + '/loadbalancers/' +
             str(self.lb_id) + '/nodes',
             json.dumps({"nodes": [{"address": "127.0.0.2",
                                    "port": 80,
@@ -600,7 +602,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         Test to verify :func: `add_node` does not allow creation of duplicate nodes.
         """
         create_duplicate_nodes = request(
-            self, self.root, "POST", self.uri + '/loadbalancers/' +
+            self, self.root, b"POST", self.uri + '/loadbalancers/' +
             str(self.lb_id) + '/nodes',
             json.dumps({"nodes": [{"address": "127.0.0.1",
                                    "port": 80,
@@ -621,14 +623,14 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
 
         for port in range(101, 126):
             request(
-                self, self.root, "POST", self.uri + '/loadbalancers/' +
+                self, self.root, b"POST", self.uri + '/loadbalancers/' +
                 str(self.lb_id) + '/nodes',
                 json.dumps({"nodes": [{"address": "127.0.0.1",
                                        "port": port,
                                        "condition": "ENABLED"}]})
             )
         create_over_node = request(
-            self, self.root, "POST", self.uri + '/loadbalancers/' +
+            self, self.root, b"POST", self.uri + '/loadbalancers/' +
             str(self.lb_id) + '/nodes',
             json.dumps({"nodes": [{"address": "127.0.0.2",
                                    "port": 130,
@@ -657,7 +659,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
                                   "type": "SECONDARY"})
 
         create_over_node = request(
-            self, self.root, "POST", self.uri + '/loadbalancers/' +
+            self, self.root, b"POST", self.uri + '/loadbalancers/' +
             str(self.lb_id) + '/nodes',
             json.dumps({"nodes": add_node_list})
         )
@@ -669,8 +671,8 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         Test to verify :func: `add_node` does not fail on bad request.
         """
         create_duplicate_nodes = request(
-            self, self.root, "POST", self.uri + '/loadbalancers/' +
-            str(self.lb_id) + '/nodes', "")
+            self, self.root, b"POST", self.uri + '/loadbalancers/' +
+            str(self.lb_id) + '/nodes', b"")
 
         create_node_response = self.successResultOf(create_duplicate_nodes)
         self.assertEqual(create_node_response.code, 400)
@@ -680,8 +682,8 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         Test to verify :func: `add_node` does not fail on bad request.
         """
         create_duplicate_nodes = request(
-            self, self.root, "POST", self.uri + '/loadbalancers/' +
-            str(self.lb_id) + '/nodes', "{ bad request: }")
+            self, self.root, b"POST", self.uri + '/loadbalancers/' +
+            str(self.lb_id) + '/nodes', b"{ bad request: }")
 
         create_node_response = self.successResultOf(create_duplicate_nodes)
         self.assertEqual(create_node_response.code, 400)
@@ -692,7 +694,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         on non existant load balancers.
         """
         create_duplicate_nodes = request(
-            self, self.root, "POST", self.uri + '/loadbalancers/123/nodes',
+            self, self.root, b"POST", self.uri + '/loadbalancers/123/nodes',
             json.dumps({"nodes": [{"address": "127.0.0.1",
                                    "port": 80,
                                    "condition": "ENABLED",
@@ -706,7 +708,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         Test to verify :func: `list_node` lists the nodes on the loadbalancer.
         """
         list_nodes = request(
-            self, self.root, "GET", self.uri + '/loadbalancers/' +
+            self, self.root, b"GET", self.uri + '/loadbalancers/' +
             str(self.lb_id) + '/nodes')
         list_nodes_response = self.successResultOf(list_nodes)
         list_nodes_response_body = self.successResultOf(treq.json_content(
@@ -719,7 +721,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         Test to verify :func: `list_node` lists the nodes on the loadbalancer.
         """
         list_nodes = request(
-            self, self.root, "GET", self.uri + '/loadbalancers/123/nodes')
+            self, self.root, b"GET", self.uri + '/loadbalancers/123/nodes')
         list_nodes_response = self.successResultOf(list_nodes)
         self.assertEqual(list_nodes_response.code, 404)
 
@@ -728,7 +730,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         Test to verify :func: `get_node` gets the nodes on the loadbalancer.
         """
         get_nodes = request(
-            self, self.root, "GET", self.uri + '/loadbalancers/' +
+            self, self.root, b"GET", self.uri + '/loadbalancers/' +
             str(self.lb_id) + '/nodes/'
             + str(self.node[0]["id"]))
         get_node_response = self.successResultOf(get_nodes)
@@ -745,7 +747,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         non existant loadbalancer.
         """
         get_nodes = request(
-            self, self.root, "GET", self.uri + '/loadbalancers/123' +
+            self, self.root, b"GET", self.uri + '/loadbalancers/123' +
             '/nodes/' + str(self.node[0]["id"]))
         get_node_response = self.successResultOf(get_nodes)
         self.assertEqual(get_node_response.code, 404)
@@ -755,7 +757,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         Test to verify :func: `get_node` does not get a non existant node.
         """
         get_nodes = request(
-            self, self.root, "GET", self.uri + '/loadbalancers/' +
+            self, self.root, b"GET", self.uri + '/loadbalancers/' +
             str(self.lb_id) + '/nodes/123')
         get_node_response = self.successResultOf(get_nodes)
         self.assertEqual(get_node_response.code, 404)
@@ -765,7 +767,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         Test to verify :func: `delete_node` deletes the node on the loadbalancer.
         """
         delete_nodes = request(
-            self, self.root, "DELETE", self.uri + '/loadbalancers/' +
+            self, self.root, b"DELETE", self.uri + '/loadbalancers/' +
             str(self.lb_id) + '/nodes/'
             + str(self.node[0]["id"]))
         delete_node_response = self.successResultOf(delete_nodes)
@@ -773,7 +775,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
 
         # assert that it lists correctly after
         list_nodes_resp, list_nodes_body = self.successResultOf(json_request(
-            self, self.root, "GET", self.uri + '/loadbalancers/' +
+            self, self.root, b"GET", self.uri + '/loadbalancers/' +
             str(self.lb_id) + '/nodes'))
         self.assertEqual(list_nodes_resp.code, 200)
         self.assertEqual(len(list_nodes_body["nodes"]), 0)
@@ -784,7 +786,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         non existant loadbalancer.
         """
         delete_nodes = request(
-            self, self.root, "DELETE", self.uri + '/loadbalancers/123' +
+            self, self.root, b"DELETE", self.uri + '/loadbalancers/123' +
             '/nodes/' + str(self.node[0]["id"]))
         delete_node_response = self.successResultOf(delete_nodes)
         self.assertEqual(delete_node_response.code, 404)
@@ -794,7 +796,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         Test to verify :func: `delete_node` does not delete a non existant node.
         """
         delete_nodes = request(
-            self, self.root, "DELETE", self.uri + '/loadbalancers/' +
+            self, self.root, b"DELETE", self.uri + '/loadbalancers/' +
             str(self.lb_id) + '/nodes/123')
         delete_node_response = self.successResultOf(delete_nodes)
         self.assertEqual(delete_node_response.code, 404)
@@ -912,7 +914,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
             {"node": 1},
             {"nodes": {"weight": 1}},
             [],
-            "not JSON",
+            b"not JSON",
             {"node": {"weight": "not a number", "address": "1.1.1.1"}},
             {"node": {"condition": "INVALID", "id": 1}},
             {"node": {"type": "INVALID", "weight": 1000}},
@@ -1027,7 +1029,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
 
         # check if feed is updated
         d = request(
-            self, self.root, "GET",
+            self, self.root, b"GET",
             "{0}/loadbalancers/{1}/nodes/{2}.atom".format(self.uri, self.lb_id,
                                                           self.node[0]["id"]))
         feed_response = self.successResultOf(d)
@@ -1045,7 +1047,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         XML
         """
         d = request(
-            self, self.root, "GET",
+            self, self.root, b"GET",
             "{0}/loadbalancers/{1}/nodes/{2}.atom".format(self.uri, self.lb_id, 0))
         feed_response = self.successResultOf(d)
         self.assertEqual(feed_response.code, 404)
@@ -1061,7 +1063,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         "load balancer not found" XML
         """
         d = request(
-            self, self.root, "GET",
+            self, self.root, b"GET",
             "{0}/loadbalancers/{1}/nodes/{2}.atom".format(self.uri, 0, 0))
         feed_response = self.successResultOf(d)
         self.assertEqual(feed_response.code, 404)
@@ -1091,7 +1093,7 @@ class LoadbalancerAPINegativeTests(SynchronousTestCase):
         Helper method to create a load balancer with the given metadata
         """
         create_lb = request(
-            self, self.root, "POST", self.uri + '/loadbalancers',
+            self, self.root, b"POST", self.uri + '/loadbalancers',
             json.dumps({
                 "loadBalancer": {
                     "name": "test_lb",
@@ -1109,7 +1111,7 @@ class LoadbalancerAPINegativeTests(SynchronousTestCase):
         Adds a node to the load balancer and returns the response object
         """
         create_node = request(
-            self, self.root, "POST", self.uri + '/loadbalancers/'
+            self, self.root, b"POST", self.uri + '/loadbalancers/'
             + str(lb_id) + '/nodes',
             json.dumps({"nodes": [{"address": "127.0.0.1",
                                    "port": 80,
@@ -1124,7 +1126,7 @@ class LoadbalancerAPINegativeTests(SynchronousTestCase):
         Makes the `GET` call for the given loadbalancer id and returns the
         load balancer object.
         """
-        get_lb = request(self, self.root, "GET", self.uri + '/loadbalancers/' + str(lb_id))
+        get_lb = request(self, self.root, b"GET", self.uri + '/loadbalancers/' + str(lb_id))
         get_lb_response = self.successResultOf(get_lb)
         get_lb_response_body = self.successResultOf(treq.json_content(get_lb_response))
         return get_lb_response_body
@@ -1133,7 +1135,7 @@ class LoadbalancerAPINegativeTests(SynchronousTestCase):
         """
         Deletes the given load balancer id and returns the response
         """
-        delete_lb = request(self, self.root, "DELETE", self.uri + '/loadbalancers/' +
+        delete_lb = request(self, self.root, b"DELETE", self.uri + '/loadbalancers/' +
                             str(lb_id))
         return self.successResultOf(delete_lb)
 
@@ -1178,7 +1180,7 @@ class LoadbalancerAPINegativeTests(SynchronousTestCase):
         create_node_response = self._add_node_to_lb(lb["id"])
         self.assertEqual(create_node_response.code, 422)
         # An lb in ERROR state can be deleted
-        delete_lb = request(self, self.root, "DELETE", self.uri + '/loadbalancers/' +
+        delete_lb = request(self, self.root, b"DELETE", self.uri + '/loadbalancers/' +
                             str(lb["id"]))
         delete_lb_response = self.successResultOf(delete_lb)
         self.assertEqual(delete_lb_response.code, 202)
@@ -1202,11 +1204,11 @@ class LoadbalancerAPINegativeTests(SynchronousTestCase):
         create_node_response = self._add_node_to_lb(lb["id"])
         self.assertEqual(create_node_response.code, 422)
         delete_nodes = request(
-            self, self.root, "DELETE", self.uri + '/loadbalancers/' +
+            self, self.root, b"DELETE", self.uri + '/loadbalancers/' +
             str(lb["id"]) + '/nodes/123')
         self.assertEqual(self.successResultOf(delete_nodes).code, 422)
         # An lb in PENDING-UPDATE state can be deleted
-        delete_lb = request(self, self.root, "DELETE", self.uri + '/loadbalancers/' +
+        delete_lb = request(self, self.root, b"DELETE", self.uri + '/loadbalancers/' +
                             str(lb["id"]))
         delete_lb_response = self.successResultOf(delete_lb)
         self.assertEqual(delete_lb_response.code, 202)
@@ -1259,28 +1261,28 @@ class LoadbalancerAPINegativeTests(SynchronousTestCase):
 
         # GET node on load balancer in DELETED status results in 410
         get_node = request(
-            self, self.root, "GET", self.uri + '/loadbalancers/' +
+            self, self.root, b"GET", self.uri + '/loadbalancers/' +
             str(lb["id"]) + '/nodes/123')
         get_node_response = self.successResultOf(get_node)
         self.assertEqual(get_node_response.code, 410)
 
         # GET node feed on load balancer in DELETED status results in 410
         node_feed = request(
-            self, self.root, "GET", self.uri + '/loadbalancers/' +
+            self, self.root, b"GET", self.uri + '/loadbalancers/' +
             str(lb["id"]) + '/nodes/123.atom')
         node_feed_response = self.successResultOf(node_feed)
         self.assertEqual(node_feed_response.code, 410)
 
         # List node on load balancer in DELETED status results in 410
         list_nodes = request(
-            self, self.root, "GET", self.uri + '/loadbalancers/' + str(lb["id"])
+            self, self.root, b"GET", self.uri + '/loadbalancers/' + str(lb["id"])
             + '/nodes')
         self.assertEqual(self.successResultOf(list_nodes).code, 410)
 
         # Progress past "deleting now"
         self.helper.clock.advance(4000)
         list_nodes = request(
-            self, self.root, "GET", self.uri + '/loadbalancers/' + str(lb["id"])
+            self, self.root, b"GET", self.uri + '/loadbalancers/' + str(lb["id"])
             + '/nodes')
         self.assertEqual(self.successResultOf(list_nodes).code, 404)
 

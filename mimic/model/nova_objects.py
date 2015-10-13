@@ -2,6 +2,8 @@
 Model objects for the Nova mimic.
 """
 
+from __future__ import unicode_literals
+
 import re
 
 from characteristic import attributes, Attribute
