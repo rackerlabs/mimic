@@ -929,23 +929,15 @@ class RegionalServerCollection(object):
                                          http_action_request))
 
         elif 'createImage' in action_json:
-            print "%%%%%%%%"
             image_name = action_json['createImage'].get('name')
             server == self.server_by_id(server_id)
             links = server.links_json(absolutize_url)
             server_id = server.server_id
             image_ref = server.image_ref
-            print "$$$$$$$ " + image_ref
             image = image_store.get_image_by_id(image_ref)
-
-            # print "LLLLLLL "
-            print image
-            print image_ref
             image_json = regional_image_collection.get_image(http_action_request,
                                                              image_ref, image_store, absolutize_url)
-            # print image_json
             image_dict = loads(image_json)
-            print image_dict
             flavor_classes = image_dict['image']['metadata']['flavor_classes']
             os_type = image_dict['image']['metadata']['os_type']
             os_distro = image_dict['image']['metadata']['org.openstack__1__os_distro']

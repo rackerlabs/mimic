@@ -10,7 +10,7 @@ from rackspace_images import (RackspaceWindowsImage, RackspaceArchImage, Rackspa
 
 
 @attributes([Attribute("image_store", default_factory=list)])
-class ImageStore(object):
+class RackspaceImageStore(object):
     """
     A store for images to share between nova_api and glance_api
     """

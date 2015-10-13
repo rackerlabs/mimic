@@ -17,8 +17,7 @@ from twisted.python.urlpath import URLPath
 
 from twisted.plugin import IPlugin
 from twisted.web.http import CREATED, BAD_REQUEST
-from mimic.canned_responses.nova import get_limit, \
-    get_networks, get_os_volume_attachments
+from mimic.canned_responses.nova import get_limit, get_networks, get_os_volume_attachments
 from mimic.model.keypair_objects import GlobalKeyPairCollections, KeyPair
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
@@ -30,8 +29,8 @@ from mimic.model.nova_objects import (
     bad_request, forbidden, not_found, server_creation)
 
 from mimic.model.rackspace_flavor_collection import GlobalFlavorCollection
-from mimic.model.nova_image_collection import GlobalImageCollection
-from mimic.model.rackspace_image_store import ImageStore
+from mimic.model.nova_image_collection import GlobalNovaImageCollection
+from mimic.model.rackspace_image_store import RackspaceImageStore
 
 Request.defaultContentType = 'application/json'
 
@@ -228,9 +227,9 @@ class NovaRegion(object):
     def _image_collection_for_tenant(self, tenant_id):
         tenant_session = self._session_store.session_for_tenant_id(tenant_id)
         image_global_collection = tenant_session.data_for_api(
-            "image_collection",
-            lambda: GlobalImageCollection(tenant_id=tenant_id,
-                                          clock=self._session_store.clock))
+            "nova_image_collection",
+            lambda: GlobalNovaImageCollection(tenant_id=tenant_id,
+                                              clock=self._session_store.clock))
         image_region_collection = image_global_collection.collection_for_region(
             self._name)
         return image_region_collection
@@ -238,8 +237,8 @@ class NovaRegion(object):
     def _image_store_for_tenant(self, tenant_id):
         tenant_session = self._session_store.session_for_tenant_id(tenant_id)
         image_store = tenant_session.data_for_api(
-            "image_store",
-            lambda: ImageStore()
+            "rackspace_image_store",
+            lambda: RackspaceImageStore()
         )
         return image_store
 

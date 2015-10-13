@@ -13,7 +13,7 @@ from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.imimic import IAPIMock
-from mimic.model.rackspace_image_store import ImageStore
+from mimic.model.rackspace_image_store import RackspaceImageStore
 from mimic.model.glance_image_collection import GlobalGlanceImageCollection
 Request.defaultContentType = 'application/json'
 
@@ -67,8 +67,8 @@ class GlanceMock(object):
     def _image_store_for_tenant(self, tenant_id):
         tenant_session = self._session_store.session_for_tenant_id(tenant_id)
         image_store = tenant_session.data_for_api(
-            "image_store",
-            lambda: ImageStore()
+            "rackspace_image_store",
+            lambda: RackspaceImageStore()
         )
         return image_store
 
