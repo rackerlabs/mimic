@@ -147,13 +147,13 @@ class LoadBalancerControlRegion(object):
 
         try:
             regional_lbs.set_attributes(clb_id, content)
-        except BadKeysError, bke:
+        except BadKeysError as bke:
             request.setResponseCode(400)
             return json.dumps({
                 "message": str(bke),
                 "code": 400,
             })
-        except BadValueError, bve:
+        except BadValueError as bve:
             request.setResponseCode(400)
             return json.dumps({
                 "message": str(bve),
