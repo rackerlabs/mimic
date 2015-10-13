@@ -952,6 +952,7 @@ class NovaAPITests(SynchronousTestCase):
         image_list_response = self.successResultOf(image_list)
 
         image_list_response_body = self.successResultOf(treq.json_content(image_list_response))
+        image_list_size = len(image_list_response_body['images'])
         random_image_choice = random.randint(0, (len(image_list_response_body['images'])) - 1)
         image_id = image_list_response_body['images'][random_image_choice]['id']
         server_name = 'createdFromImage'
@@ -970,7 +971,7 @@ class NovaAPITests(SynchronousTestCase):
         image = [image for image in image_list_response_body['images']
                  if image['name'] == 'CreatedImage']
         self.assertEqual((image[0]['name']), "CreatedImage")
-
+        self.assertEqual(image_list_size + 1, len(image_list_response_body['images']))
 
 class NovaAPIChangesSinceTests(SynchronousTestCase):
     """
