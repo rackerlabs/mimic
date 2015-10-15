@@ -68,6 +68,30 @@ class KeyPairTests(SynchronousTestCase):
         self.assertTrue(len(body['keypair']['fingerprint']) > 1)
         self.assertTrue(len(body['keypair']['user_id']) > 1)
 
+    def test_keypair_list_with_multiple_keys(self):
+        kp_test_body_1 = {
+            "keypair": {
+                "name": "test_key_one",
+                "public_key": "ssh-rsa testkeyone"
+            }
+        }
+
+        kp_test_body_2 = {
+            "keypair": {
+                "name": "test_key_two",
+                "public_key": "ssh-rsa testkeytwo"
+            }
+        }
+        self.create_keypair(kp_test_body_1)
+        self.create_keypair(kp_test_body_2)
+        resp, body = self.get_keypairs_list()
+        self.assertEqual(body['keypairs'][0]['keypair']
+                         ['name'], self.keypair_name)
+        self.assertEqual(body['keypairs'][1]['keypair']
+                         ['name'], "test_key_one")
+        self.assertEqual(body['keypairs'][2]['keypair']
+                         ['name'], "test_key_two")
+
     def test_error_create_keypair(self):
         test_error_body = b"{{a]"
         resp, body = self.create_keypair(test_error_body)
