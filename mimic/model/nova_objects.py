@@ -3,7 +3,7 @@ Model objects for the Nova mimic.
 """
 
 import re
-
+import uuid
 from characteristic import attributes, Attribute
 from random import randrange
 from json import loads, dumps
@@ -21,6 +21,7 @@ from mimic.model.behaviors import (
     BehaviorRegistryCollection, EventDescription, Criterion, regexp_predicate
 )
 from twisted.web.http import ACCEPTED, BAD_REQUEST, FORBIDDEN, NOT_FOUND
+from mimic.model.rackspace_images import RackspaceSavedImage
 
 
 @attributes(['nova_message'])
@@ -293,7 +294,7 @@ class Server(object):
         """
         now = collection.clock.seconds()
         server_json = creation_json['server']
-        disk_config = server_json.get('OS-DCF:diskConfig', None) or "AUTO"
+        disk_config = server_json.get('OS-DCF:diskConfig', None) or "MANUAL"
         if disk_config not in ["AUTO", "MANUAL"]:
             raise BadRequestError(nova_message=(
                 "OS-DCF:diskConfig must be either 'MANUAL' or 'AUTO'."))
@@ -812,7 +813,8 @@ class RegionalServerCollection(object):
         server.update_status(u"DELETED")
         return b''
 
-    def request_action(self, http_action_request, server_id, absolutize_url):
+    def request_action(self, http_action_request, server_id, absolutize_url,
+                       regional_image_collection, image_store):
         """
         Perform the requested action on the provided server
         """
@@ -925,6 +927,37 @@ class RegionalServerCollection(object):
                 return dumps(conflicting("Cannot 'rebuild' instance " + server_id +
                                          " while it is in task state other than active",
                                          http_action_request))
+
+        elif 'createImage' in action_json:
+            image_name = action_json['createImage'].get('name')
+            server == self.server_by_id(server_id)
+            links = server.links_json(absolutize_url)
+            server_id = server.server_id
+            image_ref = server.image_ref
+            image = image_store.get_image_by_id(image_ref)
+            image_json = regional_image_collection.get_image(http_action_request,
+                                                             image_ref, image_store, absolutize_url)
+            image_dict = loads(image_json)
+            flavor_classes = image_dict['image']['metadata']['flavor_classes']
+            os_type = image_dict['image']['metadata']['os_type']
+            os_distro = image_dict['image']['metadata']['org.openstack__1__os_distro']
+            vm_mode = image_dict['image']['metadata']['vm_mode']
+            disk_config = image_dict['image']['metadata']['auto_disk_config']
+            image_id = str(uuid.uuid4())
+            image_size = image.image_size
+            minRam = image.minRam
+            minDisk = image.minDisk
+            saved_image = RackspaceSavedImage(image_id=image_id, tenant_id=self.tenant_id,
+                                              image_size=image_size, name=image_name, minRam=minRam,
+                                              minDisk=minDisk, links=links, server_id=server_id,
+                                              flavor_classes=flavor_classes, os_type=os_type,
+                                              os_distro=os_distro, vm_mode=vm_mode,
+                                              disk_config=disk_config)
+
+            image_store.add_image_to_store(saved_image)
+            http_action_request.setHeader('Location', 'www.someurl.com')
+            http_action_request.setResponseCode(202)
+            return b''
 
         else:
             return dumps(bad_request("There is no such action currently supported", http_action_request))

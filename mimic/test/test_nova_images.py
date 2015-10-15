@@ -106,7 +106,7 @@ class NovaAPIVirtualImageTests(SynchronousTestCase):
         for each_image in image_list:
             self.assertEqual(
                 sorted(each_image.keys()),
-                sorted(['id', 'name', 'links', 'minRam', 'status',
+                sorted(['id', 'name', 'links', 'minRam', 'status', 'OS-DCF:diskConfig',
                         'OS-EXT-IMG-SIZE:size', 'metadata', 'progress', 'created', 'updated',
                         'minDisk', 'com.rackspace__1__ui_default_show']))
 
@@ -207,4 +207,5 @@ class NovaAPIOnMetalImageTests(SynchronousTestCase):
                                                                 'status', 'OS-EXT-IMG-SIZE:size',
                                                                 'metadata', 'progress', 'created',
                                                                 'updated', 'minDisk',
-                                                                'com.rackspace__1__ui_default_show']))
+                                                                'com.rackspace__1__ui_default_show',
+                                                                'OS-DCF:diskConfig']))

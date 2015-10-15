@@ -17,8 +17,7 @@ from twisted.python.urlpath import URLPath
 
 from twisted.plugin import IPlugin
 from twisted.web.http import CREATED, BAD_REQUEST
-from mimic.canned_responses.nova import get_limit, \
-    get_networks, get_os_volume_attachments
+from mimic.canned_responses.nova import get_limit, get_networks, get_os_volume_attachments
 from mimic.model.keypair_objects import GlobalKeyPairCollections, KeyPair
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
@@ -29,8 +28,10 @@ from mimic.model.nova_objects import (
     BadRequestError, GlobalServerCollections, LimitError, Server,
     bad_request, forbidden, not_found, server_creation)
 
-from mimic.model.flavor_collections import GlobalFlavorCollection
-from mimic.model.image_collections import GlobalImageCollection
+from mimic.model.rackspace_flavor_collection import GlobalFlavorCollection
+from mimic.model.nova_image_collection import GlobalNovaImageCollection
+from mimic.model.rackspace_image_store import RackspaceImageStore
+
 Request.defaultContentType = 'application/json'
 
 
@@ -226,12 +227,20 @@ class NovaRegion(object):
     def _image_collection_for_tenant(self, tenant_id):
         tenant_session = self._session_store.session_for_tenant_id(tenant_id)
         image_global_collection = tenant_session.data_for_api(
-            "image_collection",
-            lambda: GlobalImageCollection(tenant_id=tenant_id,
-                                          clock=self._session_store.clock))
+            "nova_image_collection",
+            lambda: GlobalNovaImageCollection(tenant_id=tenant_id,
+                                              clock=self._session_store.clock))
         image_region_collection = image_global_collection.collection_for_region(
             self._name)
         return image_region_collection
+
+    def _image_store_for_tenant(self, tenant_id):
+        tenant_session = self._session_store.session_for_tenant_id(tenant_id)
+        image_store = tenant_session.data_for_api(
+            "rackspace_image_store",
+            lambda: RackspaceImageStore()
+        )
+        return image_store
 
     def _keypair_collection_for_tenant(self, tenant_id):
         """
@@ -327,24 +336,27 @@ class NovaRegion(object):
         """
         Returns a get image response, for any given imageid
         """
+        image_store = self._image_store_for_tenant(tenant_id)
         return(self._image_collection_for_tenant(tenant_id)
-               .get_image(request, image_id, absolutize_url=self.url))
+               .get_image(request, image_id, image_store, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/images/detail', methods=['GET'])
     def get_image_details(self, request, tenant_id):
         """
         Returns details
         """
+        image_store = self._image_store_for_tenant(tenant_id)
         return (self._image_collection_for_tenant(tenant_id)
-                .list_images(include_details=True, absolutize_url=self.url))
+                .list_images(image_store, include_details=True, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/images', methods=['GET'])
     def get_images(self, request, tenant_id):
         """
         Return images
         """
+        image_store = self._image_store_for_tenant(tenant_id)
         return (self._image_collection_for_tenant(tenant_id)
-                .list_images(include_details=False, absolutize_url=self.url))
+                .list_images(image_store, include_details=False, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/flavors/<string:flavor_id>', methods=['GET'])
     def get_flavor_details(self, request, tenant_id, flavor_id):
@@ -428,7 +440,11 @@ class NovaRegion(object):
         """
         Perform the requested action on the server
         """
-        return self._region_collection_for_tenant(tenant_id).request_action(request, server_id, self.url)
+        image_store = self._image_store_for_tenant(tenant_id)
+        regional_image_collection = self._image_collection_for_tenant(tenant_id)
+        return self._region_collection_for_tenant(tenant_id).request_action(request, server_id, self.url,
+                                                                            regional_image_collection,
+                                                                            image_store)
 
     @app.route("/v2/<string:tenant_id>/os-keypairs", methods=['GET'])
     def get_key_pairs(self, request, tenant_id):
