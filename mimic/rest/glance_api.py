@@ -121,3 +121,10 @@ class GlanceMock(object):
         else:
             return self._glance_image_collection_for_tenant(tenant_id).\
                 list_images(self._region, tenant_id, image_store, include_details=True)
+
+    @app.route('/v2/<string:tenant_id>/images/<string:image_id>', methods=['DELETE'])
+    def update_image(self, request, tenant_id, image_id):
+        image_store = self._image_store_for_tenant(tenant_id)
+        return self._glance_image_collection_for_tenant(tenant_id).delete_image(self._region, request,
+                                                                                tenant_id, image_id,
+                                                                                image_store)

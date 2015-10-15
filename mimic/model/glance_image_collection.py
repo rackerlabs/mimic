@@ -51,6 +51,11 @@ class RegionalGlanceImageCollection(object):
 
         return dumps(result)
 
+    def delete_image(self, region_name, request, tenant_id, image_id, image_store):
+        image_store.delete_image_from_store(image_id)
+        request.setResponseCode(204)
+        return b''
+
 
 @attributes(["tenant_id", "clock",
              Attribute("regional_collections", default_factory=dict)])
