@@ -24,10 +24,10 @@ from mimic.rest.auth_api import base_uri_from_request
 from mimic.rest.mimicapp import MimicApp
 from mimic.imimic import IAPIMock
 from mimic.canned_responses.maas_json_home import json_home
-from mimic.canned_responses.maas_agent_info import agent_info
 from mimic.canned_responses.maas_monitoring_zones import monitoring_zones
 from mimic.canned_responses.maas_alarm_examples import alarm_examples
-from mimic.model.maas_objects import (Alarm,
+from mimic.model.maas_objects import (Agent,
+                                      Alarm,
                                       AlarmState,
                                       Check,
                                       Entity,
@@ -90,7 +90,6 @@ class MCache(object):
         """
         current_time_milliseconds = int(1000 * clock.seconds())
 
-        self.agenthostinfo_querycount = collections.defaultdict(lambda: 0, {})
         self.entities_list = []
         self.checks_list = []
         self.alarms_list = []
@@ -940,9 +939,20 @@ class MaasMock(object):
     @app.route('/v1.0/<string:tenant_id>/views/agent_host_info', methods=['GET'])
     def view_agent_host_info(self, request, tenant_id):
         """
-        Return 400 until the fifth attempt, then start to return data as if the
-        Agent is truly installed and working.
+        Mocks the /views/agent_host_info API call.
         """
+        entities = self._entity_cache_for_tenant(tenant_id).entities_list
+        maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
+
+        if 'include' not in request.args:
+            request.setResponseCode(400)
+            return json.dumps({'type': 'badRequest',
+                               'code': 400,
+                               'message': 'Validation error for key \'include\'',
+                               'details': 'Must include at least one HOST_INFO_TYPE.',
+                               'txnId': ('.fake.mimic.transaction.id.c-1111111'
+                                          '.ts-123444444.v-12344frf')})
+
         if 'entityId' not in request.args:
             request.setResponseCode(400)
             return json.dumps({'type': 'badRequest',
@@ -950,14 +960,22 @@ class MaasMock(object):
                                'message': 'Validation error for key \'agentId, entityId, uri\'',
                                'details': 'You must specify an agentId, entityId, or an entity URI.',
                                'mimicNotes': 'But mimic will only accept entityId right now',
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+                               'txnId': ('.fake.mimic.transaction.id.c-1111111'
+                                         '.ts-123444444.v-12344frf')})
 
         entity_id = request.args['entityId'][0].strip()
-        for e in self._entity_cache_for_tenant(tenant_id).entities_list:
-            if e.id == entity_id:
-                if e.agent_id is None:
-                    e.agent_id = random_hex_generator(12)
-                agent_id = e.agent_id
+        agent_id = None
+        for entity in entities:
+            if entity.id == entity_id:
+                if entity.agent_id is None:
+                    request.setResponseCode(400)
+                    return json.dumps({'type': 'agentDoesNotExist',
+                                       'code': 400,
+                                       'message': 'Agent does not exist',
+                                       'details': 'Agent null does not exist',
+                                       'txnId': ('.fake.mimic.transaction.id.c-1111111.'
+                                                 'ts-123444444.v-12344frf')})
+                agent_id = entity.agent_id
                 break
         else:
             request.setResponseCode(404)
@@ -969,18 +987,22 @@ class MaasMock(object):
                                'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'
                                })
 
-        self._entity_cache_for_tenant(tenant_id).agenthostinfo_querycount[entity_id] += 1
-        if self._entity_cache_for_tenant(tenant_id).agenthostinfo_querycount[entity_id] < 5:
-            request.setResponseCode(400)
-            return json.dumps({
-                "type": "agentDoesNotExist",
-                "code": 400,
-                "message": "Agent does not exist",
-                "details": "Agent XYZ does not exist.",
-                "txnId": ".fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf"
-            })
-        else:
-            return json.dumps(agent_info(entity_id, agent_id))
+        agent = maas_store.agents[maas_store.agents.index(Matcher(
+            lambda agent: agent.id == agent_id))]
+
+        request.setResponseCode(200)
+        return json.dumps({'values': [{'agent_id': agent_id,
+                                       'entity_id': entity_id,
+                                       'entity_uri': entity.uri,
+                                       'host_info': agent.get_host_info(maas_store.host_info_types,
+                                                                        request.args['include'],
+                                                                        entity_id,
+                                                                        self._session_store.clock)}],
+                           'metadata': {'count': 1,
+                                        'limit': 100,
+                                        'marker': None,
+                                        'next_marker': None,
+                                        'next_href': None}})
 
     @app.route('/v1.0/<string:tenant_id>/agent_installers', methods=['POST'])
     def agent_installer(self, request, tenant_id):
@@ -1692,4 +1714,32 @@ class MaasController(object):
                 monitoring_zone=monitoring_zone,
                 override_fn=override_fn)
         request.setResponseCode(204)
+        return b''
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/agents', methods=['POST'])
+    def create_agent(self, request, tenant_id, entity_id):
+        """
+        Creates or overwrites an agent on the entity.
+        """
+        entities = self._entity_cache_for_tenant(tenant_id).entities_list
+        maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
+        entity = None
+
+        try:
+            entity = entities[entities.index(Matcher(lambda en: en.id == entity_id))]
+        except ValueError:
+            request.setResponseCode(404)
+            return json.dumps({'type': 'notFoundError',
+                               'code': 404,
+                               'message': 'Object does not exist',
+                               'details': ('Object "Entity" with key "{0}" '.format(entity_id) +
+                                           'does not exist'),
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+
+        agent = Agent()
+        maas_store.agents.append(agent)
+        entity.agent_id = agent.id
+        request.setResponseCode(201)
+        request.setHeader(b'x-object-id', agent.id.encode('utf-8'))
+        request.setHeader(b'content-type', b'text/plain')
         return b''
