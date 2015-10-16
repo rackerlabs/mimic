@@ -62,13 +62,11 @@ class RegionalKeyPairCollection(object):
         """
         result = {"keypairs": []}
         if len(self.keypairs) > 0:
-            keypairs_json = {}
+            keypairs_json = []
             for keypair in self.keypairs:
-                keypairs_json.update(keypair.key_json())
+                keypairs_json.append(keypair.key_json())
             result = {
-                "keypairs": [
-                    keypairs_json
-                ]
+                "keypairs": keypairs_json
             }
 
         return json.dumps(result)
