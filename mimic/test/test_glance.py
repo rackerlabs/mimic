@@ -1,9 +1,11 @@
 import treq
 import json
+import random
 from twisted.trial.unittest import SynchronousTestCase
 from mimic.test.fixtures import APIMockHelper
 from mimic.test.helpers import request
 from mimic.rest.glance_api import GlanceApi
+from mimic.rest.nova_api import NovaApi, NovaControlApi
 
 
 class GlanceAPITests(SynchronousTestCase):
