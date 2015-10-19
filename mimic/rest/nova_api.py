@@ -325,18 +325,16 @@ class NovaRegion(object):
         """
         Returns a 204 response code, for any server id'
         """
-        return (
-            self._region_collection_for_tenant(tenant_id)
-            .request_delete(request, server_id)
-        )
+        return (self._region_collection_for_tenant(tenant_id)
+                .request_delete(request, server_id))
 
     @app.route('/v2/<string:tenant_id>/images/<string:image_id>', methods=['GET'])
     def get_image(self, request, tenant_id, image_id):
         """
         Returns a get image response, for any given imageid
         """
-        return(self._image_collection_for_tenant(tenant_id)
-               .get_image(request, image_id, absolutize_url=self.url))
+        return (self._image_collection_for_tenant(tenant_id)
+                .get_image(request, image_id, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/images/detail', methods=['GET'])
     def get_server_image_list_with_details(self, request, tenant_id):
