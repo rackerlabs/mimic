@@ -73,13 +73,14 @@ class GlanceMock(object):
         return image_store
 
     def _glance_image_collection_for_tenant(self, tenant_id):
+        image_store = self._image_store_for_tenant(tenant_id)
         tenant_session = self._session_store.session_for_tenant_id(tenant_id)
         glance_image_global_collection = tenant_session.data_for_api(
             "glance_image_collection",
             lambda: GlobalGlanceImageCollection(tenant_id=tenant_id,
                                                 clock=self._session_store.clock))
         glance_image_region_collection = glance_image_global_collection.collection_for_region(
-            self._region)
+            self._region, image_store)
         return glance_image_region_collection
 
     app = MimicApp()
@@ -92,8 +93,6 @@ class GlanceMock(object):
             an empty array
         The call with visibility is private, for now we just return and empty array
         """
-        image_store = self._image_store_for_tenant(tenant_id)
-
         if 'member_status' in request.args:
             status = request.args.get('member_status')[0]
             visible = request.args.get('visibility')[0]
@@ -114,10 +113,10 @@ class GlanceMock(object):
             visible = request.args.get('visibility')[0]
             if visible == 'public':
                 return self._glance_image_collection_for_tenant(tenant_id).\
-                    list_images(self._region, tenant_id, image_store, include_details=True)
+                    list_images(self._region, tenant_id, include_details=True)
             else:
                 return dumps({"images": [], "schema": "/v2/schemas/images",
                               "first": "/v2/images?limit=1000&visibility=private"})
         else:
             return self._glance_image_collection_for_tenant(tenant_id).\
-                list_images(self._region, tenant_id, image_store, include_details=True)
+                list_images(self._region, tenant_id, include_details=True)
