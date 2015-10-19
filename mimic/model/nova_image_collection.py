@@ -13,16 +13,16 @@ from mimic.canned_responses.mimic_presets import get_presets
 
 
 @attributes(
-    ["tenant_id", "region_name", "clock"])
+    ["tenant_id", "region_name", "clock", "image_store"])
 class RegionalNovaImageCollection(object):
     """
     A collection of images, in a given region, for a given tenant.
     """
-    def list_images(self, image_store, include_details, absolutize_url):
+    def list_images(self, include_details, absolutize_url):
         """
         Return a list of images.
         """
-        images_store = image_store.create_image_store(self.tenant_id)
+        images_store = self.image_store.create_image_store(self.tenant_id)
         images = []
         for image in images_store:
             if self.region_name != "IAD" and isinstance(image, OnMetalImage):
@@ -34,7 +34,7 @@ class RegionalNovaImageCollection(object):
         result = {"images": images}
         return dumps(result)
 
-    def get_image(self, http_get_request, image_id, image_store, absolutize_url):
+    def get_image(self, http_get_request, image_id, absolutize_url):
         """
         Return an image object if one exists from the list `/images` api,
         else return 404 Image not found.
@@ -42,8 +42,8 @@ class RegionalNovaImageCollection(object):
         if image_id in get_presets['servers']['invalid_image_ref'] or image_id.endswith('Z'):
             return dumps(not_found("The resource could not be found.",
                                    http_get_request))
-        image_store.create_image_store(self.tenant_id)
-        image = image_store.get_image_by_id(image_id)
+        self.image_store.create_image_store(self.tenant_id)
+        image = self.image_store.get_image_by_id(image_id)
         if image is None:
             return dumps(not_found('Image not found.', http_get_request))
         return dumps({"image": image.detailed_json(absolutize_url)})
@@ -58,7 +58,7 @@ class GlobalNovaImageCollection(object):
     words, all the image objects that a single tenant owns globally.
     """
 
-    def collection_for_region(self, region_name):
+    def collection_for_region(self, region_name, image_store):
         """
         Get a :obj:`RegionalFlavorCollection` for the region identified by the
         given name.
@@ -66,5 +66,5 @@ class GlobalNovaImageCollection(object):
         if region_name not in self.regional_collections:
             self.regional_collections[region_name] = (
                 RegionalNovaImageCollection(tenant_id=self.tenant_id, region_name=region_name,
-                                            clock=self.clock))
+                                            clock=self.clock, image_store=image_store))
         return self.regional_collections[region_name]
