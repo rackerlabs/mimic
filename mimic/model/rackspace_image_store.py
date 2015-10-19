@@ -56,10 +56,3 @@ class RackspaceImageStore(object):
         Add a new image to the images store
         """
         self.image_store.append(image)
-
-    def delete_image_from_store(self, image_id):
-        """
-        Deletes an image from the image store
-        """
-        image = self.get_image_by_id(image_id)
-        self.image_store.remove(image)
