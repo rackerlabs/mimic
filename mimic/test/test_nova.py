@@ -942,6 +942,11 @@ class NovaAPITests(SynchronousTestCase):
         })
 
     def test_create_image(self):
+        """
+        Creating an image of a server responds with a 202 status code and adds the image to the list
+        of available images
+        https://developer.rackspace.com/docs/cloud-servers/v2/developer-guide/#create-image-of-specified-server
+        """
         create_image_request = json.dumps({"createImage": {"name": "CreatedImage"}})
         nova_api = NovaApi(["ORD", "MIMIC"])
         helper = APIMockHelper(
@@ -955,7 +960,6 @@ class NovaAPITests(SynchronousTestCase):
 
         image_list_response_body = self.successResultOf(treq.json_content(image_list_response))
         image_list_size = len(image_list_response_body['images'])
-        print image_list_size
         random_image_choice = random.randint(0, (len(image_list_response_body['images'])) - 1)
         image_id = image_list_response_body['images'][random_image_choice]['id']
         server_name = 'createdFromImage'

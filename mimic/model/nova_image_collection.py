@@ -16,7 +16,7 @@ from mimic.canned_responses.mimic_presets import get_presets
     ["tenant_id", "region_name", "clock", "image_store"])
 class RegionalNovaImageCollection(object):
     """
-    A collection of images, in a given region, for a given tenant.
+    A collection of nova images, in a given region, for a given tenant.
     """
     def list_images(self, include_details, absolutize_url):
         """
@@ -53,8 +53,8 @@ class RegionalNovaImageCollection(object):
              Attribute("regional_collections", default_factory=dict)])
 class GlobalNovaImageCollection(object):
     """
-    A :obj:`GlobalImageCollection` is a set of all the
-    :obj:`RegionalImageCollection` objects owned by a given tenant.  In other
+    A :obj:`GlobalNovaImageCollection` is a set of all the
+    :obj:`RegionalNovaImageCollection` objects owned by a given tenant.  In other
     words, all the image objects that a single tenant owns globally.
     """
 

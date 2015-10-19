@@ -1,5 +1,5 @@
 """
-Image store for Rackspace images
+An image store representing Rackspace specific images
 """
 from characteristic import attributes, Attribute
 from rackspace_images import (RackspaceWindowsImage, RackspaceArchImage, RackspaceCentOSPVImage,
@@ -12,10 +12,11 @@ from rackspace_images import (RackspaceWindowsImage, RackspaceArchImage, Rackspa
                               RackspaceOnMetalFedoraImage, RackspaceOnMetalUbuntuImage)
 
 
-@attributes([Attribute("image_store", default_factory=list)])
+@attributes([Attribute("image_list", default_factory=list)])
 class RackspaceImageStore(object):
     """
     A store for images to share between nova_api and glance_api
+    :var image_list: list of Rackspace images
     """
     def create_image_store(self, tenant_id):
         """
@@ -29,7 +30,7 @@ class RackspaceImageStore(object):
                          RackspaceScientificImage, RackspaceOnMetalCentOSImage,
                          RackspaceOnMetalCoreOSImage, RackspaceOnMetalDebianImage,
                          RackspaceOnMetalFedoraImage, RackspaceOnMetalUbuntuImage]
-        if len(self.image_store) < 1:
+        if len(self.image_list) < 1:
             for image_class in image_classes:
                 for image, image_spec in image_class.images.iteritems():
                     image_name = image
@@ -42,19 +43,19 @@ class RackspaceImageStore(object):
                                         minDisk=minDisk)
                     if 'com.rackspace__1__ui_default_show' in image_spec:
                         image.set_is_default()
-                    self.image_store.append(image)
-        return self.image_store
+                    self.image_list.append(image)
+        return self.image_list
 
     def get_image_by_id(self, image_id):
         """
         Get an image by its id
         """
-        for image in self.image_store:
+        for image in self.image_list:
             if image_id == image.image_id:
                 return image
 
     def add_image_to_store(self, image):
         """
-        Add a new image to the images store
+        Add a new image to the list of images
         """
-        self.image_store.append(image)
+        self.image_list.append(image)
