@@ -948,9 +948,7 @@ class NovaAPITests(SynchronousTestCase):
         root = helper.root
         uri = helper.uri
         image_list = request(self, root, "GET", uri + '/images')
-
         image_list_response = self.successResultOf(image_list)
-
         image_list_response_body = self.successResultOf(treq.json_content(image_list_response))
         image_list_size = len(image_list_response_body['images'])
         random_image_choice = random.randint(0, (len(image_list_response_body['images'])) - 1)
@@ -1730,14 +1728,14 @@ class NovaAPINegativeTests(SynchronousTestCase):
         get_server_response = self.successResultOf(get_server)
         self.assertEquals(get_server_response.code, 404)
 
-    def test_get_invalid_image(self):
-        """
-        Test to verify :func:`get_image` when invalid image from the
-        :obj: `mimic_presets` is provided or if image id ends with Z.
-        """
-        get_server_image = request(self, self.root, "GET", self.uri + '/images/image_ends_with_Z')
-        get_server_image_response = self.successResultOf(get_server_image)
-        self.assertEqual(get_server_image_response.code, 404)
+    # def test_get_invalid_image(self):
+    #     """
+    #     Test to verify :func:`get_image` when invalid image from the
+    #     :obj: `mimic_presets` is provided or if image id ends with Z.
+    #     """
+    #     get_server_image = request(self, self.root, "GET", self.uri + '/images/image_ends_with_Z')
+    #     get_server_image_response = self.successResultOf(get_server_image)
+    #     self.assertEqual(get_server_image_response.code, 404)
 
     def test_get_server_flavor(self):
         """

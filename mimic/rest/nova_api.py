@@ -225,13 +225,14 @@ class NovaRegion(object):
                 .collection_for_region(self._name))
 
     def _image_collection_for_tenant(self, tenant_id):
+        image_store = self._image_store_for_tenant(tenant_id)
         tenant_session = self._session_store.session_for_tenant_id(tenant_id)
         image_global_collection = tenant_session.data_for_api(
             "nova_image_collection",
             lambda: GlobalNovaImageCollection(tenant_id=tenant_id,
                                               clock=self._session_store.clock))
         image_region_collection = image_global_collection.collection_for_region(
-            self._name)
+            self._name, image_store)
         return image_region_collection
 
     def _image_store_for_tenant(self, tenant_id):
@@ -336,27 +337,24 @@ class NovaRegion(object):
         """
         Returns a get image response, for any given imageid
         """
-        image_store = self._image_store_for_tenant(tenant_id)
-        return(self._image_collection_for_tenant(tenant_id)
-               .get_image(request, image_id, image_store, absolutize_url=self.url))
+        return (self._image_collection_for_tenant(tenant_id)
+                .get_image(request, image_id, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/images/detail', methods=['GET'])
     def get_image_details(self, request, tenant_id):
         """
         Returns details
         """
-        image_store = self._image_store_for_tenant(tenant_id)
         return (self._image_collection_for_tenant(tenant_id)
-                .list_images(image_store, include_details=True, absolutize_url=self.url))
+                .list_images(include_details=True, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/images', methods=['GET'])
     def get_images(self, request, tenant_id):
         """
         Return images
         """
-        image_store = self._image_store_for_tenant(tenant_id)
         return (self._image_collection_for_tenant(tenant_id)
-                .list_images(image_store, include_details=False, absolutize_url=self.url))
+                .list_images(include_details=False, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/flavors/<string:flavor_id>', methods=['GET'])
     def get_flavor_details(self, request, tenant_id, flavor_id):

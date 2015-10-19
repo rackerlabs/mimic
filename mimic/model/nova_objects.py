@@ -935,8 +935,8 @@ class RegionalServerCollection(object):
             server_id = server.server_id
             image_ref = server.image_ref
             image = image_store.get_image_by_id(image_ref)
-            image_json = regional_image_collection.get_image(http_action_request,
-                                                             image_ref, image_store, absolutize_url)
+            image_json = regional_image_collection.get_image(http_action_request, image_ref,
+                                                             absolutize_url)
             image_dict = loads(image_json)
             flavor_classes = image_dict['image']['metadata']['flavor_classes']
             os_type = image_dict['image']['metadata']['os_type']
@@ -953,7 +953,6 @@ class RegionalServerCollection(object):
                                               flavor_classes=flavor_classes, os_type=os_type,
                                               os_distro=os_distro, vm_mode=vm_mode,
                                               disk_config=disk_config)
-
             image_store.add_image_to_store(saved_image)
             http_action_request.setHeader('Location', 'www.someurl.com')
             http_action_request.setResponseCode(202)
