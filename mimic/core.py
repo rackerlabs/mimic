@@ -48,7 +48,7 @@ class MimicCore(object):
 
         for api in apis:
             this_api_id = ((api.__class__.__name__) + '-' +
-                           random_hex_generator(3))
+                           random_hex_generator(3).decode("utf-8"))
             self._uuid_to_api[this_api_id] = api
 
     @classmethod

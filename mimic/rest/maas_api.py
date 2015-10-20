@@ -1539,7 +1539,7 @@ class MaasController(object):
         if entity_id not in test_alarm_errors:
             test_alarm_errors[entity_id] = collections.deque()
 
-        error_obj = {'id': 'er' + random_hex_generator(4),
+        error_obj = {'id': 'er' + random_hex_generator(4).decode("utf-8"),
                      'code': request_body['code'],
                      'response': request_body['response']}
         test_alarm_errors[entity_id].append(error_obj)
