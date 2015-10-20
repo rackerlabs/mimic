@@ -3,7 +3,7 @@ Tests for mimic identity (:mod:`mimic.model.identity` and
 :mod:`mimic.rest.auth_api`)
 """
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, unicode_literals
 
 import json
 

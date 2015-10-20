@@ -2,7 +2,7 @@
 Canned response for Queue
 """
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, unicode_literals
 
 
 def queues_example(queue_name):

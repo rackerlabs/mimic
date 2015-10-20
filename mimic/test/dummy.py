@@ -2,7 +2,7 @@
 Dummy classes that can be shared across test cases
 """
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, unicode_literals
 
 from zope.interface import implementer
 

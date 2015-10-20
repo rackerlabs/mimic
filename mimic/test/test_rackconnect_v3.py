@@ -2,7 +2,7 @@
 Unit tests for the Rackspace RackConnect V3 API.
 """
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, unicode_literals
 
 import json
 from random import randint

@@ -4,7 +4,7 @@
 API mock for OpenStack Swift / Rackspace Cloud Files.
 """
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, unicode_literals
 
 from uuid import uuid4, uuid5, NAMESPACE_URL
 from six import text_type

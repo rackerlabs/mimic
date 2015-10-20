@@ -2,7 +2,7 @@
 Fixtures for metrics
 """
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, unicode_literals
 
 # Remove this when changing over to object model
 # as this is repeated within the check_template
