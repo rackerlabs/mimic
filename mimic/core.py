@@ -4,7 +4,7 @@
 Service catalog hub and integration for Mimic application objects.
 """
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, unicode_literals
 
 from twisted.python.urlpath import URLPath
 from twisted.plugin import getPlugins

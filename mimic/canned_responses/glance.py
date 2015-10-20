@@ -2,7 +2,7 @@
 Cannned responses for glance images
 """
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, unicode_literals
 
 from mimic.canned_responses.json.glance.glance_images_json import (images,
                                                                    image_schema)

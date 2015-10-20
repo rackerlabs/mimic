@@ -5,7 +5,7 @@ API mock for the Rackspace RackConnect v3 API, which is documented at:
 http://docs.rcv3.apiary.io/
 """
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, unicode_literals
 
 from collections import defaultdict
 import json

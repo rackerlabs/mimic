@@ -2,7 +2,7 @@
 Model objects for images.
 """
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, unicode_literals
 
 from characteristic import attributes, Attribute
 from json import dumps

@@ -1,4 +1,4 @@
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, unicode_literals
 
 import json
 import treq
@@ -19,7 +19,7 @@ class MaasObjectsTests(SynchronousTestCase):
         Known types for TestCheckMetric are 'i', 'n', and 's'. Other types
         raise ValueError.
         """
-        metric = Metric(name='whuut', type='z')
+        metric = Metric(name='whuut', type='z', override_key=lambda **kw: 'x')
         with self.assertRaises(ValueError):
             metric.get_value_for_test_check(
                 timestamp=0,
@@ -33,7 +33,7 @@ class MaasObjectsTests(SynchronousTestCase):
         """
         clock = Clock()
         check_type = CheckType(clock=clock, metrics=[
-            Metric(name='that_metric', type='i', unit='count')])
+            Metric(name='that_metric', type='i', unit='count', override_key=lambda **kw: 'x')])
         with self.assertRaises(NameError):
             check_type.get_metric_by_name('not_that_metric')
 
@@ -945,30 +945,67 @@ class MaasAPITests(SynchronousTestCase):
         """
         fetch agent host info
         """
-        for q in range(4):
-            req = request(self, self.root, b"GET",
-                          self.uri + '/views/agent_host_info?entityId=' + self.entity_id)
-            resp = self.successResultOf(req)
-            self.assertEquals(resp.code, 400)
-            data = self.get_responsebody(resp)
-            self.assertEquals(True, 'Agent does not exist' in json.dumps(data))
-        req = request(self, self.root, b"GET",
-                      self.uri + '/views/agent_host_info?entityId=' + self.entity_id)
-        resp = self.successResultOf(req)
-        self.assertEquals(resp.code, 200)
-        data = self.get_responsebody(resp)
-        self.assertEquals(True, self.entity_id == data['values'][0]['entity_id'])
-        req = request(self, self.root, b"GET",
-                      self.uri + '/views/agent_host_info')
-        resp = self.successResultOf(req)
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, b"GET",
+                         '{0}/views/agent_host_info?entityId={1}&include=system'.format(
+                             self.uri, self.entity_id)))
         self.assertEquals(resp.code, 400)
-        data = self.get_responsebody(resp)
+        self.assertEquals(data['message'], 'Agent does not exist')
+
+        resp = self.successResultOf(
+            request(self, self.root, b"POST",
+                    '{0}/entities/{1}/agents'.format(self.ctl_uri, self.entity_id),
+                    json.dumps({})))
+        self.assertEquals(resp.code, 201)
+
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, b"GET",
+                         '{0}/views/agent_host_info?entityId={1}&include=system&include=cpus'.format(
+                             self.uri, self.entity_id)))
+        self.assertEquals(resp.code, 200)
+        self.assertEquals(self.entity_id, data['values'][0]['entity_id'])
+
+    def test_agenthostinfo_missing_entity_id_returns_400(self):
+        """
+        Attempting to fetch agent host info without an entity ID returns 400.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, b"GET",
+                         '{0}/views/agent_host_info?include=system'.format(self.uri)))
+        self.assertEquals(resp.code, 400)
         self.assertEquals(True, data['type'] == 'badRequest')
-        req = request(self, self.root, b"GET",
-                      self.uri + '/views/agent_host_info?entityId=enDoesNotExist')
-        resp = self.successResultOf(req)
+
+    def test_agenthostinfo_nonexistent_entity_returns_404(self):
+        """
+        Attempting to fetch agent host info for an entity that does not exist returns 404.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, b"GET",
+                         '{0}/views/agent_host_info?entityId=enDoesNotExist&include=system'.format(
+                             self.uri)))
         self.assertEquals(resp.code, 404)
-        data = self.get_responsebody(resp)
+        self.assertEquals(data['type'], 'notFoundError')
+
+    def test_agenthostinfo_missing_include_returns_400(self):
+        """
+        Attempting to fetch agent host info without an 'include' parameter causes a 400.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, b"GET",
+                         '{0}/views/agent_host_info?entityId={1}'.format(
+                             self.uri, self.entity_id)))
+        self.assertEquals(resp.code, 400)
+        self.assertEquals(data['message'], 'Validation error for key \'include\'')
+
+    def test_create_agent_missing_entity_returns_404(self):
+        """
+        Trying to create an agent on an entity that does not exist causes a 404.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, b"POST",
+                         '{0}/entities/enDoesNotExist/agents'.format(self.ctl_uri, self.entity_id),
+                         json.dumps({})))
+        self.assertEquals(resp.code, 404)
         self.assertEquals(data['type'], 'notFoundError')
 
     def test_agentinstallers(self):

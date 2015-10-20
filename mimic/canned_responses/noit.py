@@ -2,7 +2,7 @@
 Canned response for Noit
 """
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, unicode_literals
 
 import time
 from mimic.canned_responses.noit_metrics_fixture import (metrics_common_template,
