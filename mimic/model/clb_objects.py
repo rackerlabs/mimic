@@ -5,7 +5,7 @@ Balancer API docs
  for more information.
 """
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, unicode_literals
 
 from copy import deepcopy
 from random import randrange

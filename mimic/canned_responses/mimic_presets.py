@@ -2,7 +2,7 @@
 Defines the preset values in the mimic api.
 """
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, unicode_literals
 
 
 get_presets = {"loadbalancers": {"lb_building": "On create load balancer, keeps the load balancer in "

@@ -4,7 +4,7 @@ API Mock for Mail Gun.
 https://documentation.mailgun.com/api-sending.html
 """
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, unicode_literals
 
 import json
 import time

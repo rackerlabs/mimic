@@ -2,7 +2,7 @@
 Interfaces for Mimic.
 """
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, unicode_literals
 
 from zope.interface import Attribute, Interface
 
