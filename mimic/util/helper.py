@@ -91,7 +91,7 @@ def random_hex_generator(num):
     """
     Returns randomly generated n bytes of encoded hex data for the given `num`
     """
-    return binascii.hexlify(os.urandom(num))
+    return binascii.hexlify(os.urandom(num)).decode('utf-8')
 
 
 def seconds_to_timestamp(seconds, format=fmt):
