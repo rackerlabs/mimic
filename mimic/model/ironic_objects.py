@@ -65,11 +65,11 @@ class Node(object):
         "root_gb": "32",
         "image_source": str(uuid4()),
         "ephemeral_gb": "3200",
-        "configdrive": str(random_hex_generator(100)),
+        "configdrive": random_hex_generator(100).decode("utf-8"),
         "image_url": "http://127.0.0.1/mimic-image-url",
         "image_container_format": "bare_mimic",
         "image_disk_format": "mimic",
-        "image_checksum": str(random_hex_generator(6)),
+        "image_checksum": random_hex_generator(6).decode("utf-8"),
         "swap_mb": "0"
     }
 

@@ -104,7 +104,7 @@ class ValkyrieStore(object):
         Create an auth token without even interrogating the POSTed credential data
         """
         request.setResponseCode(200)
-        token = {"X-Auth-Token": str(random_hex_generator(16))}
+        token = {"X-Auth-Token": random_hex_generator(16).decode("utf-8")}
         return dumps(token)
 
     def get_permissions(self, request, account_number, contact_id, item_type):
