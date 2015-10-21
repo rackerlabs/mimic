@@ -333,8 +333,8 @@ class NovaRegion(object):
         """
         Returns a get image response, for any given imageid
         """
-        return (self._image_collection_for_tenant(tenant_id)
-                .get_image(request, image_id, absolutize_url=self.url))
+        return(self._image_collection_for_tenant(tenant_id)
+               .get_image(request, image_id, absolutize_url=self.url))
 
     @app.route('/v2/<string:tenant_id>/images/detail', methods=['GET'])
     def get_server_image_list_with_details(self, request, tenant_id):
