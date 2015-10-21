@@ -12,6 +12,7 @@ from json import loads, dumps
 from six.moves.urllib.parse import urlencode
 
 from six import string_types
+from six import text_type
 
 from mimic.util.helper import (
     seconds_to_timestamp,
@@ -947,7 +948,7 @@ class RegionalServerCollection(object):
             os_distro = image_dict['image']['metadata']['org.openstack__1__os_distro']
             vm_mode = image_dict['image']['metadata']['vm_mode']
             disk_config = image_dict['image']['metadata']['auto_disk_config']
-            image_id = str(uuid.uuid4())
+            image_id = text_type(uuid.uuid4())
             image_size = image.image_size
             minRam = image.minRam
             minDisk = image.minDisk
