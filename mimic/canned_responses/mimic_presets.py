@@ -56,4 +56,4 @@ get_presets = {"loadbalancers": {"lb_building": "On create load balancer, keeps 
                    "dedicated_racker": ["HybridOneTwoRacker"],
                    "dedicated_limited_device_permission_holder": ["HybridFiveSix"],
                    "dedicated_non_permission_holder": ["HybridSevenEight"],
-                   "dedicated_other_account_admin": ["HybridNineZero"]}}
+                   "dedicated_quasi_user_impersonator": ["HybridNineZero"]}}
