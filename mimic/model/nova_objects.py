@@ -651,7 +651,6 @@ def metadata_to_creation_behavior(metadata):
 @attributes(
     ["tenant_id", "region_name", "clock",
      Attribute("servers", default_factory=list),
-     Attribute("image_store", default_factory=list),
      Attribute(
          "behavior_registry_collection",
          default_factory=lambda: BehaviorRegistryCollection())]
