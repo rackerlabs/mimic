@@ -430,10 +430,6 @@ class AuthApi(object):
                     "name": "HybridOneTwo",
                     "roles": [{"id": "1",
                                "name": "monitoring:observer",
-                               "description": "Monitoring Observer"},
-                              {"id": "3",
-                               "name": "hybridRole",
-                               "description": "Hybrid Admin",
                                "tenantId": "hybrid:123456"}],
                     "RAX-AUTH:contactId": "12"
                 }
@@ -526,21 +522,27 @@ class AuthApi(object):
                     "RAX-AUTH:contactId": "78"
                 }
 
-        if token_id in get_presets["identity"]["dedicated_other_account_admin"]:
+        if token_id in get_presets["identity"]["dedicated_quasi_user_impersonator"]:
                 response["access"]["token"]["tenant"] = {
-                    "id": "hybrid:654321",
-                    "name": "hybrid:654321",
+                    "id": "hybrid:123456",
+                    "name": "hybrid:123456",
                 }
                 response["access"]["user"] = {
                     "id": "90",
                     "name": "HybridNineZero",
                     "roles": [{"id": "1",
-                               "name": "monitoring:admin",
+                               "name": "identity:user-admin",
                                "description": "Admin"},
-                              {"id": "2",
-                               "name": "admin",
-                               "description": "Admin"}],
-                    "RAX-AUTH:contactId": "90"
+                              {"id": "3",
+                               "name": "hybridRole",
+                               "description": "Hybrid Admin",
+                               "tenantId": "hybrid:123456"}]
+                }
+                response["access"]["RAX-AUTH:impersonator"] = {
+                    "id": response["access"]["user"]["id"],
+                    "name": response["access"]["user"]["name"],
+                    "roles": [{"id": "1",
+                               "name": "monitoring:service-admin"}]
                 }
 
         return json.dumps(response)
