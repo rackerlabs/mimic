@@ -61,7 +61,7 @@ class MaasApi(object):
         """
         return [
             Entry(
-                tenant_id, "rax: monitor", "cloudMonitoring",
+                tenant_id, "rax:monitor", "cloudMonitoring",
                 [
                     Endpoint(tenant_id, region, text_type(uuid4()),
                              "v1.0")
@@ -1473,7 +1473,7 @@ class MaasControlApi(object):
         """
         return [
             Entry(
-                tenant_id, "rax: monitor", "cloudMonitoringControl",
+                tenant_id, "rax:monitor", "cloudMonitoringControl",
                 [
                     Endpoint(tenant_id, region, text_type(uuid4()),
                              "v1.0")
