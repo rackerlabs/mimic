@@ -26,7 +26,7 @@ class SwiftTests(SynchronousTestCase):
         self.core = MimicCore(Clock(), [SwiftMock(rackspace_flavor)])
         self.root = MimicRoot(self.core).app.resource()
         self.response = request(
-            self, self.root, b"POST", "/identity/v2.0/tokens",
+            self, self.root, b"POST", b"/identity/v2.0/tokens",
             dumps({
                 "auth": {
                     "passwordCredentials": {
@@ -36,11 +36,13 @@ class SwiftTests(SynchronousTestCase):
                     # TODO: should this really be 'tenantId'?
                     "tenantName": "fun_tenant",
                 }
-            })
+            }).encode("utf-8")
         )
         self.auth_response = self.successResultOf(self.response)
-        self.json_body = self.successResultOf(
-            treq.json_content(self.auth_response))
+        text_body = self.successResultOf(treq.content(self.auth_response))
+        print("text_body?", repr(text_body))
+        from json import loads
+        self.json_body = loads(text_body)
 
     def test_service_catalog(self):
         """
