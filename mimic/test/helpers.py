@@ -144,7 +144,7 @@ class SynchronousProducer(object):
 
 
 def request(testCase, rootResource, method, uri, body=b"",
-            baseURI='http://localhost:8900/',
+            baseURI=b'http://localhost:8900/',
             headers=None):
     """
     Issue a request and return a synchronous response.
@@ -157,10 +157,11 @@ def request(testCase, rootResource, method, uri, body=b"",
             headers_object.setRawHeaders(key, value)
     else:
         headers_object = None
+    bytesURI = str(URLPath.fromBytes(baseURI).click(uri)).encode("utf-8")
+    print("bytes URI?", bytesURI)
     return (
         RequestTraversalAgent(testCase, rootResource)
-        .request(method, str(URLPath.fromString(baseURI).click(uri)),
-                 bodyProducer=SynchronousProducer(body),
+        .request(method, bytesURI, bodyProducer=SynchronousProducer(body),
                  headers=headers_object)
     )
 
