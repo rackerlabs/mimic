@@ -6,7 +6,7 @@ from __future__ import print_function, unicode_literals
 
 import json
 
-from six import string_types
+from six import string_types, text_type
 
 from zope.interface import implementer
 
@@ -157,7 +157,9 @@ def request(testCase, rootResource, method, uri, body=b"",
             headers_object.setRawHeaders(key, value)
     else:
         headers_object = None
-    bytesURI = str(URLPath.fromBytes(baseURI).click(uri)).encode("utf-8")
+    base = URLPath.fromBytes(baseURI)
+    relative = base.click(uri)
+    bytesURI = text_type(relative).encode("utf-8")
     print("bytes URI?", bytesURI)
     return (
         RequestTraversalAgent(testCase, rootResource)
