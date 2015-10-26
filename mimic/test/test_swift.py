@@ -1,6 +1,6 @@
 from __future__ import absolute_import, division, unicode_literals
 
-from json import dumps
+from json import loads, dumps
 
 from twisted.trial.unittest import SynchronousTestCase
 from twisted.internet.task import Clock
@@ -40,8 +40,6 @@ class SwiftTests(SynchronousTestCase):
         )
         self.auth_response = self.successResultOf(self.response)
         text_body = self.successResultOf(treq.content(self.auth_response)).decode("utf-8")
-        print("text_body?", repr(text_body))
-        from json import loads
         self.json_body = loads(text_body)
 
     def test_service_catalog(self):
@@ -111,7 +109,6 @@ class SwiftTests(SynchronousTestCase):
         container_contents = self.successResultOf(
             treq.json_content(container_response)
         )
-        print(container_contents)
         self.assertEqual(container_contents, [])
         self.assertEqual(
             container_response.headers.getRawHeaders(

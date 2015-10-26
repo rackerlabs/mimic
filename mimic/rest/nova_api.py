@@ -255,7 +255,6 @@ class NovaRegion(object):
         """
         try:
             content = json_from_request(request)
-            print("JFR returned", repr(content))
         except ValueError:
             return json.dumps(
                 bad_request("Invalid JSON request body", request))
