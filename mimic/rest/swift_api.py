@@ -34,12 +34,12 @@ def normal_tenant_id_to_crazy_mosso_id(normal_tenant_id):
     :return: a new tenant ID that looks like a Cloud Files tenant ID
     :rtype: unicode
     """
-    return (
-        "MossoCloudFS_" +
-        str(uuid5(NAMESPACE_URL,
-                  "https://github.com/rackerlabs/mimic/ns/tenant/"
-                  + normal_tenant_id))
-    )
+    full_namespace = (u"https://github.com/rackerlabs/mimic/ns/tenant/"
+                      + normal_tenant_id)
+    if bytes is str:
+        full_namespace = full_namespace.encode("ascii")
+    uuid = uuid5(NAMESPACE_URL, full_namespace)
+    return u"MossoCloudFS_" + text_type(uuid)
 
 
 @implementer(IAPIMock, IPlugin)

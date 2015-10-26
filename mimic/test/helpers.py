@@ -143,6 +143,16 @@ class SynchronousProducer(object):
         """
 
 
+def makeURLPath(s):
+    """
+    Create a URLPath with the given text or bytes.
+    """
+    if hasattr(URLPath, 'fromBytes') and isinstance(s, bytes):
+        return URLPath.fromBytes(s)
+    else:
+        return URLPath.fromString(s)
+
+
 def request(testCase, rootResource, method, uri, body=b"",
             baseURI=b'http://localhost:8900/',
             headers=None):
@@ -157,10 +167,9 @@ def request(testCase, rootResource, method, uri, body=b"",
             headers_object.setRawHeaders(key, value)
     else:
         headers_object = None
-    base = URLPath.fromBytes(baseURI)
+    base = makeURLPath(baseURI)
     relative = base.click(uri)
     bytesURI = text_type(relative).encode("utf-8")
-    print("bytes URI?", bytesURI)
     return (
         RequestTraversalAgent(testCase, rootResource)
         .request(method, bytesURI, bodyProducer=SynchronousProducer(body),
