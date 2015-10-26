@@ -6,7 +6,7 @@ from __future__ import print_function, unicode_literals
 
 import json
 
-from six import string_types, text_type
+from six import text_type
 
 from zope.interface import implementer
 
@@ -199,8 +199,8 @@ def json_request(testCase, rootResource, method, uri, body=b"",
     Issue a request with a JSON body (if there's a body at all) and return
     synchronously with a tuple of ``(response, JSON response body)``
     """
-    if not isinstance(body, string_types):
-        body = json.dumps(body)
+    if not isinstance(body, bytes):
+        body = json.dumps(body).encode("utf-8")
 
     d = request(testCase, rootResource, method, uri, body, baseURI, headers)
 
