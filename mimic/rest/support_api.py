@@ -68,7 +68,7 @@ class SupportMock(object):
 
     app = MimicApp()
 
-    @app.route('/support-accounts/<string:tenant_id>', methods=['GET'])
+    @app.route('/support-accounts/<string:tenant_id>/', methods=['GET'])
     def get_customer_data(self, request, tenant_id):
         """
         support info
