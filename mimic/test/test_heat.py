@@ -61,7 +61,7 @@ class HeatAPITests(SynchronousTestCase):
         Return a stack list, asserting that the request was successful.
         """
         query = self.query_string(query_params)
-        req = request(self, self.root, "GET", self.uri + '/stacks' + query)
+        req = request(self, self.root, b"GET", self.uri + '/stacks' + query)
         resp = self.successResultOf(req)
         self.assertEqual(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -77,8 +77,8 @@ class HeatAPITests(SynchronousTestCase):
         if tags:
             req_body['tags'] = ','.join(tags)
 
-        req = request(self, self.root, "POST", self.uri + '/stacks',
-                      body=json.dumps(req_body))
+        req = request(self, self.root, b"POST", self.uri + '/stacks',
+                      body=json.dumps(req_body).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEqual(resp.code, 201)
         data = self.get_responsebody(resp)
@@ -89,7 +89,7 @@ class HeatAPITests(SynchronousTestCase):
         Request stack delete and assert that the response matched the one
         provided.
         """
-        req = request(self, self.root, "DELETE",
+        req = request(self, self.root, b"DELETE",
                       '%s/stacks/%s/%s' % (self.uri, stack_name, stack_id))
         resp = self.successResultOf(req)
         self.assertEqual(resp.code, resp_code)
