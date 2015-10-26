@@ -2355,10 +2355,12 @@ class NovaServerTests(SynchronousTestCase):
             yield 3
             yield 3
 
-        Server.from_creation_request_json(coll, creation_json,
-                                          ipsegment=ipsegment().next)
-        Server.from_creation_request_json(coll, creation_json,
-                                          ipsegment=ipsegment().next)
+        Server.from_creation_request_json(
+            coll, creation_json,
+            ipsegment=lambda ips=ipsegment(): next(ips))
+        Server.from_creation_request_json(
+            coll, creation_json,
+            ipsegment=lambda ips=ipsegment(): next(ips))
         self.assertEqual(coll.servers[0].private_ips,
                          [IPv4Address(address='10.180.1.1')])
         self.assertEqual(coll.servers[1].private_ips,
