@@ -22,6 +22,7 @@ from mimic.util.helper import (
 from mimic.model.behaviors import (
     BehaviorRegistryCollection, EventDescription, Criterion, regexp_predicate
 )
+from mimic.util.helper import json_from_request
 from twisted.web.http import ACCEPTED, BAD_REQUEST, FORBIDDEN, NOT_FOUND, CONFLICT
 
 
@@ -673,7 +674,8 @@ class RegionalServerCollection(object):
         """
         Request that a server be created.
         """
-        metadata = creation_json.get('server', {}).get('metadata') or {}
+        server = creation_json.get('server', {})
+        metadata = server.get('metadata', {})
         behavior = metadata_to_creation_behavior(metadata)
         if behavior is None:
             registry = self.behavior_registry_collection.registry_by_event(
@@ -826,7 +828,7 @@ class RegionalServerCollection(object):
         if server is None:
             return dumps(not_found("Instance " + server_id + " could not be found",
                                    http_action_request))
-        action_json = loads(http_action_request.content.read())
+        action_json = json_from_request(http_action_request)
         if 'resize' in action_json:
             flavor = action_json['resize'].get('flavorRef')
             if not flavor:
@@ -850,8 +852,11 @@ class RegionalServerCollection(object):
                 http_action_request.setResponseCode(202)
                 return b''
             else:
-                return dumps(conflicting("Cannot '" + action_json.keys()[0] + "' instance " + server_id +
-                                         " while it is in vm_state active", http_action_request))
+                return dumps(conflicting(
+                    "Cannot '" + list(action_json.keys())[0] + "' instance " +
+                    server_id + " while it is in vm_state active",
+                    http_action_request)
+                )
         elif 'rescue' in action_json:
             if server.status != 'ACTIVE':
                 return dumps(conflicting("Cannot 'rescue' instance " + server_id +

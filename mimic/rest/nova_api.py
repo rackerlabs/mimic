@@ -29,6 +29,7 @@ from mimic.model.nova_objects import (
     BadRequestError, GlobalServerCollections, LimitError, Server,
     bad_request, forbidden, not_found, server_creation)
 from mimic.model.flavor_collections import GlobalFlavorCollection
+from mimic.util.helper import json_from_request
 from mimic.model.image_collections import GlobalImageCollection
 
 
@@ -165,7 +166,7 @@ class NovaControlApiRegion(object):
         where "status" goes in this request.
         """
         region_collection = self._collection_from_tenant(tenant_id)
-        attributes_description = json.loads(request.content.read())
+        attributes_description = json_from_request(request)
         statuses_description = attributes_description["status"]
         servers = [region_collection.server_by_id(server_id)
                    for server_id in statuses_description]
@@ -210,6 +211,8 @@ class NovaRegion(object):
         Generate a URL to an object within the Nova URL hierarchy, given the
         part of the URL that comes after.
         """
+        if isinstance(suffix, text_type):
+            suffix = suffix.encode("ascii")
         return str(URLPath.fromString(self.uri_prefix).child(suffix))
 
     def _region_collection_for_tenant(self, tenant_id):
@@ -251,7 +254,8 @@ class NovaRegion(object):
         Returns a generic create server response, with status 'ACTIVE'.
         """
         try:
-            content = json.loads(request.content.read())
+            content = json_from_request(request)
+            print("JFR returned", repr(content))
         except ValueError:
             return json.dumps(
                 bad_request("Invalid JSON request body", request))
@@ -286,9 +290,9 @@ class NovaRegion(object):
             self._region_collection_for_tenant(tenant_id)
             .request_list(
                 request, include_details=False, absolutize_url=self.url,
-                name=request.args.get('name', [u""])[0],
-                limit=request.args.get('limit', [None])[0],
-                marker=request.args.get('marker', [None])[0]
+                name=request.args.get(b'name', [b""])[0].decode("utf-8"),
+                limit=request.args.get(b'limit', [None])[0],
+                marker=request.args.get(b'marker', [None])[0]
             )
         )
 
@@ -302,10 +306,10 @@ class NovaRegion(object):
             self._region_collection_for_tenant(tenant_id)
             .request_list(
                 request, include_details=True, absolutize_url=self.url,
-                name=request.args.get('name', [u""])[0],
-                limit=request.args.get('limit', [None])[0],
-                marker=request.args.get('marker', [None])[0],
-                changes_since=request.args.get('changes-since', [None])[0]
+                name=request.args.get(b'name', [b""])[0].decode("utf-8"),
+                limit=request.args.get(b'limit', [None])[0],
+                marker=request.args.get(b'marker', [None])[0],
+                changes_since=request.args.get(b'changes-since', [None])[0]
             )
         )
 

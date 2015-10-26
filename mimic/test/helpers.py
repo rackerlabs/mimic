@@ -168,8 +168,13 @@ def request(testCase, rootResource, method, uri, body=b"",
     else:
         headers_object = None
     base = makeURLPath(baseURI)
+    if isinstance(uri, text_type):
+        uri = uri.encode("ascii")
     relative = base.click(uri)
     bytesURI = text_type(relative).encode("utf-8")
+    if isinstance(body, text_type):
+        raise TypeError()
+        body = body.encode("ascii")
     return (
         RequestTraversalAgent(testCase, rootResource)
         .request(method, bytesURI, bodyProducer=SynchronousProducer(body),
@@ -238,7 +243,7 @@ def validate_link_json(testCase, json_containing_links):
                           'Link does not contain "href": {0}'.format(link))
         testCase.assertIn('rel', link,
                           'Link does not contain "rel": {0}'.format(link))
-        testCase.assertIsInstance(link['href'], basestring,
+        testCase.assertIsInstance(link['href'], text_type,
                                   '"href" is not a string: {0}'.format(link))
-        testCase.assertIsInstance(link['rel'], basestring,
+        testCase.assertIsInstance(link['rel'], text_type,
                                   '"rel" is not a string: {0}'.format(link))
