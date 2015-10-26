@@ -394,7 +394,7 @@ def register_behavior(test_case, root, uri, behavior_name, parameters,
                      "parameters": parameters,
                      "criteria": criteria}
     response, body = test_case.successResultOf(json_request(
-        test_case, root, b"POST", uri, json.dumps(behavior_json)))
+        test_case, root, b"POST", uri, behavior_json))
 
     test_case.assertEqual(response.code, 201)
     behavior_id = body.get("id")
