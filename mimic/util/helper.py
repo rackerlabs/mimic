@@ -57,7 +57,8 @@ def random_string(length, selectable=None):
     :returns: A string of length `length`.
     """
     selectable = (
-        selectable or (string.letters + string.digits + string.punctuation)
+        selectable or (string.ascii_letters + string.digits
+                       + string.punctuation)
     )
     return ''.join([choice(selectable) for _ in range(length)])
 
