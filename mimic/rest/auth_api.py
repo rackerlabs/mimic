@@ -578,7 +578,7 @@ def base_uri_from_request(request):
     :return: the base uri the request was trying to access
     :rtype: ``str``
     """
-    return str(URLPath.fromRequest(request).click('/'))
+    return str(URLPath.fromRequest(request).click(b'/'))
 
 
 AuthControlApiBehaviors = make_behavior_api({'auth': authentication})
