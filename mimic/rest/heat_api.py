@@ -17,6 +17,7 @@ from mimic.catalog import Endpoint
 from mimic.imimic import IAPIMock
 from mimic.model.heat_objects import GlobalStackCollections
 from mimic.rest.mimicapp import MimicApp
+from mimic.util.helper import json_from_request
 
 
 @implementer(IAPIMock, IPlugin)
@@ -153,8 +154,7 @@ class HeatRegion(object):
         Validates a template.
         See http://api.rackspace.com/api-ref-orchestration.html#template_validate
         """
-        body = request.content.read()
-        content = json.loads(body)
+        content = json_from_request(request)
 
         if 'template' in content or 'template_url' in content:
             request.setResponseCode(200)

@@ -244,12 +244,14 @@ class HeatAPITests(SynchronousTestCase):
                       'wrong': {}}
 
         requests = dict(
-            (key, request(self, self.root, "POST", self.uri + '/validate',
-                          body=json.dumps(body)))
-            for (key, body) in req_bodies.items())
+            (key, request(self, self.root, b"POST", self.uri + '/validate',
+                          body=json.dumps(body).encode("utf-8")))
+            for (key, body) in req_bodies.items()
+        )
 
         responses = dict(
-            (key, self.successResultOf(req)) for (key, req) in requests.items())
+            (key, self.successResultOf(req)) for (key, req) in requests.items()
+        )
 
         resp_bodies = dict(
             (key, self.get_responsebody(resp))
