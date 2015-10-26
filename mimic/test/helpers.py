@@ -172,9 +172,6 @@ def request(testCase, rootResource, method, uri, body=b"",
         uri = uri.encode("ascii")
     relative = base.click(uri)
     bytesURI = text_type(relative).encode("utf-8")
-    if isinstance(body, text_type):
-        raise TypeError()
-        body = body.encode("ascii")
     return (
         RequestTraversalAgent(testCase, rootResource)
         .request(method, bytesURI, bodyProducer=SynchronousProducer(body),
