@@ -29,7 +29,9 @@ from mimic.rest.mimicapp import MimicApp
 from mimic.session import NonMatchingTenantError
 from mimic.util.helper import (
     invalid_resource,
-    seconds_to_timestamp)
+    seconds_to_timestamp,
+    json_from_request,
+)
 
 from mimic.model.behaviors import (
     BehaviorRegistryCollection,
@@ -197,7 +199,7 @@ class AuthApi(object):
         token.
         """
         try:
-            content = json.loads(request.content.read())
+            content = json_from_request(request)
         except ValueError:
             pass
         else:
