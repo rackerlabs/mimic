@@ -244,7 +244,9 @@ def make_behavior_tests(behavior_helper_factory):
                 self.bhelper.validate_default_behavior(
                     *self.bhelper.trigger_event())
 
-    Tester.__name__ = "TestsFor{0}".format(behavior_helper_factory.name)
+    Tester.__name__ = str("TestsFor{0}").format(
+        str(behavior_helper_factory.name)
+    )
     Tester.__module__ = behavior_helper_factory.module
     return Tester
 
