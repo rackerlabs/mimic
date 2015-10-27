@@ -1950,7 +1950,8 @@ class NovaCreateServerBehaviorControlPlane(object):
         """
         name, params = name_and_params
         self.api_helper.test_case.assertEquals(response.code, params['code'])
-        self.api_helper.test_case.assertEquals(body, params['message'])
+        self.api_helper.test_case.assertEquals(body.decode("utf-8"),
+                                               params['message'])
 
     def validate_default_behavior(self, response, body):
         """
