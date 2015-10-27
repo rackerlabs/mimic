@@ -236,9 +236,9 @@ class AuthApi(object):
         including email, name, user ID, account configuration and status
         information.
         """
-        username = request.args.get("name")
+        username = request.args.get(b"name")[0].decode("utf-8")
         session = self.core.sessions.session_for_username_password(
-            username[0], "test")
+            username, "test")
         return json.dumps(dict(user={
             "RAX-AUTH:domainId": session.tenant_id,
             "id": session.user_id,
