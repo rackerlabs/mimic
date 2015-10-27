@@ -820,7 +820,7 @@ class MaasAPITests(SynchronousTestCase):
             json_request(self, self.root, b"POST",
                          '{0}/entities/{1}/test-alarm'.format(self.uri, self.entity_id),
                          json.dumps({'criteria': 'return new AlarmStatus(OK).encode("utf-8");',
-                                     'check_data': [{}]})))
+                                     'check_data': [{}]}).encode("utf-8")))
         self.assertEquals(resp.code, 400)
         self.assertEquals(data, parse_error)
 
@@ -828,7 +828,7 @@ class MaasAPITests(SynchronousTestCase):
             json_request(self, self.root, b"POST",
                          '{0}/entities/{1}/test-alarm'.format(self.uri, self.entity_id),
                          json.dumps({'criteria': 'return new AlarmStatus(OK).encode("utf-8");',
-                                     'check_data': [{}]})))
+                                     'check_data': [{}]}).encode("utf-8")))
         self.assertEquals(resp.code, 404)
         self.assertEquals(data, not_found_error)
 
