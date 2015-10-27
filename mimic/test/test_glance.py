@@ -126,7 +126,7 @@ class GlanceAdminAPITests(SynchronousTestCase):
         for each in request_jsons:
             (response, content) = self.successResultOf(json_request(
                 self, self.root, b"POST", self.uri,
-                body=json.dumps(each)))
+                body=each))
             self.assertEqual(response.code, 400)
 
     def test_get_image(self):
