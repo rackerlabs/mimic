@@ -15,6 +15,7 @@ from six import text_type
 
 from twisted.web.http import CREATED, BAD_REQUEST, NO_CONTENT, NOT_FOUND
 
+from mimic.util.helper import json_from_request
 from mimic.rest.mimicapp import MimicApp
 
 
@@ -290,7 +291,7 @@ def make_behavior_api(event_names_and_descriptions):
             """
             reg = kl_self.registry_collection.registry_by_event(event)
             try:
-                behavior_description = json.loads(request.content.read())
+                behavior_description = json_from_request(request)
                 behavior_id = reg.register_from_json(behavior_description)
             except (ValueError, KeyError):
                 request.setResponseCode(BAD_REQUEST)
