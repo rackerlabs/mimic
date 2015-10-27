@@ -1877,7 +1877,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         when the type is "string".
         """
         response, body = self._try_false_negative_failure("string")
-        self.assertEquals(body, "Create server failure")
+        self.assertEquals(body, b"Create server failure")
 
     def test_modify_status_non_existent_server(self):
         """
