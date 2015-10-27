@@ -11,6 +11,18 @@ from mimic.rest.mimicapp import MimicApp
 from mimic.canned_responses import fastly
 
 
+def text_urldata(urldata):
+    """
+    Convert ``urldata`` into text.
+
+    :param urldata: a dictionary mapping bytes to lists of bytes.
+
+    :return: a dictionary mapping text to lists of text.
+    """
+    return dict([(k.decode("utf-8"), [vv.decode("utf-8") for vv in v])
+                 for [k, v] in urldata.items()])
+
+
 class FastlyApi(object):
 
     """
@@ -53,7 +65,7 @@ class FastlyApi(object):
 
         https://docs.fastly.com/api/config#service_5
         """
-        url_data = request.args.items()
+        url_data = text_urldata(request.args).items()
         response = self.fastly_response.create_service(url_data)
         return json.dumps(response)
 
@@ -74,7 +86,7 @@ class FastlyApi(object):
 
         https://docs.fastly.com/api/config#service_3
         """
-        url_data = request.args.items()
+        url_data = text_urldata(request.args).items()
         data = dict((key, value) for key, value in url_data)
         service_name = data['name'][0]
 
@@ -90,7 +102,7 @@ class FastlyApi(object):
 
         https://docs.fastly.com/api/config#domain_4
         """
-        url_data = request.args.items()
+        url_data = text_urldata(request.args).items()
         response = self.fastly_response.create_domain(url_data,
                                                       service_id, version_id)
         return json.dumps(response)
@@ -117,7 +129,7 @@ class FastlyApi(object):
 
         https://docs.fastly.com/api/config#backend_2
         """
-        url_data = request.args.items()
+        url_data = text_urldata(request.args).items()
         response = self.fastly_response.create_backend(url_data,
                                                        service_id, version_id)
         return json.dumps(response)
@@ -131,7 +143,7 @@ class FastlyApi(object):
 
         https://docs.fastly.com/api/config#condition_3
         """
-        url_data = request.args.items()
+        url_data = text_urldata(request.args).items()
         response = self.fastly_response.create_condition(url_data,
                                                          service_id, version_id)
         return json.dumps(response)
@@ -145,7 +157,7 @@ class FastlyApi(object):
 
         https://docs.fastly.com/api/config#cache_settings_3
         """
-        url_data = request.args.items()
+        url_data = text_urldata(request.args).items()
         response = self.fastly_response.create_cache_settings(url_data,
                                                               service_id, version_id)
         return json.dumps(response)
@@ -159,7 +171,7 @@ class FastlyApi(object):
 
         https://docs.fastly.com/api/config#response_object_3
         """
-        url_data = request.args.items()
+        url_data = text_urldata(request.args).items()
         response = self.fastly_response.create_response_object(url_data,
                                                                service_id, version_id)
         return json.dumps(response)
@@ -173,7 +185,7 @@ class FastlyApi(object):
 
         https://docs.fastly.com/api/config#settings_2
         """
-        url_data = request.args.items()
+        url_data = text_urldata(request.args).items()
         response = self.fastly_response.create_settings(url_data,
                                                         service_id, version_id)
         return json.dumps(response)
