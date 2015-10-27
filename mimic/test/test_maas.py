@@ -147,8 +147,8 @@ class MaasAPITests(SynchronousTestCase):
     def getXobjectIDfromResponse(self, resp):
         xobjectid = None
         for h in resp.headers.getAllRawHeaders():
-            if h[0].lower() == 'x-object-id':
-                xobjectid = h[1][0]
+            if h[0].lower() == b'x-object-id':
+                xobjectid = h[1][0].decode("utf-8")
                 break
         return xobjectid
 
