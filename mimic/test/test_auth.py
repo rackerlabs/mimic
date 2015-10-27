@@ -337,7 +337,8 @@ def impersonate_user(test_case, root,
     using token and tenant ids.
     """
     headers = {
-        b'X-Auth-Token': [str(impersonator_token)]} if impersonator_token else None
+        b'X-Auth-Token': [impersonator_token.encode("utf-8")]
+    } if impersonator_token else None
     return test_case.successResultOf(json_request(
         test_case, root, b"POST", uri,
         {"RAX-AUTH:impersonation": {"expire-in-seconds": 30,
