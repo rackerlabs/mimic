@@ -1251,7 +1251,7 @@ class LoadbalancerAPINegativeTests(SynchronousTestCase):
         del_lb_response = self._delete_loadbalancer(lb["id"])
         self.assertEqual(del_lb_response.code, 202)
         del_lb_content = self.successResultOf(treq.content(del_lb_response))
-        self.assertEqual(del_lb_content, '')
+        self.assertEqual(del_lb_content, b'')
         deleted_lb = self._get_loadbalancer(lb["id"])
         self.assertEqual(deleted_lb["loadBalancer"]["status"], "PENDING-DELETE")
 
