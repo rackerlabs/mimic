@@ -58,7 +58,7 @@ class MaasAPITests(SynchronousTestCase):
         postdata['agent_id'] = None
         postdata['label'] = label
         req = request(self, self.root, b"POST", self.uri + '/entities',
-                      json.dumps(postdata))
+                      json.dumps(postdata).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 201)
         entity_id = resp.headers.getRawHeaders('x-object-id')[0]
@@ -80,7 +80,7 @@ class MaasAPITests(SynchronousTestCase):
         postdata['type'] = 'remote.ping'
         checks_endpoint = '{0}/entities/{1}/checks'.format(self.uri, entity_id)
         req = request(self, self.root, b"POST", checks_endpoint,
-                      json.dumps(postdata))
+                      json.dumps(postdata).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 201)
         check_id = resp.headers.getRawHeaders('x-object-id')[0]
@@ -98,7 +98,7 @@ class MaasAPITests(SynchronousTestCase):
         postdata['notification_plan_id'] = 'npTechnicalContactsEmail'
         alarms_endpoint = '{0}/entities/{1}/alarms'.format(self.uri, entity_id)
         req = request(self, self.root, b"POST", alarms_endpoint,
-                      json.dumps(postdata))
+                      json.dumps(postdata).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 201)
         alarm_id = resp.headers.getRawHeaders('x-object-id')[0]
@@ -113,7 +113,7 @@ class MaasAPITests(SynchronousTestCase):
         postdata = {'label': label}
         postdata['type'] = 'email'
         postdata['details'] = {'address': 'zoehardman4ever@hedkandi.co.uk'}
-        req = request(self, self.root, b"POST", self.uri + '/notifications', json.dumps(postdata))
+        req = request(self, self.root, b"POST", self.uri + '/notifications', json.dumps(postdata).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 201)
         nt_id = resp.headers.getRawHeaders('x-object-id')[0]
@@ -126,7 +126,7 @@ class MaasAPITests(SynchronousTestCase):
         Util create notification plan
         """
         postdata = {'label': label}
-        req = request(self, self.root, b"POST", self.uri + '/notification_plans', json.dumps(postdata))
+        req = request(self, self.root, b"POST", self.uri + '/notification_plans', json.dumps(postdata).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 201)
         np_id = resp.headers.getRawHeaders('x-object-id')[0]
@@ -136,7 +136,7 @@ class MaasAPITests(SynchronousTestCase):
 
     def createSuppression(self, label):
         postdata = {'label': label}
-        req = request(self, self.root, b"POST", self.uri + '/suppressions', json.dumps(postdata))
+        req = request(self, self.root, b"POST", self.uri + '/suppressions', json.dumps(postdata).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 201)
         sp_id = resp.headers.getRawHeaders('x-object-id')[0]
@@ -318,7 +318,7 @@ class MaasAPITests(SynchronousTestCase):
         (resp, data) = self.successResultOf(
             json_request(self, self.root, b"POST",
                          '{0}/entities/{1}/checks'.format(self.uri, self.entity_id),
-                         json.dumps({'label': 'wow-check'})))
+                         json.dumps({'label': 'wow-check'}).encode("utf-8")))
         self.assertEquals(resp.code, 400)
         self.assertEquals(data['type'], 'badRequest')
         self.assertEquals(data['message'], 'Validation error for key \'type\'')
@@ -331,7 +331,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         resp = self.successResultOf(
             request(self, self.root, b"POST", '{0}/entities'.format(self.uri),
-                    json.dumps({'label': 'foo', 'whut': 'WAT'})))
+                    json.dumps({'label': 'foo', 'whut': 'WAT'}).encode("utf-8")))
         self.assertEquals(resp.code, 201)
 
     def test_update_entity(self):
@@ -344,7 +344,7 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
         data['label'] = 'Iamamwhoami'
-        req = request(self, self.root, b"PUT", entity_endpoint, json.dumps(data))
+        req = request(self, self.root, b"PUT", entity_endpoint, json.dumps(data).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
         self.assertEquals(entity_endpoint, resp.headers.getRawHeaders('location')[0])
@@ -360,7 +360,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         data = {'agent_id': 'ag13378901234'}
         req = request(self, self.root, b"PUT", self.uri + '/entities/' + self.entity_id,
-                      json.dumps(data))
+                      json.dumps(data).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
         req = request(self, self.root, b"GET", self.uri + '/entities/' + self.entity_id)
@@ -431,7 +431,7 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
         data['label'] = 'Iamamwhoami'
-        req = request(self, self.root, b"PUT", check_endpoint, json.dumps(data))
+        req = request(self, self.root, b"PUT", check_endpoint, json.dumps(data).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
         self.assertEquals(check_endpoint, resp.headers.getRawHeaders('location')[0])
@@ -448,7 +448,7 @@ class MaasAPITests(SynchronousTestCase):
         data = {'target_alias': 'internet7_v4'}
         req = request(self, self.root, b"PUT",
                       self.uri + '/entities/' + self.entity_id + '/checks/' + self.check_id,
-                      json.dumps(data))
+                      json.dumps(data).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
         req = request(self, self.root, b"GET",
@@ -484,7 +484,7 @@ class MaasAPITests(SynchronousTestCase):
         alarm['label'] = 'Iamamwhoami'
         alarm_endpoint = '{0}/entities/{1}/alarms/{2}'.format(
             self.uri, self.entity_id, self.alarm_id)
-        req = request(self, self.root, b"PUT", alarm_endpoint, json.dumps(alarm))
+        req = request(self, self.root, b"PUT", alarm_endpoint, json.dumps(alarm).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
         self.assertEquals(alarm_endpoint, resp.headers.getRawHeaders('location')[0])
@@ -503,7 +503,7 @@ class MaasAPITests(SynchronousTestCase):
         data = {'notification_plan_id': 'np123456'}
         req = request(self, self.root, b"PUT",
                       self.uri + '/entities/' + self.entity_id + '/alarms/' + self.alarm_id,
-                      json.dumps(data))
+                      json.dumps(data).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
         req = request(self, self.root, b"GET",
@@ -561,7 +561,7 @@ class MaasAPITests(SynchronousTestCase):
         (resp, data) = self.successResultOf(
             json_request(self, self.root, b"POST",
                          self.uri + '/entities/' + self.entity_id + '/test-check',
-                         json.dumps({'type': 'agent.disk'})))
+                         json.dumps({'type': 'agent.disk'}).encode("utf-8")))
         self.assertEquals(resp.code, 200)
         self.assertEquals(1, len(data))
         self.assertIn('read_bytes', data[0]['metrics'])
@@ -573,13 +573,13 @@ class MaasAPITests(SynchronousTestCase):
         resp = self.successResultOf(request(self, self.root, b"PUT",
                                     '{0}/entities/{1}/checks/test_responses/{2}'.format(
                                         self.ctl_uri, self.entity_id, 'agent.load_average'),
-                                    json.dumps([{'available': False}])))
+                                    json.dumps([{'available': False}]).encode("utf-8")))
         self.assertEquals(resp.code, 204)
 
         (resp, data) = self.successResultOf(
             json_request(self, self.root, b"POST",
                          self.uri + '/entities/' + self.entity_id + '/test-check',
-                         json.dumps({'type': 'agent.load_average'})))
+                         json.dumps({'type': 'agent.load_average'}).encode("utf-8")))
         self.assertEquals(resp.code, 200)
         self.assertEquals(False, data[0]['available'])
 
@@ -590,13 +590,13 @@ class MaasAPITests(SynchronousTestCase):
         resp = self.successResultOf(request(self, self.root, b"PUT",
                                     '{0}/entities/{1}/checks/test_responses/{2}'.format(
                                         self.ctl_uri, self.entity_id, 'agent.memory'),
-                                    json.dumps([{'status': 'whuuut'}])))
+                                    json.dumps([{'status': 'whuuut'}]).encode("utf-8")))
         self.assertEquals(resp.code, 204)
 
         (resp, data) = self.successResultOf(
             json_request(self, self.root, b"POST",
                          self.uri + '/entities/' + self.entity_id + '/test-check',
-                         json.dumps({'type': 'agent.memory'})))
+                         json.dumps({'type': 'agent.memory'}).encode("utf-8")))
         self.assertEquals(resp.code, 200)
         self.assertEquals('whuuut', data[0]['status'])
 
@@ -650,7 +650,7 @@ class MaasAPITests(SynchronousTestCase):
             request(self, self.root, b"PUT",
                     '{0}/entities/{1}/checks/test_responses/{2}'.format(
                         self.ctl_uri, self.entity_id, 'agent.filesystem'),
-                    json.dumps([{'metrics': {'options': options}}])))
+                    json.dumps([{'metrics': {'options': options}}]).encode("utf-8")))
         self.assertEquals(resp.code, 204)
 
         resp = self.successResultOf(
@@ -662,7 +662,7 @@ class MaasAPITests(SynchronousTestCase):
         (resp, data) = self.successResultOf(
             json_request(self, self.root, b"POST",
                          self.uri + '/entities/' + self.entity_id + '/test-check',
-                         json.dumps({'type': 'agent.filesystem'})))
+                         json.dumps({'type': 'agent.filesystem'}).encode("utf-8")))
         self.assertEquals(resp.code, 200)
         self.assertTrue(len(data[0]['metrics']['options']['data']) < 43)
 
@@ -680,7 +680,7 @@ class MaasAPITests(SynchronousTestCase):
         (resp, data) = self.successResultOf(
             json_request(self, self.root, b"POST",
                          self.uri + '/entities/' + self.entity_id + '/test-check',
-                         json.dumps({'type': 'agent.network'})))
+                         json.dumps({'type': 'agent.network'}).encode("utf-8")))
         self.assertEquals(resp.code, 200)
         self.assertIsInstance(data[0]['metrics']['rx_bytes']['data'], int)
 
@@ -692,7 +692,7 @@ class MaasAPITests(SynchronousTestCase):
             (resp, data) = self.successResultOf(
                 json_request(self, self.root, b"POST",
                              '{0}/entities/{1}/test-check'.format(self.uri, self.entity_id),
-                             json.dumps({'type': check_type})))
+                             json.dumps({'type': check_type}).encode("utf-8")))
             self.assertEquals(resp.code, 200)
             self.assertEquals(1, len(data))
             self.assertTrue('metrics' in data[0])
@@ -704,7 +704,7 @@ class MaasAPITests(SynchronousTestCase):
         (resp, data) = self.successResultOf(
             json_request(self, self.root, b"POST",
                          self.uri + '/entities/' + self.entity_id + '/test-alarm',
-                         json.dumps({'criteria': 'return new AlarmStatus(OK);',
+                         json.dumps({'criteria': 'return new AlarmStatus(OK).encode("utf-8");',
                                      'check_data': [{}]})))
         self.assertEquals(resp.code, 200)
         self.assertEquals(1, len(data))
@@ -719,13 +719,13 @@ class MaasAPITests(SynchronousTestCase):
         resp = self.successResultOf(request(self, self.root, b"PUT",
                                             '{0}/entities/{1}/alarms/test_response'.format(
                                                 self.ctl_uri, self.entity_id),
-                                            json.dumps([{'state': 'OK'}])))
+                                            json.dumps([{'state': 'OK'}]).encode("utf-8")))
         self.assertEquals(resp.code, 204)
 
         (resp, data) = self.successResultOf(
             json_request(self, self.root, b"POST",
                          self.uri + '/entities/' + self.entity_id + '/test-alarm',
-                         json.dumps({'criteria': 'return new AlarmStatus(OK);',
+                         json.dumps({'criteria': 'return new AlarmStatus(OK).encode("utf-8");',
                                      'check_data': [{}]})))
         self.assertEquals(resp.code, 200)
         self.assertEquals(1, len(data))
@@ -747,7 +747,7 @@ class MaasAPITests(SynchronousTestCase):
         (resp, data) = self.successResultOf(
             json_request(self, self.root, b"POST",
                          self.uri + '/entities/' + self.entity_id + '/test-alarm',
-                         json.dumps({'criteria': 'return new AlarmStatus(OK);',
+                         json.dumps({'criteria': 'return new AlarmStatus(OK).encode("utf-8");',
                                      'check_data': [{}]})))
         self.assertEquals(resp.code, 200)
         self.assertEquals(1, len(data))
@@ -774,7 +774,7 @@ class MaasAPITests(SynchronousTestCase):
         (resp, data) = self.successResultOf(
             json_request(self, self.root, b"POST",
                          self.uri + '/entities/' + self.entity_id + '/test-alarm',
-                         json.dumps({'criteria': 'return new AlarmStatus(OK);',
+                         json.dumps({'criteria': 'return new AlarmStatus(OK).encode("utf-8");',
                                      'check_data': [{}]})))
         self.assertEquals(resp.code, 200)
         self.assertEquals(1, len(data))
@@ -795,20 +795,20 @@ class MaasAPITests(SynchronousTestCase):
             request(self, self.root, b"POST",
                     '{0}/entities/{1}/alarms/test_errors'.format(
                         self.ctl_uri, self.entity_id),
-                    json.dumps({'code': 400, 'response': parse_error})))
+                    json.dumps({'code': 400, 'response': parse_error}).encode("utf-8")))
         self.assertEquals(resp.code, 201)
 
         resp = self.successResultOf(
             request(self, self.root, b"POST",
                     '{0}/entities/{1}/alarms/test_errors'.format(
                         self.ctl_uri, self.entity_id),
-                    json.dumps({'code': 404, 'response': not_found_error})))
+                    json.dumps({'code': 404, 'response': not_found_error}).encode("utf-8")))
         self.assertEquals(resp.code, 201)
 
         (resp, data) = self.successResultOf(
             json_request(self, self.root, b"POST",
                          '{0}/entities/{1}/test-alarm'.format(self.uri, self.entity_id),
-                         json.dumps({'criteria': 'return new AlarmStatus(OK);',
+                         json.dumps({'criteria': 'return new AlarmStatus(OK).encode("utf-8");',
                                      'check_data': [{}]})))
         self.assertEquals(resp.code, 400)
         self.assertEquals(data, parse_error)
@@ -816,7 +816,7 @@ class MaasAPITests(SynchronousTestCase):
         (resp, data) = self.successResultOf(
             json_request(self, self.root, b"POST",
                          '{0}/entities/{1}/test-alarm'.format(self.uri, self.entity_id),
-                         json.dumps({'criteria': 'return new AlarmStatus(OK);',
+                         json.dumps({'criteria': 'return new AlarmStatus(OK).encode("utf-8");',
                                      'check_data': [{}]})))
         self.assertEquals(resp.code, 404)
         self.assertEquals(data, not_found_error)
@@ -955,7 +955,7 @@ class MaasAPITests(SynchronousTestCase):
         resp = self.successResultOf(
             request(self, self.root, b"POST",
                     '{0}/entities/{1}/agents'.format(self.ctl_uri, self.entity_id),
-                    json.dumps({})))
+                    json.dumps({}).encode("utf-8")))
         self.assertEquals(resp.code, 201)
 
         (resp, data) = self.successResultOf(
@@ -1004,7 +1004,7 @@ class MaasAPITests(SynchronousTestCase):
         (resp, data) = self.successResultOf(
             json_request(self, self.root, b"POST",
                          '{0}/entities/enDoesNotExist/agents'.format(self.ctl_uri, self.entity_id),
-                         json.dumps({})))
+                         json.dumps({}).encode("utf-8")))
         self.assertEquals(resp.code, 404)
         self.assertEquals(data['type'], 'notFoundError')
 
@@ -1038,7 +1038,7 @@ class MaasAPITests(SynchronousTestCase):
         resp = self.successResultOf(
             request(self, self.root, b"POST",
                     '{0}/entities/{1}/checks'.format(self.uri, self.entity_id),
-                    json.dumps({'type': 'agent.chupacabra'})))
+                    json.dumps({'type': 'agent.chupacabra'}).encode("utf-8")))
         self.assertEquals(resp.code, 201)
         (resp, data) = self.successResultOf(
             json_request(self, self.root, b"GET", '{0}/views/metric_list'.format(self.uri)))
@@ -1055,7 +1055,7 @@ class MaasAPITests(SynchronousTestCase):
         resp = self.successResultOf(
             request(self, self.root, b"POST",
                     '{0}/entities/{1}/checks'.format(self.uri, self.entity_id),
-                    json.dumps({'type': 'agent.cpu'})))
+                    json.dumps({'type': 'agent.cpu'}).encode("utf-8")))
         self.assertEquals(resp.code, 201)
         (resp, data) = self.successResultOf(
             json_request(self, self.root, b"GET", '{0}/views/metric_list'.format(self.uri)))
@@ -1078,7 +1078,7 @@ class MaasAPITests(SynchronousTestCase):
             metrics.append(mq)
         qstring = '?from=1412902262560&points=500&to=1412988662560'
         req = request(self, self.root, b"POST",
-                      self.uri + '/__experiments/multiplot' + qstring, json.dumps({'metrics': metrics}))
+                      self.uri + '/__experiments/multiplot' + qstring, json.dumps({'metrics': metrics}).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
@@ -1107,7 +1107,7 @@ class MaasAPITests(SynchronousTestCase):
         resp = self.successResultOf(
             request(self, self.root, b"POST",
                     '{0}/entities/{1}/checks'.format(self.uri, self.entity_id),
-                    json.dumps({'type': 'agent.whatever'})))
+                    json.dumps({'type': 'agent.whatever'}).encode("utf-8")))
         self.assertEquals(resp.code, 201)
         check_id = resp.headers.getRawHeaders('x-object-id')[0]
         (resp, data) = self.successResultOf(
@@ -1211,7 +1211,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         postdata = {'id': self.nt_id, 'label': 'changed'}
         req = request(self, self.root, b"PUT", self.uri + '/notifications/' + self.nt_id,
-                      json.dumps(postdata))
+                      json.dumps(postdata).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
         req = request(self, self.root, b"GET", self.uri + '/notifications')
@@ -1259,7 +1259,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         postdata = {'id': self.np_id, 'label': 'changed'}
         req = request(self, self.root, b"PUT", self.uri + '/notification_plans/' + self.np_id,
-                      json.dumps(postdata))
+                      json.dumps(postdata).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
         req = request(self, self.root, b"GET", self.uri + '/notification_plans/' + self.np_id)
@@ -1336,7 +1336,7 @@ class MaasAPITests(SynchronousTestCase):
         """
         postdata = {'id': self.sp_id, 'label': 'changed'}
         req = request(self, self.root, b"PUT", self.uri + '/suppressions/' + self.sp_id,
-                      json.dumps(postdata))
+                      json.dumps(postdata).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
         req = request(self, self.root, b"GET", self.uri + '/suppressions/' + self.sp_id)
@@ -1416,7 +1416,7 @@ class MaasAPITests(SynchronousTestCase):
         alarm['notification_plan_id'] = self.np_id
         req = request(self, self.root, b"PUT",
                       self.uri + '/entities/' + self.entity_id + '/alarms/' + self.alarm_id,
-                      json.dumps(alarm))
+                      json.dumps(alarm).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
         req = request(self, self.root, b"GET", self.uri + '/views/alarmsByNp/' + self.np_id)
@@ -1436,7 +1436,7 @@ class MaasAPITests(SynchronousTestCase):
         alarm['notification_plan_id'] = self.np_id
         req = request(self, self.root, b"PUT",
                       self.uri + '/entities/' + self.entity_id + '/alarms/' + self.alarm_id,
-                      json.dumps(alarm))
+                      json.dumps(alarm).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
         req = request(self, self.root, b"DELETE", self.uri + '/notification_plans/' + self.np_id)
@@ -1471,7 +1471,7 @@ class MaasAPITests(SynchronousTestCase):
         Create an entity with weird letters in the name.
         """
         req = request(self, self.root, b"POST", self.uri + '/entities',
-                      json.dumps({'label': u'\u0CA0_\u0CA0'}))
+                      json.dumps({'label': u'\u0CA0_\u0CA0'}).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 201)
 
@@ -1580,7 +1580,7 @@ class MaasAPITests(SynchronousTestCase):
             json_request(self, self.root, b"POST",
                          '{0}/entities/{1}/alarms/{2}/states'.format(
                              self.ctl_uri, self.entity_id, 'alDoesNotExist'),
-                         json.dumps({'state': 'OK', 'status': 'bogus'})))
+                         json.dumps({'state': 'OK', 'status': 'bogus'}).encode("utf-8")))
         self.assertEquals(resp.code, 404)
         self.assertEquals(data['type'], 'notFoundError')
 
@@ -1593,7 +1593,7 @@ class MaasAPITests(SynchronousTestCase):
             json_request(self, self.root, b"POST",
                          '{0}/entities/{1}/alarms/{2}/states'.format(
                              self.ctl_uri, self.entity_id, self.alarm_id),
-                         json.dumps({'status': 'This wont work'})))
+                         json.dumps({'status': 'This wont work'}).encode("utf-8")))
         self.assertEquals(resp.code, 400)
         self.assertEquals(data['type'], 'badRequest')
         self.assertEquals(data['details'], 'Missing required key (state)')
@@ -1607,7 +1607,7 @@ class MaasAPITests(SynchronousTestCase):
             json_request(self, self.root, b"POST",
                          '{0}/entities/{1}/alarms/{2}/states'.format(
                              self.ctl_uri, self.entity_id, self.alarm_id),
-                         json.dumps({'state': 'WARNING'})))
+                         json.dumps({'state': 'WARNING'}).encode("utf-8")))
         self.assertEquals(resp.code, 400)
         self.assertEquals(data['type'], 'badRequest')
         self.assertEquals(data['details'], 'Missing required key (status)')
@@ -1620,7 +1620,7 @@ class MaasAPITests(SynchronousTestCase):
             json_request(self, self.root, b"PUT",
                          '{0}/entities/{1}/checks/chWhut/metrics/available'.format(
                              self.ctl_uri, self.entity_id),
-                         json.dumps({'type': 'squarewave'})))
+                         json.dumps({'type': 'squarewave'}).encode("utf-8")))
         self.assertEquals(resp.code, 404)
         self.assertEquals(data['type'], 'notFoundError')
         self.assertEquals(data['details'], ('Object "Check" with key ' +
@@ -1635,7 +1635,7 @@ class MaasAPITests(SynchronousTestCase):
             json_request(self, self.root, b"PUT",
                          '{0}/entities/{1}/checks/{2}/metrics/available'.format(
                              self.ctl_uri, self.entity_id, self.check_id),
-                         json.dumps({'type': 'lolwut'})))
+                         json.dumps({'type': 'lolwut'}).encode("utf-8")))
         self.assertEquals(resp.code, 400)
         self.assertEquals(data['type'], 'badRequest')
         self.assertEquals(data['details'], 'Unknown value for "type": "lolwut"')
