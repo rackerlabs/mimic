@@ -857,9 +857,9 @@ class MaasMock(object):
         checks = self._entity_cache_for_tenant(tenant_id).checks_list
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
         maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
-        page_limit = min(int(request.args.get('limit', [100])[0]), 1000)
+        page_limit = min(int(request.args.get(b'limit', [100])[0]), 1000)
         offset = 0
-        current_marker = request.args.get('marker', [None])[0]
+        current_marker = request.args.get(b'marker', [None])[0]
         if current_marker is not None:
             try:
                 offset = all_entities.index(Matcher(lambda entity: entity.id == current_marker))
@@ -898,11 +898,11 @@ class MaasMock(object):
         """
         Gets the user's audit logs.
         """
-        ordering = -1 if request.args.get('reverse', False) else 1
+        ordering = -1 if request.args.get(b'reverse', False) else 1
         all_audits = self._entity_cache_for_tenant(tenant_id).audits_list[::ordering]
-        page_limit = min(int(request.args.get('limit', [100])[0]), 1000)
+        page_limit = min(int(request.args.get(b'limit', [100])[0]), 1000)
         offset = 0
-        current_marker = request.args.get('marker', [None])[0]
+        current_marker = request.args.get(b'marker', [None])[0]
         if current_marker is not None:
             try:
                 offset = all_audits.index(Matcher(lambda audit: audit['id'] == current_marker))
