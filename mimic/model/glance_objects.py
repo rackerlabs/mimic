@@ -234,18 +234,24 @@ class GlanceAdminImageStore(object):
         Note: This is more like a control plane API as I dint find seem
         to find documentation for add image under the Glance admin API.
         """
-        content = loads(http_create_request.content.read())
         try:
-            image_id = str(uuid4())
-            new_image = self.add_to_glance_admin_image_store(
-                image_id=image_id,
-                name=content.get('name'),
-                distro=content.get('distro'))
-            http_create_request.setResponseCode(201)
-            return new_image.get_glance_admin_image_json()
+            content = json_from_request(http_create_request)
+            image_name = content.get('name')
+            if image_name is None:
+                raise KeyError("no name supplied")
+            image_distro = content.get('distro')
+            if image_distro is None:
+                raise KeyError("no distro supplied")
         except Exception as e:
             http_create_request.setResponseCode(400)
-            return dumps({"Error": str(e)})
+            return dumps({"Error": text_type(e)})
+        image_id = text_type(uuid4())
+        new_image = self.add_to_glance_admin_image_store(
+            image_id=image_id,
+            name=image_name,
+            distro=image_distro)
+        http_create_request.setResponseCode(201)
+        return new_image.get_glance_admin_image_json()
 
     def delete_image(self, http_request, image_id):
         """
