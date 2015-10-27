@@ -282,8 +282,9 @@ def authenticate_with_username_password(test_case, root,
         creds["auth"]["tenantId"] = tenant_id
     if tenant_name is not None:
         creds["auth"]["tenantName"] = tenant_name
-    return test_case.successResultOf(request_func(test_case, root, b"POST",
-                                                  uri, json.dumps(creds)))
+    return test_case.successResultOf(request_func(
+        test_case, root, b"POST", uri, json.dumps(creds).encode("utf-8"))
+    )
 
 
 def authenticate_with_api_key(test_case, root, uri='/identity/v2.0/tokens',
