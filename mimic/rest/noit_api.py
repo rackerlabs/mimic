@@ -37,7 +37,7 @@ class NoitApi(object):
         """
         Validate the check request payload and returns the response code
         """
-        content = str(request.content.read())
+        content = request.content.read().decode("utf-8")
         try:
             payload = xmltodict.parse(content)
         except:
