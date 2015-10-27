@@ -171,7 +171,8 @@ class LoadbalancerAPITests(SynchronousTestCase):
         lb_id = self._create_loadbalancer('test_lb') + lb_id_offset
         status_key = status_key or '"status"'
         status_val = status_val or 'PENDING_DELETE'
-        payload = b'{{{0}: "{1}"}}'.format(status_key, status_val)
+        payload = ('{{{0}: "{1}"}}'.format(status_key, status_val)
+                   .encode("utf-8"))
         set_attributes_req = request(
             self, self.root, b"PATCH", "{0}/loadbalancer/{1}/attributes".format(
                 ctl_uri, lb_id
