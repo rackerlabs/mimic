@@ -38,7 +38,7 @@ class MailGunApi(object):
         If the `to` address is `bademail@example.com` results in error 500
         and if it is `failingemail@example.com` results in 400.
         """
-        content = parse_qs(request.content.read())
+        content = parse_qs(request.content.read().decode("utf-8"))
         to_address = content.get('to')
         headers = {}
         for key, value in content.items():
@@ -74,7 +74,9 @@ class MailGunApi(object):
         Responds with a 200 and list of of messages POSTed
         through the ``/messages`` endpoint.
         """
-        filter_by_to = request.args.get(b"to")
+        tofield = request.args.get(b"to")
+        filter_by_to = ([bytesarg.decode("utf-8") for bytesarg in tofield]
+                        if tofield else None)
         request.setResponseCode(200)
         return json.dumps(self.core.message_store.list_messages(filter_by_to))
 
@@ -100,6 +102,6 @@ class MailGunApi(object):
         purposes.
         """
         request.setResponseCode(200)
-        to_addr = request.args.get(b"to")
+        to_addr = request.args.get(b"to")[0].decode("utf-8")
         msg = self.core.message_store.filter_message_by_to_address(to_addr)
         return json.dumps({msg.to: msg.custom_headers})

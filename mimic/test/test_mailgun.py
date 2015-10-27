@@ -29,7 +29,7 @@ class MailGunAPITests(SynchronousTestCase):
         """
         (response, content) = self.successResultOf(json_request(
             self, root, b"POST", "/cloudmonitoring.rackspace.com/messages",
-            urlencode(data)))
+            urlencode(data).encode("utf-8")))
         self.assertEqual(200, response.code)
 
     def get_content_from_list_messages(self, root, to_filter=None):
@@ -60,7 +60,7 @@ class MailGunAPITests(SynchronousTestCase):
         """
         response = self.successResultOf(request(
             self, self.root, b"POST", "/cloudmonitoring.rackspace.com/messages",
-            urlencode({"to": "bademail@example.com"})))
+            urlencode({"to": "bademail@example.com"}).encode("utf-8")))
         self.assertEqual(500, response.code)
 
     def test_mailgun_send_message_receives_error_400(self):
@@ -70,7 +70,7 @@ class MailGunAPITests(SynchronousTestCase):
         """
         response = self.successResultOf(request(
             self, self.root, b"POST", "/cloudmonitoring.rackspace.com/messages",
-            urlencode({"to": "failingemail@example.com"})))
+            urlencode({"to": "failingemail@example.com"}).encode("utf-8")))
         self.assertEqual(400, response.code)
 
     def test_mailgun_get_messages(self):
@@ -106,7 +106,7 @@ class MailGunAPITests(SynchronousTestCase):
         for x in range(5):
             response = self.successResultOf(request(
                 self, self.root, b"POST", "/cloudmonitoring.rackspace.com/messages",
-                urlencode({"to": "bademail@example.com", "subject": "test"})))
+                urlencode({"to": "bademail@example.com", "subject": "test"}).encode("utf-8")))
             self.assertEqual(500, response.code)
 
         (response, content) = self.successResultOf(json_request(
