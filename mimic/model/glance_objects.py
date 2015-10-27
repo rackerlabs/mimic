@@ -10,22 +10,23 @@ from uuid import uuid4
 import attr
 from mimic.util.helper import json_from_request
 from six import text_type
+
 random_image_list = [
-    {"id": str(uuid4()), "name": "OnMetal - CentOS 6", "distro": "linux"},
-    {"id": str(uuid4()), "name": "OnMetal - CentOS 7", "distro": "linux"},
-    {"id": str(uuid4()), "name": "OnMetal - CoreOS (Alpha)", "distro": "linux"},
-    {"id": str(uuid4()), "name": "OnMetal - CoreOS (Beta)", "distro": "linux"},
-    {"id": str(uuid4()), "name": "OnMetal - Debian 7 (Wheezy)", "distro": "linux"},
-    {"id": str(uuid4()), "name": "OnMetal - Debian 8 (Jessie)", "distro": "linux"},
-    {"id": str(uuid4()), "name": "OnMetal - Fedora 21", "distro": "linux"},
-    {"id": str(uuid4()), "name": "OnMetal - Fedora 22", "distro": "linux"},
-    {"id": str(uuid4()), "name": "OnMetal - Ubuntu 14.04 LTS (Trusty Tahr)", "distro": "linux"},
-    {"id": str(uuid4()), "name": "OnMetal - CoreOS (Stable)", "distro": "linux"},
-    {"id": str(uuid4()), "name": "OnMetal - Ubuntu 12.04 LTS (Precise Pangolin)",
+    {"id": text_type(uuid4()), "name": "OnMetal - CentOS 6", "distro": "linux"},
+    {"id": text_type(uuid4()), "name": "OnMetal - CentOS 7", "distro": "linux"},
+    {"id": text_type(uuid4()), "name": "OnMetal - CoreOS (Alpha)", "distro": "linux"},
+    {"id": text_type(uuid4()), "name": "OnMetal - CoreOS (Beta)", "distro": "linux"},
+    {"id": text_type(uuid4()), "name": "OnMetal - Debian 7 (Wheezy)", "distro": "linux"},
+    {"id": text_type(uuid4()), "name": "OnMetal - Debian 8 (Jessie)", "distro": "linux"},
+    {"id": text_type(uuid4()), "name": "OnMetal - Fedora 21", "distro": "linux"},
+    {"id": text_type(uuid4()), "name": "OnMetal - Fedora 22", "distro": "linux"},
+    {"id": text_type(uuid4()), "name": "OnMetal - Ubuntu 14.04 LTS (Trusty Tahr)", "distro": "linux"},
+    {"id": text_type(uuid4()), "name": "OnMetal - CoreOS (Stable)", "distro": "linux"},
+    {"id": text_type(uuid4()), "name": "OnMetal - Ubuntu 12.04 LTS (Precise Pangolin)",
      "distro": "linux"},
-    {"id": str(uuid4()), "name": "Ubuntu 14.04 LTS (Trusty Tahr)", "distro": "linux"},
-    {"id": str(uuid4()), "name": "Ubuntu 15.04 (Vivid Vervet)", "distro": "linux"},
-    {"id": str(uuid4()), "name": "Windows Server 2012 R2", "distro": "windows"}
+    {"id": text_type(uuid4()), "name": "Ubuntu 14.04 LTS (Trusty Tahr)", "distro": "linux"},
+    {"id": text_type(uuid4()), "name": "Ubuntu 15.04 (Vivid Vervet)", "distro": "linux"},
+    {"id": text_type(uuid4()), "name": "Windows Server 2012 R2", "distro": "windows"}
 ]
 
 
