@@ -522,7 +522,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
                     "protocol": "HTTP",
                     "virtualIps": [{"type": "PUBLIC"}]
                 }
-            })
+            }).encode("utf-8")
         )
         create_lb_response = self.successResultOf(create_lb)
         self.create_lb_response_body = self.successResultOf(treq.json_content(
@@ -548,7 +548,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
                                        "port": 80,
                                        "condition": "ENABLED",
                                        "type": "PRIMARY",
-                                       "weight": 10}]}))
+                                       "weight": 10}]}).encode("utf-8"))
             for address in addresses]
         responses = map(self.successResultOf, responses)
         response_bodies = [self.successResultOf(treq.json_content(response))
@@ -594,7 +594,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
                                   {"address": "127.0.0.0",
                                    "port": 80,
                                    "condition": "ENABLED",
-                                   "type": "SECONDARY"}]})
+                                   "type": "SECONDARY"}]}).encode("utf-8")
         )
         create_node_response = self.successResultOf(create_multiple_nodes)
         create_node_response_body = self.successResultOf(treq.json_content(
@@ -612,7 +612,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
             json.dumps({"nodes": [{"address": "127.0.0.1",
                                    "port": 80,
                                    "condition": "ENABLED",
-                                   "type": "PRIMARY"}]})
+                                   "type": "PRIMARY"}]}).encode("utf-8")
         )
         create_node_response = self.successResultOf(create_duplicate_nodes)
         self.assertEqual(create_node_response.code, 413)
@@ -633,6 +633,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
                 json.dumps({"nodes": [{"address": "127.0.0.1",
                                        "port": port,
                                        "condition": "ENABLED"}]})
+                .encode("utf-8")
             )
         create_over_node = request(
             self, self.root, b"POST", self.uri + '/loadbalancers/' +
@@ -640,7 +641,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
             json.dumps({"nodes": [{"address": "127.0.0.2",
                                    "port": 130,
                                    "condition": "ENABLED",
-                                   "type": "SECONDARY"}]})
+                                   "type": "SECONDARY"}]}).encode("utf-8")
         )
 
         create_node_response = self.successResultOf(create_over_node)
@@ -666,7 +667,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         create_over_node = request(
             self, self.root, b"POST", self.uri + '/loadbalancers/' +
             str(self.lb_id) + '/nodes',
-            json.dumps({"nodes": add_node_list})
+            json.dumps({"nodes": add_node_list}).encode("utf-8")
         )
         create_node_response = self.successResultOf(create_over_node)
         self.assertEqual(create_node_response.code, 413)
@@ -703,7 +704,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
             json.dumps({"nodes": [{"address": "127.0.0.1",
                                    "port": 80,
                                    "condition": "ENABLED",
-                                   "type": "PRIMARY"}]})
+                                   "type": "PRIMARY"}]}).encode("utf-8")
         )
         create_node_response = self.successResultOf(create_duplicate_nodes)
         self.assertEqual(create_node_response.code, 404)
@@ -1026,7 +1027,8 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         self.assertTrue(all([change[k] != original[k] for k in change.keys()]))
         resp, body = _update_clb_node(
             self, self.helper, self.lb_id, self.node[0]["id"],
-            json.dumps({"node": change}), request_func=request_with_content)
+            json.dumps({"node": change}).encode("utf-8"),
+            request_func=request_with_content)
         self.assertEqual(resp.code, 202)
         self.assertEqual(body, "")
 
@@ -1106,7 +1108,7 @@ class LoadbalancerAPINegativeTests(SynchronousTestCase):
                     "virtualIps": [{"type": "PUBLIC"}],
                     "metadata": metadata or []
                 }
-            })
+            }).encode("utf-8")
         )
         create_lb_response = self.successResultOf(create_lb)
         return create_lb_response
@@ -1121,7 +1123,7 @@ class LoadbalancerAPINegativeTests(SynchronousTestCase):
             json.dumps({"nodes": [{"address": "127.0.0.1",
                                    "port": 80,
                                    "condition": "ENABLED",
-                                   "type": "PRIMARY"}]})
+                                   "type": "PRIMARY"}]}).encode("utf-8")
         )
         create_node_response = self.successResultOf(create_node)
         return create_node_response
