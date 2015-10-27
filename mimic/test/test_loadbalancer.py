@@ -365,7 +365,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
         # See comment: http://bit.ly/1AVHs3v
         self.assertEqual(del_lb_response.code, 202)
         del_lb_response_body = self.successResultOf(treq.content(del_lb_response))
-        self.assertEqual(del_lb_response_body, '')
+        self.assertEqual(del_lb_response_body, b'')
         # List lb to make sure the correct lb is gone and the other remains
         list_lb = request(self, self.root, b"GET", self.uri + '/loadbalancers')
         list_lb_response = self.successResultOf(list_lb)
@@ -480,10 +480,10 @@ def _bulk_delete(test_case, root, uri, lb_id, node_ids):
     d = request(test_case, root, b"DELETE", endpoint)
     response = test_case.successResultOf(d)
     body = test_case.successResultOf(treq.content(response))
-    if body == '':
+    if body == b'':
         body = EMPTY_RESPONSE
     else:
-        body = json.loads(body)
+        body = json.loads(body.decode("utf-8"))
     return response, body
 
 
