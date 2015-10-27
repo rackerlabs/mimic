@@ -1030,7 +1030,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
             json.dumps({"node": change}).encode("utf-8"),
             request_func=request_with_content)
         self.assertEqual(resp.code, 202)
-        self.assertEqual(body, "")
+        self.assertEqual(body, b"")
 
         self.assertEqual(self._get_nodes(self.lb_id)[0], expected)
 
