@@ -4,10 +4,11 @@ Model objects for the Glance mimic.
 
 from __future__ import absolute_import, division, unicode_literals
 
-from json import dumps, loads
+from json import dumps
 from uuid import uuid4
 
 import attr
+from mimic.util.helper import json_from_request
 from six import text_type
 random_image_list = [
     {"id": str(uuid4()), "name": "OnMetal - CentOS 6", "distro": "linux"},
