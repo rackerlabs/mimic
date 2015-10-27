@@ -438,7 +438,7 @@ class NovaRegion(object):
         http://docs.rackspace.com/servers/api/v2/cs-devguide/content/UploadKeyPair.html
         """
         try:
-            content = json.loads(request.content.read())
+            content = json_from_request(request)
             keypair = content["keypair"]
             keypair_from_request = KeyPair(
                 name=keypair["name"], public_key=keypair["public_key"])
@@ -510,7 +510,7 @@ class ServerMetadata(object):
         2015-04-23 against Rackspace Nova.
         """
         try:
-            content = json.loads(request.content.read())
+            content = json_from_request(request)
         except ValueError:
             return json.dumps(bad_request("Malformed request body", request))
 
@@ -550,7 +550,7 @@ class ServerMetadata(object):
         2015-04-23 against Rackspace Nova.
         """
         try:
-            content = json.loads(request.content.read())
+            content = json_from_request(request)
         except ValueError:
             request.setResponseCode(400)
             return json.dumps(bad_request("Malformed request body", request))
