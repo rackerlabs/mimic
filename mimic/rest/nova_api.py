@@ -301,14 +301,19 @@ class NovaRegion(object):
         Returns list of servers that were created by the mocks, with details
         such as the metadata.
         """
+        def _optextarg(name):
+            arg = request.args.get(name, [None])[0]
+            if arg is None:
+                return None
+            return arg.decode("utf-8")
         return (
             self._region_collection_for_tenant(tenant_id)
             .request_list(
                 request, include_details=True, absolutize_url=self.url,
-                name=request.args.get(b'name', [b""])[0].decode("utf-8"),
-                limit=request.args.get(b'limit', [None])[0],
-                marker=request.args.get(b'marker', [None])[0],
-                changes_since=request.args.get(b'changes-since', [None])[0]
+                name=_optextarg(b'name') or u'',
+                limit=_optextarg(b'limit'),
+                marker=_optextarg(b'marker'),
+                changes_since=_optextarg(b'changes-since')
             )
         )
 
