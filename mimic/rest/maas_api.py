@@ -861,6 +861,7 @@ class MaasMock(object):
         offset = 0
         current_marker = request.args.get(b'marker', [None])[0]
         if current_marker is not None:
+            current_marker = current_marker.decode("utf-8")
             try:
                 offset = all_entities.index(Matcher(lambda entity: entity.id == current_marker))
             except ValueError:
