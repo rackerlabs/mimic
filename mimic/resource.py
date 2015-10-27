@@ -25,6 +25,7 @@ from mimic.rest.auth_api import (
 from mimic.rest.noit_api import NoitApi
 from mimic.rest import (fastly_api, mailgun_api, customer_api,
                         ironic_api, glance_api, valkyrie_api)
+from mimic.util.helper import json_from_request
 from mimic.util.helper import seconds_to_timestamp
 
 log = Logger("mimic").info
@@ -129,7 +130,7 @@ class MimicRoot(object):
         """
         Advance time by the given number of seconds.
         """
-        body = json.loads(request.content.read())
+        body = json_from_request(request)
         amount = body['amount']
         self.clock.advance(amount)
         request.setResponseCode(200)
