@@ -732,7 +732,7 @@ class RegionalServerCollection(object):
 
         if changes_since is not None:
             since = timestamp_to_seconds(changes_since)
-            to_be_listed = filter(lambda s: s.update_time >= since, to_be_listed)
+            to_be_listed = [s for s in to_be_listed if s.update_time >= since]
 
         # marker can be passed without limit, in which case the whole server
         # list, after the server that matches the marker, is returned
@@ -755,7 +755,7 @@ class RegionalServerCollection(object):
                         if name in server.server_name]
 
         if changes_since is None:
-            to_be_listed = filter(lambda s: s.status != u"DELETED", to_be_listed)
+            to_be_listed = [s for s in to_be_listed if s.status != u"DELETED"]
 
         if limit is not None:
             try:
