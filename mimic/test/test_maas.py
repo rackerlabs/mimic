@@ -127,7 +127,10 @@ class MaasAPITests(SynchronousTestCase):
         postdata = {'label': label}
         postdata['type'] = 'email'
         postdata['details'] = {'address': 'zoehardman4ever@hedkandi.co.uk'}
-        req = request(self, self.root, b"POST", self.uri + '/notifications', json.dumps(postdata).encode("utf-8"))
+        req = request(
+            self, self.root, b"POST", self.uri + '/notifications',
+            json.dumps(postdata).encode("utf-8")
+        )
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 201)
         nt_id, location = id_and_location(resp)
@@ -139,7 +142,10 @@ class MaasAPITests(SynchronousTestCase):
         Util create notification plan
         """
         postdata = {'label': label}
-        req = request(self, self.root, b"POST", self.uri + '/notification_plans', json.dumps(postdata).encode("utf-8"))
+        req = request(
+            self, self.root, b"POST", self.uri + '/notification_plans',
+            json.dumps(postdata).encode("utf-8")
+        )
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 201)
         np_id, location = id_and_location(resp)
@@ -148,7 +154,10 @@ class MaasAPITests(SynchronousTestCase):
 
     def createSuppression(self, label):
         postdata = {'label': label}
-        req = request(self, self.root, b"POST", self.uri + '/suppressions', json.dumps(postdata).encode("utf-8"))
+        req = request(
+            self, self.root, b"POST", self.uri + '/suppressions',
+            json.dumps(postdata).encode("utf-8")
+        )
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 201)
         sp_id, location = id_and_location(resp)
@@ -1087,8 +1096,11 @@ class MaasAPITests(SynchronousTestCase):
             mq = {'entity_id': self.entity_id, 'check_id': self.check_id, 'metric': m['name']}
             metrics.append(mq)
         qstring = '?from=1412902262560&points=500&to=1412988662560'
-        req = request(self, self.root, b"POST",
-                      self.uri + '/__experiments/multiplot' + qstring, json.dumps({'metrics': metrics}).encode("utf-8"))
+        req = request(
+            self, self.root, b"POST",
+            self.uri + '/__experiments/multiplot' + qstring,
+            json.dumps({'metrics': metrics}).encode("utf-8")
+        )
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)

@@ -8,8 +8,6 @@ import json
 
 from io import BytesIO
 
-from six import text_type
-
 from twisted.web.resource import NoResource
 from twisted.web.server import Request, Site
 from twisted.logger import Logger

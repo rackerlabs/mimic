@@ -13,8 +13,6 @@ from six import text_type
 
 from zope.interface import implementer
 
-from twisted.python.urlpath import URLPath
-
 from twisted.plugin import IPlugin
 from twisted.web.http import CREATED, BAD_REQUEST
 
