@@ -225,7 +225,7 @@ class GlanceAdminImageStore(object):
         if image:
             return image.get_glance_admin_image_json()
         http_request.setResponseCode(404)
-        return b''
+        return ''
 
     def create_image(self, http_create_request):
         """
