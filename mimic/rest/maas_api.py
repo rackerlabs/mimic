@@ -2,7 +2,7 @@
 MAAS Mock API
 """
 
-from __future__ import division, unicode_literals
+from __future__ import division, unicode_literals, print_function
 
 import json
 import collections
@@ -386,26 +386,30 @@ class MaasMock(object):
                 .data_for_api(self._api_mock, _mcache_factory(clock))[self._name]
                 )
 
-    def _audit(self, app, request, tenant_id, status, content=''):
-        headers = dict([(k, v) for k, v in request.getAllHeaders().items()
-                        if k != 'x-auth-token'])
+    def _audit(self, app, request, tenant_id, status, content=b''):
+        headers = dict([
+            (k.decode("utf-8"),
+             [vv.decode("utf-8") if isinstance(vv, bytes) else vv for vv in v])
+            for k, v in request.getAllHeaders().items()
+            if k != b'x-auth-token']
+        )
 
-        self._entity_cache_for_tenant(tenant_id).audits_list.append(
-            {
-                'id': str(uuid4()),
-                'timestamp': int(1000 * self._session_store.clock.seconds()),
-                'headers': headers,
-                'url': request.path,
-                'app': app,
-                'query': parse_and_flatten_qs(request.uri),
-                'txnId': str(uuid4()),
-                'payload': content,
-                'method': request.method,
-                'account_id': tenant_id,
-                'who': '',
-                'why': '',
-                'statusCode': status
-            })
+        record = {
+            'id': text_type(uuid4()),
+            'timestamp': int(1000 * self._session_store.clock.seconds()),
+            'headers': headers,
+            'url': request.path.decode("utf-8"),
+            'app': app,
+            'query': parse_and_flatten_qs(request.uri.decode("utf-8")),
+            'txnId': text_type(uuid4()),
+            'payload': content.decode("utf-8"),
+            'method': request.method.decode("utf-8"),
+            'account_id': tenant_id,
+            'who': '',
+            'why': '',
+            'statusCode': status
+        }
+        self._entity_cache_for_tenant(tenant_id).audits_list.append(record)
 
     app = MimicApp()
 
@@ -431,7 +435,7 @@ class MaasMock(object):
         if b'limit' in request.args:
             limit = int(request.args[b'limit'][0].strip())
         if b'marker' in request.args:
-            marker = request.args[b'marker'][0].strip()
+            marker = request.args[b'marker'][0].strip().decode("utf-8")
             for q in range(len(entities)):
                 if entities[q].id == marker:
                     entities = entities[q:]
@@ -565,7 +569,7 @@ class MaasMock(object):
         try:
             newcheck = create_check(self._session_store.clock, entity_id, postdata)
         except ValueError as err:
-            match = MISSING_REQUIRED_KEY_REGEX.match(err.message)
+            match = MISSING_REQUIRED_KEY_REGEX.match(text_type(err))
             missing_key = match.group(1)
             status = 400
             request.setResponseCode(status)
@@ -844,15 +848,16 @@ class MaasMock(object):
         """
         all_entities = self._entity_cache_for_tenant(tenant_id).entities_list
         if b'entityId' in request.args:
+            entity_ids = [a.decode("utf-8") for a in request.args[b'entityId']]
             all_entities = [entity for entity in all_entities
-                            if entity.id in request.args[b'entityId']]
+                            if entity.id in entity_ids]
             if len(all_entities) == 0:
                 request.setResponseCode(404)
                 return json.dumps({'type': 'notFoundError',
                                    'code': 404,
                                    'message': 'Object does not exist',
                                    'details': 'Object "Entity" with key "{0}" does not exist'.format(
-                                       request.args[b'entityId'])})
+                                       entity_ids)})
 
         checks = self._entity_cache_for_tenant(tenant_id).checks_list
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
@@ -905,6 +910,7 @@ class MaasMock(object):
         offset = 0
         current_marker = request.args.get(b'marker', [None])[0]
         if current_marker is not None:
+            current_marker = current_marker.decode("utf-8")
             try:
                 offset = all_audits.index(Matcher(lambda audit: audit['id'] == current_marker))
             except ValueError:
@@ -934,7 +940,7 @@ class MaasMock(object):
         TO DO: Regionless api
         """
         request.setResponseCode(200)
-        mockapi_id = re.findall('/mimicking/(.+?)/', request.path)[0]
+        mockapi_id = re.findall('/mimicking/(.+?)/', request.path.decode("utf-8"))[0]
         url = base_uri_from_request(request).rstrip('/') + '/mimicking/' + mockapi_id + '/ORD/v1.0'
         return json.dumps(json_home(url))
 
