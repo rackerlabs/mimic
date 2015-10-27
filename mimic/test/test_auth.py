@@ -1290,7 +1290,7 @@ class IdentityBehaviorInjectionTests(SynchronousTestCase):
         response, body = authenticate_with_username_password(
             self, root, username="failme", request_func=request_with_content)
         self.assertEqual(response.code, 500)
-        self.assertEqual(body, "Failure of JSON")
+        self.assertEqual(body, b"Failure of JSON")
 
 
 class IdentityNondedicatedFixtureTests(SynchronousTestCase):

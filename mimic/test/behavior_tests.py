@@ -174,7 +174,9 @@ def make_behavior_tests(behavior_helper_factory):
             results in a 400.
             """
             name, params = self.bhelper.names_and_params[0]
-            almost_correct = json.dumps({'name': name, 'parameters': params})
+            almost_correct = json.dumps(
+                {'name': name, 'parameters': params}
+            ).encode("utf-8")
             for invalid in (b'', b'{}', almost_correct):
                 response, body = self.successResultOf(request_with_content(
                     self, self.bhelper.root, b"POST",
