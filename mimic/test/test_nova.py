@@ -1864,7 +1864,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         specified if it's not "string".
         """
         response, body = self._try_false_negative_failure('specialType')
-        body = json.loads(body)
+        body = json.loads(body.decode("utf-8"))
         self.assertEquals(body['specialType']['message'],
                           "Create server failure")
         self.assertEquals(body['specialType']['code'], 500)
