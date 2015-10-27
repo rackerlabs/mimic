@@ -73,7 +73,7 @@ def create_server(helper, name=None, imageRef=None, flavorRef=None,
             data['metadata'] = metadata
         if diskConfig is not None:
             data["OS-DCF:diskConfig"] = diskConfig
-        body = {"server": data}
+        body = json.dumps({"server": data}).encode("utf-8")
 
     create_server = request_func(
         helper.test_case,
@@ -1832,7 +1832,8 @@ class NovaAPINegativeTests(SynchronousTestCase):
         create_server_response, body = create_server(
             self.helper,
             name="failing_server_name",
-            request_func=request_with_content)
+            request_func=request_with_content
+        )
         self.assertEquals(create_server_response.code, 500)
 
         # List servers with details and verify there are no servers

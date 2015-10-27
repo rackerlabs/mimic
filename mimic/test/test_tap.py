@@ -74,7 +74,7 @@ def addFakePluginObject(testCase, pluginPackage, pluginObject):
     Add a fake plugin for the duration of the given test.
     """
     dropinName = str("a_fake_dropin")
-    dropinQualifiedName = pluginPackage.__name__ + "." + dropinName
+    dropinQualifiedName = pluginPackage.__name__ + str(".") + dropinName
     module = sys.modules[dropinQualifiedName] = types.ModuleType(
         dropinQualifiedName)
     testCase.addCleanup(lambda: sys.modules.pop(dropinQualifiedName))
