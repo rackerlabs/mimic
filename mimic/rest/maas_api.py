@@ -457,7 +457,7 @@ class MaasMock(object):
         Creates a new entity
         """
         content = request.content.read()
-        postdata = json.loads(content)
+        postdata = json.loads(content.decode("utf-8"))
         newentity = create_entity(self._session_store.clock, postdata)
         self._entity_cache_for_tenant(tenant_id).entities_list.append(newentity)
         status = 201
@@ -502,7 +502,7 @@ class MaasMock(object):
         Update entity in place.
         """
         content = request.content.read()
-        update = json.loads(content)
+        update = json.loads(content.decode("utf-8"))
         update_kwargs = dict(update)
         update_kwargs['clock'] = self._session_store.clock
         for entity in self._entity_cache_for_tenant(tenant_id).entities_list:
@@ -559,7 +559,7 @@ class MaasMock(object):
         Create a check
         """
         content = request.content.read()
-        postdata = json.loads(content)
+        postdata = json.loads(content.decode("utf-8"))
 
         newcheck = None
         try:
@@ -605,7 +605,7 @@ class MaasMock(object):
         Updates a check in place.
         """
         content = request.content.read()
-        update = json.loads(content)
+        update = json.loads(content.decode("utf-8"))
         update_kwargs = dict(update)
         update_kwargs['clock'] = self._session_store.clock
         for check in self._entity_cache_for_tenant(tenant_id).checks_list:
@@ -664,7 +664,7 @@ class MaasMock(object):
         string metrics generate strings. No other guarantees are made.
         """
         content = request.content.read()
-        test_config = json.loads(content)
+        test_config = json.loads(content.decode("utf-8"))
         check_type = test_config['type']
         maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
         response_code, response_body = maas_store.check_types[check_type].get_test_check_response(
@@ -681,7 +681,7 @@ class MaasMock(object):
         Creates alarm
         """
         content = request.content.read()
-        postdata = json.loads(content)
+        postdata = json.loads(content.decode("utf-8"))
 
         try:
             newalarm = create_alarm(self._session_store.clock, entity_id, postdata)
@@ -733,7 +733,7 @@ class MaasMock(object):
             http://goo.gl/NhxgTZ
         """
         content = request.content.read()
-        update = json.loads(content)
+        update = json.loads(content.decode("utf-8"))
         update_kwargs = dict(update)
         update_kwargs['clock'] = self._session_store.clock
         for alarm in self._entity_cache_for_tenant(tenant_id).alarms_list:
@@ -790,7 +790,7 @@ class MaasMock(object):
         CRITICAL without first setting the response in the control API.
         """
         content = request.content.read()
-        payload = json.loads(content)
+        payload = json.loads(content.decode("utf-8"))
         n_tests = len(payload['check_data'])
         current_time_milliseconds = int(1000 * self._session_store.clock.seconds())
         status = 200
@@ -1024,7 +1024,7 @@ class MaasMock(object):
         Create notification target
         """
         content = request.content.read()
-        new_n = create_notification(self._session_store.clock, json.loads(content))
+        new_n = create_notification(self._session_store.clock, json.loads(content.decode("utf-8")))
         self._entity_cache_for_tenant(tenant_id).notifications_list.append(new_n)
         status = 201
         request.setResponseCode(status)
@@ -1055,7 +1055,7 @@ class MaasMock(object):
         Updates notification targets
         """
         content = request.content.read()
-        postdata = json.loads(content)
+        postdata = json.loads(content.decode("utf-8"))
         update_kwargs = dict(postdata)
         update_kwargs['clock'] = self._session_store.clock
         nt_list = self._entity_cache_for_tenant(tenant_id).notifications_list
@@ -1102,7 +1102,7 @@ class MaasMock(object):
         Creates a new notificationPlans
         """
         content = request.content.read()
-        postdata = json.loads(content)
+        postdata = json.loads(content.decode("utf-8"))
         newnp = create_notification_plan(self._session_store.clock, postdata)
         self._entity_cache_for_tenant(tenant_id).notificationplans_list.append(newnp)
         status = 201
@@ -1145,7 +1145,7 @@ class MaasMock(object):
         Alter a notification plan
         """
         content = request.content.read()
-        postdata = json.loads(content)
+        postdata = json.loads(content.decode("utf-8"))
         update_kwargs = dict(postdata)
         update_kwargs['clock'] = self._session_store.clock
         np_list = self._entity_cache_for_tenant(tenant_id).notificationplans_list
@@ -1233,7 +1233,7 @@ class MaasMock(object):
         Create a new suppression.
         """
         content = request.content.read()
-        postdata = json.loads(content)
+        postdata = json.loads(content.decode("utf-8"))
         newsp = create_suppression(self._session_store.clock, postdata)
         self._entity_cache_for_tenant(tenant_id).suppressions_list.append(newsp)
         status = 201
@@ -1251,7 +1251,7 @@ class MaasMock(object):
         Update a suppression.
         """
         content = request.content.read()
-        postdata = json.loads(content)
+        postdata = json.loads(content.decode("utf-8"))
         update_kwargs = dict(postdata)
         update_kwargs['clock'] = self._session_store.clock
         sp_list = self._entity_cache_for_tenant(tenant_id).suppressions_list
@@ -1403,7 +1403,7 @@ class MaasMock(object):
         checks = self._entity_cache_for_tenant(tenant_id).checks_list
         maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
         content = request.content.read()
-        multiplot_request = json.loads(content)
+        multiplot_request = json.loads(content.decode("utf-8"))
 
         requested_check_ids = set([metric['check_id'] for metric in multiplot_request['metrics']])
         checks_by_id = dict([(check.id, check)
