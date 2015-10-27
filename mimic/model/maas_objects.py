@@ -302,7 +302,7 @@ class Suppression(object):
 
 
 @attributes([Attribute('alarm_changelog_id',
-                       default_factory=(lambda: unicode(uuid4())),
+                       default_factory=(lambda: text_type(uuid4())),
                        instance_of=text_type),
              Attribute('alarm_id', instance_of=text_type),
              Attribute('alarm_label', instance_of=text_type),
@@ -380,7 +380,8 @@ class Metric(object):
             else:
                 return random.uniform(0, 100000)
         elif self.type == METRIC_TYPE_STRING:
-            return random_string(random.randint(12, 30), selectable=(string.letters + string.digits))
+            return random_string(random.randint(12, 30), selectable=(
+                string.ascii_letters + string.digits))
         raise ValueError('No default data getter for type {0}!'.format(self.type))
 
     def get_value(self, **kwargs):
@@ -551,7 +552,7 @@ class MultiHostInfoType(object):
                          for i in range(num_blocks)]}
 
 
-@attributes([Attribute('id', instance_of=text_type, default_factory=lambda: unicode(uuid4())),
+@attributes([Attribute('id', instance_of=text_type, default_factory=lambda: text_type(uuid4())),
              Attribute('counts',
                        instance_of=dict,
                        default_factory=lambda: {

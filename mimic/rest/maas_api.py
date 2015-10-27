@@ -387,7 +387,7 @@ class MaasMock(object):
                 )
 
     def _audit(self, app, request, tenant_id, status, content=''):
-        headers = dict([(k, v) for k, v in request.getAllHeaders().iteritems()
+        headers = dict([(k, v) for k, v in request.getAllHeaders().items()
                         if k != 'x-auth-token'])
 
         self._entity_cache_for_tenant(tenant_id).audits_list.append(
@@ -428,10 +428,10 @@ class MaasMock(object):
         marker = None
         next_marker = None
         next_href = None
-        if 'limit' in request.args:
-            limit = int(request.args['limit'][0].strip())
-        if 'marker' in request.args:
-            marker = request.args['marker'][0].strip()
+        if b'limit' in request.args:
+            limit = int(request.args[b'limit'][0].strip())
+        if b'marker' in request.args:
+            marker = request.args[b'marker'][0].strip()
             for q in range(len(entities)):
                 if entities[q].id == marker:
                     entities = entities[q:]
@@ -686,7 +686,7 @@ class MaasMock(object):
         try:
             newalarm = create_alarm(self._session_store.clock, entity_id, postdata)
         except ValueError as err:
-            match = MISSING_REQUIRED_KEY_REGEX.match(err.message)
+            match = MISSING_REQUIRED_KEY_REGEX.match(text_type(err))
             missing_key = match.group(1)
             status = 400
             request.setResponseCode(status)
@@ -843,16 +843,16 @@ class MaasMock(object):
         serves the overview api call,returns all entities,checks and alarms
         """
         all_entities = self._entity_cache_for_tenant(tenant_id).entities_list
-        if 'entityId' in request.args:
+        if b'entityId' in request.args:
             all_entities = [entity for entity in all_entities
-                            if entity.id in request.args['entityId']]
+                            if entity.id in request.args[b'entityId']]
             if len(all_entities) == 0:
                 request.setResponseCode(404)
                 return json.dumps({'type': 'notFoundError',
                                    'code': 404,
                                    'message': 'Object does not exist',
                                    'details': 'Object "Entity" with key "{0}" does not exist'.format(
-                                       request.args['entityId'])})
+                                       request.args[b'entityId'])})
 
         checks = self._entity_cache_for_tenant(tenant_id).checks_list
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
@@ -945,7 +945,7 @@ class MaasMock(object):
         entities = self._entity_cache_for_tenant(tenant_id).entities_list
         maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
 
-        if 'include' not in request.args:
+        if b'include' not in request.args:
             request.setResponseCode(400)
             return json.dumps({'type': 'badRequest',
                                'code': 400,
@@ -954,7 +954,7 @@ class MaasMock(object):
                                'txnId': ('.fake.mimic.transaction.id.c-1111111'
                                           '.ts-123444444.v-12344frf')})
 
-        if 'entityId' not in request.args:
+        if b'entityId' not in request.args:
             request.setResponseCode(400)
             return json.dumps({'type': 'badRequest',
                                'code': 400,
@@ -964,7 +964,7 @@ class MaasMock(object):
                                'txnId': ('.fake.mimic.transaction.id.c-1111111'
                                          '.ts-123444444.v-12344frf')})
 
-        entity_id = request.args['entityId'][0].strip()
+        entity_id = request.args[b'entityId'][0].strip().decode("utf-8")
         agent_id = None
         for entity in entities:
             if entity.id == entity_id:
@@ -992,18 +992,21 @@ class MaasMock(object):
             lambda agent: agent.id == agent_id))]
 
         request.setResponseCode(200)
-        return json.dumps({'values': [{'agent_id': agent_id,
-                                       'entity_id': entity_id,
-                                       'entity_uri': entity.uri,
-                                       'host_info': agent.get_host_info(maas_store.host_info_types,
-                                                                        request.args['include'],
-                                                                        entity_id,
-                                                                        self._session_store.clock)}],
-                           'metadata': {'count': 1,
-                                        'limit': 100,
-                                        'marker': None,
-                                        'next_marker': None,
-                                        'next_href': None}})
+        return json.dumps({
+            'values': [{'agent_id': agent_id,
+                        'entity_id': entity_id,
+                        'entity_uri': entity.uri,
+                        'host_info': agent.get_host_info(
+                            maas_store.host_info_types,
+                            [arg.decode('utf-8')
+                             for arg in request.args[b'include']],
+                            entity_id,
+                            self._session_store.clock)}],
+            'metadata': {'count': 1,
+                         'limit': 100,
+                         'marker': None,
+                         'next_marker': None,
+                         'next_href': None}})
 
     @app.route('/v1.0/<string:tenant_id>/agent_installers', methods=['POST'])
     def agent_installer(self, request, tenant_id):
@@ -1427,9 +1430,9 @@ class MaasMock(object):
                                                 metric['entity_id'],
                                                 checks_by_id[metric['check_id']],
                                                 metric['metric'],
-                                                int(request.args['from'][0]),
-                                                int(request.args['to'][0]),
-                                                int(request.args['points'][0]))
+                                                int(request.args[b'from'][0]),
+                                                int(request.args[b'to'][0]),
+                                                int(request.args[b'points'][0]))
                              for metric in multiplot_request['metrics']]
         status = 200
         request.setResponseCode(200)
@@ -1648,7 +1651,7 @@ class MaasController(object):
                                    status=request_body['status'],
                                    timestamp=int(1000 * self.session_store.clock.seconds()))
         except KeyError as e:
-            missing_key = e.message
+            missing_key = e.args[0]
             status = 400
             request.setResponseCode(status)
             return json.dumps({'type': 'badRequest',

@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division, unicode_literals
 
+from six import text_type
 import json
 import treq
 from twisted.internet.task import Clock
@@ -38,6 +39,22 @@ class MaasObjectsTests(SynchronousTestCase):
             check_type.get_metric_by_name('not_that_metric')
 
 
+def one_text_header(response, header_name):
+    """
+    Retrieve one text header from the given HTTP response.
+    """
+    return response.headers.getRawHeaders(header_name)[0].decode("utf-8")
+
+
+def id_and_location(response):
+    """
+    Retrieve the x-object-id and location headers and return them as a textual
+    2-tuple.
+    """
+    return (one_text_header(response, b'x-object-id'),
+            one_text_header(response, b'location'))
+
+
 class MaasAPITests(SynchronousTestCase):
 
     """
@@ -61,8 +78,7 @@ class MaasAPITests(SynchronousTestCase):
                       json.dumps(postdata).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 201)
-        entity_id = resp.headers.getRawHeaders('x-object-id')[0]
-        location = resp.headers.getRawHeaders('location')[0]
+        entity_id, location = id_and_location(resp)
         self.assertEquals(location, self.uri + '/entities/' + entity_id)
         return resp
 
@@ -83,8 +99,7 @@ class MaasAPITests(SynchronousTestCase):
                       json.dumps(postdata).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 201)
-        check_id = resp.headers.getRawHeaders('x-object-id')[0]
-        location = resp.headers.getRawHeaders('location')[0]
+        check_id, location = id_and_location(resp)
         self.assertEquals(location, checks_endpoint + '/' + check_id)
         return resp
 
@@ -101,8 +116,7 @@ class MaasAPITests(SynchronousTestCase):
                       json.dumps(postdata).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 201)
-        alarm_id = resp.headers.getRawHeaders('x-object-id')[0]
-        location = resp.headers.getRawHeaders('location')[0]
+        alarm_id, location = id_and_location(resp)
         self.assertEquals(location, alarms_endpoint + '/' + alarm_id)
         return resp
 
@@ -116,8 +130,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, b"POST", self.uri + '/notifications', json.dumps(postdata).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 201)
-        nt_id = resp.headers.getRawHeaders('x-object-id')[0]
-        location = resp.headers.getRawHeaders('location')[0]
+        nt_id, location = id_and_location(resp)
         self.assertEquals(location, self.uri + '/notifications/' + nt_id)
         return resp
 
@@ -129,8 +142,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, b"POST", self.uri + '/notification_plans', json.dumps(postdata).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 201)
-        np_id = resp.headers.getRawHeaders('x-object-id')[0]
-        location = resp.headers.getRawHeaders('location')[0]
+        np_id, location = id_and_location(resp)
         self.assertEquals(location, self.uri + '/notification_plans/' + np_id)
         return resp
 
@@ -139,8 +151,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, b"POST", self.uri + '/suppressions', json.dumps(postdata).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 201)
-        sp_id = resp.headers.getRawHeaders('x-object-id')[0]
-        location = resp.headers.getRawHeaders('location')[0]
+        sp_id, location = id_and_location(resp)
         self.assertEquals(location, self.uri + '/suppressions/' + sp_id)
         return resp
 
@@ -178,17 +189,17 @@ class MaasAPITests(SynchronousTestCase):
         id is prefixed with 'en'. Test that the ids are not null and are
         prefixed.
         """
-        self.assertIsInstance(self.entity_id, str)
+        self.assertIsInstance(self.entity_id, text_type)
         self.assertTrue(self.entity_id.startswith('en'))
-        self.assertIsInstance(self.check_id, str)
+        self.assertIsInstance(self.check_id, text_type)
         self.assertTrue(self.check_id.startswith('ch'))
-        self.assertIsInstance(self.alarm_id, str)
+        self.assertIsInstance(self.alarm_id, text_type)
         self.assertTrue(self.alarm_id.startswith('al'))
-        self.assertIsInstance(self.nt_id, str)
+        self.assertIsInstance(self.nt_id, text_type)
         self.assertTrue(self.nt_id.startswith('nt'))
-        self.assertIsInstance(self.np_id, str)
+        self.assertIsInstance(self.np_id, text_type)
         self.assertTrue(self.np_id.startswith('np'))
-        self.assertIsInstance(self.sp_id, str)
+        self.assertIsInstance(self.sp_id, text_type)
         self.assertTrue(self.sp_id.startswith('sp'))
 
     def test_list_entity(self):
@@ -201,9 +212,9 @@ class MaasAPITests(SynchronousTestCase):
         data = self.get_responsebody(resp)
         self.assertEquals(data['metadata']['count'], 1)
         for q in range(1, 101):
-            self.createEntity('Cinnamon' + str(q))
+            self.createEntity('Cinnamon' + text_type(q))
         for q in range(1, 101):
-            req = request(self, self.root, b"GET", self.uri + '/entities/?limit=' + str(q))
+            req = request(self, self.root, b"GET", self.uri + '/entities/?limit=' + text_type(q))
             resp = self.successResultOf(req)
             self.assertEquals(resp.code, 200)
             data = self.get_responsebody(resp)
@@ -347,7 +358,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, b"PUT", entity_endpoint, json.dumps(data).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
-        self.assertEquals(entity_endpoint, resp.headers.getRawHeaders('location')[0])
+        self.assertEquals(entity_endpoint, one_text_header(resp, b'location'))
         req = request(self, self.root, b"GET", entity_endpoint)
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
@@ -434,7 +445,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, b"PUT", check_endpoint, json.dumps(data).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
-        self.assertEquals(check_endpoint, resp.headers.getRawHeaders('location')[0])
+        self.assertEquals(check_endpoint, one_text_header(resp, b'location'))
         req = request(self, self.root, b"GET", check_endpoint)
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
@@ -487,7 +498,7 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, b"PUT", alarm_endpoint, json.dumps(alarm).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
-        self.assertEquals(alarm_endpoint, resp.headers.getRawHeaders('location')[0])
+        self.assertEquals(alarm_endpoint, one_text_header(resp, b'location'))
         req = request(self, self.root, b"GET", self.uri + '/views/overview')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
@@ -1015,9 +1026,8 @@ class MaasAPITests(SynchronousTestCase):
         req = request(self, self.root, b"POST", self.uri + '/agent_installers')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 201)
-        xsil = resp.headers.getRawHeaders('x-shell-installer-location')
-        self.assertTrue(xsil is not None)
-        self.assertTrue('monitoring.api' in xsil[0])
+        xsil = one_text_header(resp, b'x-shell-installer-location')
+        self.assertTrue('monitoring.api' in xsil)
 
     def test_metriclist(self):
         """
@@ -1109,7 +1119,7 @@ class MaasAPITests(SynchronousTestCase):
                     '{0}/entities/{1}/checks'.format(self.uri, self.entity_id),
                     json.dumps({'type': 'agent.whatever'}).encode("utf-8")))
         self.assertEquals(resp.code, 201)
-        check_id = resp.headers.getRawHeaders('x-object-id')[0]
+        check_id, location = id_and_location(resp)
         (resp, data) = self.successResultOf(
             json_request(self, self.root, b"POST",
                          '{0}/__experiments/multiplot?from={1}&to={2}&points={3}'.format(
