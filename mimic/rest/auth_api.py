@@ -295,9 +295,9 @@ class AuthApi(object):
         Docs: http://developer.openstack.org/api-ref-identity-v2.html#admin-tokens
         """
         request.setResponseCode(200)
-        tenant_id = request.args.get('belongsTo')
+        tenant_id = request.args.get(b'belongsTo')
         if tenant_id is not None:
-            tenant_id = tenant_id[0]
+            tenant_id = tenant_id[0].decode("utf-8")
         session = self.core.sessions.session_for_tenant_id(tenant_id, token_id)
         response = get_token(
             session.tenant_id,
