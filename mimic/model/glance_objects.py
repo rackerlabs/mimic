@@ -5,9 +5,10 @@ Model objects for the Glance mimic.
 from __future__ import absolute_import, division, unicode_literals
 
 from json import dumps, loads
-from characteristic import attributes, Attribute
 from uuid import uuid4
 
+import attr
+from six import text_type
 random_image_list = [
     {"id": str(uuid4()), "name": "OnMetal - CentOS 6", "distro": "linux"},
     {"id": str(uuid4()), "name": "OnMetal - CentOS 7", "distro": "linux"},
@@ -27,13 +28,22 @@ random_image_list = [
 ]
 
 
-@attributes(["image_id", "name", "distro",
-             Attribute("tenant_id", default_value=None),
-             Attribute("status", default_value='active')])
+@attr.s
 class Image(object):
     """
     A Image object
     """
+
+    image_id = attr.ib(validator=attr.validators.instance_of(text_type))
+    name = attr.ib(validator=attr.validators.instance_of(text_type))
+    distro = attr.ib(validator=attr.validators.instance_of(text_type))
+    tenant_id = attr.ib(
+        validator=attr.validators.optional(
+            attr.validators.instance_of(text_type)),
+        default=None
+    )
+    status = attr.ib(validator=attr.validators.instance_of(text_type),
+                     default='active')
 
     static_server_image_defaults = {
         "minRam": 256,
@@ -169,11 +179,14 @@ class Image(object):
         return template
 
 
-@attributes([Attribute("glance_admin_image_store", default_factory=list)])
+@attr.s
 class GlanceAdminImageStore(object):
     """
     A collection of :obj:`Image`.
     """
+
+    glance_admin_image_store = attr.ib(default=attr.Factory(list))
+
     def image_by_id(self, image_id):
         """
         Retrieve a :obj:`Image` object by its ID.
