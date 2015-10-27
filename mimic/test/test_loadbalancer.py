@@ -1042,7 +1042,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         feed_response = self.successResultOf(d)
         self.assertEqual(feed_response.code, 200)
         self.assertEqual(
-            self.successResultOf(treq.content(feed_response)),
+            self.successResultOf(treq.content(feed_response)).decode("utf-8"),
             ("<feed xmlns=\"http://www.w3.org/2005/Atom\"><entry>"
              "<summary>Node successfully updated with address: '127.0.0.1', "
              "port: '80', weight: '100', condition: 'DISABLED'</summary>"
@@ -1059,7 +1059,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         feed_response = self.successResultOf(d)
         self.assertEqual(feed_response.code, 404)
         self.assertEqual(
-            self.successResultOf(treq.content(feed_response)),
+            self.successResultOf(treq.content(feed_response)).decode("utf-8"),
             ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
              '<itemNotFound xmlns="http://docs.openstack.org/loadbalancers/api/v1.0" code="404">'
              '<message>Node not found</message></itemNotFound>'))
@@ -1075,7 +1075,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         feed_response = self.successResultOf(d)
         self.assertEqual(feed_response.code, 404)
         self.assertEqual(
-            self.successResultOf(treq.content(feed_response)),
+            self.successResultOf(treq.content(feed_response)).decode("utf-8"),
             ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
              '<itemNotFound xmlns="http://docs.openstack.org/loadbalancers/api/v1.0" code="404">'
              '<message>Load balancer not found</message></itemNotFound>'))
