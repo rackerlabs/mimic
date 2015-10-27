@@ -119,7 +119,7 @@ def update_metdata_item(helper, server_id, key, value):
     d = request_with_content(
         helper.test_case, helper.root, b"PUT",
         '{0}/servers/{1}/metadata/{2}'.format(helper.uri, server_id, key),
-        json.dumps({'meta': {key: value}}))
+        json.dumps({'meta': {key: value}}).encode("utf-8"))
     resp, body = helper.test_case.successResultOf(d)
     helper.test_case.assertEqual(resp.code, 200)
 
@@ -131,7 +131,7 @@ def update_metdata(helper, server_id, metadata):
     d = request_with_content(
         helper.test_case, helper.root, b"PUT",
         '{0}/servers/{1}/metadata'.format(helper.uri, server_id),
-        json.dumps({'metadata': metadata}))
+        json.dumps({'metadata': metadata}).encode("utf-8"))
     resp, body = helper.test_case.successResultOf(d)
     helper.test_case.assertEqual(resp.code, 200)
 
@@ -143,7 +143,7 @@ def update_status(helper, control_endpoint, server_id, status):
     d = request_with_content(
         helper.test_case, helper.root, b"POST",
         control_endpoint + "/attributes/",
-        json.dumps({"status": {server_id: status}}))
+        json.dumps({"status": {server_id: status}}).encode("utf-8"))
     resp, body = helper.test_case.successResultOf(d)
     helper.test_case.assertEqual(resp.code, 201)
 
@@ -1902,7 +1902,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         set_status = request(
             self, self.root, b"POST",
             nova_control_endpoint + "/attributes/",
-            json.dumps(status_modification)
+            json.dumps(status_modification).encode("utf-8")
         )
         set_status_response = self.successResultOf(set_status)
         self.assertEqual(status_of_server(self, server_id_1), "ACTIVE")
