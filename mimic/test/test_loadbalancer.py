@@ -445,7 +445,9 @@ class LoadbalancerAPITests(SynchronousTestCase):
 
         self.assertEqual(list_lb_response.code, 200)
 
-        list_lb_response_body = json.loads(list_lb_response_body)
+        list_lb_response_body = json.loads(
+            list_lb_response_body.decode("utf-8")
+        )
         self.assertEqual(list_lb_response_body, {"loadBalancers": []})
 
     def test_same_tenant_different_regions(self):
@@ -465,7 +467,9 @@ class LoadbalancerAPITests(SynchronousTestCase):
 
         self.assertEqual(list_lb_response.code, 200)
 
-        list_lb_response_body = json.loads(list_lb_response_body)
+        list_lb_response_body = json.loads(
+            list_lb_response_body.decode("utf-8")
+        )
         self.assertEqual(list_lb_response_body, {"loadBalancers": []})
 
 
