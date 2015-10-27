@@ -211,9 +211,7 @@ class NovaRegion(object):
         Generate a URL to an object within the Nova URL hierarchy, given the
         part of the URL that comes after.
         """
-        if isinstance(suffix, text_type):
-            suffix = suffix.encode("ascii")
-        return str(URLPath.fromString(self.uri_prefix).child(suffix))
+        return "/".join([self.uri_prefix.rstrip("/"), suffix])
 
     def _region_collection_for_tenant(self, tenant_id):
         """
