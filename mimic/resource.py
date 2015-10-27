@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 
 import json
 
-from io import StringIO
+from io import BytesIO
 
 from six import text_type
 
@@ -191,7 +191,7 @@ class MimicLoggingRequest(MimicRequest, object):
         buffer to store the response for logging.
         """
         super(MimicLoggingRequest, self).__init__(*args, **kwargs)
-        self.response_body_for_logging = StringIO()
+        self.response_body_for_logging = BytesIO()
 
     def process(self):
         """
@@ -203,16 +203,19 @@ class MimicLoggingRequest(MimicRequest, object):
         log("Received request: {method} {url}\n"
             "Headers: {headers}\n"
             "{body}",
-            method=self.method, url=self.uri,
-            headers=json.dumps(dict(self.requestHeaders.getAllRawHeaders())),
-            body=("\n" + content + "\n" if content else ""))
+            method=self.method.decode("utf-8"), url=self.uri.decode("utf-8"),
+            headers=json.dumps(
+                dict((k.decode("utf-8"), [vv.decode("utf-8") for vv in v])
+                     for (k, v) in self.requestHeaders.getAllRawHeaders())
+            ),
+            body=("\n" + content.decode("utf-8") + "\n" if content else ""))
         return super(MimicLoggingRequest, self).process()
 
     def write(self, data):
         """
         Collect the response data before calling the superclass's :obj:`write`.
         """
-        self.response_body_for_logging.write(text_type(data))
+        self.response_body_for_logging.write(data)
         return super(MimicLoggingRequest, self).write(data)
 
     def finish(self):
@@ -223,9 +226,12 @@ class MimicLoggingRequest(MimicRequest, object):
         log("Responding with {code} for: {method} {url}\n"
             "Headers: {headers}\n"
             "{body}",
-            method=self.method, url=self.uri, code=self.code,
-            headers=json.dumps(dict(self.responseHeaders.getAllRawHeaders())),
-            body=("\n" + content + "\n" if content else ""))
+            method=self.method.decode("utf-8"), url=self.uri.decode("utf-8"),
+            code=self.code,
+            headers=json.dumps(
+                dict((k.decode("utf-8"), [vv.decode("utf-8") for vv in v])
+                     for (k, v) in self.requestHeaders.getAllRawHeaders())),
+            body=("\n" + content.decode("utf-8") + "\n" if content else ""))
         return super(MimicLoggingRequest, self).finish()
 
 
