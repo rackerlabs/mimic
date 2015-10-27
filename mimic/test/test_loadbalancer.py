@@ -550,7 +550,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
                                        "type": "PRIMARY",
                                        "weight": 10}]}).encode("utf-8"))
             for address in addresses]
-        responses = map(self.successResultOf, responses)
+        responses = [self.successResultOf(response) for response in responses]
         response_bodies = [self.successResultOf(treq.json_content(response))
                            for response in responses]
         return zip(responses, response_bodies)
