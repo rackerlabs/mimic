@@ -328,7 +328,7 @@ class IronicNodeStore(object):
                 node.cache_image_id = None
             if node.provision_state == 'active':
                 node.instance_uuid = str(uuid4())
-            return dumps(b'')
+            return dumps('')
         http_put_request.setResponseCode(404)
         return self.node_not_found(node_id)
 
@@ -347,6 +347,6 @@ class IronicNodeStore(object):
         if content.get('image_info') and content['image_info'].get('id'):
             node.cache_image_id = content['image_info']['id']
             http_request.setResponseCode(202)
-            return dumps(b'')
+            return dumps('')
         http_request.setResponseCode(400)
         return b''
