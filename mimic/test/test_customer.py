@@ -81,7 +81,8 @@ class CustomerAPITests(SynchronousTestCase):
         response = self.successResultOf(request(
             self, self.root, b"POST",
             "/v1/customer_accounts/CLOUD/555555/contacts",
-            json.dumps(expected_contacts)))
+            json.dumps(expected_contacts).encode("utf-8"))
+        )
         self.assertEqual(200, response.code)
         response = self.get_contacts(self.root, "555555")
         self.validate_contact_list(response, expected_contacts)
@@ -98,7 +99,8 @@ class CustomerAPITests(SynchronousTestCase):
         response = self.successResultOf(request(
             self, self.root, b"POST",
             "/v1/customer_accounts/CLOUD/555555/contacts",
-            json.dumps(expected_contacts)))
+            json.dumps(expected_contacts).encode("utf-8"))
+        )
         self.assertEqual(200, response.code)
         response = self.get_contacts(self.root, "555555")
         self.validate_contact_list(response, expected_contacts)
@@ -112,7 +114,8 @@ class CustomerAPITests(SynchronousTestCase):
         response = self.successResultOf(request(
             self, self.root, b"POST",
             "/v1/customer_accounts/CLOUD/77777/contacts",
-            json.dumps(expected_contacts)))
+            json.dumps(expected_contacts).encode("utf-8"))
+        )
         self.assertEqual(200, response.code)
         response = self.get_contacts(self.root, "77777")
         self.assertEqual(len(response["contact"]), 0)
