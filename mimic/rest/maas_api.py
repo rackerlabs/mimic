@@ -35,6 +35,7 @@ from mimic.model.maas_objects import (Agent,
                                       Notification,
                                       NotificationPlan,
                                       Suppression)
+from mimic.util.helper import json_from_request
 from mimic.util.helper import Matcher, random_hex_generator, random_hipsum
 
 
@@ -1516,7 +1517,7 @@ class MaasController(object):
         Sets the test-alarm response for a given entity.
         """
         test_responses = self._entity_cache_for_tenant(tenant_id).test_alarm_responses
-        dummy_response = json.loads(request.content.read())
+        dummy_response = json_from_request(request)
         test_responses[entity_id] = []
         for response_block in dummy_response:
             ith_response = {'state': response_block['state']}
@@ -1534,7 +1535,7 @@ class MaasController(object):
         test-alarm API the next time it is called for this entity.
         """
         test_alarm_errors = self._entity_cache_for_tenant(tenant_id).test_alarm_errors
-        request_body = json.loads(request.content.read())
+        request_body = json_from_request(request)
 
         if entity_id not in test_alarm_errors:
             test_alarm_errors[entity_id] = collections.deque()
@@ -1567,7 +1568,7 @@ class MaasController(object):
         """
         maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
         check_type_ins = maas_store.check_types[check_type]
-        overrides = json.loads(request.content.read())
+        overrides = json_from_request(request)
         check_id = '__test_check'
         ench_key = (entity_id, check_id)
 
@@ -1608,7 +1609,7 @@ class MaasController(object):
         Adds a new alarm state to the collection of alarm states.
         """
         maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
-        request_body = json.loads(request.content.read())
+        request_body = json_from_request(request)
 
         check_id = None
         alarm_label = None
@@ -1685,7 +1686,7 @@ class MaasController(object):
 
         maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
         metric = maas_store.check_types[check.type].get_metric_by_name(metric_name)
-        request_body = json.loads(request.content.read())
+        request_body = json_from_request(request)
         monitoring_zones = request_body.get('monitoring_zones', ['__AGENT__'])
         override_type = request_body['type']
         override_options = request_body.get('options', {})
