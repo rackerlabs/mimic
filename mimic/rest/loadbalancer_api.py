@@ -292,7 +292,8 @@ class LoadBalancerRegion(object):
         """
         try:
             content = json_from_request(request)
-            assert isinstance(content, dict) and content.keys() == ["node"]
+            assert (isinstance(content, dict) and
+                    list(content.keys()) == ["node"])
             content = content["node"]
             assert isinstance(content, dict)
         except (ValueError, AssertionError):
