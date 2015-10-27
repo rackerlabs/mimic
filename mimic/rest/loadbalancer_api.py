@@ -22,6 +22,7 @@ from mimic.model.clb_objects import (
 from random import randrange
 
 from mimic.util.helper import invalid_resource, json_dump
+from mimic.util.helper import json_from_request
 from characteristic import attributes
 
 
@@ -143,7 +144,7 @@ class LoadBalancerControlRegion(object):
             })
 
         try:
-            content = json.loads(request.content.read())
+            content = json_from_request(request)
         except ValueError:
             request.setResponseCode(400)
             return json.dumps(invalid_resource("Invalid JSON request body"))
@@ -205,7 +206,7 @@ class LoadBalancerRegion(object):
         Returns the newly created load balancer with response code 202
         """
         try:
-            content = json.loads(request.content.read())
+            content = json_from_request(request)
         except ValueError:
             request.setResponseCode(400)
             return json.dumps(invalid_resource("Invalid JSON request body"))
@@ -251,7 +252,7 @@ class LoadBalancerRegion(object):
         Return a successful add node response with code 200
         """
         try:
-            content = json.loads(request.content.read())
+            content = json_from_request(request)
         except ValueError:
             request.setResponseCode(400)
             return json.dumps(invalid_resource("Invalid JSON request body"))
@@ -290,7 +291,7 @@ class LoadBalancerRegion(object):
         Return a 202 response code to updating a node, if successful.
         """
         try:
-            content = json.loads(request.content.read())
+            content = json_from_request(request)
             assert isinstance(content, dict) and content.keys() == ["node"]
             content = content["node"]
             assert isinstance(content, dict)
