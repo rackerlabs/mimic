@@ -200,7 +200,7 @@ class GlanceAdminImageStore(object):
         Create a new Image object and add it to the
         :obj: `glance_admin_image_store`
         """
-        image = Image(**attributes)
+        image = Image(**dict((str(k), v) for k, v in attributes.items()))
         self.glance_admin_image_store.append(image)
         return image
 
