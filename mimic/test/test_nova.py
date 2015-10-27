@@ -1851,7 +1851,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         by default.
         """
         response, body = self._try_false_negative_failure()
-        body = json.loads(body)
+        body = json.loads(body.decode("utf-8"))
         self.assertEquals(body['computeFault']['message'],
                           "Create server failure")
         self.assertEquals(body['computeFault']['code'], 500)
@@ -1957,7 +1957,7 @@ class NovaCreateServerBehaviorControlPlane(object):
         Validate the response and body of a successful server create.
         """
         self.api_helper.test_case.assertEquals(response.code, 202)
-        body = json.loads(body)
+        body = json.loads(body.decode("utf-8"))
         self.api_helper.test_case.assertIn('server', body)
 
 
