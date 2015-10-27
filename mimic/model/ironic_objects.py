@@ -6,8 +6,9 @@ from __future__ import absolute_import, division, unicode_literals
 
 from characteristic import attributes, Attribute
 from uuid import uuid4
-from json import loads, dumps
+from json import dumps
 
+from mimic.util.helper import json_from_request
 from mimic.util.helper import random_hex_generator
 
 
@@ -228,7 +229,7 @@ class IronicNodeStore(object):
         Create a node
         http://bit.ly/1N0O9KM
         """
-        content = loads(http_create_request.content.read())
+        content = json_from_request(http_create_request)
         try:
             memory_mb = None
             if content.get('properties'):
@@ -315,7 +316,7 @@ class IronicNodeStore(object):
         node is made 'available'.
         Docs: http://bit.ly/1ElELdU
         """
-        content = loads(http_put_request.content.read())
+        content = json_from_request(http_put_request)
         node = self.node_by_id(node_id)
         if node:
             http_put_request.setResponseCode(202)
@@ -335,7 +336,7 @@ class IronicNodeStore(object):
         """
         Cache the image on the node.
         """
-        content = loads(http_request.content.read())
+        content = json_from_request(http_request)
         node = self.node_by_id(node_id)
         if not node:
             http_request.setResponseCode(404)
