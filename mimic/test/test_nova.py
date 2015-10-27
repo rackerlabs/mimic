@@ -1618,7 +1618,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         create_server_response, create_server_response_body = create_server(
             self.helper, metadata=metadata, request_func=request_with_content)
         self.assertEquals(create_server_response.code, 500)
-        self.assertEquals(create_server_response_body,
+        self.assertEquals(create_server_response_body.decode("utf-8"),
                           "Create server failure")
 
     def test_create_server_failure_and_list_servers(self):
