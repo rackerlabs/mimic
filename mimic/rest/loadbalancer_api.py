@@ -322,7 +322,7 @@ class LoadBalancerRegion(object):
         """
         Deletes multiple nodes from a LB.
         """
-        node_ids = map(int, request.args.get('id', []))
+        node_ids = map(int, request.args.get(b'id', []))
         response_data = self.session(tenant_id).delete_nodes(lb_id, node_ids)
         request.setResponseCode(response_data[1])
         return json_dump(response_data[0])
