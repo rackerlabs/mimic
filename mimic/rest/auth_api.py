@@ -257,7 +257,7 @@ class AuthApi(object):
         Support, such as it is, for the apiKeysCredentials call.
         """
         if user_id in self.core.sessions._userid_to_session:
-            username = self.core.sessions._userid_to_session[user_id].username.decode('ascii')
+            username = self.core.sessions._userid_to_session[user_id].username
             apikey = '7fc56270e7a70fa81a5935b72eacbe29'  # echo -n A | md5sum
             return json.dumps({'RAX-KSKEY:apiKeyCredentials': {'username': username,
                                                                'apiKey': apikey}})
