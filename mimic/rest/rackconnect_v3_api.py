@@ -22,6 +22,7 @@ from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.imimic import IAPIMock
 from mimic.rest.mimicapp import MimicApp
+from mimic.util.helper import json_from_request
 from mimic.util.helper import random_ipv4, seconds_to_timestamp
 
 
@@ -268,7 +269,7 @@ class LoadBalancerPoolsInRegion(object):
 
         TODO: blow up with a 500 and verify if the given server exists in nova.
         """
-        body = json.loads(request.content.read())
+        body = json_from_request(request)
         added_nodes = []
         error_response = {"errors": []}
 
@@ -323,7 +324,7 @@ class LoadBalancerPoolsInRegion(object):
 
         TODO: For now, blow up with a 500 and verify if the given server exists in nova.
         """
-        body = json.loads(request.content.read())
+        body = json_from_request(request)
         error_response = {"errors": []}
 
         for each in body:
