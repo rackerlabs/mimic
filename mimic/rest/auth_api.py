@@ -273,13 +273,15 @@ class AuthApi(object):
         """
         request.setResponseCode(200)
         try:
-            content = json.loads(request.content.read())
+            content = json_from_request(request)
         except ValueError:
             request.setResponseCode(400)
             return json.dumps(invalid_resource("Invalid JSON request body"))
 
-        cred = ImpersonationCredentials.from_json(
-            content, request.getHeader("x-auth-token"))
+        x_auth_token = request.getHeader(b"x-auth-token")
+        if x_auth_token is not None:
+            x_auth_token = x_auth_token.decode("utf-8")
+        cred = ImpersonationCredentials.from_json(content, x_auth_token)
         registry = self.registry_collection.registry_by_event(authentication)
         behavior = registry.behavior_for_attributes({
             "token": cred.impersonator_token,
