@@ -34,8 +34,10 @@ class Endpoint(object):
         segments = [uri_prefix.rstrip("/")]
         if self.prefix is not None:
             segments.append(self.prefix)
-        segments.append(postfix)
-        return "/".join(segments)
+        if self.tenant_id is not None:
+            segments.append(postfix)
+        url = "/".join(segments)
+        return url
 
 
 class Entry(object):

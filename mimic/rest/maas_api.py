@@ -841,6 +841,12 @@ class MaasMock(object):
         """
         serves the overview api call,returns all entities,checks and alarms
         """
+        # This is a hack to make cloud control panel server details page finish loading the
+        # server details
+        if 'uri' in request.args:
+            request.setResponseCode(404)
+            return json.dumps({})
+        # End of hack
         all_entities = self._entity_cache_for_tenant(tenant_id).entities_list
         if 'entityId' in request.args:
             all_entities = [entity for entity in all_entities

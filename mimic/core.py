@@ -12,7 +12,7 @@ from mimic import plugins
 
 from mimic.imimic import IAPIMock
 from mimic.session import SessionStore
-from mimic.util.helper import random_hex_generator
+# from mimic.util.helper import random_hex_generator
 from mimic.model.mailgun_objects import MessageStore
 from mimic.model.customer_objects import ContactsStore
 from mimic.model.ironic_objects import IronicNodeStore
@@ -47,8 +47,7 @@ class MimicCore(object):
         self.valkyrie_store = ValkyrieStore()
 
         for api in apis:
-            this_api_id = ((api.__class__.__name__) + '-' +
-                           random_hex_generator(3))
+            this_api_id = api.__class__.__name__ + '-' + 'cb675f'  # random_hex_generator(3))
             self._uuid_to_api[this_api_id] = api
 
     @classmethod
