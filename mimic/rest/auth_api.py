@@ -569,6 +569,33 @@ class AuthApi(object):
             prefix_for_endpoint=prefix_map.get)
         )
 
+    @app.route('/v2.0/tenants', methods=['GET'])
+    def list_tenants(self, request):
+        """
+        List all tenants for the specified auth token.
+
+        The token for this call is specified in the X-Auth-Token header,
+        like using the services in the service catalog. Mimic supports
+        only one tenant per session, so the number of listed tenants is
+        always 1 if the call succeeds.
+
+        For more information about this call, refer to the `Rackspace Cloud
+        Identity Developer Guide
+        <https://developer.rackspace.com/docs/cloud-identity/v2/developer-guide/#list-tenants>`_
+        """
+        try:
+            sess = self.core.sessions.existing_session_for_token(
+                request.getHeader(b'x-auth-token').decode('utf-8'))
+            return json.dumps({'tenants': [{'id': sess.tenant_id,
+                                            'name': sess.tenant_id,
+                                            'enabled': True}]})
+        except KeyError:
+            request.setResponseCode(401)
+            return json.dumps({'unauthorized': {
+                'code': 401,
+                'message': ("No valid token provided. Please use the 'X-Auth-Token'"
+                            " header with a valid token.")}})
+
 
 def base_uri_from_request(request):
     """
