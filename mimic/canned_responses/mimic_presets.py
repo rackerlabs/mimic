@@ -2,6 +2,9 @@
 Defines the preset values in the mimic api.
 """
 
+from __future__ import absolute_import, division, unicode_literals
+
+
 get_presets = {"loadbalancers": {"lb_building": "On create load balancer, keeps the load balancer in "
                                                 "building state for given seconds",
                                  "lb_error_state": "Puts the LB in error state, and such an LB can only"
@@ -40,6 +43,17 @@ get_presets = {"loadbalancers": {"lb_building": "On create load balancer, keeps 
                    # Tenants with user admin role
                    "admin_role": ["9999"],
                    # Tenants with this token result in a 401 when validating the token
-                   "token_fail_to_auth": ["never-cache-this-and-fail-to-auth"]
-}
-}
+                   "token_fail_to_auth": ["never-cache-this-and-fail-to-auth"],
+                   # Users presenting these tokens have contact IDs that correspond
+                   # to presets in the Valkyrie plugin...
+                   "non_dedicated_observer": ["OneTwo"],
+                   "non_dedicated_admin": ["ThreeFour"],
+                   "non_dedicated_impersonator": ["ThreeFourImpersonator"],
+                   "non_dedicated_racker": ["ThreeFourRacker"],
+                   "dedicated_full_device_permission_holder": ["HybridOneTwo"],
+                   "dedicated_account_permission_holder": ["HybridThreeFour"],
+                   "dedicated_impersonator": ["HybridThreeFourImpersonator"],
+                   "dedicated_racker": ["HybridOneTwoRacker"],
+                   "dedicated_limited_device_permission_holder": ["HybridFiveSix"],
+                   "dedicated_non_permission_holder": ["HybridSevenEight"],
+                   "dedicated_quasi_user_impersonator": ["HybridNineZero"]}}

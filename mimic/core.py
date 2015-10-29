@@ -4,7 +4,7 @@
 Service catalog hub and integration for Mimic application objects.
 """
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, unicode_literals
 
 from twisted.python.urlpath import URLPath
 from twisted.plugin import getPlugins
@@ -14,6 +14,10 @@ from mimic.imimic import IAPIMock
 from mimic.session import SessionStore
 # from mimic.util.helper import random_hex_generator
 from mimic.model.mailgun_objects import MessageStore
+from mimic.model.customer_objects import ContactsStore
+from mimic.model.ironic_objects import IronicNodeStore
+from mimic.model.glance_objects import GlanceAdminImageStore
+from mimic.model.valkyrie_objects import ValkyrieStore
 
 
 class MimicCore(object):
@@ -37,6 +41,10 @@ class MimicCore(object):
         self._uuid_to_api = {}
         self.sessions = SessionStore(clock)
         self.message_store = MessageStore()
+        self.contacts_store = ContactsStore()
+        self.ironic_node_store = IronicNodeStore()
+        self.glance_admin_image_store = GlanceAdminImageStore()
+        self.valkyrie_store = ValkyrieStore()
 
         for api in apis:
             this_api_id = api.__class__.__name__ + '-' + 'cb675f'  # random_hex_generator(3))

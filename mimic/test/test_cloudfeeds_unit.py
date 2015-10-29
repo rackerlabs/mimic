@@ -1,3 +1,5 @@
+from __future__ import absolute_import, division, unicode_literals
+
 from mimic.model import cloudfeeds
 from twisted.trial.unittest import SynchronousTestCase
 from testtools.matchers import (MatchesSetwise, MatchesDict, Equals)

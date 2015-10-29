@@ -5,6 +5,8 @@ http://docs.rackspace.com/cloud-feeds/api/v1.0/feeds-devguide/content/overview.h
 for more details.
 """
 
+from __future__ import absolute_import, division, unicode_literals
+
 import attr
 from six import string_types
 

@@ -1,15 +1,25 @@
+from __future__ import absolute_import, division, unicode_literals
+
 import treq
 import json
+
 from twisted.trial.unittest import SynchronousTestCase
+from twisted.internet.task import Clock
+
 from mimic.test.fixtures import APIMockHelper
-from mimic.test.helpers import request
+from mimic.test.helpers import request, json_request
 from mimic.rest.glance_api import GlanceApi
+from mimic.core import MimicCore
+from mimic.resource import MimicRoot
+from mimic.canned_responses.json.glance.glance_images_json import image_schema
+from mimic.model.glance_objects import random_image_list
 
 
 class GlanceAPITests(SynchronousTestCase):
     """
     Tests for the Glance plugin api
     """
+
     def get_responsebody(self, r):
         """
         util json response body
@@ -26,85 +36,155 @@ class GlanceAPITests(SynchronousTestCase):
 
     def test_list_images(self):
         """
-        List the images returned from glance with no request args
+        List the images returned from glance
         """
-        req = request(self, self.root, "GET", self.uri + '/images')
+        req = request(self, self.root, b"GET", self.uri + '/images', b'')
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
         self.assertEquals(True, 'images' in json.dumps(data))
 
-    def test_list_images_with_public_visibility(self):
-        """
-        List images with public visibility in region IAD
-        """
-        # All regions other than IAD have 38 images
-        req = request(self, self.root, "GET", self.uri + '/images?visibility=public')
-        resp = self.successResultOf(req)
-        data = self.get_responsebody(resp)
-        self.assertEquals(resp.code, 200)
-        self.assertEqual(38, len(data['images']))
-        self.assertEquals(True, 'images' in json.dumps(data))
 
-        # The IAD region has 52 images which include OnMetal images
-        helper = APIMockHelper(self, [GlanceApi(['IAD'])])
-        root = helper.root
-        uri = helper.uri
-        req = request(self, root, "GET", uri + '/images?visibility=public')
-        resp = self.successResultOf(req)
-        data = self.get_responsebody(resp)
-        self.assertEquals(resp.code, 200)
-        self.assertEqual(52, len(data['images']))
-        self.assertEquals(True, 'onmetal' in json.dumps(data['images']))
+class GlanceAdminAPITests(SynchronousTestCase):
+    """
+    Tests for the Glance Admin API
+    """
 
-    def test_pending_images(self):
+    def setUp(self):
         """
-        Test pending images
+        Initialize core and root
         """
-        req = request(self, self.root, "GET", self.uri + '/images?member_status=pending&'
-                                                         'visibility=shared&limit=1000')
-        resp = self.successResultOf(req)
-        data = self.get_responsebody(resp)
-        self.assertEqual(len(data['images']), 0)
-        self.assertEquals(resp.code, 200)
+        self.core = MimicCore(Clock(), [])
+        self.root = MimicRoot(self.core).app.resource()
+        self.uri = "/glance/v2/images"
+        self.create_request = {"name": "OnMetal - MIMIC", "distro": "linux"}
 
-        req = request(self, self.root, "GET", self.uri + '/images?member_status=pending&'
-                                                         'visibility=dark&limit=1000')
-        resp = self.successResultOf(req)
-        body = self.get_responsebody(resp)
-        self.assertEqual(body, {"badRequest": {"message": "Bad Request.", "code": 400}})
-        self.assertEquals(resp.code, 400)
+    def create_image(self, request_json=None):
+        """
+        Create image and validate response code.
+        Return newly created image.
+        """
+        request_json = request_json or self.create_request
+        (response, content) = self.successResultOf(json_request(
+            self, self.root, b"POST", self.uri,
+            body=request_json))
+        self.assertEqual(response.code, 201)
+        return content
 
-    def test_list_images_with_private_visibility(self):
+    def list_images(self):
         """
-        List images with private visibility
+        List images and return response
         """
-        req = request(self, self.root, "GET", self.uri + '/images?visibility=private')
-        resp = self.successResultOf(req)
-        data = self.get_responsebody(resp)
-        self.assertEqual(len(data['images']), 0)
-        self.assertEquals(resp.code, 200)
+        (response, content) = self.successResultOf(json_request(
+            self, self.root, b"GET", self.uri))
+        self.assertEqual(200, response.code)
+        for each in content['images']:
+            self.assertEqual(each["status"], "active")
+        return content
 
-    def test_list_images_with_no_request_args(self):
+    def test_list_image_schema(self):
         """
-        List images with no request args. IAD has 14 more images than other images due to OnMetal in
-            IAD only
+        Get the image schema returned from glance admin API
         """
-        # All regions other than IAD have 38 images
-        req = request(self, self.root, "GET", self.uri + '/images')
-        resp = self.successResultOf(req)
-        data = self.get_responsebody(resp)
-        self.assertEquals(resp.code, 200)
-        self.assertEqual(38, len(data['images']))
-        self.assertEquals(True, 'images' in json.dumps(data))
+        uri = "/glance/v2/schemas/image"
+        (response, content) = self.successResultOf(json_request(
+            self, self.root, b"GET", uri))
+        self.assertEqual(200, response.code)
+        self.assertEqual(sorted(image_schema.keys()),
+                         sorted(content))
 
-        # The IAD region has 52 images which include OnMetal images
-        helper = APIMockHelper(self, [GlanceApi(['IAD'])])
-        root = helper.root
-        uri = helper.uri
-        req = request(self, root, "GET", uri + '/images?visibility')
-        resp = self.successResultOf(req)
-        data = self.get_responsebody(resp)
-        self.assertEquals(resp.code, 200)
-        self.assertEqual(52, len(data['images']))
-        self.assertEquals(True, 'onmetal' in json.dumps(data['images']))
+    def test_list_images_for_admin(self):
+        """
+        List the images returned from the glance admin api
+        """
+        content = self.list_images()
+        self.assertEqual(len(random_image_list), len(content['images']))
+        actual_image_names = [image['name'] for image in content['images']]
+        expected_image_names = [each['name'] for each in random_image_list]
+        self.assertEqual(sorted(actual_image_names), sorted(expected_image_names))
+
+    def test_list_images_for_admin_consistently(self):
+        """
+        List the images returned from the glance admin api
+        """
+        content1 = self.list_images()
+        content2 = self.list_images()
+        self.assertEqual(content2, content1)
+
+    def test_create_image(self):
+        """
+        Create Image and validate response
+        """
+        new_image = self.create_image()
+        self.assertEqual(new_image['name'], self.create_request['name'])
+
+    def test_create_image_fails_with_400(self):
+        """
+        Create Image and validate response
+        """
+        request_jsons = [{}, {"name": None}, {"hello": "world"}]
+        for each in request_jsons:
+            (response, content) = self.successResultOf(json_request(
+                self, self.root, b"POST", self.uri,
+                body=json.dumps(each)))
+            self.assertEqual(response.code, 400)
+
+    def test_get_image(self):
+        """
+        Create then GET Image and validate response
+        """
+        new_image = self.create_image()
+
+        (response, content) = self.successResultOf(json_request(
+            self, self.root, b"GET", self.uri + '/' + new_image['id']))
+        self.assertEqual(200, response.code)
+        self.assertEqual(new_image, content)
+
+    def test_get_non_existant_image(self):
+        """
+        Return 404 when trying to GET a non existant image.
+        """
+        response = self.successResultOf(request(
+            self, self.root, b"GET", self.uri + '/' + '1111'))
+        self.assertEqual(404, response.code)
+
+    def test_delete_non_existant_image(self):
+        """
+        Return 404 when trying to DELETE a non existant image.
+        """
+        response = self.successResultOf(request(
+            self, self.root, b"DELETE", self.uri + '/' + '1111'))
+        self.assertEqual(404, response.code)
+
+    def test_delete_image(self):
+        """
+        Create and then delete Image and validate response
+        """
+        new_image = self.create_image()
+
+        response = self.successResultOf(request(
+            self, self.root, b"DELETE", self.uri + '/' + new_image['id']))
+        self.assertEqual(204, response.code)
+
+        response = self.successResultOf(request(
+            self, self.root, b"GET", self.uri + '/' + new_image['id']))
+        self.assertEqual(404, response.code)
+
+    def test_get_then_delete_image(self):
+        """
+        Create and then delete Image and validate response
+        """
+        images = self.list_images()['images']
+
+        for each in images[:2]:
+            response = self.successResultOf(request(
+                self, self.root, b"DELETE", self.uri + '/' + each['id']))
+            self.assertEqual(204, response.code)
+
+            response = self.successResultOf(request(
+                self, self.root, b"GET", self.uri + '/' + each['id']))
+            self.assertEqual(404, response.code)
+
+        images_after_delete = self.list_images()['images']
+        self.assertEqual(len(images),
+                         len(images_after_delete) + 2)

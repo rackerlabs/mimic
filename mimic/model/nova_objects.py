@@ -2,12 +2,14 @@
 Model objects for the Nova mimic.
 """
 
+from __future__ import absolute_import, division, unicode_literals
+
 import re
-import uuid
+
 from characteristic import attributes, Attribute
 from random import randrange
 from json import loads, dumps
-from urllib import urlencode
+from six.moves.urllib.parse import urlencode
 
 from six import string_types
 
@@ -20,8 +22,7 @@ from mimic.util.helper import (
 from mimic.model.behaviors import (
     BehaviorRegistryCollection, EventDescription, Criterion, regexp_predicate
 )
-from twisted.web.http import ACCEPTED, BAD_REQUEST, FORBIDDEN, NOT_FOUND
-from mimic.model.rackspace_images import RackspaceSavedImage
+from twisted.web.http import ACCEPTED, BAD_REQUEST, FORBIDDEN, NOT_FOUND, CONFLICT
 
 
 @attributes(['nova_message'])
@@ -86,18 +87,6 @@ def not_found(message, request):
     return _nova_error_message("itemNotFound", message, NOT_FOUND, request)
 
 
-def conflicting(message, request):
-    """
-    Return a 409 error body associated with a Nova conflicting request error.
-
-    :param str message: The message to include in the bad request body.
-    :param request: The request on which to set the response code.
-
-    :return: dictionary representing the error body.
-    """
-    return _nova_error_message("conflictingRequest", message, 409, request)
-
-
 def forbidden(message, request):
     """
     Return a 403 error body associated with a Nova forbidden error.
@@ -109,6 +98,18 @@ def forbidden(message, request):
     :return: dictionary representing the error body.
     """
     return _nova_error_message("forbidden", message, FORBIDDEN, request)
+
+
+def conflicting(message, request):
+    """
+    Return a 409 error body associated with a Nova conflicting request error.
+
+    :param str message: The message to include in the bad request body.
+    :param request: The request on which to set the response code.
+
+    :return: dictionary representing the error body.
+    """
+    return _nova_error_message("conflictingRequest", message, CONFLICT, request)
 
 
 @attributes(["collection", "server_id", "server_name", "metadata",
@@ -227,7 +228,7 @@ class Server(object):
                 "OS-DCF:diskConfig": self.disk_config,
                 "id": self.server_id,
                 "links": self.links_json(absolutize_url),
-                "adminPass": self.admin_password
+                "adminPass": self.admin_password,
             }
         }
 
@@ -294,13 +295,20 @@ class Server(object):
         """
         now = collection.clock.seconds()
         server_json = creation_json['server']
-        disk_config = server_json.get('OS-DCF:diskConfig', None) or "MANUAL"
+        disk_config = server_json.get('OS-DCF:diskConfig', None) or "AUTO"
         if disk_config not in ["AUTO", "MANUAL"]:
             raise BadRequestError(nova_message=(
                 "OS-DCF:diskConfig must be either 'MANUAL' or 'AUTO'."))
 
         metadata = server_json.get("metadata") or {}
         cls.validate_metadata(metadata, max_metadata_items)
+
+        while True:
+            private_ip = IPv4Address(
+                address="10.180.{0}.{1}".format(ipsegment(), ipsegment()))
+            if private_ip not in [addr for server in collection.servers
+                                  for addr in server.private_ips]:
+                break
 
         self = cls(
             collection=collection,
@@ -310,10 +318,7 @@ class Server(object):
             metadata=metadata,
             creation_time=now,
             update_time=now,
-            private_ips=[
-                IPv4Address(address="10.180.{0}.{1}"
-                            .format(ipsegment(), ipsegment())),
-            ],
+            private_ips=[private_ip],
             public_ips=[
                 IPv4Address(address="198.101.241.{0}".format(ipsegment())),
                 IPv6Address(address="2001:4800:780e:0510:d87b:9cbc:ff04:513a")
@@ -645,7 +650,7 @@ def metadata_to_creation_behavior(metadata):
 @attributes(
     ["tenant_id", "region_name", "clock",
      Attribute("servers", default_factory=list),
-     Attribute("images_store", default_factory=list),
+     Attribute("image_store", default_factory=list),
      Attribute(
          "behavior_registry_collection",
          default_factory=lambda: BehaviorRegistryCollection())]
@@ -813,8 +818,7 @@ class RegionalServerCollection(object):
         server.update_status(u"DELETED")
         return b''
 
-    def request_action(self, http_action_request, server_id, absolutize_url,
-                       regional_image_collection, image_store):
+    def request_action(self, http_action_request, server_id, absolutize_url):
         """
         Perform the requested action on the provided server
         """
@@ -848,6 +852,26 @@ class RegionalServerCollection(object):
             else:
                 return dumps(conflicting("Cannot '" + action_json.keys()[0] + "' instance " + server_id +
                                          " while it is in vm_state active", http_action_request))
+        elif 'rescue' in action_json:
+            if server.status != 'ACTIVE':
+                return dumps(conflicting("Cannot 'rescue' instance " + server_id +
+                                         " while it is in task state other than active",
+                                         http_action_request))
+            else:
+                server.status = 'RESCUE'
+                http_action_request.setResponseCode(200)
+                password = random_string(12)
+                return dumps({"adminPass": password})
+
+        elif 'unrescue' in action_json:
+            if server.status == 'RESCUE':
+                server.status = 'ACTIVE'
+                http_action_request.setResponseCode(200)
+                return b''
+            else:
+                return dumps(conflicting("Cannot 'unrescue' instance " + server_id +
+                                         " while it is in task state other than rescue",
+                                         http_action_request))
 
         elif 'reboot' in action_json:
             reboot_type = action_json['reboot'].get('type')
@@ -872,27 +896,6 @@ class RegionalServerCollection(object):
                 return b''
             else:
                 return dumps(bad_request("Argument 'type' for reboot is not HARD or SOFT",
-                                         http_action_request))
-
-        elif 'rescue' in action_json:
-            if server.status == 'ACTIVE':
-                server.status = 'RESCUE'
-                http_action_request.setResponseCode(200)
-                password = random_string(12)
-                return dumps({"adminPass": password})
-            else:
-                return dumps(conflicting("Cannot 'rescue' instance " + server_id +
-                                         " while it is in task state other than active",
-                                         http_action_request))
-
-        elif 'unrescue' in action_json:
-            if server.status == 'RESCUE':
-                server.status = 'ACTIVE'
-                http_action_request.setResponseCode(200)
-                return b''
-            else:
-                return dumps(conflicting("Cannot '" + action_json.keys()[0] + "' instance " + server_id +
-                                         " while it is in task state other than active",
                                          http_action_request))
 
         elif 'changePassword' in action_json:
@@ -927,36 +930,6 @@ class RegionalServerCollection(object):
                 return dumps(conflicting("Cannot 'rebuild' instance " + server_id +
                                          " while it is in task state other than active",
                                          http_action_request))
-
-        elif 'createImage' in action_json:
-            image_name = action_json['createImage'].get('name')
-            server == self.server_by_id(server_id)
-            links = server.links_json(absolutize_url)
-            server_id = server.server_id
-            image_ref = server.image_ref
-            image = image_store.get_image_by_id(image_ref)
-            image_json = regional_image_collection.get_image(http_action_request, image_ref,
-                                                             absolutize_url)
-            image_dict = loads(image_json)
-            flavor_classes = image_dict['image']['metadata']['flavor_classes']
-            os_type = image_dict['image']['metadata']['os_type']
-            os_distro = image_dict['image']['metadata']['org.openstack__1__os_distro']
-            vm_mode = image_dict['image']['metadata']['vm_mode']
-            disk_config = image_dict['image']['metadata']['auto_disk_config']
-            image_id = str(uuid.uuid4())
-            image_size = image.image_size
-            minRam = image.minRam
-            minDisk = image.minDisk
-            saved_image = RackspaceSavedImage(image_id=image_id, tenant_id=self.tenant_id,
-                                              image_size=image_size, name=image_name, minRam=minRam,
-                                              minDisk=minDisk, links=links, server_id=server_id,
-                                              flavor_classes=flavor_classes, os_type=os_type,
-                                              os_distro=os_distro, vm_mode=vm_mode,
-                                              disk_config=disk_config)
-            image_store.add_image_to_store(saved_image)
-            http_action_request.setHeader('Location', 'www.someurl.com')
-            http_action_request.setResponseCode(202)
-            return b''
 
         else:
             return dumps(bad_request("There is no such action currently supported", http_action_request))

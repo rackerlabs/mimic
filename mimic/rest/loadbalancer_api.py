@@ -2,11 +2,13 @@
 """
 Defines add node and delete node from load balancers
 """
+
+from __future__ import absolute_import, division, unicode_literals
+
 import json
 from uuid import uuid4
 from six import string_types, text_type
 from zope.interface import implementer
-from twisted.web.server import Request
 from twisted.plugin import IPlugin
 from mimic.rest.mimicapp import MimicApp
 from mimic.imimic import IAPIMock
@@ -21,9 +23,6 @@ from random import randrange
 
 from mimic.util.helper import invalid_resource, json_dump
 from characteristic import attributes
-
-
-Request.defaultContentType = 'application/json'
 
 
 @implementer(IAPIMock, IPlugin)
@@ -151,13 +150,13 @@ class LoadBalancerControlRegion(object):
 
         try:
             regional_lbs.set_attributes(clb_id, content)
-        except BadKeysError, bke:
+        except BadKeysError as bke:
             request.setResponseCode(400)
             return json.dumps({
                 "message": str(bke),
                 "code": 400,
             })
-        except BadValueError, bve:
+        except BadValueError as bve:
             request.setResponseCode(400)
             return json.dumps({
                 "message": str(bve),
@@ -264,13 +263,24 @@ class LoadBalancerRegion(object):
 
     @app.route('/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/nodes/<int:node_id>',
                methods=['GET'])
-    def get_nodes(self, request, tenant_id, lb_id, node_id):
+    def get_node(self, request, tenant_id, lb_id, node_id):
         """
-        Returns a 200 response code and list of nodes on the load balancer
+        Returns a 200 response code and a particular node on the load balancer
         """
-        response_data = self.session(tenant_id).get_nodes(lb_id, node_id)
-        request.setResponseCode(response_data[1])
-        return json.dumps(response_data[0])
+        body, code = self.session(tenant_id).get_node(lb_id, node_id)
+        request.setResponseCode(code)
+        return json.dumps(body)
+
+    @app.route('/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/nodes/<int:node_id>.atom',
+               methods=['GET'])
+    def get_node_feed(self, request, tenant_id, lb_id, node_id):
+        """
+        Returns a 200 response code and node's feed on the load balancer
+        """
+        body, code = self.session(tenant_id).get_node_feed(lb_id, node_id)
+        request.setResponseCode(code)
+        request.setHeader(b"Content-Type", b"application/atom+xml")
+        return body
 
     @app.route(
         '/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/nodes/<int:node_id>',

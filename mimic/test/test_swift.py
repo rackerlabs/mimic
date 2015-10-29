@@ -1,3 +1,4 @@
+from __future__ import absolute_import, division, unicode_literals
 
 from json import dumps
 
@@ -25,7 +26,7 @@ class SwiftTests(SynchronousTestCase):
         self.core = MimicCore(Clock(), [SwiftMock(rackspace_flavor)])
         self.root = MimicRoot(self.core).app.resource()
         self.response = request(
-            self, self.root, "POST", "/identity/v2.0/tokens",
+            self, self.root, b"POST", "/identity/v2.0/tokens",
             dumps({
                 "auth": {
                     "passwordCredentials": {
@@ -65,7 +66,7 @@ class SwiftTests(SynchronousTestCase):
         """
         uri = (self.json_body['access']['serviceCatalog'][0]['endpoints'][0]
                ['publicURL'] + '/testcontainer')
-        create_container = request(self, self.root, "PUT", uri)
+        create_container = request(self, self.root, b"PUT", uri)
         create_container_response = self.successResultOf(create_container)
         self.assertEqual(create_container_response.code, expected_code)
         self.assertEqual(
@@ -99,10 +100,10 @@ class SwiftTests(SynchronousTestCase):
         # create a container
         uri = (self.json_body['access']['serviceCatalog'][0]['endpoints'][0]
                ['publicURL'] + '/testcontainer')
-        create_container = request(self, self.root, "PUT", uri)
+        create_container = request(self, self.root, b"PUT", uri)
         self.successResultOf(create_container)
         container_response = self.successResultOf(
-            request(self, self.root, "GET", uri)
+            request(self, self.root, b"GET", uri)
         )
         self.assertEqual(container_response.code, 200)
         container_contents = self.successResultOf(
@@ -127,7 +128,7 @@ class SwiftTests(SynchronousTestCase):
         uri = (self.json_body['access']['serviceCatalog'][0]['endpoints'][0]
                ['publicURL'] + '/testcontainer')
         container_response = self.successResultOf(
-            request(self, self.root, "GET", uri)
+            request(self, self.root, b"GET", uri)
         )
         self.assertEqual(container_response.code, 404)
         self.assertEqual(
@@ -148,18 +149,18 @@ class SwiftTests(SynchronousTestCase):
         # create a container
         uri = (self.json_body['access']['serviceCatalog'][0]['endpoints'][0]
                ['publicURL'] + '/testcontainer')
-        create_container = request(self, self.root, "PUT", uri)
+        create_container = request(self, self.root, b"PUT", uri)
         self.successResultOf(create_container)
         BODY = b'some bytes'
         object_uri = uri + "/" + "testobject"
         object_response = request(self, self.root,
-                                  "PUT", object_uri,
-                                  headers={"content-type": ["text/plain"]},
+                                  b"PUT", object_uri,
+                                  headers={b"content-type": [b"text/plain"]},
                                   body=BODY)
         self.assertEqual(self.successResultOf(object_response).code,
                          201)
         container_response = self.successResultOf(
-            request(self, self.root, "GET", uri)
+            request(self, self.root, b"GET", uri)
         )
         self.assertEqual(container_response.code, 200)
         container_contents = self.successResultOf(
@@ -170,7 +171,7 @@ class SwiftTests(SynchronousTestCase):
         self.assertEqual(container_contents[0]['content_type'], "text/plain")
         self.assertEqual(container_contents[0]['bytes'], len(BODY))
         object_response = self.successResultOf(
-            request(self, self.root, "GET", object_uri)
+            request(self, self.root, b"GET", object_uri)
         )
         self.assertEqual(object_response.code, 200)
         object_body = self.successResultOf(treq.content(object_response))

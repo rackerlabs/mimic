@@ -2,6 +2,8 @@
 Tests for :mod:`nova_api` and :mod:`nova_objects` for flavors.
 """
 
+from __future__ import absolute_import, division, unicode_literals
+
 from twisted.trial.unittest import SynchronousTestCase
 
 from mimic.test.helpers import json_request, request
@@ -29,7 +31,7 @@ class NovaAPIFlavorsTests(SynchronousTestCase):
         Get flavors, assert response code is 200 and return response body.
         """
         (response, content) = self.successResultOf(json_request(
-            self, self.root, "GET", self.uri + postfix))
+            self, self.root, b"GET", self.uri + postfix))
         self.assertEqual(200, response.code)
         return content
 
@@ -45,7 +47,7 @@ class NovaAPIFlavorsTests(SynchronousTestCase):
         Test to verify :func:`get_flavor` when invalid flavor from the
         :obj: `mimic_presets` is provided.
         """
-        get_server_flavor = request(self, self.root, "GET", self.uri +
+        get_server_flavor = request(self, self.root, b"GET", self.uri +
                                     '/flavors/negative-test-1')
         get_server_flavor_response = self.successResultOf(get_server_flavor)
         self.assertEqual(get_server_flavor_response.code, 404)
@@ -69,12 +71,8 @@ class NovaAPIFlavorsTests(SynchronousTestCase):
         flavor_list = get_flavor_list_response_body['flavors']
         self.assertTrue(len(flavor_list) == 35)
         for flavor in flavor_list:
-                self.assertNotEqual('onmetal_flavor',
-                                    flavor['OS-FLV-WITH-EXT-SPECS:extra_specs']['policy_class'])
-                self.assertEqual(
-                    sorted(flavor.keys()),
-                    sorted(['id', 'name', 'links', 'ram', 'OS-FLV-WITH-EXT-SPECS:extra_specs',
-                            'vcpus', 'swap', 'rxtx_factor', 'OS-FLV-EXT-DATA:ephemeral', 'disk']))
+            self.assertNotEqual('onmetal_flavor',
+                                flavor['OS-FLV-WITH-EXT-SPECS:extra_specs']['policy_class'])
 
     def test_get_flavor_list_with_OnMetal(self):
         """
@@ -93,6 +91,18 @@ class NovaAPIFlavorsTests(SynchronousTestCase):
                 self.assertEqual(
                     sorted(flavor.keys()),
                     sorted(['id', 'name', 'links']))
+
+        get_flavor_list_response_body = self.get_server_flavor('/flavors/detail')
+        flavor_list = get_flavor_list_response_body['flavors']
+        self.assertTrue(len(flavor_list) == 38)
+        for flavor in flavor_list:
+            if 'onmetal' in flavor['id']:
+                self.assertEqual('onmetal_flavor',
+                                 flavor['OS-FLV-WITH-EXT-SPECS:extra_specs']['policy_class'])
+                self.assertEqual(
+                    sorted(flavor.keys()),
+                    sorted(['id', 'name', 'links', 'ram', 'OS-FLV-WITH-EXT-SPECS:extra_specs',
+                            'vcpus', 'swap', 'rxtx_factor', 'OS-FLV-EXT-DATA:ephemeral', 'disk']))
 
     def test_get_flavor_list_with_details(self):
         """

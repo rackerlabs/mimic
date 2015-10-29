@@ -13,7 +13,7 @@ except ImportError:
 
 
 _NAME = "mimic"
-_VERSION = "1.5.0"
+_VERSION = "1.9.0"
 
 
 def setup_options(name, version):
@@ -28,14 +28,15 @@ def setup_options(name, version):
         install_requires=[
             "characteristic>=14.2.0",
             "klein>=0.2.1",
-            "twisted>=14.0.2",
+            "twisted>=15.4.0",
             "jsonschema>=2.0",
             "treq>=0.2.1",
             "six>=1.6.0",
             "xmltodict>=0.9.1",
             "attrs>=15.0.0",
             "testtools>=1.7.1,<1.8.0",
-            "iso8601>=0.1.10"
+            "iso8601>=0.1.10",
+            "toolz>=0.7.4"
         ],
         package_dir={"mimic": "mimic"},
         packages=find_packages(exclude=[]) + ["twisted.plugins"],
@@ -125,6 +126,7 @@ setup(
     version=_VERSION,
     description="An API-compatible mock service",
     license="Apache License, Version 2.0",
+    url="https://github.com/rackerlabs/mimic",
     include_package_data=True,
     **setup_options(_NAME, _VERSION)
 )

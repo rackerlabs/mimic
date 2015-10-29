@@ -4,6 +4,8 @@
 API mock for OpenStack Swift / Rackspace Cloud Files.
 """
 
+from __future__ import absolute_import, division, unicode_literals
+
 from uuid import uuid4, uuid5, NAMESPACE_URL
 from six import text_type
 
@@ -155,12 +157,12 @@ class SwiftTenantInRegion(object):
         status code of 200 when such a container exists, 404 if not.
         """
         if container_name in self.containers:
-            request.responseHeaders.setRawHeaders("content-type",
-                                                  ["application/json"])
-            request.responseHeaders.setRawHeaders("x-container-object-count",
-                                                  ["0"])
-            request.responseHeaders.setRawHeaders("x-container-bytes-used",
-                                                  ["0"])
+            request.responseHeaders.setRawHeaders(b"content-type",
+                                                  [b"application/json"])
+            request.responseHeaders.setRawHeaders(b"x-container-object-count",
+                                                  [b"0"])
+            request.responseHeaders.setRawHeaders(b"x-container-bytes-used",
+                                                  [b"0"])
             request.setResponseCode(OK)
             return dumps([
                 obj.as_json() for obj in

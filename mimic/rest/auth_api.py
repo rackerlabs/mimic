@@ -2,12 +2,14 @@
 """
 Defines get token, impersonation
 """
+
+from __future__ import absolute_import, division, unicode_literals
+
 import json
 import time
 
 import attr
 
-from twisted.web.server import Request
 from twisted.python.urlpath import URLPath
 
 from mimic.canned_responses.auth import (
@@ -35,8 +37,6 @@ from mimic.model.behaviors import (
     EventDescription,
     regexp_predicate
 )
-
-Request.defaultContentType = 'application/json'
 
 authentication = EventDescription()
 """
@@ -348,6 +348,203 @@ class AuthApi(object):
                 {"id": "observer",
                  "description": "Global Observer Role.",
                  "name": "observer"}]
+
+        # Canned responses to be removed ...
+
+        if token_id in get_presets["identity"]["non_dedicated_observer"]:
+                response["access"]["token"]["tenant"] = {
+                    "id": "135790",
+                    "name": "135790",
+                }
+                response["access"]["user"] = {
+                    "id": "12",
+                    "name": "OneTwo",
+                    "roles": [{"id": "1",
+                               "name": "monitoring:observer",
+                               "description": "Monitoring Observer"}]
+                }
+
+        if token_id in get_presets["identity"]["non_dedicated_admin"]:
+                response["access"]["token"]["tenant"] = {
+                    "id": "135790",
+                    "name": "135790",
+                }
+                response["access"]["user"] = {
+                    "id": "34",
+                    "name": "ThreeFour",
+                    "roles": [{"id": "1",
+                               "name": "monitoring:admin",
+                               "description": "Monitoring Admin"},
+                              {"id": "2",
+                               "name": "admin",
+                               "description": "Admin"}]
+                }
+
+        if token_id in get_presets["identity"]["non_dedicated_impersonator"]:
+                response["access"]["token"]["tenant"] = {
+                    "id": "135790",
+                    "name": "135790",
+                }
+                response["access"]["user"] = {
+                    "id": "34",
+                    "name": "ThreeFour",
+                    "roles": [{"id": "1",
+                               "name": "identity:nobody",
+                               "description": "Nobody"}]
+                }
+                response["access"]["RAX-AUTH:impersonator"] = {
+                    "id": response["access"]["user"]["id"],
+                    "name": response["access"]["user"]["name"],
+                    "roles": [{"id": "1",
+                               "name": "monitoring:service-admin"},
+                              {"id": "2",
+                               "name": "object-store:admin"}]
+                }
+
+        if token_id in get_presets["identity"]["non_dedicated_racker"]:
+                response["access"]["token"]["tenant"] = {
+                    "id": "135790",
+                    "name": "135790",
+                }
+                response["access"]["user"] = {
+                    "id": "34",
+                    "name": "ThreeFour",
+                    "roles": [{"id": "1",
+                               "name": "identity:nobody",
+                               "description": "Nobody"}]
+                }
+                response["access"]["RAX-AUTH:impersonator"] = {
+                    "id": response["access"]["user"]["id"],
+                    "name": response["access"]["user"]["name"],
+                    "roles": [{"id": "1",
+                               "name": "Racker"}]
+                }
+
+        if token_id in get_presets["identity"]["dedicated_full_device_permission_holder"]:
+                response["access"]["token"]["tenant"] = {
+                    "id": "hybrid:123456",
+                    "name": "hybrid:123456",
+                }
+                response["access"]["user"] = {
+                    "id": "12",
+                    "name": "HybridOneTwo",
+                    "roles": [{"id": "1",
+                               "name": "monitoring:observer",
+                               "tenantId": "hybrid:123456"}],
+                    "RAX-AUTH:contactId": "12"
+                }
+
+        if token_id in get_presets["identity"]["dedicated_account_permission_holder"]:
+                response["access"]["token"]["tenant"] = {
+                    "id": "hybrid:123456",
+                    "name": "hybrid:123456",
+                }
+                response["access"]["user"] = {
+                    "id": "34",
+                    "name": "HybridThreeFour",
+                    "roles": [{"id": "1",
+                               "name": "monitoring:creator",
+                               "description": "Monitoring Creator"},
+                              {"id": "2",
+                               "name": "creator",
+                               "description": "Creator"}],
+                    "RAX-AUTH:contactId": "34"
+                }
+
+        if token_id in get_presets["identity"]["dedicated_limited_device_permission_holder"]:
+                response["access"]["token"]["tenant"] = {
+                    "id": "hybrid:123456",
+                    "name": "hybrid:123456",
+                }
+                response["access"]["user"] = {
+                    "id": "56",
+                    "name": "HybridFiveSix",
+                    "roles": [{"id": "1",
+                               "name": "monitoring:observer",
+                               "description": "Monitoring Observer"},
+                              {"id": "2",
+                               "name": "observer",
+                               "description": "Observer"}],
+                    "RAX-AUTH:contactId": "56"
+                }
+
+        if token_id in get_presets["identity"]["dedicated_racker"]:
+                response["access"]["token"]["tenant"] = {
+                    "id": "hybrid:123456",
+                    "name": "hybrid:123456",
+                }
+                response["access"]["user"] = {
+                    "id": "12",
+                    "name": "HybridOneTwo",
+                    "roles": [{"id": "1",
+                               "name": "identity:nobody",
+                               "description": "Nobody"}],
+                    "RAX-AUTH:contactId": "12"
+                }
+                response["access"]["RAX-AUTH:impersonator"] = {
+                    "id": response["access"]["user"]["id"],
+                    "name": response["access"]["user"]["name"],
+                    "roles": [{"id": "1",
+                               "name": "Racker"}]
+                }
+
+        if token_id in get_presets["identity"]["dedicated_impersonator"]:
+                response["access"]["token"]["tenant"] = {
+                    "id": "hybrid:123456",
+                    "name": "hybrid:123456",
+                }
+                response["access"]["user"] = {
+                    "id": "34",
+                    "name": "HybridThreeFour",
+                    "roles": [{"id": "1",
+                               "name": "identity:nobody",
+                               "description": "Nobody"}],
+                    "RAX-AUTH:contactId": "34"
+                }
+                response["access"]["RAX-AUTH:impersonator"] = {
+                    "id": response["access"]["user"]["id"],
+                    "name": response["access"]["user"]["name"],
+                    "roles": [{"id": "1",
+                               "name": "monitoring:service-admin"}]
+                }
+
+        if token_id in get_presets["identity"]["dedicated_non_permission_holder"]:
+                response["access"]["token"]["tenant"] = {
+                    "id": "hybrid:123456",
+                    "name": "hybrid:123456",
+                }
+                response["access"]["user"] = {
+                    "id": "78",
+                    "name": "HybridSevenEight",
+                    "roles": [{"id": "1",
+                               "name": "identity:user-admin",
+                               "description": "User admin"}],
+                    "RAX-AUTH:contactId": "78"
+                }
+
+        if token_id in get_presets["identity"]["dedicated_quasi_user_impersonator"]:
+                response["access"]["token"]["tenant"] = {
+                    "id": "hybrid:123456",
+                    "name": "hybrid:123456",
+                }
+                response["access"]["user"] = {
+                    "id": "90",
+                    "name": "HybridNineZero",
+                    "roles": [{"id": "1",
+                               "name": "identity:user-admin",
+                               "description": "Admin"},
+                              {"id": "3",
+                               "name": "hybridRole",
+                               "description": "Hybrid Admin",
+                               "tenantId": "hybrid:123456"}]
+                }
+                response["access"]["RAX-AUTH:impersonator"] = {
+                    "id": response["access"]["user"]["id"],
+                    "name": response["access"]["user"]["name"],
+                    "roles": [{"id": "1",
+                               "name": "monitoring:service-admin"}]
+                }
+
         return json.dumps(response)
 
     @app.route('/v2.0/tokens/<string:token_id>/endpoints', methods=['GET'])

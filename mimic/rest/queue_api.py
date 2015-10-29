@@ -1,6 +1,9 @@
 """
 API mock for Rackspace Queues.
 """
+
+from __future__ import absolute_import, division, unicode_literals
+
 import json
 import collections
 from uuid import uuid4
@@ -15,10 +18,7 @@ from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.rest.mimicapp import MimicApp
 from zope.interface import implementer
-from twisted.web.server import Request
 from random import randrange
-
-Request.defaultContentType = 'application/json'
 
 
 @implementer(IAPIMock, IPlugin)

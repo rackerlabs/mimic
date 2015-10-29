@@ -2,6 +2,8 @@
 Contains the base Klein app for Mimic.
 """
 
+from __future__ import absolute_import, division, unicode_literals
+
 from klein import Klein
 
 

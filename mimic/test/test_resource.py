@@ -1,11 +1,34 @@
+from __future__ import absolute_import, division, unicode_literals
+
+import json
+import re
+
+from functools import partial
+
 from twisted.internet.task import Clock
 from twisted.trial.unittest import SynchronousTestCase
 
+# We can just import from twisted.logger once mimic drops support for
+# twisted < 15.2.0
+try:
+    from twisted.logger.globalLogPublisher import addObserver, removeObserver
+except ImportError:
+    from twisted.python.log import addObserver, removeObserver
+
+try:
+    from twisted.logger import formatEvent as get_log_message
+except ImportError:
+    from twisted.python.log import textFromEventDict as get_log_message
+
 from mimic.canned_responses.mimic_presets import get_presets
 from mimic.core import MimicCore
-from mimic.resource import MimicRoot
+from mimic.resource import MimicRoot, get_site
 from mimic.test.dummy import ExampleAPI
-from mimic.test.helpers import json_request, request, request_with_content
+from mimic.test import helpers
+
+json_request = helpers.json_request
+request = helpers.request
+request_with_content = helpers.request_with_content
 
 
 def one_api(testCase, core):
@@ -39,7 +62,7 @@ class ServiceResourceTests(SynchronousTestCase):
         (region, service_id) = one_api(self, core)
 
         request(
-            self, root, "GET",
+            self, root, b"GET",
             "http://mybase/mimicking/{0}/{1}/more/stuff".format(service_id, region)
         )
 
@@ -62,7 +85,7 @@ class ServiceResourceTests(SynchronousTestCase):
         (region, service_id) = one_api(self, core)
 
         response = self.successResultOf(request(
-            self, root, "GET",
+            self, root, b"GET",
             "http://mybase/mimicking/not_{0}/{1}".format(service_id, region)
         ))
         self.assertEqual(404, response.code)
@@ -83,7 +106,7 @@ class ServiceResourceTests(SynchronousTestCase):
         (region, service_id) = one_api(self, core)
 
         response = self.successResultOf(request(
-            self, root, "GET",
+            self, root, b"GET",
             "http://mybase/mimicking/not_{0}/{1}".format(service_id, region)
         ))
         self.assertEqual(404, response.code)
@@ -95,14 +118,14 @@ class ServiceResourceTests(SynchronousTestCase):
         and right region, the service's resource is used to respond to the
         request.
         """
-        core = MimicCore(Clock(), [ExampleAPI('response!')])
+        core = MimicCore(Clock(), [ExampleAPI(b'response!')])
         root = MimicRoot(core).app.resource()
 
         # get the region and service id registered for the example API
         (region, service_id) = one_api(self, core)
 
         (response, content) = self.successResultOf(request_with_content(
-            self, root, "GET",
+            self, root, b"GET",
             "http://mybase/mimicking/{0}/{1}".format(service_id, region)
         ))
         self.assertEqual(200, response.code)
@@ -125,7 +148,7 @@ class RootAndPresetTests(SynchronousTestCase):
         root = MimicRoot(core).app.resource()
 
         (response, content) = self.successResultOf(request_with_content(
-            self, root, 'GET', '/'))
+            self, root, b'GET', '/'))
         self.assertEqual(200, response.code)
         self.assertEqual(['text/plain'],
                          response.headers.getRawHeaders('content-type'))
@@ -142,7 +165,7 @@ class RootAndPresetTests(SynchronousTestCase):
         root = MimicRoot(core).app.resource()
 
         (response, json_content) = self.successResultOf(json_request(
-            self, root, 'GET', '/mimic/v1.0/presets'))
+            self, root, b'GET', '/mimic/v1.0/presets'))
         self.assertEqual(200, response.code)
         self.assertEqual(['application/json'],
                          response.headers.getRawHeaders('content-type'))
@@ -164,7 +187,7 @@ class RootAndPresetTests(SynchronousTestCase):
         root = MimicRoot(core, clock).app.resource()
         self.assertEqual(do.done, False)
         jreq = json_request(
-            self, root, "POST", "/mimic/v1.1/tick", body={"amount": 3.6}
+            self, root, b"POST", "/mimic/v1.1/tick", body={"amount": 3.6}
         )
         [response, json_content] = self.successResultOf(jreq)
         self.assertEqual(response.code, 200)
@@ -183,7 +206,7 @@ class RootAndPresetTests(SynchronousTestCase):
         root = MimicRoot(core).app.resource()
 
         (response, json_content) = self.successResultOf(json_request(
-            self, root, 'GET', '/fastly'))
+            self, root, b'GET', '/fastly'))
         self.assertEqual(200, response.code)
         self.assertEqual(json_content, {'status': 'ok'})
 
@@ -195,5 +218,70 @@ class RootAndPresetTests(SynchronousTestCase):
         root = MimicRoot(core).app.resource()
 
         response = self.successResultOf(request(
-            self, root, "POST", "/sendgrid/mail.send.json"))
+            self, root, b"POST", "/sendgrid/mail.send.json"))
         self.assertEqual(200, response.code)
+
+
+class RequestTests(SynchronousTestCase):
+    """
+    Tests for :obj:`mimic.resource.MimicRequest` and
+    :obj:`mimic.resource.MimicRequest`, and :obj:`mimic.resource.get_site`.
+    """
+    def make_request_to_site(self):
+        """
+        Make a request and return the response.
+        """
+        core = MimicCore(Clock(), [ExampleAPI(b'response!')])
+        root = MimicRoot(core).app.resource()
+
+        # get the region and service id registered for the example API
+        (region, service_id) = one_api(self, core)
+        url = "/mimicking/{0}/{1}".format(service_id, region)
+        response = self.successResultOf(request(
+            self, root, b"GET", url, headers={b"one": [b"two"]}
+        ))
+        return (response, url)
+
+    def test_default_content_type(self):
+        """
+        The default content type of all Mimic responses is application/json.
+        """
+        response, _ = self.make_request_to_site()
+        self.assertEqual(['application/json'],
+                         response.headers.getRawHeaders('content-type'))
+
+    def test_verbose_logging(self):
+        """
+        If verbose logging is turned on, the full request and response is
+        logged.
+        """
+        self.patch(helpers, 'get_site', partial(get_site, logging=True))
+        logged_events = []
+        addObserver(logged_events.append)
+        self.addCleanup(removeObserver, logged_events.append)
+
+        response, url = self.make_request_to_site()
+
+        self.assertEqual(2, len(logged_events))
+        self.assertTrue(all([not event['isError'] for event in logged_events]))
+
+        messages = [get_log_message(event) for event in logged_events]
+
+        request_match = re.compile(
+            "^Received request: GET (?P<url>.+)\n"
+            "Headers: (?P<headers>\{.+\})\n\s*$"
+        ).match(messages[0])
+        self.assertNotEqual(None, request_match)
+        self.assertEqual(url, request_match.group('url'))
+        headers = json.loads(request_match.group('headers'))
+        self.assertEqual(['two'], headers.get('One'))
+
+        response_match = re.compile(
+            "^Responding with 200 for: GET (?P<url>.+)\n"
+            "Headers: (?P<headers>\{.+\})\n"
+            "\nresponse\!\n\s*$"
+        ).match(messages[1])
+        self.assertNotEqual(None, response_match)
+        self.assertEqual(url, response_match.group('url'))
+        headers = json.loads(response_match.group('headers'))
+        self.assertEqual(['application/json'], headers.get('Content-Type'))

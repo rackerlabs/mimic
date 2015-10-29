@@ -5,6 +5,10 @@ Helper methods
 
 :var fmt: strftime format for datetimes used in JSON.
 """
+
+from __future__ import absolute_import, division, unicode_literals
+
+import binascii
 import os
 import string
 import calendar
@@ -48,7 +52,28 @@ def random_string(length, selectable=None):
     selectable = (
         selectable or (string.letters + string.digits + string.punctuation)
     )
-    return ''.join([choice(selectable) for _ in xrange(length)])
+    return ''.join([choice(selectable) for _ in range(length)])
+
+
+def random_hipsum(length):
+    """
+    Generates a random sentence using Hipsum ( http://hipsum.co/ ).
+
+    :param length The number of words in the desired sentence.
+    :returns: A Unicode string containing `length` words.
+    """
+    hipsum = ''.join([
+        "Retro squid Portland raw denim Austin, normcore slow-carb Brooklyn. ",
+        "Deep v organic VHS drinking vinegar. Fingerstache locavore kogi Tumblr ",
+        "cred. Vice typewriter retro iPhone pour-over cred XOXO church-key, ",
+        "post-ironic kogi. Selvage polaroid retro, cold-pressed meh craft beer ",
+        "artisan pour-over taxidermy sartorial art party. Food truck church-key ",
+        "four loko wayfarers craft beer dreamcatcher normcore yr, jean shorts ",
+        "bespoke migas art party crucifix next level. Street art chia bitters, ",
+        "gastropub mixtape flexitarian Godard occupy lumbersexual."]).split(' ')
+    offset = randint(1, len(hipsum))
+    rotated = hipsum[offset:] + hipsum[:offset]
+    return ' '.join(rotated[:length])
 
 
 def random_ipv4(*numbers):
@@ -66,7 +91,7 @@ def random_hex_generator(num):
     """
     Returns randomly generated n bytes of encoded hex data for the given `num`
     """
-    return os.urandom(num).encode("hex")
+    return binascii.hexlify(os.urandom(num)).decode('utf-8')
 
 
 def seconds_to_timestamp(seconds, format=fmt):
@@ -146,3 +171,20 @@ def set_resource_status(updated_time, time_delta, status='ACTIVE',
 
     if current_datetime >= expiration_datetime:
         return status
+
+
+class Matcher(object):
+    """
+    Class for implementing custom matching.
+    """
+    def __init__(self, match_fn):
+        """
+        Set a matcher function on self so that objects can be tested against it.
+        """
+        self._match_fn = match_fn
+
+    def __eq__(self, other):
+        """
+        Implements the == comparison based on the custom matcher.
+        """
+        return self._match_fn(other)

@@ -2,49 +2,44 @@
 MAAS Mock API
 """
 
+from __future__ import division, unicode_literals
+
 import json
 import collections
-import time
+from six.moves.urllib.parse import parse_qs
 import random
 import re
 from uuid import uuid4
 
 from six import text_type
 
+from characteristic import attributes
 from zope.interface import implementer
 
-from twisted.web.server import Request
 from twisted.plugin import IPlugin
 
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
+from mimic.rest.auth_api import base_uri_from_request
 from mimic.rest.mimicapp import MimicApp
 from mimic.imimic import IAPIMock
 from mimic.canned_responses.maas_json_home import json_home
-from mimic.canned_responses.maas_agent_info import agent_info
 from mimic.canned_responses.maas_monitoring_zones import monitoring_zones
 from mimic.canned_responses.maas_alarm_examples import alarm_examples
-from mimic.util.helper import random_hex_generator
+from mimic.model.maas_objects import (Agent,
+                                      Alarm,
+                                      AlarmState,
+                                      Check,
+                                      Entity,
+                                      MaasStore,
+                                      Notification,
+                                      NotificationPlan,
+                                      Suppression)
+from mimic.util.helper import Matcher, random_hex_generator, random_hipsum
 
 
-Request.defaultContentType = 'application/json'
-
-
-class _MatchesID(object):
-    """
-    Class for implementing equality based on the id field.
-    """
-    def __init__(self, id):
-        """
-        Set id on self so that other objects can be compared against this one.
-        """
-        self.id = id
-
-    def __eq__(self, other):
-        """
-        Implements the == comparison based on the id field (and nothing else).
-        """
-        return other['id'] == self.id
+MISSING_REQUIRED_KEY_REGEX = re.compile(r'Missing keyword value for \'(\w+)\'.')
+REMOTE_CHECK_TYPE_REGEX = re.compile(r'^remote\.')
 
 
 @implementer(IAPIMock, IPlugin)
@@ -62,7 +57,7 @@ class MaasApi(object):
 
     def catalog_entries(self, tenant_id):
         """
-        List catalog entries for the Nova API.
+        List catalog entries for the MaaS API.
         """
         return [
             Entry(
@@ -83,31 +78,30 @@ class MaasApi(object):
         return MaasMock(self, uri_prefix, session_store, region).app.resource()
 
 
-class MCache(dict):
+class MCache(object):
 
     """
     M(onitoring) Cache Object to hold dictionaries of all entities, checks and alarms.
     """
 
-    def __init__(self):
+    def __init__(self, clock):
         """
         Create the initial structs for cache
         """
-        self.agenthostinfo_querycount = collections.defaultdict(lambda: 0, {})
+        current_time_milliseconds = int(1000 * clock.seconds())
+
         self.entities_list = []
         self.checks_list = []
         self.alarms_list = []
-        self.notifications_list = [{'id': 'ntTechnicalContactsEmail',
-                                    'label': 'Email All Technical Contacts',
-                                    'created_at': time.time(),
-                                    'updated_at': time.time(),
-                                    'metadata': None,
-                                    'type': 'technicalContactsEmail',
-                                    'details': None}]
-        self.notificationplans_list = [{'id': 'npTechnicalContactsEmail',
-                                        'label': 'Technical Contacts - Email',
-                                        'critical_state': [], 'warning_state': [],
-                                        'ok_state': [], 'metadata': None}]
+        self.notifications_list = [Notification(id=u'ntTechnicalContactsEmail',
+                                                label=u'Email All Technical Contacts',
+                                                created_at=current_time_milliseconds,
+                                                updated_at=current_time_milliseconds,
+                                                type=u'technicalContactsEmail')]
+        self.notificationplans_list = [NotificationPlan(id=u'npTechnicalContactsEmail',
+                                                        label=u'Technical Contacts - Email',
+                                                        created_at=current_time_milliseconds,
+                                                        updated_at=current_time_milliseconds)]
         self.notificationtypes_list = [{'id': 'webhook', 'fields': [{'name': 'url',
                                                                      'optional': False,
                                                                      'description': 'An HTTP or \
@@ -127,9 +121,20 @@ class MCache(dict):
                                                                   with leading + and country \
                                                                   code (E.164 format)'}]}]
         self.suppressions_list = []
+        self.audits_list = []
+        self.maas_store = MaasStore(clock)
+        self.test_alarm_responses = {}
+        self.test_alarm_errors = {}
 
 
-def create_entity(params):
+def _only_keys(dict_ins, keys):
+    """
+    Filters out unwanted keys of a dict.
+    """
+    return dict([(k, dict_ins[k]) for k in dict_ins if k in keys])
+
+
+def create_entity(clock, params):
     """
     Returns a dictionary representing an entity
 
@@ -139,21 +144,13 @@ def create_entity(params):
     :rtype: ``dict`` mapping ``unicode`` to ``unicode``, ``float``,
         ``bool``, ``dict`` or ``NoneType``.
     """
-    params = collections.defaultdict(lambda: '', params)
-    newentity = {}
-    newentity['label'] = params['label']
-    newentity['id'] = 'en' + random_hex_generator(4)
-    newentity['agent_id'] = params['agent_id'] or random_hex_generator(12)
-    newentity['created_at'] = time.time()
-    newentity['updated_at'] = time.time()
-    newentity['managed'] = params['managed'] or False
-    newentity['metadata'] = params['metadata']
-    newentity['ip_addresses'] = params['ip_addresses'] or {}
-    newentity['uri'] = params['uri'] or None
-    return newentity
+    current_time_milliseconds = int(1000 * clock.seconds())
+    params_copy = _only_keys(params, Entity.USER_SPECIFIABLE_KEYS)
+    params_copy['created_at'] = params_copy['updated_at'] = current_time_milliseconds
+    return Entity(**params_copy)
 
 
-def create_check(params):
+def create_check(clock, entity_id, params):
     """
     Returns a dictionary representing a check
 
@@ -163,26 +160,14 @@ def create_check(params):
     :rtype: ``dict`` mapping ``unicode`` to ``unicode``, ``float``,
         ``int``, ``bool``, ``dict`` or ``NoneType``.
     """
-    params = collections.defaultdict(lambda: '', params)
-    params['id'] = 'ch' + random_hex_generator(4)
-    params['collectors'] = []
-    for q in range(3):
-        params['collectors'].append('co' + random_hex_generator(3))
-    params['confd_hash'] = None
-    params['confd_name'] = None
-    params['created_at'] = time.time()
-    params['updated_at'] = time.time()
-    params['timeout'] = 10
-    params['period'] = 60
-    params['disabled'] = False
-    params['metadata'] = None
-    params['target_alias'] = None
-    if 'count' not in params['details']:
-        params['details'] = {'count': 5}  # I have no idea what count=5 is for.
-    return params
+    current_time_milliseconds = int(1000 * clock.seconds())
+    params_copy = _only_keys(params, Check.USER_SPECIFIABLE_KEYS)
+    params_copy['entity_id'] = entity_id
+    params_copy['created_at'] = params_copy['updated_at'] = current_time_milliseconds
+    return Check(**params_copy)
 
 
-def create_alarm(params):
+def create_alarm(clock, entity_id, params):
     """
     Returns a dictionary representing an alarm
 
@@ -192,18 +177,14 @@ def create_alarm(params):
     :rtype: ``dict`` mapping ``unicode`` to ``unicode``, ``float``,
         ``bool``, ``dict``, or ``NoneType``.
     """
-    params = collections.defaultdict(lambda: '', params)
-    params['id'] = 'al' + random_hex_generator(4)
-    params['confd_hash'] = None
-    params['confd_name'] = None
-    params['created_at'] = time.time()
-    params['updated_at'] = time.time()
-    params['disabled'] = False
-    params['metadata'] = None
-    return params
+    current_time_milliseconds = int(1000 * clock.seconds())
+    params_copy = _only_keys(params, Alarm.USER_SPECIFIABLE_KEYS)
+    params_copy['entity_id'] = entity_id
+    params_copy['created_at'] = params_copy['updated_at'] = current_time_milliseconds
+    return Alarm(**params_copy)
 
 
-def create_notification_plan(params):
+def create_notification_plan(clock, params):
     """
     Creates a notification plan
 
@@ -213,17 +194,13 @@ def create_notification_plan(params):
     :rtype: ``dict`` mapping ``unicode`` to ``unicode``, ``float``,
         ``dict`` or ``NoneType``.
     """
-    params['id'] = 'np' + random_hex_generator(4)
-    params['critical_state'] = None
-    params['warning_state'] = None
-    params['ok_state'] = None
-    params['created_at'] = time.time()
-    params['updated_at'] = time.time()
-    params['metadata'] = None
-    return params
+    current_time_milliseconds = int(1000 * clock.seconds())
+    params_copy = _only_keys(params, NotificationPlan.USER_SPECIFIABLE_KEYS)
+    params_copy['created_at'] = params_copy['updated_at'] = current_time_milliseconds
+    return NotificationPlan(**params_copy)
 
 
-def create_notification(params):
+def create_notification(clock, params):
     """
     Creates a notification target
 
@@ -233,14 +210,13 @@ def create_notification(params):
     :rtype: ``dict`` mapping ``unicode`` to ``unicode``, ``float``,
         ``dict`` or ``NoneType``.
     """
-    params['id'] = 'nt' + random_hex_generator(4)
-    params['created_at'] = time.time()
-    params['updated_at'] = time.time()
-    params['metadata'] = None
-    return params
+    current_time_milliseconds = int(1000 * clock.seconds())
+    params_copy = _only_keys(params, Notification.USER_SPECIFIABLE_KEYS)
+    params_copy['created_at'] = params_copy['updated_at'] = current_time_milliseconds
+    return Notification(**params_copy)
 
 
-def create_suppression(params):
+def create_suppression(clock, params):
     """
     Creates a suppression
 
@@ -249,89 +225,140 @@ def create_suppression(params):
         <http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/service-suppressions.html>`_
     :rtype: ``dict`` mapping ``unicode`` to ``unicode`` or ``list``.
     """
-    params['id'] = 'sp' + random_hex_generator(4)
-    if 'notification_plans' not in params:
-        params['notification_plans'] = []
-    if 'entities' not in params:
-        params['entities'] = []
-    if 'checks' not in params:
-        params['checks'] = []
-    if 'alarms' not in params:
-        params['alarms'] = []
-    return params
+    params_copy = _only_keys(params, Suppression.USER_SPECIFIABLE_KEYS)
+    params_copy['created_at'] = params_copy['updated_at'] = int(1000 * clock.seconds())
+    return Suppression(**params_copy)
 
 
-def create_metric_list_from_entity(entity, allchecks):
+def _object_getter(collection, matcher, request, object_type, object_key):
     """
-    To respond to the metrics_list api call, we must have the entity and allchecks
-    and assemble the structure to reply with.
+    Generic getter handler for objects in a collection.
     """
-    v = {}
-    v['entity_id'] = entity['id']
-    v['entity_label'] = entity['label']
-    v['checks'] = []
-    for c in allchecks:
-        if c['type'] == 'remote.ping' and c['entity_id'] == entity['id']:
-            metricscheck = {}
-            metricscheck['id'] = c['id']
-            metricscheck['label'] = c['label']
-            metricscheck['type'] = 'remote.ping'
-            metricscheck['metrics'] = []
-            for mz in c['monitoring_zones_poll']:
-                metricscheck['metrics'].append(
-                    {'name': mz + '.available', 'unit': 'percent', 'type': 'D'})
-                metricscheck['metrics'].append(
-                    {'name': mz + '.average', 'unit': 'seconds', 'type': 'D'})
-            v['checks'].append(metricscheck)
-    return v
+    for obj in collection:
+        if matcher(obj):
+            request.setResponseCode(200)
+            return json.dumps(obj.to_json())
+    request.setResponseCode(404)
+    return json.dumps({'type': 'notFoundError',
+                       'code': 404,
+                       'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
+                       'message': 'Object does not exist',
+                       'details': 'Object "{0}" with key "{1}" does not exist'.format(
+                           object_type, object_key)
+                       })
 
 
-def create_multiplot_from_metric(metric, reqargs, allchecks):
+def _metric_list_for_check(maas_store, entity, check):
     """
-    Given a metric, this will produce fake datapoints to graph
-    This is for the multiplot API call
+    Computes the metrics list for a given check.
 
-    Also, if you name a PING check "squarewave", you will get
-    datapoints that form such a wave. This is for testing the
-    graphing-solution you have in place. Produces a static, yet
-    unique-looking, graph for screen comparison solutions.
+    Remote checks return a metric for each monitoring zone and
+    each type of metric for the check type. Agent checks return
+    a metric for each metric type on the check type. Check types
+    that Mimic doesn't know about generate an empty list.
     """
-    fromdate = int(reqargs['from'][0])
-    todate = int(reqargs['to'][0])
-    points = int(reqargs['points'][0])
-    multiplot = {}
-    squarewave_downtrend = 1
-    for c in allchecks:
-        if c['entity_id'] == metric['entity_id']:
-            if c['type'] == 'remote.ping':
-                multiplot['entity_id'] = metric['entity_id']
-                multiplot['check_id'] = metric['check_id']
-                multiplot['type'] = 'number'
-                multiplot['metric'] = metric['metric']
-                if metric['metric'].endswith('available'):
-                    multiplot['unit'] = 'percent'
-                else:
-                    multiplot['unit'] = 'seconds'
-                multiplot['data'] = []
-                interval = (todate - fromdate) / points
-                timestamp = fromdate
-                for q in range(points):
-                    d = {}
-                    d['numPoints'] = 4
-                    d['timestamp'] = timestamp
-                    if not q % (points / 4):
-                        squarewave_downtrend = squarewave_downtrend ^ 1
-                    if c['label'] == 'squarewave':
-                        if squarewave_downtrend:
-                            d['average'] = 15
-                        else:
-                            d['average'] = 85
-                    else:
-                        d['average'] = random.randint(1, 99)
-                    multiplot['data'].append(d)
-                    timestamp += interval
+    if check.type not in maas_store.check_types:
+        return []
 
-    return multiplot
+    if REMOTE_CHECK_TYPE_REGEX.match(check.type):
+        return [{'name': '{0}.{1}'.format(mz, metric.name),
+                 'type': metric.type,
+                 'unit': metric.unit}
+                for metric in maas_store.check_types[check.type].metrics
+                for mz in check.monitoring_zones_poll]
+
+    return [{'name': metric.name,
+             'type': metric.type,
+             'unit': metric.unit}
+            for metric in maas_store.check_types[check.type].metrics]
+
+
+def _metric_list_for_entity(maas_store, entity, checks):
+    """
+    Creates the metrics list for one entity.
+    """
+    return {'entity_id': entity.id,
+            'entity_label': entity.label,
+            'checks': [{'id': check.id,
+                        'label': check.label,
+                        'type': check.type,
+                        'metrics': _metric_list_for_check(maas_store, entity, check)}
+                       for check in checks if check.entity_id == entity.id]}
+
+
+def _multiplot_interval(from_date, to_date, points):
+    """
+    Computes the size of the interval between points in a multiplot.
+
+    :return: the multiplot interval size.
+    :rtype: ``float``
+    """
+    if points < 2:
+        return 0.0
+    return (to_date - from_date) / (points - 1)
+
+
+def _compute_multiplot(maas_store, entity_id, check, metric_name, from_date, to_date, points):
+    """
+    Computes multiplot data for a single (entity, check, metric) group.
+    """
+    fallback = {'entity_id': entity_id,
+                'check_id': check.id,
+                'metric': metric_name,
+                'unit': 'unknown',
+                'type': 'unknown',
+                'data': []}
+
+    if check.type not in maas_store.check_types:
+        return fallback
+
+    interval = _multiplot_interval(from_date, to_date, points)
+    metric = None
+    base_metric_name = metric_name
+    metric_value_kwargs = {'entity_id': entity_id,
+                           'check_id': check.id}
+    if re.match(r'^remote\.', check.type):
+        match = re.match(r'^(mz\w+)\.(\w+)$', metric_name)
+        if not match:
+            return fallback
+        metric_value_kwargs['monitoring_zone'] = match.group(1)
+        base_metric_name = match.group(2)
+
+    try:
+        metric = maas_store.check_types[check.type].get_metric_by_name(base_metric_name)
+    except NameError:
+        return fallback
+
+    return {'entity_id': entity_id,
+            'check_id': check.id,
+            'metric': metric_name,
+            'unit': metric.unit,
+            'type': metric.type,
+            'data': [{'numPoints': 4,
+                      'timestamp': int(from_date + (i * interval)),
+                      'average': metric.get_value(
+                          timestamp=int(from_date + (i * interval)),
+                          **metric_value_kwargs)}
+                     for i in range(points)]}
+
+
+def parse_and_flatten_qs(url):
+    """
+    Parses a querystring and flattens 1-arg arrays.
+    """
+    qs = parse_qs(url)
+    flat_qs = {}
+    for key in qs:
+        flat_qs[key] = qs[key][0] if len(qs[key]) == 1 else qs[key]
+    return flat_qs
+
+
+def _mcache_factory(clock):
+    """
+    Returns a function that makes a defaultdict that makes MCache objects
+    for each tenant.
+    """
+    return lambda: collections.defaultdict(lambda: MCache(clock))
 
 
 class MaasMock(object):
@@ -345,8 +372,6 @@ class MaasMock(object):
         Create a maas region with a given URI prefix (used for generating URIs
         to servers).
         """
-        self.endpoint_port = '8900'
-        self.uri_prefix = uri_prefix
         self._api_mock = api_mock
         self._session_store = session_store
         self._name = name
@@ -355,9 +380,31 @@ class MaasMock(object):
         """
         Retrieve the M_cache object containing all objects created so far
         """
+        clock = self._session_store.clock
         return (self._session_store.session_for_tenant_id(tenant_id)
-                .data_for_api(self._api_mock, lambda: collections.defaultdict(MCache))[self._name]
+                .data_for_api(self._api_mock, _mcache_factory(clock))[self._name]
                 )
+
+    def _audit(self, app, request, tenant_id, status, content=''):
+        headers = dict([(k, v) for k, v in request.getAllHeaders().iteritems()
+                        if k != 'x-auth-token'])
+
+        self._entity_cache_for_tenant(tenant_id).audits_list.append(
+            {
+                'id': str(uuid4()),
+                'timestamp': int(1000 * self._session_store.clock.seconds()),
+                'headers': headers,
+                'url': request.path,
+                'app': app,
+                'query': parse_and_flatten_qs(request.uri),
+                'txnId': str(uuid4()),
+                'payload': content,
+                'method': request.method,
+                'account_id': tenant_id,
+                'who': '',
+                'why': '',
+                'statusCode': status
+            })
 
     app = MimicApp()
 
@@ -385,73 +432,66 @@ class MaasMock(object):
         if 'marker' in request.args:
             marker = request.args['marker'][0].strip()
             for q in range(len(entities)):
-                if entities[q]['id'] == marker:
+                if entities[q].id == marker:
                     entities = entities[q:]
                     break
         try:
-            next_marker = entities[limit]['id']
+            next_marker = entities[limit].id
         except Exception:
             pass
         entities = entities[:limit]
 
-        metadata = {}
-        metadata['count'] = len(entities)
-        metadata['limit'] = limit
-        metadata['marker'] = marker
-        metadata['next_marker'] = next_marker
-        metadata['next_href'] = next_href
+        metadata = {'count': len(entities),
+                    'limit': limit,
+                    'marker': marker,
+                    'next_marker': next_marker,
+                    'next_href': next_href}
         request.setResponseCode(200)
-        return json.dumps({'metadata': metadata, 'values': entities})
+        return json.dumps({'metadata': metadata,
+                           'values': [entity.to_json() for entity in entities]})
 
     @app.route('/v1.0/<string:tenant_id>/entities', methods=['POST'])
     def create_entity(self, request, tenant_id):
         """
         Creates a new entity
         """
-        postdata = json.loads(request.content.read())
-        myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        newentity = create_entity(postdata)
+        content = request.content.read()
+        postdata = json.loads(content)
+        newentity = create_entity(self._session_store.clock, postdata)
         self._entity_cache_for_tenant(tenant_id).entities_list.append(newentity)
-        request.setResponseCode(201)
-        request.setHeader('location', myhostname_and_port + request.path + '/' + newentity['id'])
-        request.setHeader('x-object-id', newentity['id'])
-        request.setHeader('content-type', 'text/plain')
-        return ''
+        status = 201
+        request.setResponseCode(status)
+        request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
+                          request.path + b'/' + newentity.id.encode('utf-8'))
+        request.setHeader(b'x-object-id', newentity.id.encode('utf-8'))
+        request.setHeader(b'content-type', b'text/plain')
+        self._audit('entities', request, tenant_id, status, content)
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>', methods=['GET'])
     def get_entity(self, request, tenant_id, entity_id):
         """
         Fetches a specific entity
         """
-        entity = None
-        for e in self._entity_cache_for_tenant(tenant_id).entities_list:
-            if e['id'] == entity_id:
-                entity = e
-                break
-        if not entity:
-            request.setResponseCode(404)
-            return '{}'
-        else:
-            request.setResponseCode(200)
-            return json.dumps(entity)
+        return _object_getter(self._entity_cache_for_tenant(tenant_id).entities_list,
+                              lambda entity: entity.id == entity_id,
+                              request,
+                              "Entity",
+                              entity_id)
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks', methods=['GET'])
     def get_checks_for_entity(self, request, tenant_id, entity_id):
         """
         Returns all the checks for a paricular entity
         """
-        checks = []
-        for c in self._entity_cache_for_tenant(tenant_id).checks_list:
-            if c['entity_id'] == entity_id:
-                c = dict(c)  # make a copy,  don't want the entity_id in the response
-                del c['entity_id']
-                checks.append(c)
-        metadata = {}
-        metadata['count'] = len(checks)
-        metadata['limit'] = 1000
-        metadata['marker'] = None
-        metadata['next_marker'] = None
-        metadata['next_href'] = None
+        checks = [check.to_json()
+                  for check in self._entity_cache_for_tenant(tenant_id).checks_list
+                  if check.entity_id == entity_id]
+        metadata = {'count': len(checks),
+                    'limit': 1000,
+                    'marker': None,
+                    'next_marker': None,
+                    'next_href': None}
         request.setResponseCode(200)
         return json.dumps({'metadata': metadata, 'values': checks})
 
@@ -460,22 +500,23 @@ class MaasMock(object):
         """
         Update entity in place.
         """
-        update = json.loads(request.content.read())
-        for q in range(len(self._entity_cache_for_tenant(tenant_id).entities_list)):
-            if self._entity_cache_for_tenant(tenant_id).entities_list[q]['id'] == entity_id:
-                entity = self._entity_cache_for_tenant(tenant_id).entities_list[q]
-                for k in ['agent_id', 'managed', 'metadata', 'ip_addresses', 'uri', 'label']:
-                    if k in update:
-                        entity[k] = update[k]
-                entity['updated_at'] = time.time()
+        content = request.content.read()
+        update = json.loads(content)
+        update_kwargs = dict(update)
+        update_kwargs['clock'] = self._session_store.clock
+        for entity in self._entity_cache_for_tenant(tenant_id).entities_list:
+            if entity.id == entity_id:
+                entity.update(**update_kwargs)
                 break
-        myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        request.setResponseCode(204)
-        request.setHeader('location', myhostname_and_port + request.path +
-                          '/' + entity_id.encode('utf-8'))
-        request.setHeader('x-object-id', entity_id.encode('utf-8'))
-        request.setHeader('content-type', 'text/plain')
-        return ''
+
+        status = 204
+        request.setResponseCode(status)
+        request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
+                          request.path)
+        request.setHeader(b'x-object-id', entity_id.encode('utf-8'))
+        request.setHeader(b'content-type', b'text/plain')
+        self._audit('entities', request, tenant_id, status, content)
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>', methods=['DELETE'])
     def delete_entity(self, request, tenant_id, entity_id):
@@ -483,36 +524,66 @@ class MaasMock(object):
         Delete an entity, all checks that belong to entity, all alarms that belong to those checks
         """
         entities = self._entity_cache_for_tenant(tenant_id).entities_list
+
+        try:
+            entities.remove(Matcher(lambda entity: entity.id == entity_id))
+        except ValueError:
+            status = 404
+            request.setResponseCode(status)
+            self._audit('entities', request, tenant_id, status)
+            return json.dumps({'type': 'notFoundError',
+                               'code': status,
+                               'message': 'Object does not exist',
+                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
+                                   entity_id),
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+
         checks = self._entity_cache_for_tenant(tenant_id).checks_list
+        checks[:] = [check for check in checks
+                     if check.entity_id != entity_id]
+
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
-        for e in range(len(entities)):
-            if entities[e]['id'] == entity_id:
-                del entities[e]
-                break
-        for c in checks:
-            if c['entity_id'] == entity_id:
-                del checks[checks.index(c)]
-        for a in alarms:
-            if a['entity_id'] == entity_id:
-                del alarms[alarms.index(a)]
-        request.setResponseCode(204)
-        request.setHeader('content-type', 'text/plain')
+        alarms[:] = [alarm for alarm in alarms
+                     if alarm.entity_id != entity_id]
+
+        status = 204
+        request.setResponseCode(status)
+        request.setHeader(b'content-type', b'text/plain')
+        self._audit('entities', request, tenant_id, status)
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks', methods=['POST'])
     def create_check(self, request, tenant_id, entity_id):
         """
         Create a check
         """
-        postdata = json.loads(request.content.read())
-        myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        newcheck = create_check(postdata)
-        newcheck['entity_id'] = entity_id
+        content = request.content.read()
+        postdata = json.loads(content)
+
+        newcheck = None
+        try:
+            newcheck = create_check(self._session_store.clock, entity_id, postdata)
+        except ValueError as err:
+            match = MISSING_REQUIRED_KEY_REGEX.match(err.message)
+            missing_key = match.group(1)
+            status = 400
+            request.setResponseCode(status)
+            self._audit('checks', request, tenant_id, status, content)
+            return json.dumps({'type': 'badRequest',
+                               'code': status,
+                               'message': 'Validation error for key \'{0}\''.format(missing_key),
+                               'details': 'Missing required key ({0})'.format(missing_key),
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+
         self._entity_cache_for_tenant(tenant_id).checks_list.append(newcheck)
-        request.setResponseCode(201)
-        request.setHeader('location', myhostname_and_port + request.path + '/' + newcheck['id'])
-        request.setHeader('x-object-id', newcheck['id'])
-        request.setHeader('content-type', 'text/plain')
-        return ''
+        status = 201
+        request.setResponseCode(status)
+        request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
+                          request.path + b'/' + newcheck.id.encode('utf-8'))
+        request.setHeader(b'x-object-id', newcheck.id.encode('utf-8'))
+        request.setHeader(b'content-type', b'text/plain')
+        self._audit('checks', request, tenant_id, status, content)
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks/<string:check_id>',
                methods=['GET'])
@@ -520,13 +591,11 @@ class MaasMock(object):
         """
         Get a specific check that was created before
         """
-        mycheck = {}
-        for c in self._entity_cache_for_tenant(tenant_id).checks_list:
-            if c['id'] == check_id:
-                mycheck = dict(c)
-                del mycheck['entity_id']
-        request.setResponseCode(200)
-        return json.dumps(mycheck)
+        return _object_getter(self._entity_cache_for_tenant(tenant_id).checks_list,
+                              lambda check: check.id == check_id,
+                              request,
+                              "Check",
+                              '{0}:{1}'.format(entity_id, check_id))
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks/<string:check_id>',
                methods=['PUT'])
@@ -534,22 +603,22 @@ class MaasMock(object):
         """
         Updates a check in place.
         """
-        update = json.loads(request.content.read())
+        content = request.content.read()
+        update = json.loads(content)
+        update_kwargs = dict(update)
+        update_kwargs['clock'] = self._session_store.clock
         for check in self._entity_cache_for_tenant(tenant_id).checks_list:
-            if check['entity_id'] == entity_id and check['id'] == check_id:
-                for k in ['type', 'details', 'disabled', 'label', 'metadata', 'period', 'timeout',
-                          'monitoring_zones_poll', 'target_alias', 'target_hostname', 'target_resolver']:
-                    if k in update:
-                        check[k] = update[k]
-                check['updated_at'] = time.time()
+            if check.entity_id == entity_id and check.id == check_id:
+                check.update(**update_kwargs)
                 break
-        myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        request.setResponseCode(204)
-        request.setHeader('location', myhostname_and_port + request.path +
-                          '/' + check_id.encode('utf-8'))
-        request.setHeader('x-object-id', check_id.encode('utf-8'))
-        request.setHeader('content-type', 'text/plain')
-        return ''
+        status = 204
+        request.setResponseCode(status)
+        request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
+                          request.path)
+        request.setHeader(b'x-object-id', check_id.encode('utf-8'))
+        request.setHeader(b'content-type', b'text/plain')
+        self._audit('checks', request, tenant_id, status, content)
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks/<string:check_id>',
                methods=['DELETE'])
@@ -558,33 +627,84 @@ class MaasMock(object):
         Deletes check and all alarms associated to it
         """
         checks = self._entity_cache_for_tenant(tenant_id).checks_list
+
+        try:
+            checks.remove(Matcher(
+                lambda check: check.id == check_id and check.entity_id == entity_id))
+        except ValueError:
+            status = 404
+            request.setResponseCode(status)
+            self._audit('checks', request, tenant_id, status)
+            return json.dumps({'type': 'notFoundError',
+                               'code': status,
+                               'message': 'Object does not exist',
+                               'details': 'Object "Check" with key "{0}:{1}" does not exist'.format(
+                                   entity_id, check_id),
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
-        for c in range(len(checks)):
-            if checks[c]['entity_id'] == entity_id and checks[c]['id'] == check_id:
-                del checks[c]
-                break
-        for a in alarms:
-            if a['check_id'] == check_id and a['entity_id'] == entity_id:
-                del alarms[alarms.index(a)]
-        request.setResponseCode(204)
-        request.setHeader('content-type', 'text/plain')
-        return ''
+        alarms[:] = [alarm for alarm in alarms
+                     if not (alarm.check_id == check_id and alarm.entity_id == entity_id)]
+        status = 204
+        request.setResponseCode(status)
+        request.setHeader(b'content-type', b'text/plain')
+        self._audit('checks', request, tenant_id, status)
+        return b''
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/test-check', methods=['POST'])
+    def test_check(self, request, tenant_id, entity_id):
+        """
+        Tests a check.
+
+        If the user has configured overrides using the control API for
+        test-check using this entity and check type, those will be used.
+        Otherwise, random values within each metric type will be
+        generated. For instance, integer metrics generate integers, and
+        string metrics generate strings. No other guarantees are made.
+        """
+        content = request.content.read()
+        test_config = json.loads(content)
+        check_type = test_config['type']
+        maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
+        response_code, response_body = maas_store.check_types[check_type].get_test_check_response(
+            entity_id=entity_id,
+            monitoring_zones=test_config.get('monitoring_zones_poll'),
+            timestamp=int(1000 * self._session_store.clock.seconds()))
+        request.setResponseCode(response_code)
+        self._audit('checks', request, tenant_id, response_code, content)
+        return json.dumps(response_body)
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms', methods=['POST'])
     def create_alarm(self, request, tenant_id, entity_id):
         """
         Creates alarm
         """
-        postdata = json.loads(request.content.read())
-        myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        newalarm = create_alarm(postdata)
-        newalarm['entity_id'] = entity_id
+        content = request.content.read()
+        postdata = json.loads(content)
+
+        try:
+            newalarm = create_alarm(self._session_store.clock, entity_id, postdata)
+        except ValueError as err:
+            match = MISSING_REQUIRED_KEY_REGEX.match(err.message)
+            missing_key = match.group(1)
+            status = 400
+            request.setResponseCode(status)
+            self._audit('alarms', request, tenant_id, status, content)
+            return json.dumps({'type': 'badRequest',
+                               'code': status,
+                               'message': 'Validation error for key \'{0}\''.format(missing_key),
+                               'details': 'Missing required key ({0})'.format(missing_key),
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+
         self._entity_cache_for_tenant(tenant_id).alarms_list.append(newalarm)
-        request.setResponseCode(201)
-        request.setHeader('location', myhostname_and_port + request.path + '/' + newalarm['id'])
-        request.setHeader('x-object-id', newalarm['id'])
-        request.setHeader('content-type', 'text/plain')
-        return ''
+        status = 201
+        request.setResponseCode(status)
+        request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
+                          request.path + b'/' + newalarm.id.encode('utf-8'))
+        request.setHeader(b'x-object-id', newalarm.id.encode('utf-8'))
+        request.setHeader(b'content-type', b'text/plain')
+        self._audit('alarms', request, tenant_id, status, content)
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/<string:alarm_id>',
                methods=['GET'])
@@ -592,21 +712,11 @@ class MaasMock(object):
         """
         Gets an alarm by ID.
         """
-        alarm = None
-        for a in self._entity_cache_for_tenant(tenant_id).alarms_list:
-            if a['entity_id'] == entity_id and a['id'] == alarm_id:
-                alarm = a
-                break
-        else:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'message': 'Object does not exist',
-                               'details': 'Object "Alarm" with key "{0}:{1}" does not exist'.format(
-                                   entity_id, alarm_id)
-                               })
-        request.setResponseCode(200)
-        return json.dumps(alarm)
+        return _object_getter(self._entity_cache_for_tenant(tenant_id).alarms_list,
+                              lambda alarm: alarm.entity_id == entity_id and alarm.id == alarm_id,
+                              request,
+                              "Alarm",
+                              '{0}:{1}'.format(entity_id, alarm_id))
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/<string:alarm_id>',
                methods=['PUT'])
@@ -621,22 +731,23 @@ class MaasMock(object):
 
             http://goo.gl/NhxgTZ
         """
-        update = json.loads(request.content.read())
+        content = request.content.read()
+        update = json.loads(content)
+        update_kwargs = dict(update)
+        update_kwargs['clock'] = self._session_store.clock
         for alarm in self._entity_cache_for_tenant(tenant_id).alarms_list:
-            if alarm['entity_id'] == entity_id and alarm['id'] == alarm_id:
-                for k in ['check_id', 'notification_plan_id', 'criteria', 'disabled', 'label',
-                          'metadata']:
-                    if k in update:
-                        alarm[k] = update[k]
-                alarm['updated_at'] = time.time()
+            if alarm.entity_id == entity_id and alarm.id == alarm_id:
+                alarm.update(**update_kwargs)
                 break
-        myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        request.setResponseCode(204)
-        request.setHeader('location', myhostname_and_port + request.path +
-                          '/' + alarm_id.encode('utf-8'))
-        request.setHeader('x-object-id', alarm_id.encode('utf-8'))
-        request.setHeader('content-type', 'text/plain')
-        return ''
+
+        status = 204
+        request.setResponseCode(status)
+        request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
+                          request.path)
+        request.setHeader(b'x-object-id', alarm_id.encode('utf-8'))
+        request.setHeader(b'content-type', b'text/plain')
+        self._audit('alarms', request, tenant_id, status, content)
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/<string:alarm_id>',
                methods=['DELETE'])
@@ -645,31 +756,83 @@ class MaasMock(object):
         Delete an alarm
         """
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
-        for q in range(len(alarms)):
-            if alarms[q]['entity_id'] == entity_id and alarms[q]['id'] == alarm_id:
-                del alarms[q]
-                break
-        request.setResponseCode(204)
-        request.setHeader('content-type', 'text/plain')
-        return ''
+
+        try:
+            alarms.remove(Matcher(
+                lambda alarm: alarm.entity_id == entity_id and alarm.id == alarm_id))
+        except ValueError:
+            status = 404
+            request.setResponseCode(status)
+            self._audit('alarms', request, tenant_id, status)
+            return json.dumps({'type': 'notFoundError',
+                               'code': status,
+                               'message': 'Object does not exist',
+                               'details': 'Object "Alarm" with key "{0}:{1}" does not exist'.format(
+                                   entity_id, alarm_id),
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+
+        status = 204
+        request.setResponseCode(status)
+        self._audit('alarms', request, tenant_id, status)
+        request.setHeader(b'content-type', b'text/plain')
+        return b''
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/test-alarm', methods=['POST'])
+    def test_alarm(self, request, tenant_id, entity_id):
+        """
+        Test an alarm.
+
+        This API can be driven using the control API to set an error
+        or canned success response. If no error or success response is set,
+        it will return success with a random state and status. Users should
+        not expect this API to consistently return either OK, WARNING or
+        CRITICAL without first setting the response in the control API.
+        """
+        content = request.content.read()
+        payload = json.loads(content)
+        n_tests = len(payload['check_data'])
+        current_time_milliseconds = int(1000 * self._session_store.clock.seconds())
+        status = 200
+        response_payload = []
+
+        test_responses = self._entity_cache_for_tenant(tenant_id).test_alarm_responses
+        test_errors = self._entity_cache_for_tenant(tenant_id).test_alarm_errors
+
+        if entity_id in test_errors and len(test_errors[entity_id]) > 0:
+            error_response = test_errors[entity_id].popleft()
+            status = error_response['code']
+            response_payload = error_response['response']
+        elif entity_id in test_responses:
+            n_responses = len(test_responses[entity_id])
+            for i in range(n_tests):
+                test_response = test_responses[entity_id][i % n_responses]
+                response_payload.append({'state': test_response['state'],
+                                         'status': test_response.get(
+                                             'status', 'Matched default return statement'),
+                                         'timestamp': current_time_milliseconds})
+        else:
+            for _ in range(n_tests):
+                response_payload.append({'state': random.choice(['OK', 'WARNING', 'CRITICAL']),
+                                         'status': random_hipsum(12),
+                                         'timestamp': current_time_milliseconds})
+
+        request.setResponseCode(status)
+        self._audit('alarms', request, tenant_id, status, content)
+        return json.dumps(response_payload)
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms', methods=['GET'])
     def get_alarms_for_entity(self, request, tenant_id, entity_id):
         """
         Get all alarms for the specified entity.
         """
-        alarms = [
-            dict(alarm) for alarm in self._entity_cache_for_tenant(tenant_id).alarms_list
-            if alarm['entity_id'] == entity_id
-        ]
-        for alarm in alarms:
-            del alarm['entity_id']
-        metadata = {}
-        metadata['count'] = len(alarms)
-        metadata['limit'] = 1000
-        metadata['marker'] = None
-        metadata['next_marker'] = None
-        metadata['next_href'] = None
+        alarms = [alarm.to_json()
+                  for alarm in self._entity_cache_for_tenant(tenant_id).alarms_list
+                  if alarm.entity_id == entity_id]
+        metadata = {'count': len(alarms),
+                    'limit': 1000,
+                    'marker': None,
+                    'next_marker': None,
+                    'next_href': None}
         request.setResponseCode(200)
         return json.dumps({'metadata': metadata, 'values': alarms})
 
@@ -685,21 +848,33 @@ class MaasMock(object):
             return json.dumps({})
         # End of hack
         all_entities = self._entity_cache_for_tenant(tenant_id).entities_list
+        if 'entityId' in request.args:
+            all_entities = [entity for entity in all_entities
+                            if entity.id in request.args['entityId']]
+            if len(all_entities) == 0:
+                request.setResponseCode(404)
+                return json.dumps({'type': 'notFoundError',
+                                   'code': 404,
+                                   'message': 'Object does not exist',
+                                   'details': 'Object "Entity" with key "{0}" does not exist'.format(
+                                       request.args['entityId'])})
+
         checks = self._entity_cache_for_tenant(tenant_id).checks_list
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
+        maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
         page_limit = min(int(request.args.get('limit', [100])[0]), 1000)
         offset = 0
         current_marker = request.args.get('marker', [None])[0]
         if current_marker is not None:
             try:
-                offset = all_entities.index(_MatchesID(current_marker))
+                offset = all_entities.index(Matcher(lambda entity: entity.id == current_marker))
             except ValueError:
                 offset = 0
 
         entities = all_entities[offset:offset + page_limit]
         next_marker = None
         if offset + page_limit < len(all_entities):
-            next_marker = all_entities[offset + page_limit]['id']
+            next_marker = all_entities[offset + page_limit].id
 
         metadata = {
             'count': len(entities),
@@ -708,26 +883,51 @@ class MaasMock(object):
             'limit': page_limit,
             'next_href': None
         }
-        values = []
-        for e in entities:
-            v = {}
-            v['alarms'] = []
-            for a in alarms:
-                if a['entity_id'] == e['id']:
-                    a = dict(a)
-                    del a['entity_id']
-                    v['alarms'].append(a)
-            v['checks'] = []
-            for c in checks:
-                if c['entity_id'] == e['id']:
-                    c = dict(c)
-                    del c['entity_id']
-                    v['checks'].append(c)
-            v['entity'] = e
-            v['latest_alarm_states'] = []
-            values.append(v)
+        values = [{'alarms': [alarm.to_json()
+                              for alarm in alarms
+                              if alarm.entity_id == entity.id],
+                   'checks': [check.to_json()
+                              for check in checks
+                              if check.entity_id == entity.id],
+                   'entity': entity.to_json(),
+                   'latest_alarm_states': [
+                       state.brief_json()
+                       for state in maas_store.latest_alarm_states_for_entity(entity.id)]}
+
+                  for entity in entities]
         request.setResponseCode(200)
         return json.dumps({'metadata': metadata, 'values': values})
+
+    @app.route('/v1.0/<string:tenant_id>/audits', methods=['GET'])
+    def list_audits(self, request, tenant_id):
+        """
+        Gets the user's audit logs.
+        """
+        ordering = -1 if request.args.get('reverse', False) else 1
+        all_audits = self._entity_cache_for_tenant(tenant_id).audits_list[::ordering]
+        page_limit = min(int(request.args.get('limit', [100])[0]), 1000)
+        offset = 0
+        current_marker = request.args.get('marker', [None])[0]
+        if current_marker is not None:
+            try:
+                offset = all_audits.index(Matcher(lambda audit: audit['id'] == current_marker))
+            except ValueError:
+                offset = 0
+
+        audits = all_audits[offset:offset + page_limit]
+        next_marker = None
+        if offset + page_limit < len(all_audits):
+            next_marker = all_audits[offset + page_limit]['id']
+
+        metadata = {
+            'count': len(audits),
+            'marker': current_marker,
+            'next_marker': next_marker,
+            'limit': page_limit,
+            'next_href': None
+        }
+        request.setResponseCode(200)
+        return json.dumps({'metadata': metadata, 'values': audits})
 
     @app.route('/v1.0/<string:tenant_id>/__experiments/json_home', methods=['GET'])
     def service_json_home(self, request, tenant_id):
@@ -738,17 +938,27 @@ class MaasMock(object):
         TO DO: Regionless api
         """
         request.setResponseCode(200)
-        myhostname_and_port = request.getRequestHostname() + ':' + self.endpoint_port
         mockapi_id = re.findall('/mimicking/(.+?)/', request.path)[0]
-        url = "http://" + myhostname_and_port + '/mimicking/' + mockapi_id + '/ORD/v1.0'
+        url = base_uri_from_request(request).rstrip('/') + '/mimicking/' + mockapi_id + '/ORD/v1.0'
         return json.dumps(json_home(url))
 
     @app.route('/v1.0/<string:tenant_id>/views/agent_host_info', methods=['GET'])
     def view_agent_host_info(self, request, tenant_id):
         """
-        Return 400 until the fifth attempt, then start to return data as if the
-        Agent is truly installed and working.
+        Mocks the /views/agent_host_info API call.
         """
+        entities = self._entity_cache_for_tenant(tenant_id).entities_list
+        maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
+
+        if 'include' not in request.args:
+            request.setResponseCode(400)
+            return json.dumps({'type': 'badRequest',
+                               'code': 400,
+                               'message': 'Validation error for key \'include\'',
+                               'details': 'Must include at least one HOST_INFO_TYPE.',
+                               'txnId': ('.fake.mimic.transaction.id.c-1111111'
+                                          '.ts-123444444.v-12344frf')})
+
         if 'entityId' not in request.args:
             request.setResponseCode(400)
             return json.dumps({'type': 'badRequest',
@@ -756,12 +966,22 @@ class MaasMock(object):
                                'message': 'Validation error for key \'agentId, entityId, uri\'',
                                'details': 'You must specify an agentId, entityId, or an entity URI.',
                                'mimicNotes': 'But mimic will only accept entityId right now',
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+                               'txnId': ('.fake.mimic.transaction.id.c-1111111'
+                                         '.ts-123444444.v-12344frf')})
 
         entity_id = request.args['entityId'][0].strip()
-        for e in self._entity_cache_for_tenant(tenant_id).entities_list:
-            if e['id'] == entity_id:
-                agent_id = e['agent_id']
+        agent_id = None
+        for entity in entities:
+            if entity.id == entity_id:
+                if entity.agent_id is None:
+                    request.setResponseCode(400)
+                    return json.dumps({'type': 'agentDoesNotExist',
+                                       'code': 400,
+                                       'message': 'Agent does not exist',
+                                       'details': 'Agent null does not exist',
+                                       'txnId': ('.fake.mimic.transaction.id.c-1111111.'
+                                                 'ts-123444444.v-12344frf')})
+                agent_id = entity.agent_id
                 break
         else:
             request.setResponseCode(404)
@@ -773,251 +993,308 @@ class MaasMock(object):
                                'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'
                                })
 
-        self._entity_cache_for_tenant(tenant_id).agenthostinfo_querycount[entity_id] += 1
-        if self._entity_cache_for_tenant(tenant_id).agenthostinfo_querycount[entity_id] < 5:
-            request.setResponseCode(400)
-            return json.dumps({
-                "type": "agentDoesNotExist",
-                "code": 400,
-                "message": "Agent does not exist",
-                "details": "Agent XYZ does not exist.",
-                "txnId": ".fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf"
-            })
-        else:
-            return json.dumps(agent_info(entity_id, agent_id))
+        agent = maas_store.agents[maas_store.agents.index(Matcher(
+            lambda agent: agent.id == agent_id))]
+
+        request.setResponseCode(200)
+        return json.dumps({'values': [{'agent_id': agent_id,
+                                       'entity_id': entity_id,
+                                       'entity_uri': entity.uri,
+                                       'host_info': agent.get_host_info(maas_store.host_info_types,
+                                                                        request.args['include'],
+                                                                        entity_id,
+                                                                        self._session_store.clock)}],
+                           'metadata': {'count': 1,
+                                        'limit': 100,
+                                        'marker': None,
+                                        'next_marker': None,
+                                        'next_href': None}})
 
     @app.route('/v1.0/<string:tenant_id>/agent_installers', methods=['POST'])
     def agent_installer(self, request, tenant_id):
         """
         URL of agent install script
         """
-        xsil = "https://monitoring.api.rackspacecloud.com/"
-        xsil += "v1.0/00000/agent_installers/c69b2ceafc0444506fb32255af3d9be3.sh"
-        request.setResponseCode(201)
-        request.setHeader('x-shell-installer-location', xsil)
-        return ''
+        xsil = (b'https://monitoring.api.rackspacecloud.com'
+                b'/v1.0/00000/agent_installers/c69b2ceafc0444506fb32255af3d9be3.sh')
+        status = 201
+        request.setResponseCode(status)
+        request.setHeader(b'x-shell-installer-location', xsil)
+        self._audit('agent_installers', request, tenant_id, status, request.content.read())
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/notifications', methods=['POST'])
     def create_notification(self, request, tenant_id):
         """
         Create notification target
         """
-        myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        new_n = create_notification(json.loads(request.content.read()))
+        content = request.content.read()
+        new_n = create_notification(self._session_store.clock, json.loads(content))
         self._entity_cache_for_tenant(tenant_id).notifications_list.append(new_n)
-        request.setResponseCode(201)
-        request.setHeader('content-type', 'text/plain')
-        request.setHeader('location', myhostname_and_port + request.path + '/' + new_n['id'])
-        request.setHeader('x-object-id', new_n['id'])
-        return ''
+        status = 201
+        request.setResponseCode(status)
+        request.setHeader(b'content-type', b'text/plain')
+        request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
+                          request.path + b'/' + new_n.id.encode('utf-8'))
+        request.setHeader(b'x-object-id', new_n.id.encode('utf-8'))
+        self._audit('notifications', request, tenant_id, status, content)
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/notifications', methods=['GET'])
     def get_notifications(self, request, tenant_id):
         """
         Get notification targets
         """
-        nlist = self._entity_cache_for_tenant(tenant_id).notifications_list
-        metadata = {'count': len(nlist), 'limit': 100, 'marker': None, 'next_marker': None,
+        nt_list = self._entity_cache_for_tenant(tenant_id).notifications_list
+        metadata = {'count': len(nt_list),
+                    'limit': 100,
+                    'marker': None,
+                    'next_marker': None,
                     'next_href': None}
         request.setResponseCode(200)
-        return json.dumps({'values': nlist, 'metadata': metadata})
+        return json.dumps({'values': [nt.to_json() for nt in nt_list], 'metadata': metadata})
 
-    @app.route('/v1.0/<string:tenant_id>/notifications/<string:n_id>', methods=['PUT'])
-    def update_notifications(self, request, tenant_id, n_id):
+    @app.route('/v1.0/<string:tenant_id>/notifications/<string:nt_id>', methods=['PUT'])
+    def update_notifications(self, request, tenant_id, nt_id):
         """
         Updates notification targets
         """
-        postdata = json.loads(request.content.read())
-        nlist = self._entity_cache_for_tenant(tenant_id).notifications_list
-        for n in nlist:
-            if n['id'] == postdata['id']:
-                for k in postdata.keys():
-                    n[k] = postdata[k]
-                n['updated_at'] = time.time()
+        content = request.content.read()
+        postdata = json.loads(content)
+        update_kwargs = dict(postdata)
+        update_kwargs['clock'] = self._session_store.clock
+        nt_list = self._entity_cache_for_tenant(tenant_id).notifications_list
+        for nt in nt_list:
+            if nt.id == nt_id:
+                nt.update(**update_kwargs)
                 break
-        request.setResponseCode(204)
-        request.setHeader('content-type', 'text/plain')
-        return ''
 
-    @app.route('/v1.0/<string:tenant_id>/notifications/<string:n_id>', methods=['DELETE'])
-    def delete_notification(self, request, tenant_id, n_id):
+        status = 204
+        request.setResponseCode(status)
+        request.setHeader(b'content-type', b'text/plain')
+        self._audit('notifications', request, tenant_id, status, content)
+        return b''
+
+    @app.route('/v1.0/<string:tenant_id>/notifications/<string:nt_id>', methods=['DELETE'])
+    def delete_notification(self, request, tenant_id, nt_id):
         """
         Delete a notification
         """
-        nlist = self._entity_cache_for_tenant(tenant_id).notifications_list
-        for n in nlist:
-            if n['id'] == n_id:
-                del nlist[nlist.index(n)]
-                break
-        request.setResponseCode(204)
-        request.setHeader('content-type', 'text/plain')
-        return ''
+        notifications = self._entity_cache_for_tenant(tenant_id).notifications_list
+
+        try:
+            notifications.remove(Matcher(lambda nt: nt.id == nt_id))
+        except ValueError:
+            status = 404
+            request.setResponseCode(status)
+            self._audit('notifications', request, tenant_id, status)
+            return json.dumps({'type': 'notFoundError',
+                               'code': status,
+                               'message': 'Object does not exist',
+                               'details': 'Object "Notification" with key "{0}" does not exist'.format(
+                                   nt_id),
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+
+        status = 204
+        request.setResponseCode(status)
+        self._audit('notifications', request, tenant_id, status)
+        request.setHeader(b'content-type', b'text/plain')
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/notification_plans', methods=['POST'])
     def create_notificationplan(self, request, tenant_id):
         """
         Creates a new notificationPlans
         """
-        postdata = json.loads(request.content.read())
-        myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        newnp = create_notification_plan({'label': postdata['label']})
+        content = request.content.read()
+        postdata = json.loads(content)
+        newnp = create_notification_plan(self._session_store.clock, postdata)
         self._entity_cache_for_tenant(tenant_id).notificationplans_list.append(newnp)
-        request.setResponseCode(201)
-        request.setHeader('content-type', 'text/plain')
-        request.setHeader('location', myhostname_and_port + request.path + '/' + newnp['id'])
-        request.setHeader('x-object-id', newnp['id'])
-        return ''
+        status = 201
+        request.setResponseCode(status)
+        request.setHeader(b'content-type', b'text/plain')
+        request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
+                          request.path + b'/' + newnp.id.encode('utf-8'))
+        request.setHeader(b'x-object-id', newnp.id.encode('utf-8'))
+        self._audit('notification_plans', request, tenant_id, status, content)
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/notification_plans', methods=['GET'])
     def get_notification_plans(self, request, tenant_id):
         """
         Get all notification plans
         """
-        npist = self._entity_cache_for_tenant(tenant_id).notificationplans_list
-        metadata = {'count': len(npist), 'limit': 100, 'marker': None, 'next_marker': None,
+        np_list = self._entity_cache_for_tenant(tenant_id).notificationplans_list
+        metadata = {'count': len(np_list),
+                    'limit': 100,
+                    'marker': None,
+                    'next_marker': None,
                     'next_href': None}
         request.setResponseCode(200)
-        return json.dumps({'values': npist, 'metadata': metadata})
+        return json.dumps({'values': [np.to_json() for np in np_list], 'metadata': metadata})
 
     @app.route('/v1.0/<string:tenant_id>/notification_plans/<string:np_id>', methods=['GET'])
     def get_notification_plan(self, request, tenant_id, np_id):
         """
         Get specific notif plan
         """
-        mynp = None
-        nplist = self._entity_cache_for_tenant(tenant_id).notificationplans_list
-        for np in nplist:
-            if np['id'] == np_id:
-                mynp = np
-                break
-        request.setResponseCode(200)
-        return json.dumps(mynp)
+        return _object_getter(self._entity_cache_for_tenant(tenant_id).notificationplans_list,
+                              lambda np: np.id == np_id,
+                              request,
+                              "Notification Plan",
+                              np_id)
 
     @app.route('/v1.0/<string:tenant_id>/notification_plans/<string:np_id>', methods=['PUT'])
     def update_notification_plan(self, request, tenant_id, np_id):
         """
         Alter a notification plan
         """
-        postdata = json.loads(request.content.read())
-        nplist = self._entity_cache_for_tenant(tenant_id).notificationplans_list
-        for np in nplist:
-            if np['id'] == postdata['id']:
-                for k in postdata.keys():
-                    np[k] = postdata[k]
-                np['updated_at'] = time.time()
+        content = request.content.read()
+        postdata = json.loads(content)
+        update_kwargs = dict(postdata)
+        update_kwargs['clock'] = self._session_store.clock
+        np_list = self._entity_cache_for_tenant(tenant_id).notificationplans_list
+        for np in np_list:
+            if np.id == np_id:
+                np.update(**update_kwargs)
                 break
-        request.setResponseCode(204)
-        request.setHeader('content-type', 'text/plain')
-        return ''
+        status = 204
+        request.setResponseCode(status)
+        request.setHeader(b'content-type', b'text/plain')
+        self._audit('notification_plans', request, tenant_id, status, content)
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/notification_plans/<string:np_id>', methods=['DELETE'])
     def delete_notification_plan(self, request, tenant_id, np_id):
         """
         Remove a notification plan
         """
-        allalarms = self._entity_cache_for_tenant(tenant_id).alarms_list
+        all_alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
         nplist = self._entity_cache_for_tenant(tenant_id).notificationplans_list
-        alarmids_using_np = []
-        for alarm in allalarms:
-            if alarm['notification_plan_id'] == np_id:
-                alarmids_using_np.append(alarm['id'])
+        alarmids_using_np = [alarm.id for alarm in all_alarms
+                             if alarm.notification_plan_id == np_id]
 
         if len(alarmids_using_np):
-            request.setResponseCode(403)
-            errobj = {}
-            errobj['type'] = 'forbiddenError'
-            errobj['code'] = 403
-            errobj['txnId'] = '.rh-D0j7.h-dfw1-maas-prod-api0.r-doc8iigF.c-5540173.ts-' + \
-                str(time.time()) + '.v-bfe87f0'
-            errobj['message'] = 'Notification plans cannot be removed while alarms are using it:'
-            for a_id in alarmids_using_np:
-                errobj['message'] += ' ' + a_id
-            errobj['details'] = errobj['message']
-            return json.dumps(errobj)
+            status = 403
+            request.setResponseCode(status)
+            err_message = ('Notification plans cannot be removed while alarms ' +
+                           'are using it: {0}'.format(' '.join(alarmids_using_np)))
+            self._audit('notification_plans', request, tenant_id, status)
+            return json.dumps({'type': 'forbiddenError',
+                               'code': status,
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
+                               'message': err_message,
+                               'details': err_message})
 
-        for np in nplist:
-            if np['id'] == np_id:
-                del nplist[nplist.index(np)]
-                break
-        request.setResponseCode(204)
-        request.setHeader('content-type', 'text/plain')
-        return ''
+        try:
+            nplist.remove(Matcher(lambda np: np.id == np_id))
+        except ValueError:
+            status = 404
+            request.setResponseCode(status)
+            self._audit('notification_plans', request, tenant_id, status)
+            return json.dumps({'type': 'notFoundError',
+                               'code': status,
+                               'message': 'Object does not exist',
+                               'details': ('Object "NotificationPlan" with key "{0}" '.format(np_id) +
+                                           'does not exist'),
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+
+        status = 204
+        request.setResponseCode(status)
+        self._audit('notification_plans', request, tenant_id, status)
+        request.setHeader(b'content-type', b'text/plain')
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/suppressions', methods=['GET'])
     def get_suppressions(self, request, tenant_id):
         """
         Get the list of suppressions for this tenant.
         """
-        splist = self._entity_cache_for_tenant(tenant_id).suppressions_list
+        sp_list = self._entity_cache_for_tenant(tenant_id).suppressions_list
         metadata = {
-            'count': len(splist),
+            'count': len(sp_list),
             'limit': 100,
             'marker': None,
             'next_marker': None,
             'next_href': None
         }
         request.setResponseCode(200)
-        return json.dumps({'values': splist, 'metadata': metadata})
+        return json.dumps({'values': [sp.to_json() for sp in sp_list], 'metadata': metadata})
 
     @app.route('/v1.0/<string:tenant_id>/suppressions/<string:sp_id>', methods=['GET'])
     def get_suppression(self, request, tenant_id, sp_id):
         """
         Get a suppression by ID.
         """
-        mysp = None
-        splist = self._entity_cache_for_tenant(tenant_id).suppressions_list
-        for sp in splist:
-            if sp['id'] == sp_id:
-                mysp = sp
-                break
-        request.setResponseCode(200)
-        return json.dumps(mysp)
+        return _object_getter(self._entity_cache_for_tenant(tenant_id).suppressions_list,
+                              lambda sp: sp.id == sp_id,
+                              request,
+                              "Suppression",
+                              sp_id)
 
     @app.route('/v1.0/<string:tenant_id>/suppressions', methods=['POST'])
     def create_suppression(self, request, tenant_id):
         """
         Create a new suppression.
         """
-        postdata = json.loads(request.content.read())
-        myhostname_and_port = 'http://' + request.getRequestHostname() + ':' + self.endpoint_port
-        newsp = create_suppression(postdata)
+        content = request.content.read()
+        postdata = json.loads(content)
+        newsp = create_suppression(self._session_store.clock, postdata)
         self._entity_cache_for_tenant(tenant_id).suppressions_list.append(newsp)
-        request.setResponseCode(201)
-        request.setHeader('location', myhostname_and_port + request.path + '/' + newsp['id'])
-        request.setHeader('x-object-id', newsp['id'])
-        request.setHeader('content-type', 'text/plain')
-        return ''
+        status = 201
+        request.setResponseCode(status)
+        request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
+                          request.path + b'/' + newsp.id.encode('utf-8'))
+        request.setHeader(b'x-object-id', newsp.id.encode('utf-8'))
+        request.setHeader(b'content-type', b'text/plain')
+        self._audit('suppressions', request, tenant_id, status, content)
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/suppressions/<string:sp_id>', methods=['PUT'])
     def update_suppression(self, request, tenant_id, sp_id):
         """
         Update a suppression.
         """
-        postdata = json.loads(request.content.read())
-        splist = self._entity_cache_for_tenant(tenant_id).suppressions_list
-        for sp in splist:
-            if sp['id'] == sp_id:
-                for k in postdata.keys():
-                    sp[k] = postdata[k]
-                sp['updated_at'] = time.time()
+        content = request.content.read()
+        postdata = json.loads(content)
+        update_kwargs = dict(postdata)
+        update_kwargs['clock'] = self._session_store.clock
+        sp_list = self._entity_cache_for_tenant(tenant_id).suppressions_list
+        for sp in sp_list:
+            if sp.id == sp_id:
+                sp.update(**update_kwargs)
                 break
-        request.setResponseCode(204)
-        request.setHeader('content-type', 'text/plain')
-        return ''
+        status = 204
+        request.setResponseCode(status)
+        request.setHeader(b'content-type', b'text/plain')
+        self._audit('suppressions', request, tenant_id, status, content)
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/suppressions/<string:sp_id>', methods=['DELETE'])
     def delete_suppression(self, request, tenant_id, sp_id):
         """
         Delete a suppression.
         """
-        splist = self._entity_cache_for_tenant(tenant_id).suppressions_list
-        for sp in splist:
-            if sp['id'] == sp_id:
-                del splist[splist.index(sp)]
-                break
-        request.setResponseCode(204)
-        request.setHeader('content-type', 'text/plain')
-        return ''
+        suppressions = self._entity_cache_for_tenant(tenant_id).suppressions_list
+
+        try:
+            suppressions.remove(Matcher(lambda sp: sp.id == sp_id))
+        except ValueError:
+            status = 404
+            request.setResponseCode(status)
+            self._audit('suppressions', request, tenant_id, status)
+            return json.dumps({'type': 'notFoundError',
+                               'code': status,
+                               'message': 'Object does not exist',
+                               'details': 'Object "Suppression" with key "{0}" does not exist'.format(
+                                   sp_id),
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+
+        status = 204
+        request.setResponseCode(status)
+        self._audit('suppressions', request, tenant_id, status)
+        request.setHeader(b'content-type', b'text/plain')
+        return b''
 
     @app.route('/v1.0/<string:tenant_id>/monitoring_zones', methods=['GET'])
     def list_monitoring_zones(self, request, tenant_id):
@@ -1056,24 +1333,19 @@ class MaasMock(object):
         """
         All NotificationPlans a number of alarms pointing to them.
         """
-        allalarms = self._entity_cache_for_tenant(tenant_id).alarms_list
-        allnps = self._entity_cache_for_tenant(tenant_id).notificationplans_list
-        values = []
-        metadata = {}
-        metadata['limit'] = 100
-        metadata['marker'] = None
-        metadata['next_marker'] = None
-        metadata['next_href'] = None
-        for np in allnps:
-            alarm_count = 0
-            v = {}
-            v['notification_plan_id'] = np['id']
-            for alarm in allalarms:
-                if alarm['notification_plan_id'] == np['id']:
-                    alarm_count = alarm_count + 1
-            v['alarm_count'] = alarm_count
-            values.append(v)
-        metadata['count'] = len(values)
+        all_alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
+        all_nps = self._entity_cache_for_tenant(tenant_id).notificationplans_list
+
+        values = [{'notification_plan_id': np.id,
+                   'alarm_count': len([alarm for alarm in all_alarms
+                                       if alarm.notification_plan_id == np.id])}
+                  for np in all_nps]
+
+        metadata = {'limit': 100,
+                    'marker': None,
+                    'next_marker': None,
+                    'next_href': None,
+                    'count': len(values)}
         request.setResponseCode(200)
         return json.dumps({'values': values, 'metadata': metadata})
 
@@ -1082,17 +1354,14 @@ class MaasMock(object):
         """
         List of alarms pointing to a particular NotificationPlan
         """
-        allalarms = self._entity_cache_for_tenant(tenant_id).alarms_list
-        values = []
-        metadata = {}
-        metadata['limit'] = 100
-        metadata['marker'] = None
-        metadata['next_marker'] = None
-        metadata['next_href'] = None
-        for alarm in allalarms:
-            if alarm['notification_plan_id'] == np_id:
-                values.append(alarm)
-        metadata['count'] = len(values)
+        all_alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
+        values = [alarm.to_json() for alarm in all_alarms
+                  if alarm.notification_plan_id == np_id]
+        metadata = {'limit': 100,
+                    'marker': None,
+                    'next_marker': None,
+                    'next_href': None,
+                    'count': len(values)}
         request.setResponseCode(200)
         return json.dumps({'values': values, 'metadata': metadata})
 
@@ -1102,7 +1371,10 @@ class MaasMock(object):
         Get the types of notifications supported: pageduty,email,sms, etc
         """
         ntlist = self._entity_cache_for_tenant(tenant_id).notificationtypes_list
-        metadata = {'count': len(ntlist), 'limit': 100, 'marker': None, 'next_marker': None,
+        metadata = {'count': len(ntlist),
+                    'limit': 100,
+                    'marker': None,
+                    'next_marker': None,
                     'next_href': None}
         request.setResponseCode(200)
         return json.dumps({'values': ntlist, 'metadata': metadata})
@@ -1112,17 +1384,18 @@ class MaasMock(object):
         """
         All available metrics.
         """
-        allchecks = self._entity_cache_for_tenant(tenant_id).checks_list
-        values = []
         entities = self._entity_cache_for_tenant(tenant_id).entities_list
-        for e in entities:
-            values.append(create_metric_list_from_entity(e, allchecks))
-        metadata = {}
-        metadata['count'] = len(values)
-        metadata['marker'] = None
-        metadata['next_marker'] = None
-        metadata['limit'] = 1000
-        metadata['next_href'] = None
+        all_checks = self._entity_cache_for_tenant(tenant_id).checks_list
+        maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
+        values = [_metric_list_for_entity(maas_store, entity, all_checks)
+                  for entity in entities]
+
+        metadata = {'count': len(values),
+                    'marker': None,
+                    'next_marker': None,
+                    'limit': 1000,
+                    'next_href': None}
+
         request.setResponseCode(200)
         return json.dumps({'metadata': metadata, 'values': values})
 
@@ -1132,12 +1405,347 @@ class MaasMock(object):
         datapoints for all metrics requested
         Right now, only checks of type remote.ping work
         """
-        allchecks = self._entity_cache_for_tenant(tenant_id).checks_list
-        metrics_requested = json.loads(request.content.read())
-        metrics_replydata = []
-        for m in metrics_requested['metrics']:
-            mp = create_multiplot_from_metric(m, request.args, allchecks)
-            if mp:
-                metrics_replydata.append(mp)
+        checks = self._entity_cache_for_tenant(tenant_id).checks_list
+        maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
+        content = request.content.read()
+        multiplot_request = json.loads(content)
+
+        requested_check_ids = set([metric['check_id'] for metric in multiplot_request['metrics']])
+        checks_by_id = dict([(check.id, check)
+                             for check in checks
+                             if check.id in requested_check_ids])
+
+        for requested_metric in multiplot_request['metrics']:
+            if requested_metric['check_id'] not in checks_by_id:
+                status = 400
+                request.setResponseCode(status)
+                self._audit('rollups', request, tenant_id, status, content)
+                return json.dumps({
+                    'type': 'requiredNotFoundError',
+                    'code': status,
+                    'message': 'Required object does not exist',
+                    'details': 'Object "Check" with key "{0},{1}" does not exist'.format(
+                        requested_metric['entity_id'], requested_metric['check_id']),
+                    'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+
+        multiplot_metrics = [_compute_multiplot(maas_store,
+                                                metric['entity_id'],
+                                                checks_by_id[metric['check_id']],
+                                                metric['metric'],
+                                                int(request.args['from'][0]),
+                                                int(request.args['to'][0]),
+                                                int(request.args['points'][0]))
+                             for metric in multiplot_request['metrics']]
+        status = 200
         request.setResponseCode(200)
-        return json.dumps({'metrics': metrics_replydata})
+        self._audit('rollups', request, tenant_id, status, content)
+        return json.dumps({'metrics': multiplot_metrics})
+
+    @app.route('/v1.0/<string:tenant_id>/views/latest_alarm_states', methods=['GET'])
+    def latest_alarm_states(self, request, tenant_id):
+        """
+        Gets entities grouped with their latest alarm states.
+        """
+        entities = self._entity_cache_for_tenant(tenant_id).entities_list
+        maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
+
+        values = [{'entity_id': entity.id,
+                   'entity_uri': entity.uri,
+                   'entity_label': entity.label,
+                   'latest_alarm_states': [
+                       state.detail_json()
+                       for state in maas_store.latest_alarm_states_for_entity(entity.id)]}
+                  for entity in entities]
+
+        metadata = {'count': len(values),
+                    'marker': None,
+                    'next_marker': None,
+                    'limit': 1000,
+                    'next_href': None}
+
+        request.setResponseCode(200)
+        return json.dumps({'values': values, 'metadata': metadata})
+
+
+@implementer(IAPIMock, IPlugin)
+@attributes(["maas_api"])
+class MaasControlApi(object):
+    """
+    This class registers the MaaS controller API in the service catalog.
+    """
+    def catalog_entries(self, tenant_id):
+        """
+        List catalog entries for the MaaS API.
+        """
+        return [
+            Entry(
+                tenant_id, "rax:monitor", "cloudMonitoringControl",
+                [
+                    Endpoint(tenant_id, region, text_type(uuid4()),
+                             "v1.0")
+                    for region in self.maas_api._regions
+                ]
+            )
+        ]
+
+    def resource_for_region(self, region, uri_prefix, session_store):
+        """
+        Get an :obj:`twisted.web.iweb.IResource` for the given URI prefix;
+        implement :obj:`IAPIMock`.
+        """
+        maas_controller = MaasController(api_mock=self,
+                                         session_store=session_store,
+                                         region=region)
+        return maas_controller.app.resource()
+
+
+@attributes(["api_mock", "session_store", "region"])
+class MaasController(object):
+    """
+    Klein routes for MaaS control API.
+    """
+
+    def _entity_cache_for_tenant(self, tenant_id):
+        """
+        Retrieve the M_cache object containing all objects created so far
+        """
+        clock = self.session_store.clock
+        return (self.session_store.session_for_tenant_id(tenant_id)
+                .data_for_api(self.api_mock.maas_api, _mcache_factory(clock))[self.region])
+
+    app = MimicApp()
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/test_response',
+               methods=['PUT'])
+    def set_test_alarm_response(self, request, tenant_id, entity_id):
+        """
+        Sets the test-alarm response for a given entity.
+        """
+        test_responses = self._entity_cache_for_tenant(tenant_id).test_alarm_responses
+        dummy_response = json.loads(request.content.read())
+        test_responses[entity_id] = []
+        for response_block in dummy_response:
+            ith_response = {'state': response_block['state']}
+            if 'status' in response_block:
+                ith_response['status'] = response_block['status']
+            test_responses[entity_id].append(ith_response)
+        request.setResponseCode(204)
+        return b''
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/test_errors',
+               methods=['POST'])
+    def push_test_alarm_error(self, request, tenant_id, entity_id):
+        """
+        Creates a new error response that will be returned from the
+        test-alarm API the next time it is called for this entity.
+        """
+        test_alarm_errors = self._entity_cache_for_tenant(tenant_id).test_alarm_errors
+        request_body = json.loads(request.content.read())
+
+        if entity_id not in test_alarm_errors:
+            test_alarm_errors[entity_id] = collections.deque()
+
+        error_obj = {'id': 'er' + random_hex_generator(4),
+                     'code': request_body['code'],
+                     'response': request_body['response']}
+        test_alarm_errors[entity_id].append(error_obj)
+        request.setResponseCode(201)
+        request.setHeader(b'x-object-id', error_obj['id'].encode('utf-8'))
+        return b''
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/test_response',
+               methods=['DELETE'])
+    def clear_test_alarm_response(self, request, tenant_id, entity_id):
+        """
+        Clears the test-alarm response and restores normal behavior.
+        """
+        test_responses = self._entity_cache_for_tenant(tenant_id).test_alarm_responses
+        del test_responses[entity_id]
+        request.setResponseCode(204)
+        return b''
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks' +
+               '/test_responses/<string:check_type>', methods=['PUT'])
+    def set_test_check_overrides(self, request, tenant_id, entity_id, check_type):
+        """
+        Sets overriding behavior on the test-check handler for a given
+        entity ID and check type.
+        """
+        maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
+        check_type_ins = maas_store.check_types[check_type]
+        overrides = json.loads(request.content.read())
+        check_id = '__test_check'
+        ench_key = (entity_id, check_id)
+
+        for override in overrides:
+            if 'available' in override:
+                check_type_ins.test_check_available[ench_key] = override['available']
+            if 'status' in override:
+                check_type_ins.test_check_status[ench_key] = override['status']
+            metrics_dict = override.get('metrics', {})
+            for metric_name in metrics_dict:
+                test_check_metric = check_type_ins.get_metric_by_name(metric_name)
+                kwargs = {'entity_id': entity_id,
+                          'check_id': check_id,
+                          'override_fn': lambda _: metrics_dict[metric_name]['data']}
+                if 'monitoring_zone_id' in override:
+                    kwargs['monitoring_zone'] = override['monitoring_zone_id']
+                test_check_metric.set_override(**kwargs)
+
+        request.setResponseCode(204)
+        return b''
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks' +
+               '/test_responses/<string:check_type>', methods=['DELETE'])
+    def clear_test_check_overrides(self, request, tenant_id, entity_id, check_type):
+        """
+        Clears overriding behavior on a test-check handler.
+        """
+        maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
+        check_type_ins = maas_store.check_types[check_type]
+        check_type_ins.clear_overrides()
+        request.setResponseCode(204)
+        return b''
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms' +
+               '/<string:alarm_id>/states', methods=['POST'])
+    def create_alarm_state(self, request, tenant_id, entity_id, alarm_id):
+        """
+        Adds a new alarm state to the collection of alarm states.
+        """
+        maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
+        request_body = json.loads(request.content.read())
+
+        check_id = None
+        alarm_label = None
+        for al in self._entity_cache_for_tenant(tenant_id).alarms_list:
+            if al.entity_id == entity_id and al.id == alarm_id:
+                alarm_label = al.label
+                check_id = al.check_id
+                break
+        else:
+            request.setResponseCode(404)
+            return json.dumps({'type': 'notFoundError',
+                               'code': 404,
+                               'message': 'Object does not exist',
+                               'details': 'Object "Alarm" with key "{0}:{1}" does not exist'.format(
+                                   entity_id, alarm_id)
+                               })
+
+        previous_state = u'UNKNOWN'
+        alarm_states_same_entity_and_alarm = [
+            state for state in maas_store.alarm_states
+            if state.entity_id == entity_id and state.alarm_id == alarm_id]
+        if len(alarm_states_same_entity_and_alarm) > 0:
+            previous_state = alarm_states_same_entity_and_alarm[-1].state
+
+        monitoring_zone_id = request_body.get('analyzed_by_monitoring_zone_id', u'mzord')
+
+        new_state = None
+        try:
+            new_state = AlarmState(alarm_id=alarm_id,
+                                   entity_id=entity_id,
+                                   check_id=check_id,
+                                   alarm_label=alarm_label,
+                                   analyzed_by_monitoring_zone_id=monitoring_zone_id,
+                                   previous_state=previous_state,
+                                   state=request_body['state'],
+                                   status=request_body['status'],
+                                   timestamp=int(1000 * self.session_store.clock.seconds()))
+        except KeyError as e:
+            missing_key = e.message
+            status = 400
+            request.setResponseCode(status)
+            return json.dumps({'type': 'badRequest',
+                               'code': status,
+                               'message': 'Validation error for key \'{0}\''.format(missing_key),
+                               'details': 'Missing required key ({0})'.format(missing_key),
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+
+        maas_store.alarm_states.append(new_state)
+        request.setResponseCode(201)
+        request.setHeader(b'x-object-id', new_state.id.encode('utf-8'))
+        request.setHeader(b'content-type', b'text/plain')
+        return b''
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks' +
+               '/<string:check_id>/metrics/<string:metric_name>', methods=['PUT'])
+    def set_metric_override(self, request, tenant_id, entity_id, check_id, metric_name):
+        """
+        Sets overrides on a metric.
+        """
+        checks = self._entity_cache_for_tenant(tenant_id).checks_list
+        check = None
+
+        for c in checks:
+            if c.id == check_id and c.entity_id == entity_id:
+                check = c
+                break
+        else:
+            request.setResponseCode(404)
+            return json.dumps({'type': 'notFoundError',
+                               'code': 404,
+                               'message': 'Object does not exist',
+                               'details': 'Object "Check" with key "{0}:{1}" does not exist'.format(
+                                   entity_id, check_id)})
+
+        maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
+        metric = maas_store.check_types[check.type].get_metric_by_name(metric_name)
+        request_body = json.loads(request.content.read())
+        monitoring_zones = request_body.get('monitoring_zones', ['__AGENT__'])
+        override_type = request_body['type']
+        override_options = request_body.get('options', {})
+        override_fn = None
+
+        if override_type == 'squarewave':
+            fn_period = int(override_options.get('period', 10 * 60 * 1000))
+            half_period = fn_period / 2
+            fn_min = override_options.get('min', 20)
+            fn_max = override_options.get('max', 80)
+            fn_offset = int(override_options.get('offset', 0))
+            override_fn = (lambda t: (fn_min
+                                      if ((t + fn_offset) % fn_period) < half_period
+                                      else fn_max))
+        else:
+            request.setResponseCode(400)
+            return json.dumps({'type': 'badRequest',
+                               'code': 400,
+                               'message': 'Validation error for key \'type\'',
+                               'details': 'Unknown value for "type": "{0}"'.format(override_type)})
+
+        for monitoring_zone in monitoring_zones:
+            metric.set_override(
+                entity_id=entity_id,
+                check_id=check_id,
+                monitoring_zone=monitoring_zone,
+                override_fn=override_fn)
+        request.setResponseCode(204)
+        return b''
+
+    @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/agents', methods=['POST'])
+    def create_agent(self, request, tenant_id, entity_id):
+        """
+        Creates or overwrites an agent on the entity.
+        """
+        entities = self._entity_cache_for_tenant(tenant_id).entities_list
+        maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
+        entity = None
+
+        try:
+            entity = entities[entities.index(Matcher(lambda en: en.id == entity_id))]
+        except ValueError:
+            request.setResponseCode(404)
+            return json.dumps({'type': 'notFoundError',
+                               'code': 404,
+                               'message': 'Object does not exist',
+                               'details': ('Object "Entity" with key "{0}" '.format(entity_id) +
+                                           'does not exist'),
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+
+        agent = Agent()
+        maas_store.agents.append(agent)
+        entity.agent_id = agent.id
+        request.setResponseCode(201)
+        request.setHeader(b'x-object-id', agent.id.encode('utf-8'))
+        request.setHeader(b'content-type', b'text/plain')
+        return b''

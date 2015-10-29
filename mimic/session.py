@@ -4,6 +4,8 @@
 Implementation of simple in-memory session storage and generation for Mimic.
 """
 
+from __future__ import absolute_import, division, unicode_literals
+
 from six import text_type
 from uuid import uuid4
 from datetime import datetime, timedelta

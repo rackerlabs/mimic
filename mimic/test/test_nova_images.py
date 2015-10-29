@@ -2,6 +2,8 @@
 Tests for :mod:`nova_api` and :mod:`nova_objects` for images.
 """
 
+from __future__ import absolute_import, division, unicode_literals
+
 from twisted.trial.unittest import SynchronousTestCase
 
 from mimic.test.helpers import json_request, request
@@ -32,7 +34,7 @@ class NovaAPIVirtualImageTests(SynchronousTestCase):
         Get images, assert response code is 200 and return response body.
         """
         (response, content) = self.successResultOf(json_request(
-            self, self.root, "GET", self.uri + postfix))
+            self, self.root, b"GET", self.uri + postfix))
         self.assertEqual(200, response.code)
         return content
 
@@ -41,7 +43,7 @@ class NovaAPIVirtualImageTests(SynchronousTestCase):
         Test to verify :func:`get_image` when invalid image from the
         :obj: `mimic_presets` is provided.
         """
-        get_server_image = request(self, self.root, "GET", self.uri +
+        get_server_image = request(self, self.root, b"GET", self.uri +
                                    '/images/invalid_image_id')
         get_server_image_response = self.successResultOf(get_server_image)
         self.assertEqual(get_server_image_response.code, 404)
@@ -51,7 +53,7 @@ class NovaAPIVirtualImageTests(SynchronousTestCase):
         Test to verify :func:`get_image` when invalid image from the
         :obj: `mimic_presets` is provided.
         """
-        get_server_image = request(self, self.root, "GET", self.uri +
+        get_server_image = request(self, self.root, b"GET", self.uri +
                                    '/images/any-image-ending-with-Z')
         get_server_image_response = self.successResultOf(get_server_image)
         self.assertEqual(get_server_image_response.code, 404)
@@ -61,7 +63,7 @@ class NovaAPIVirtualImageTests(SynchronousTestCase):
         Test to verify :func:`get_image` on ``GET /v2.0/<tenant_id>/images/<image_id>``
         """
         response, body = self.successResultOf(json_request(
-            self, self.root, "GET", self.uri + '/images/id_not_found'))
+            self, self.root, b"GET", self.uri + '/images/id_not_found'))
 
         self.assertEqual(response.code, 404)
         self.assertEqual(body, {
@@ -106,7 +108,7 @@ class NovaAPIVirtualImageTests(SynchronousTestCase):
         for each_image in image_list:
             self.assertEqual(
                 sorted(each_image.keys()),
-                sorted(['id', 'name', 'links', 'minRam', 'status', 'OS-DCF:diskConfig',
+                sorted(['id', 'name', 'links', 'minRam', 'status',
                         'OS-EXT-IMG-SIZE:size', 'metadata', 'progress', 'created', 'updated',
                         'minDisk', 'com.rackspace__1__ui_default_show']))
 
@@ -164,7 +166,7 @@ class NovaAPIOnMetalImageTests(SynchronousTestCase):
         Get images, assert response code is 200 and return response body.
         """
         (response, content) = self.successResultOf(json_request(
-            self, self.root, "GET", self.uri + postfix))
+            self, self.root, b"GET", self.uri + postfix))
         self.assertEqual(200, response.code)
         return content
 
@@ -179,7 +181,7 @@ class NovaAPIOnMetalImageTests(SynchronousTestCase):
                 onmetal_id = image['id']
                 break
         response, body = self.successResultOf(json_request(
-            self, self.root, "GET", self.uri + '/images/' + onmetal_id))
+            self, self.root, b"GET", self.uri + '/images/' + onmetal_id))
         self.assertEqual(200, response.code)
         self.assertEqual(body['image']['id'], onmetal_id)
         self.assertEqual(body['image']['metadata']['flavor_classes'], 'onmetal')
@@ -207,5 +209,4 @@ class NovaAPIOnMetalImageTests(SynchronousTestCase):
                                                                 'status', 'OS-EXT-IMG-SIZE:size',
                                                                 'metadata', 'progress', 'created',
                                                                 'updated', 'minDisk',
-                                                                'com.rackspace__1__ui_default_show',
-                                                                'OS-DCF:diskConfig']))
+                                                                'com.rackspace__1__ui_default_show']))
