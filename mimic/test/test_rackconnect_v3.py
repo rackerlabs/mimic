@@ -121,6 +121,13 @@ class LoadBalancerObjectTests(SynchronousTestCase):
         """
         self.assertIs(self.pool.nodes[5], self.pool.node_by_id("node_5"))
 
+    def test_LBPool_find_no_nodes_by_id(self):
+        """
+        If a node ID is specified that does not exist, ``node_by_id`` returns
+        None.
+        """
+        self.assertIs(None, self.pool.node_by_id("not_a_node"))
+
     def test_LBPool_find_nodes_by_server_id(self):
         """
         A node can be retrieved by its cloud server ID.
