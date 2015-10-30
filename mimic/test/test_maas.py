@@ -373,13 +373,20 @@ class MaasAPITests(SynchronousTestCase):
         """
         update entity
         """
+        # Ensure we're updating the _right_ entity.
+        other_entity_id = self.getXobjectIDfromResponse(
+            self.createEntity('AnotherEntity'))
+
         entity_endpoint = '{0}/entities/{1}'.format(self.uri, self.entity_id)
+        other_entity_endpoint = '{0}/entities/{1}'.format(
+            self.uri, other_entity_id)
         req = request(self, self.root, b"GET", entity_endpoint)
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
         data['label'] = 'Iamamwhoami'
-        req = request(self, self.root, b"PUT", entity_endpoint, json.dumps(data).encode("utf-8"))
+        req = request(self, self.root, b"PUT", entity_endpoint,
+                      json.dumps(data).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 204)
         self.assertEquals(entity_endpoint, one_text_header(resp, b'location'))
@@ -388,6 +395,12 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
         self.assertEquals('Iamamwhoami', data['label'])
+        self.assertEquals(
+            'AnotherEntity',
+            self.get_responsebody(self.successResultOf(
+                request(self, self.root, b"GET", other_entity_endpoint)
+            ))['label']
+        )
 
     def test_partial_update_entity(self):
         """
