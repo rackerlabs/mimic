@@ -374,12 +374,12 @@ class MaasAPITests(SynchronousTestCase):
         update entity
         """
         # Ensure we're updating the _right_ entity.
-        other_entity_id = self.getXobjectIDfromResponse(
+        entity_id = self.getXobjectIDfromResponse(
             self.createEntity('AnotherEntity'))
 
-        entity_endpoint = '{0}/entities/{1}'.format(self.uri, self.entity_id)
+        entity_endpoint = '{0}/entities/{1}'.format(self.uri, entity_id)
         other_entity_endpoint = '{0}/entities/{1}'.format(
-            self.uri, other_entity_id)
+            self.uri, self.entity_id)
         req = request(self, self.root, b"GET", entity_endpoint)
         resp = self.successResultOf(req)
         self.assertEquals(resp.code, 200)
@@ -396,7 +396,7 @@ class MaasAPITests(SynchronousTestCase):
         data = self.get_responsebody(resp)
         self.assertEquals('Iamamwhoami', data['label'])
         self.assertEquals(
-            'AnotherEntity',
+            'ItsAnEntity',
             self.get_responsebody(self.successResultOf(
                 request(self, self.root, b"GET", other_entity_endpoint)
             ))['label']
