@@ -82,18 +82,26 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(location, self.uri + '/entities/' + entity_id)
         return resp
 
-    def createCheck(self, label, entity_id):
+    def createCheck(self, label, entity_id, is_remote=True):
         """
         Util function check
         """
-        postdata = {}
-        postdata['label'] = label
-        postdata['details'] = {}
-        postdata['monitoring_zones_poll'] = ['mzdfw', 'mzord', 'mzlon']
-        postdata['target_alias'] = 'public1_v4'
-        postdata['target_hostname'] = None
-        postdata['target_resolver'] = None
-        postdata['type'] = 'remote.ping'
+        if is_remote:
+            postdata = {
+                'label': label,
+                'details': {},
+                'monitoring_zones_poll': ['mzdfw', 'mzord', 'mzlon'],
+                'target_alias': 'public1_v4',
+                'target_hostname': None,
+                'target_resolver': None,
+                'type': 'remote.ping',
+            }
+        else:
+            postdata = {
+                'label': label,
+                'details': {},
+                'type': 'agent.cpu',
+            }
         checks_endpoint = '{0}/entities/{1}/checks'.format(self.uri, entity_id)
         req = request(self, self.root, b"POST", checks_endpoint,
                       json.dumps(postdata).encode("utf-8"))
@@ -1094,6 +1102,35 @@ class MaasAPITests(SynchronousTestCase):
         data = self.get_responsebody(resp)
         for m in data['values'][0]['checks'][0]['metrics']:
             mq = {'entity_id': self.entity_id, 'check_id': self.check_id, 'metric': m['name']}
+            metrics.append(mq)
+        qstring = '?from=1412902262560&points=500&to=1412988662560'
+        req = request(
+            self, self.root, b"POST",
+            self.uri + '/__experiments/multiplot' + qstring,
+            json.dumps({'metrics': metrics}).encode("utf-8")
+        )
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertEquals(500, len(data['metrics'][0]['data']))
+
+    def test_multiplot_agent_check(self):
+        """
+        get datapoints for graph resulting from an agent check rather than a
+        remote check.
+        """
+        metrics = []
+        agent_check_id = self.getXobjectIDfromResponse(
+            self.createCheck('an-agent-check', self.entity_id, False)
+        )
+        req = request(self, self.root, b"GET", self.uri + '/views/metric_list')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        for m in data['values'][0]['checks'][1]['metrics']:
+            mq = {'entity_id': self.entity_id,
+                  'check_id': agent_check_id,
+                  'metric': m['name']}
             metrics.append(mq)
         qstring = '?from=1412902262560&points=500&to=1412988662560'
         req = request(
