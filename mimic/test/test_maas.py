@@ -230,6 +230,13 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(data['metadata']['count'], 1)
         for q in range(1, 101):
             self.createEntity('Cinnamon' + text_type(q))
+        # Invalid markers list all entities.
+        req = request(self, self.root, b"GET",
+                      self.uri + '/entities?marker=invalid-nonsense')
+        resp = self.successResultOf(req)
+        self.assertEquals(resp.code, 200)
+        data = self.get_responsebody(resp)
+        self.assertEquals(data['metadata']['count'], 100)
         for q in range(1, 101):
             req = request(self, self.root, b"GET", self.uri + '/entities/?limit=' + text_type(q))
             resp = self.successResultOf(req)

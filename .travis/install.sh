@@ -50,7 +50,7 @@ else
     python -m virtualenv ~/.venv
     source ~/.venv/bin/activate
     pip install wheel
-    pip wheel cryptography lxml
+    pip wheel -r requirements.txt
     pip install tox codecov
     tox --recreate --notest
 
