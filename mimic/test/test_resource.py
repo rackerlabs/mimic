@@ -283,4 +283,4 @@ class RequestTests(SynchronousTestCase):
         self.assertNotEqual(None, response_match)
         self.assertEqual(url, response_match.group('url'))
         headers = json.loads(response_match.group('headers'))
-        self.assertEqual(['close'], headers.get('Connection'))
+        self.assertEqual(['application/json'], headers.get('Content-Type'))
