@@ -50,6 +50,7 @@ else
     python -m virtualenv ~/.venv
     source ~/.venv/bin/activate
     pip install tox codecov
+    coverage erase
     tox --recreate --notest
 
     # If "installdeps" fails, "tox" exits with an error, and the "set -e" above
