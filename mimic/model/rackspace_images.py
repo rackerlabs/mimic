@@ -758,7 +758,7 @@ class ImageStore(object):
                          RackspaceOnMetalFedoraImage, RackspaceOnMetalUbuntuImage]
         if len(cls._images_store) < 1:
             for image_class in image_classes:
-                for image, image_spec in image_class.images.iteritems():
+                for image, image_spec in image_class.images.items():
                     image_name = image
                     image_id = image_spec['id']
                     minRam = image_spec['minRam']

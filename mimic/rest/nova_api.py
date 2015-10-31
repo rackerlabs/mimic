@@ -13,8 +13,6 @@ from six import text_type
 
 from zope.interface import implementer
 
-from twisted.python.urlpath import URLPath
-
 from twisted.plugin import IPlugin
 from twisted.web.http import CREATED, BAD_REQUEST
 
@@ -29,6 +27,7 @@ from mimic.model.nova_objects import (
     BadRequestError, GlobalServerCollections, LimitError, Server,
     bad_request, forbidden, not_found, server_creation)
 from mimic.model.flavor_collections import GlobalFlavorCollection
+from mimic.util.helper import json_from_request
 from mimic.model.image_collections import GlobalImageCollection
 
 
@@ -165,7 +164,7 @@ class NovaControlApiRegion(object):
         where "status" goes in this request.
         """
         region_collection = self._collection_from_tenant(tenant_id)
-        attributes_description = json.loads(request.content.read())
+        attributes_description = json_from_request(request)
         statuses_description = attributes_description["status"]
         servers = [region_collection.server_by_id(server_id)
                    for server_id in statuses_description]
@@ -210,7 +209,7 @@ class NovaRegion(object):
         Generate a URL to an object within the Nova URL hierarchy, given the
         part of the URL that comes after.
         """
-        return str(URLPath.fromString(self.uri_prefix).child(suffix))
+        return "/".join([self.uri_prefix.rstrip("/"), suffix])
 
     def _region_collection_for_tenant(self, tenant_id):
         """
@@ -251,7 +250,7 @@ class NovaRegion(object):
         Returns a generic create server response, with status 'ACTIVE'.
         """
         try:
-            content = json.loads(request.content.read())
+            content = json_from_request(request)
         except ValueError:
             return json.dumps(
                 bad_request("Invalid JSON request body", request))
@@ -282,13 +281,18 @@ class NovaRegion(object):
         Returns list of servers that were created by the mocks, with the given
         name.
         """
+        def _optextarg(name):
+            arg = request.args.get(name, [None])[0]
+            if arg is None:
+                return None
+            return arg.decode("utf-8")
         return (
             self._region_collection_for_tenant(tenant_id)
             .request_list(
                 request, include_details=False, absolutize_url=self.url,
-                name=request.args.get('name', [u""])[0],
-                limit=request.args.get('limit', [None])[0],
-                marker=request.args.get('marker', [None])[0]
+                name=_optextarg(b'name') or u'',
+                limit=_optextarg(b'limit'),
+                marker=_optextarg(b'marker'),
             )
         )
 
@@ -298,14 +302,19 @@ class NovaRegion(object):
         Returns list of servers that were created by the mocks, with details
         such as the metadata.
         """
+        def _optextarg(name):
+            arg = request.args.get(name, [None])[0]
+            if arg is None:
+                return None
+            return arg.decode("utf-8")
         return (
             self._region_collection_for_tenant(tenant_id)
             .request_list(
                 request, include_details=True, absolutize_url=self.url,
-                name=request.args.get('name', [u""])[0],
-                limit=request.args.get('limit', [None])[0],
-                marker=request.args.get('marker', [None])[0],
-                changes_since=request.args.get('changes-since', [None])[0]
+                name=_optextarg(b'name') or u'',
+                limit=_optextarg(b'limit'),
+                marker=_optextarg(b'marker'),
+                changes_since=_optextarg(b'changes-since')
             )
         )
 
@@ -435,7 +444,7 @@ class NovaRegion(object):
         http://docs.rackspace.com/servers/api/v2/cs-devguide/content/UploadKeyPair.html
         """
         try:
-            content = json.loads(request.content.read())
+            content = json_from_request(request)
             keypair = content["keypair"]
             keypair_from_request = KeyPair(
                 name=keypair["name"], public_key=keypair["public_key"])
@@ -507,7 +516,7 @@ class ServerMetadata(object):
         2015-04-23 against Rackspace Nova.
         """
         try:
-            content = json.loads(request.content.read())
+            content = json_from_request(request)
         except ValueError:
             return json.dumps(bad_request("Malformed request body", request))
 
@@ -547,7 +556,7 @@ class ServerMetadata(object):
         2015-04-23 against Rackspace Nova.
         """
         try:
-            content = json.loads(request.content.read())
+            content = json_from_request(request)
         except ValueError:
             request.setResponseCode(400)
             return json.dumps(bad_request("Malformed request body", request))

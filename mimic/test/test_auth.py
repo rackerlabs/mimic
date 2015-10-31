@@ -282,8 +282,9 @@ def authenticate_with_username_password(test_case, root,
         creds["auth"]["tenantId"] = tenant_id
     if tenant_name is not None:
         creds["auth"]["tenantName"] = tenant_name
-    return test_case.successResultOf(request_func(test_case, root, b"POST",
-                                                  uri, json.dumps(creds)))
+    return test_case.successResultOf(request_func(
+        test_case, root, b"POST", uri, json.dumps(creds).encode("utf-8"))
+    )
 
 
 def authenticate_with_api_key(test_case, root, uri='/identity/v2.0/tokens',
@@ -336,7 +337,8 @@ def impersonate_user(test_case, root,
     using token and tenant ids.
     """
     headers = {
-        b'X-Auth-Token': [str(impersonator_token)]} if impersonator_token else None
+        b'X-Auth-Token': [impersonator_token.encode("utf-8")]
+    } if impersonator_token else None
     return test_case.successResultOf(json_request(
         test_case, root, b"POST", uri,
         {"RAX-AUTH:impersonation": {"expire-in-seconds": 30,
@@ -1288,7 +1290,7 @@ class IdentityBehaviorInjectionTests(SynchronousTestCase):
         response, body = authenticate_with_username_password(
             self, root, username="failme", request_func=request_with_content)
         self.assertEqual(response.code, 500)
-        self.assertEqual(body, "Failure of JSON")
+        self.assertEqual(body, b"Failure of JSON")
 
 
 class IdentityNondedicatedFixtureTests(SynchronousTestCase):

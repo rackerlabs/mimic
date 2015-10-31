@@ -17,6 +17,7 @@ from mimic.catalog import Endpoint
 from mimic.imimic import IAPIMock
 from mimic.model.heat_objects import GlobalStackCollections
 from mimic.rest.mimicapp import MimicApp
+from mimic.util.helper import json_from_request
 
 
 @implementer(IAPIMock, IPlugin)
@@ -95,7 +96,8 @@ class HeatRegion(object):
         Generate a URL to an object within the Heat URL hierarchy, given the
         part of the URL that comes after.
         """
-        return str(URLPath.fromString(self.uri_prefix).child(suffix))
+        return str(URLPath.fromString(self.uri_prefix)
+                   .child(suffix.encode("utf-8")))
 
     app = MimicApp()
 
@@ -106,8 +108,7 @@ class HeatRegion(object):
         See http://api.rackspace.com/api-ref-orchestration.html#stack_create
         """
         region_collection = self._region_collection_for_tenant(tenant_id)
-        body = request.content.read()
-        content = json.loads(body)
+        content = json_from_request(request)
         return region_collection.request_creation(request, content,
                                                   absolutize_url=self.url)
 
@@ -121,15 +122,16 @@ class HeatRegion(object):
             """
             Extracts boolean flag for showing deleted stacks from query string.
             """
-            show_deleted = request.args.get('show_deleted', ["False"])[0]
-            return show_deleted.lower() == 'true'
+            show_deleted = request.args.get(b'show_deleted', [b"False"])[0]
+            return show_deleted.lower() == b'true'
 
         def extract_tags():
             """
             Extracts tags from request's query string.
             """
-            tags = request.args.get('tags', [None])[0]
-            return tags.split(',') if tags else []
+            tags = request.args.get(b'tags', [None])[0]
+            return [tag.decode("utf-8")
+                    for tag in (tags.split(b',') if tags else [])]
 
         return self._region_collection_for_tenant(tenant_id).request_list(
             show_deleted=extract_show_deleted(),
@@ -153,8 +155,7 @@ class HeatRegion(object):
         Validates a template.
         See http://api.rackspace.com/api-ref-orchestration.html#template_validate
         """
-        body = request.content.read()
-        content = json.loads(body)
+        content = json_from_request(request)
 
         if 'template' in content or 'template_url' in content:
             request.setResponseCode(200)

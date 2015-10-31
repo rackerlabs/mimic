@@ -27,6 +27,13 @@ fmt = '%Y-%m-%dT%H:%M:%S.%fZ'
 EMPTY_RESPONSE = object()
 
 
+def json_from_request(request):
+    """
+    Load JSON input from the given Twisted Web Request object.
+    """
+    return json.loads(request.content.read().decode("utf-8"))
+
+
 def json_dump(o):
     """
     Serialize an object to JSON, unless it is :obj:`EMPTY_RESPONSE`, in which
@@ -50,7 +57,8 @@ def random_string(length, selectable=None):
     :returns: A string of length `length`.
     """
     selectable = (
-        selectable or (string.letters + string.digits + string.punctuation)
+        selectable or (string.ascii_letters + string.digits
+                       + string.punctuation)
     )
     return ''.join([choice(selectable) for _ in range(length)])
 

@@ -18,7 +18,7 @@ class HelperTests(SynchronousTestCase):
 
     matches = [(0, "1970-01-01T00:00:00.000000Z"),
                (1.5, "1970-01-01T00:00:01.500000Z"),
-               (121.4005, "1970-01-01T00:02:01.400500Z")]
+               (121.4, "1970-01-01T00:02:01.400000Z")]
 
     def _validate_ipv4_address(self, address, *prefixes):
         nums = [int(x) for x in address.split('.')]

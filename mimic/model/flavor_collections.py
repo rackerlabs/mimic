@@ -4,6 +4,8 @@ Model objects for the flavors.
 
 from __future__ import absolute_import, division, unicode_literals
 
+from six import iteritems
+
 from characteristic import attributes, Attribute
 from json import dumps
 from mimic.model.flavors import (
@@ -42,7 +44,7 @@ class RegionalFlavorCollection(object):
 
         if len(self.flavors_store) < 1:
             for flavor_class in rackspace_flavors:
-                for flavor, flavor_spec in flavor_class.flavors.iteritems():
+                for flavor, flavor_spec in iteritems(flavor_class.flavors):
                     flavor_name = flavor
                     flavor_id = flavor_spec['id']
                     ram = flavor_spec['ram']

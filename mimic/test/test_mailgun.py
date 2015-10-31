@@ -29,7 +29,7 @@ class MailGunAPITests(SynchronousTestCase):
         """
         (response, content) = self.successResultOf(json_request(
             self, root, b"POST", "/cloudmonitoring.rackspace.com/messages",
-            urlencode(data)))
+            urlencode(data).encode("utf-8")))
         self.assertEqual(200, response.code)
 
     def get_content_from_list_messages(self, root, to_filter=None):
@@ -60,7 +60,7 @@ class MailGunAPITests(SynchronousTestCase):
         """
         response = self.successResultOf(request(
             self, self.root, b"POST", "/cloudmonitoring.rackspace.com/messages",
-            urlencode({"to": "bademail@example.com"})))
+            urlencode({"to": "bademail@example.com"}).encode("utf-8")))
         self.assertEqual(500, response.code)
 
     def test_mailgun_send_message_receives_error_400(self):
@@ -70,7 +70,7 @@ class MailGunAPITests(SynchronousTestCase):
         """
         response = self.successResultOf(request(
             self, self.root, b"POST", "/cloudmonitoring.rackspace.com/messages",
-            urlencode({"to": "failingemail@example.com"})))
+            urlencode({"to": "failingemail@example.com"}).encode("utf-8")))
         self.assertEqual(400, response.code)
 
     def test_mailgun_get_messages(self):
@@ -106,7 +106,7 @@ class MailGunAPITests(SynchronousTestCase):
         for x in range(5):
             response = self.successResultOf(request(
                 self, self.root, b"POST", "/cloudmonitoring.rackspace.com/messages",
-                urlencode({"to": "bademail@example.com", "subject": "test"})))
+                urlencode({"to": "bademail@example.com", "subject": "test"}).encode("utf-8")))
             self.assertEqual(500, response.code)
 
         (response, content) = self.successResultOf(json_request(
@@ -121,6 +121,10 @@ class MailGunAPITests(SynchronousTestCase):
         """
         self.create_message_successfully(
             self.root,
+            {"to": "other-address@example.com", "h:X-State": ["OKAY"],
+             "subject": "not what you're looking for"})
+        self.create_message_successfully(
+            self.root,
             {"to": "email@example.com", "h:X-State": ["WARNING"],
              "subject": "test"})
 
@@ -129,3 +133,14 @@ class MailGunAPITests(SynchronousTestCase):
             b"GET", "/cloudmonitoring.rackspace.com/messages/headers?to=email@example.com"))
         self.assertEqual(200, response.code)
         self.assertTrue(content["email@example.com"])
+
+    def test_mailgun_get_message_header_no_such_message(self):
+        """
+        The ``messages/headers`` endpoint returns a response code of 404 when
+        no messages to the given address are found.
+        """
+        (response, content) = self.successResultOf(json_request(
+            self, self.root,
+            b"GET", "/cloudmonitoring.rackspace.com/"
+            "messages/headers?to=email@example.com"))
+        self.assertEqual(404, response.code)

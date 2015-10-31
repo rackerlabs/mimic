@@ -4,36 +4,48 @@ Model objects for the Glance mimic.
 
 from __future__ import absolute_import, division, unicode_literals
 
-from json import dumps, loads
-from characteristic import attributes, Attribute
+from json import dumps
 from uuid import uuid4
 
+import attr
+from mimic.util.helper import json_from_request
+from six import text_type
+
 random_image_list = [
-    {"id": str(uuid4()), "name": "OnMetal - CentOS 6", "distro": "linux"},
-    {"id": str(uuid4()), "name": "OnMetal - CentOS 7", "distro": "linux"},
-    {"id": str(uuid4()), "name": "OnMetal - CoreOS (Alpha)", "distro": "linux"},
-    {"id": str(uuid4()), "name": "OnMetal - CoreOS (Beta)", "distro": "linux"},
-    {"id": str(uuid4()), "name": "OnMetal - Debian 7 (Wheezy)", "distro": "linux"},
-    {"id": str(uuid4()), "name": "OnMetal - Debian 8 (Jessie)", "distro": "linux"},
-    {"id": str(uuid4()), "name": "OnMetal - Fedora 21", "distro": "linux"},
-    {"id": str(uuid4()), "name": "OnMetal - Fedora 22", "distro": "linux"},
-    {"id": str(uuid4()), "name": "OnMetal - Ubuntu 14.04 LTS (Trusty Tahr)", "distro": "linux"},
-    {"id": str(uuid4()), "name": "OnMetal - CoreOS (Stable)", "distro": "linux"},
-    {"id": str(uuid4()), "name": "OnMetal - Ubuntu 12.04 LTS (Precise Pangolin)",
+    {"id": text_type(uuid4()), "name": "OnMetal - CentOS 6", "distro": "linux"},
+    {"id": text_type(uuid4()), "name": "OnMetal - CentOS 7", "distro": "linux"},
+    {"id": text_type(uuid4()), "name": "OnMetal - CoreOS (Alpha)", "distro": "linux"},
+    {"id": text_type(uuid4()), "name": "OnMetal - CoreOS (Beta)", "distro": "linux"},
+    {"id": text_type(uuid4()), "name": "OnMetal - Debian 7 (Wheezy)", "distro": "linux"},
+    {"id": text_type(uuid4()), "name": "OnMetal - Debian 8 (Jessie)", "distro": "linux"},
+    {"id": text_type(uuid4()), "name": "OnMetal - Fedora 21", "distro": "linux"},
+    {"id": text_type(uuid4()), "name": "OnMetal - Fedora 22", "distro": "linux"},
+    {"id": text_type(uuid4()), "name": "OnMetal - Ubuntu 14.04 LTS (Trusty Tahr)", "distro": "linux"},
+    {"id": text_type(uuid4()), "name": "OnMetal - CoreOS (Stable)", "distro": "linux"},
+    {"id": text_type(uuid4()), "name": "OnMetal - Ubuntu 12.04 LTS (Precise Pangolin)",
      "distro": "linux"},
-    {"id": str(uuid4()), "name": "Ubuntu 14.04 LTS (Trusty Tahr)", "distro": "linux"},
-    {"id": str(uuid4()), "name": "Ubuntu 15.04 (Vivid Vervet)", "distro": "linux"},
-    {"id": str(uuid4()), "name": "Windows Server 2012 R2", "distro": "windows"}
+    {"id": text_type(uuid4()), "name": "Ubuntu 14.04 LTS (Trusty Tahr)", "distro": "linux"},
+    {"id": text_type(uuid4()), "name": "Ubuntu 15.04 (Vivid Vervet)", "distro": "linux"},
+    {"id": text_type(uuid4()), "name": "Windows Server 2012 R2", "distro": "windows"}
 ]
 
 
-@attributes(["image_id", "name", "distro",
-             Attribute("tenant_id", default_value=None),
-             Attribute("status", default_value='active')])
+@attr.s
 class Image(object):
     """
     A Image object
     """
+
+    image_id = attr.ib(validator=attr.validators.instance_of(text_type))
+    name = attr.ib(validator=attr.validators.instance_of(text_type))
+    distro = attr.ib(validator=attr.validators.instance_of(text_type))
+    tenant_id = attr.ib(
+        validator=attr.validators.optional(
+            attr.validators.instance_of(text_type)),
+        default=None
+    )
+    status = attr.ib(validator=attr.validators.instance_of(text_type),
+                     default='active')
 
     static_server_image_defaults = {
         "minRam": 256,
@@ -169,11 +181,14 @@ class Image(object):
         return template
 
 
-@attributes([Attribute("glance_admin_image_store", default_factory=list)])
+@attr.s
 class GlanceAdminImageStore(object):
     """
     A collection of :obj:`Image`.
     """
+
+    glance_admin_image_store = attr.ib(default=attr.Factory(list))
+
     def image_by_id(self, image_id):
         """
         Retrieve a :obj:`Image` object by its ID.
@@ -187,7 +202,7 @@ class GlanceAdminImageStore(object):
         Create a new Image object and add it to the
         :obj: `glance_admin_image_store`
         """
-        image = Image(**attributes)
+        image = Image(**dict((str(k), v) for k, v in attributes.items()))
         self.glance_admin_image_store.append(image)
         return image
 
@@ -212,7 +227,7 @@ class GlanceAdminImageStore(object):
         if image:
             return image.get_glance_admin_image_json()
         http_request.setResponseCode(404)
-        return b''
+        return ''
 
     def create_image(self, http_create_request):
         """
@@ -221,18 +236,24 @@ class GlanceAdminImageStore(object):
         Note: This is more like a control plane API as I dint find seem
         to find documentation for add image under the Glance admin API.
         """
-        content = loads(http_create_request.content.read())
         try:
-            image_id = str(uuid4())
-            new_image = self.add_to_glance_admin_image_store(
-                image_id=image_id,
-                name=content.get('name'),
-                distro=content.get('distro'))
-            http_create_request.setResponseCode(201)
-            return new_image.get_glance_admin_image_json()
+            content = json_from_request(http_create_request)
+            image_name = content.get('name')
+            if image_name is None:
+                raise KeyError("no name supplied")
+            image_distro = content.get('distro')
+            if image_distro is None:
+                raise KeyError("no distro supplied")
         except Exception as e:
             http_create_request.setResponseCode(400)
-            return dumps({"Error": str(e)})
+            return dumps({"Error": text_type(e)})
+        image_id = text_type(uuid4())
+        new_image = self.add_to_glance_admin_image_store(
+            image_id=image_id,
+            name=image_name,
+            distro=image_distro)
+        http_create_request.setResponseCode(201)
+        return new_image.get_glance_admin_image_json()
 
     def delete_image(self, http_request, image_id):
         """

@@ -33,7 +33,7 @@ def setup_options(name, version):
             "treq>=0.2.1",
             "six>=1.6.0",
             "xmltodict>=0.9.1",
-            "attrs>=15.0.0",
+            "attrs>=15.1.0",
             "testtools>=1.7.1,<1.8.0",
             "iso8601>=0.1.10",
             "toolz>=0.7.4"

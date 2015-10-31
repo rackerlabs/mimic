@@ -1,6 +1,6 @@
 from __future__ import absolute_import, division, unicode_literals
 
-from json import dumps
+from json import loads, dumps
 
 from twisted.trial.unittest import SynchronousTestCase
 from twisted.internet.task import Clock
@@ -26,7 +26,7 @@ class SwiftTests(SynchronousTestCase):
         self.core = MimicCore(Clock(), [SwiftMock(rackspace_flavor)])
         self.root = MimicRoot(self.core).app.resource()
         self.response = request(
-            self, self.root, b"POST", "/identity/v2.0/tokens",
+            self, self.root, b"POST", b"/identity/v2.0/tokens",
             dumps({
                 "auth": {
                     "passwordCredentials": {
@@ -36,11 +36,11 @@ class SwiftTests(SynchronousTestCase):
                     # TODO: should this really be 'tenantId'?
                     "tenantName": "fun_tenant",
                 }
-            })
+            }).encode("utf-8")
         )
         self.auth_response = self.successResultOf(self.response)
-        self.json_body = self.successResultOf(
-            treq.json_content(self.auth_response))
+        text_body = self.successResultOf(treq.content(self.auth_response)).decode("utf-8")
+        self.json_body = loads(text_body)
 
     def test_service_catalog(self):
         """
@@ -65,7 +65,7 @@ class SwiftTests(SynchronousTestCase):
         Create one container and assert its code is the given expected status.
         """
         uri = (self.json_body['access']['serviceCatalog'][0]['endpoints'][0]
-               ['publicURL'] + '/testcontainer')
+               ['publicURL'] + '/testcontainer').encode("ascii")
         create_container = request(self, self.root, b"PUT", uri)
         create_container_response = self.successResultOf(create_container)
         self.assertEqual(create_container_response.code, expected_code)
@@ -99,7 +99,7 @@ class SwiftTests(SynchronousTestCase):
         self.createSwiftService()
         # create a container
         uri = (self.json_body['access']['serviceCatalog'][0]['endpoints'][0]
-               ['publicURL'] + '/testcontainer')
+               ['publicURL'] + '/testcontainer').encode("ascii")
         create_container = request(self, self.root, b"PUT", uri)
         self.successResultOf(create_container)
         container_response = self.successResultOf(
@@ -112,11 +112,11 @@ class SwiftTests(SynchronousTestCase):
         self.assertEqual(container_contents, [])
         self.assertEqual(
             container_response.headers.getRawHeaders(
-                "X-Container-Object-Count")[0], "0"
+                b"X-Container-Object-Count")[0], b"0"
         )
         self.assertEqual(
             container_response.headers.getRawHeaders(
-                "X-Container-Bytes-Used")[0], "0"
+                b"X-Container-Bytes-Used")[0], b"0"
         )
 
     def test_get_no_container(self):
@@ -126,7 +126,7 @@ class SwiftTests(SynchronousTestCase):
         self.createSwiftService()
         # create a container
         uri = (self.json_body['access']['serviceCatalog'][0]['endpoints'][0]
-               ['publicURL'] + '/testcontainer')
+               ['publicURL'] + '/testcontainer').encode("ascii")
         container_response = self.successResultOf(
             request(self, self.root, b"GET", uri)
         )
@@ -148,11 +148,11 @@ class SwiftTests(SynchronousTestCase):
         self.createSwiftService()
         # create a container
         uri = (self.json_body['access']['serviceCatalog'][0]['endpoints'][0]
-               ['publicURL'] + '/testcontainer')
+               ['publicURL'] + u'/testcontainer').encode('ascii')
         create_container = request(self, self.root, b"PUT", uri)
         self.successResultOf(create_container)
         BODY = b'some bytes'
-        object_uri = uri + "/" + "testobject"
+        object_uri = uri + b"/" + b"testobject"
         object_response = request(self, self.root,
                                   b"PUT", object_uri,
                                   headers={b"content-type": [b"text/plain"]},
