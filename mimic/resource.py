@@ -228,7 +228,7 @@ class MimicLoggingRequest(MimicRequest, object):
             code=self.code,
             headers=json.dumps(
                 dict((k.decode("utf-8"), [vv.decode("utf-8") for vv in v])
-                     for (k, v) in self.requestHeaders.getAllRawHeaders())),
+                     for (k, v) in self.responseHeaders.getAllRawHeaders())),
             body=("\n" + content.decode("utf-8") + "\n" if content else ""))
         return super(MimicLoggingRequest, self).finish()
 
