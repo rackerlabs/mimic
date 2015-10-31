@@ -247,7 +247,7 @@ class NovaAPITests(SynchronousTestCase):
         Test to verify :func:`create_server` on ``POST /v2.0/<tenant_id>/servers``
         """
         self.assertEqual(self.create_server_response.code, 202)
-        self.assertTrue(type(self.server_id), text_type)
+        self.assertIsInstance(self.server_id, text_type)
         self.assertNotEqual(
             self.create_server_response_body['server']['adminPass'],
             "testpassword"
