@@ -49,8 +49,6 @@ if [[ "${MACAPP_ENV}" == "system" ]]; then
 else
     python -m virtualenv ~/.venv
     source ~/.venv/bin/activate
-    pip install wheel
-    pip wheel cryptography lxml
     pip install tox codecov
     tox --recreate --notest
 
