@@ -121,6 +121,10 @@ class MailGunAPITests(SynchronousTestCase):
         """
         self.create_message_successfully(
             self.root,
+            {"to": "other-address@example.com", "h:X-State": ["OKAY"],
+             "subject": "not what you're looking for"})
+        self.create_message_successfully(
+            self.root,
             {"to": "email@example.com", "h:X-State": ["WARNING"],
              "subject": "test"})
 
@@ -129,3 +133,14 @@ class MailGunAPITests(SynchronousTestCase):
             b"GET", "/cloudmonitoring.rackspace.com/messages/headers?to=email@example.com"))
         self.assertEqual(200, response.code)
         self.assertTrue(content["email@example.com"])
+
+    def test_mailgun_get_message_header_no_such_message(self):
+        """
+        The ``messages/headers`` endpoint returns a response code of 404 when
+        no messages to the given address are found.
+        """
+        (response, content) = self.successResultOf(json_request(
+            self, self.root,
+            b"GET", "/cloudmonitoring.rackspace.com/"
+            "messages/headers?to=email@example.com"))
+        self.assertEqual(404, response.code)

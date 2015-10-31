@@ -104,4 +104,7 @@ class MailGunApi(object):
         request.setResponseCode(200)
         to_addr = request.args.get(b"to")[0].decode("utf-8")
         msg = self.core.message_store.filter_message_by_to_address(to_addr)
+        if msg is None:
+            request.setResponseCode(404)
+            return json.dumps({})
         return json.dumps({msg.to: msg.custom_headers})
