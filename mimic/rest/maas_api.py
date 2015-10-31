@@ -2,7 +2,7 @@
 MAAS Mock API
 """
 
-from __future__ import division, unicode_literals, print_function
+from __future__ import division, unicode_literals
 
 import json
 import collections
