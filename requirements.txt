@@ -1,5 +1,5 @@
 klein==15.1.0
-cryptography==1.0.2
+cryptography==1.1
 twisted==15.4.0
 jsonschema==2.5.1
 treq==15.0.0
