@@ -34,7 +34,7 @@ class QueueAPITests(SynchronousTestCase):
                         "password": "testQueuePassword",
                     },
                 }
-            })
+            }).encode("utf-8")
         )
         self.auth_response = self.successResultOf(self.response)
         self.json_body = self.successResultOf(

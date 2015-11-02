@@ -7,6 +7,7 @@ from __future__ import absolute_import, division, unicode_literals
 
 import json
 
+from mimic.util.helper import json_from_request
 from mimic.rest.mimicapp import MimicApp
 
 
@@ -44,7 +45,7 @@ class CustomerApi(object):
         contacts would have been listed. This POST will overwrite the existing contacts
         and only set the contacts provided.
         """
-        content = json.loads(request.content.read())
+        content = json_from_request(request)
         contact_list = [(each_contact["email"], each_contact["role"]) for each_contact in content]
         self.core.contacts_store.add_to_contacts_store(tenant_id, contact_list)
         return b''

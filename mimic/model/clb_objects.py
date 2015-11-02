@@ -14,7 +14,7 @@ import attr
 
 from characteristic import attributes, Attribute
 
-from six import string_types
+from six import text_type
 
 from toolz.dicttoolz import dissoc
 
@@ -69,7 +69,7 @@ class Node(object):
     :ivar str status: "Online"
         ENABLED.
     """
-    address = attr.ib(validator=attr.validators.instance_of(string_types))
+    address = attr.ib(validator=attr.validators.instance_of(text_type))
     port = attr.ib(validator=attr.validators.instance_of(int))
     type = attr.ib(validator=_one_of_validator("PRIMARY", "SECONDARY"),
                    default="PRIMARY")
@@ -79,8 +79,8 @@ class Node(object):
         default="ENABLED")
     id = attr.ib(validator=attr.validators.instance_of(int),
                  default=attr.Factory(lambda: randrange(999999)))
-    status = attr.ib(validator=attr.validators.instance_of(str),
-                     default=b"ONLINE")
+    status = attr.ib(validator=attr.validators.instance_of(text_type),
+                     default="ONLINE")
     feed_events = attr.ib(default=[])
 
     @classmethod

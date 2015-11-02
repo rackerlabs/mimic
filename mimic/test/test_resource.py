@@ -37,7 +37,7 @@ def one_api(testCase, core):
 
     :return: 2-tuple of ``region`` and ``service_id``
     """
-    service_id, api = core._uuid_to_api.items()[0]
+    service_id, api = next(iter(core._uuid_to_api.items()))
     region = api.catalog_entries(tenant_id=None)[0].endpoints[0].region
     return (region, service_id)
 
@@ -89,7 +89,7 @@ class ServiceResourceTests(SynchronousTestCase):
             "http://mybase/mimicking/not_{0}/{1}".format(service_id, region)
         ))
         self.assertEqual(404, response.code)
-        self.assertEqual([], example.store.keys())
+        self.assertEqual([], list(example.store.keys()))
 
     def test_service_endpoint_returns_404_if_wrong_region(self):
         """
@@ -110,7 +110,7 @@ class ServiceResourceTests(SynchronousTestCase):
             "http://mybase/mimicking/not_{0}/{1}".format(service_id, region)
         ))
         self.assertEqual(404, response.code)
-        self.assertEqual([], example.store.keys())
+        self.assertEqual([], list(example.store.keys()))
 
     def test_service_endpoint_returns_service_resource(self):
         """
@@ -129,7 +129,7 @@ class ServiceResourceTests(SynchronousTestCase):
             "http://mybase/mimicking/{0}/{1}".format(service_id, region)
         ))
         self.assertEqual(200, response.code)
-        self.assertEqual('response!', content)
+        self.assertEqual(b'response!', content)
 
 
 class RootAndPresetTests(SynchronousTestCase):
@@ -150,10 +150,10 @@ class RootAndPresetTests(SynchronousTestCase):
         (response, content) = self.successResultOf(request_with_content(
             self, root, b'GET', '/'))
         self.assertEqual(200, response.code)
-        self.assertEqual(['text/plain'],
-                         response.headers.getRawHeaders('content-type'))
-        self.assertIn(' POST ', content)
-        self.assertIn('/identity/v2.0/tokens', content)
+        self.assertEqual([b'text/plain'],
+                         response.headers.getRawHeaders(b'content-type'))
+        self.assertIn(b' POST ', content)
+        self.assertIn(b'/identity/v2.0/tokens', content)
 
     def test_presets(self):
         """
@@ -167,8 +167,8 @@ class RootAndPresetTests(SynchronousTestCase):
         (response, json_content) = self.successResultOf(json_request(
             self, root, b'GET', '/mimic/v1.0/presets'))
         self.assertEqual(200, response.code)
-        self.assertEqual(['application/json'],
-                         response.headers.getRawHeaders('content-type'))
+        self.assertEqual([b'application/json'],
+                         response.headers.getRawHeaders(b'content-type'))
         self.assertEqual(get_presets, json_content)
 
     def test_tick(self):
@@ -247,8 +247,8 @@ class RequestTests(SynchronousTestCase):
         The default content type of all Mimic responses is application/json.
         """
         response, _ = self.make_request_to_site()
-        self.assertEqual(['application/json'],
-                         response.headers.getRawHeaders('content-type'))
+        self.assertEqual([b'application/json'],
+                         response.headers.getRawHeaders(b'content-type'))
 
     def test_verbose_logging(self):
         """
@@ -266,7 +266,6 @@ class RequestTests(SynchronousTestCase):
         self.assertTrue(all([not event['isError'] for event in logged_events]))
 
         messages = [get_log_message(event) for event in logged_events]
-
         request_match = re.compile(
             "^Received request: GET (?P<url>.+)\n"
             "Headers: (?P<headers>\{.+\})\n\s*$"

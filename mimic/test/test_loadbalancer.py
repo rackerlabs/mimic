@@ -171,7 +171,8 @@ class LoadbalancerAPITests(SynchronousTestCase):
         lb_id = self._create_loadbalancer('test_lb') + lb_id_offset
         status_key = status_key or '"status"'
         status_val = status_val or 'PENDING_DELETE'
-        payload = b'{{{0}: "{1}"}}'.format(status_key, status_val)
+        payload = ('{{{0}: "{1}"}}'.format(status_key, status_val)
+                   .encode("utf-8"))
         set_attributes_req = request(
             self, self.root, b"PATCH", "{0}/loadbalancer/{1}/attributes".format(
                 ctl_uri, lb_id
@@ -364,7 +365,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
         # See comment: http://bit.ly/1AVHs3v
         self.assertEqual(del_lb_response.code, 202)
         del_lb_response_body = self.successResultOf(treq.content(del_lb_response))
-        self.assertEqual(del_lb_response_body, '')
+        self.assertEqual(del_lb_response_body, b'')
         # List lb to make sure the correct lb is gone and the other remains
         list_lb = request(self, self.root, b"GET", self.uri + '/loadbalancers')
         list_lb_response = self.successResultOf(list_lb)
@@ -444,7 +445,9 @@ class LoadbalancerAPITests(SynchronousTestCase):
 
         self.assertEqual(list_lb_response.code, 200)
 
-        list_lb_response_body = json.loads(list_lb_response_body)
+        list_lb_response_body = json.loads(
+            list_lb_response_body.decode("utf-8")
+        )
         self.assertEqual(list_lb_response_body, {"loadBalancers": []})
 
     def test_same_tenant_different_regions(self):
@@ -464,7 +467,9 @@ class LoadbalancerAPITests(SynchronousTestCase):
 
         self.assertEqual(list_lb_response.code, 200)
 
-        list_lb_response_body = json.loads(list_lb_response_body)
+        list_lb_response_body = json.loads(
+            list_lb_response_body.decode("utf-8")
+        )
         self.assertEqual(list_lb_response_body, {"loadBalancers": []})
 
 
@@ -475,10 +480,10 @@ def _bulk_delete(test_case, root, uri, lb_id, node_ids):
     d = request(test_case, root, b"DELETE", endpoint)
     response = test_case.successResultOf(d)
     body = test_case.successResultOf(treq.content(response))
-    if body == '':
+    if body == b'':
         body = EMPTY_RESPONSE
     else:
-        body = json.loads(body)
+        body = json.loads(body.decode("utf-8"))
     return response, body
 
 
@@ -517,7 +522,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
                     "protocol": "HTTP",
                     "virtualIps": [{"type": "PUBLIC"}]
                 }
-            })
+            }).encode("utf-8")
         )
         create_lb_response = self.successResultOf(create_lb)
         self.create_lb_response_body = self.successResultOf(treq.json_content(
@@ -543,9 +548,9 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
                                        "port": 80,
                                        "condition": "ENABLED",
                                        "type": "PRIMARY",
-                                       "weight": 10}]}))
+                                       "weight": 10}]}).encode("utf-8"))
             for address in addresses]
-        responses = map(self.successResultOf, responses)
+        responses = [self.successResultOf(response) for response in responses]
         response_bodies = [self.successResultOf(treq.json_content(response))
                            for response in responses]
         return zip(responses, response_bodies)
@@ -589,7 +594,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
                                   {"address": "127.0.0.0",
                                    "port": 80,
                                    "condition": "ENABLED",
-                                   "type": "SECONDARY"}]})
+                                   "type": "SECONDARY"}]}).encode("utf-8")
         )
         create_node_response = self.successResultOf(create_multiple_nodes)
         create_node_response_body = self.successResultOf(treq.json_content(
@@ -607,7 +612,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
             json.dumps({"nodes": [{"address": "127.0.0.1",
                                    "port": 80,
                                    "condition": "ENABLED",
-                                   "type": "PRIMARY"}]})
+                                   "type": "PRIMARY"}]}).encode("utf-8")
         )
         create_node_response = self.successResultOf(create_duplicate_nodes)
         self.assertEqual(create_node_response.code, 413)
@@ -628,6 +633,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
                 json.dumps({"nodes": [{"address": "127.0.0.1",
                                        "port": port,
                                        "condition": "ENABLED"}]})
+                .encode("utf-8")
             )
         create_over_node = request(
             self, self.root, b"POST", self.uri + '/loadbalancers/' +
@@ -635,7 +641,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
             json.dumps({"nodes": [{"address": "127.0.0.2",
                                    "port": 130,
                                    "condition": "ENABLED",
-                                   "type": "SECONDARY"}]})
+                                   "type": "SECONDARY"}]}).encode("utf-8")
         )
 
         create_node_response = self.successResultOf(create_over_node)
@@ -661,7 +667,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         create_over_node = request(
             self, self.root, b"POST", self.uri + '/loadbalancers/' +
             str(self.lb_id) + '/nodes',
-            json.dumps({"nodes": add_node_list})
+            json.dumps({"nodes": add_node_list}).encode("utf-8")
         )
         create_node_response = self.successResultOf(create_over_node)
         self.assertEqual(create_node_response.code, 413)
@@ -698,7 +704,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
             json.dumps({"nodes": [{"address": "127.0.0.1",
                                    "port": 80,
                                    "condition": "ENABLED",
-                                   "type": "PRIMARY"}]})
+                                   "type": "PRIMARY"}]}).encode("utf-8")
         )
         create_node_response = self.successResultOf(create_duplicate_nodes)
         self.assertEqual(create_node_response.code, 404)
@@ -1021,9 +1027,10 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         self.assertTrue(all([change[k] != original[k] for k in change.keys()]))
         resp, body = _update_clb_node(
             self, self.helper, self.lb_id, self.node[0]["id"],
-            json.dumps({"node": change}), request_func=request_with_content)
+            json.dumps({"node": change}).encode("utf-8"),
+            request_func=request_with_content)
         self.assertEqual(resp.code, 202)
-        self.assertEqual(body, "")
+        self.assertEqual(body, b"")
 
         self.assertEqual(self._get_nodes(self.lb_id)[0], expected)
 
@@ -1035,7 +1042,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         feed_response = self.successResultOf(d)
         self.assertEqual(feed_response.code, 200)
         self.assertEqual(
-            self.successResultOf(treq.content(feed_response)),
+            self.successResultOf(treq.content(feed_response)).decode("utf-8"),
             ("<feed xmlns=\"http://www.w3.org/2005/Atom\"><entry>"
              "<summary>Node successfully updated with address: '127.0.0.1', "
              "port: '80', weight: '100', condition: 'DISABLED'</summary>"
@@ -1052,7 +1059,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         feed_response = self.successResultOf(d)
         self.assertEqual(feed_response.code, 404)
         self.assertEqual(
-            self.successResultOf(treq.content(feed_response)),
+            self.successResultOf(treq.content(feed_response)).decode("utf-8"),
             ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
              '<itemNotFound xmlns="http://docs.openstack.org/loadbalancers/api/v1.0" code="404">'
              '<message>Node not found</message></itemNotFound>'))
@@ -1068,7 +1075,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         feed_response = self.successResultOf(d)
         self.assertEqual(feed_response.code, 404)
         self.assertEqual(
-            self.successResultOf(treq.content(feed_response)),
+            self.successResultOf(treq.content(feed_response)).decode("utf-8"),
             ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
              '<itemNotFound xmlns="http://docs.openstack.org/loadbalancers/api/v1.0" code="404">'
              '<message>Load balancer not found</message></itemNotFound>'))
@@ -1101,7 +1108,7 @@ class LoadbalancerAPINegativeTests(SynchronousTestCase):
                     "virtualIps": [{"type": "PUBLIC"}],
                     "metadata": metadata or []
                 }
-            })
+            }).encode("utf-8")
         )
         create_lb_response = self.successResultOf(create_lb)
         return create_lb_response
@@ -1116,7 +1123,7 @@ class LoadbalancerAPINegativeTests(SynchronousTestCase):
             json.dumps({"nodes": [{"address": "127.0.0.1",
                                    "port": 80,
                                    "condition": "ENABLED",
-                                   "type": "PRIMARY"}]})
+                                   "type": "PRIMARY"}]}).encode("utf-8")
         )
         create_node_response = self.successResultOf(create_node)
         return create_node_response
@@ -1244,7 +1251,7 @@ class LoadbalancerAPINegativeTests(SynchronousTestCase):
         del_lb_response = self._delete_loadbalancer(lb["id"])
         self.assertEqual(del_lb_response.code, 202)
         del_lb_content = self.successResultOf(treq.content(del_lb_response))
-        self.assertEqual(del_lb_content, '')
+        self.assertEqual(del_lb_content, b'')
         deleted_lb = self._get_loadbalancer(lb["id"])
         self.assertEqual(deleted_lb["loadBalancer"]["status"], "PENDING-DELETE")
 

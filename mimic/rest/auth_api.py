@@ -29,7 +29,9 @@ from mimic.rest.mimicapp import MimicApp
 from mimic.session import NonMatchingTenantError
 from mimic.util.helper import (
     invalid_resource,
-    seconds_to_timestamp)
+    seconds_to_timestamp,
+    json_from_request,
+)
 
 from mimic.model.behaviors import (
     BehaviorRegistryCollection,
@@ -197,7 +199,7 @@ class AuthApi(object):
         token.
         """
         try:
-            content = json.loads(request.content.read())
+            content = json_from_request(request)
         except ValueError:
             pass
         else:
@@ -234,9 +236,9 @@ class AuthApi(object):
         including email, name, user ID, account configuration and status
         information.
         """
-        username = request.args.get("name")
+        username = request.args.get(b"name")[0].decode("utf-8")
         session = self.core.sessions.session_for_username_password(
-            username[0], "test")
+            username, "test")
         return json.dumps(dict(user={
             "RAX-AUTH:domainId": session.tenant_id,
             "id": session.user_id,
@@ -255,7 +257,7 @@ class AuthApi(object):
         Support, such as it is, for the apiKeysCredentials call.
         """
         if user_id in self.core.sessions._userid_to_session:
-            username = self.core.sessions._userid_to_session[user_id].username.decode('ascii')
+            username = self.core.sessions._userid_to_session[user_id].username
             apikey = '7fc56270e7a70fa81a5935b72eacbe29'  # echo -n A | md5sum
             return json.dumps({'RAX-KSKEY:apiKeyCredentials': {'username': username,
                                                                'apiKey': apikey}})
@@ -271,13 +273,15 @@ class AuthApi(object):
         """
         request.setResponseCode(200)
         try:
-            content = json.loads(request.content.read())
+            content = json_from_request(request)
         except ValueError:
             request.setResponseCode(400)
             return json.dumps(invalid_resource("Invalid JSON request body"))
 
-        cred = ImpersonationCredentials.from_json(
-            content, request.getHeader("x-auth-token"))
+        x_auth_token = request.getHeader(b"x-auth-token")
+        if x_auth_token is not None:
+            x_auth_token = x_auth_token.decode("utf-8")
+        cred = ImpersonationCredentials.from_json(content, x_auth_token)
         registry = self.registry_collection.registry_by_event(authentication)
         behavior = registry.behavior_for_attributes({
             "token": cred.impersonator_token,
@@ -293,9 +297,9 @@ class AuthApi(object):
         Docs: http://developer.openstack.org/api-ref-identity-v2.html#admin-tokens
         """
         request.setResponseCode(200)
-        tenant_id = request.args.get('belongsTo')
+        tenant_id = request.args.get(b'belongsTo')
         if tenant_id is not None:
-            tenant_id = tenant_id[0]
+            tenant_id = tenant_id[0].decode("utf-8")
         session = self.core.sessions.session_for_tenant_id(tenant_id, token_id)
         response = get_token(
             session.tenant_id,
@@ -430,10 +434,6 @@ class AuthApi(object):
                     "name": "HybridOneTwo",
                     "roles": [{"id": "1",
                                "name": "monitoring:observer",
-                               "description": "Monitoring Observer"},
-                              {"id": "3",
-                               "name": "hybridRole",
-                               "description": "Hybrid Admin",
                                "tenantId": "hybrid:123456"}],
                     "RAX-AUTH:contactId": "12"
                 }
@@ -526,21 +526,27 @@ class AuthApi(object):
                     "RAX-AUTH:contactId": "78"
                 }
 
-        if token_id in get_presets["identity"]["dedicated_other_account_admin"]:
+        if token_id in get_presets["identity"]["dedicated_quasi_user_impersonator"]:
                 response["access"]["token"]["tenant"] = {
-                    "id": "hybrid:654321",
-                    "name": "hybrid:654321",
+                    "id": "hybrid:123456",
+                    "name": "hybrid:123456",
                 }
                 response["access"]["user"] = {
                     "id": "90",
                     "name": "HybridNineZero",
                     "roles": [{"id": "1",
-                               "name": "monitoring:admin",
+                               "name": "identity:user-admin",
                                "description": "Admin"},
-                              {"id": "2",
-                               "name": "admin",
-                               "description": "Admin"}],
-                    "RAX-AUTH:contactId": "90"
+                              {"id": "3",
+                               "name": "hybridRole",
+                               "description": "Hybrid Admin",
+                               "tenantId": "hybrid:123456"}]
+                }
+                response["access"]["RAX-AUTH:impersonator"] = {
+                    "id": response["access"]["user"]["id"],
+                    "name": response["access"]["user"]["name"],
+                    "roles": [{"id": "1",
+                               "name": "monitoring:service-admin"}]
                 }
 
         return json.dumps(response)
@@ -574,7 +580,7 @@ def base_uri_from_request(request):
     :return: the base uri the request was trying to access
     :rtype: ``str``
     """
-    return str(URLPath.fromRequest(request).click('/'))
+    return str(URLPath.fromRequest(request).click(b'/'))
 
 
 AuthControlApiBehaviors = make_behavior_api({'auth': authentication})

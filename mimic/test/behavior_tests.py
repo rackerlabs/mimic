@@ -174,7 +174,9 @@ def make_behavior_tests(behavior_helper_factory):
             results in a 400.
             """
             name, params = self.bhelper.names_and_params[0]
-            almost_correct = json.dumps({'name': name, 'parameters': params})
+            almost_correct = json.dumps(
+                {'name': name, 'parameters': params}
+            ).encode("utf-8")
             for invalid in (b'', b'{}', almost_correct):
                 response, body = self.successResultOf(request_with_content(
                     self, self.bhelper.root, b"POST",
@@ -244,7 +246,9 @@ def make_behavior_tests(behavior_helper_factory):
                 self.bhelper.validate_default_behavior(
                     *self.bhelper.trigger_event())
 
-    Tester.__name__ = b"TestsFor{0}".format(behavior_helper_factory.name)
+    Tester.__name__ = str("TestsFor{0}").format(
+        str(behavior_helper_factory.name)
+    )
     Tester.__module__ = behavior_helper_factory.module
     return Tester
 
@@ -392,7 +396,7 @@ def register_behavior(test_case, root, uri, behavior_name, parameters,
                      "parameters": parameters,
                      "criteria": criteria}
     response, body = test_case.successResultOf(json_request(
-        test_case, root, b"POST", uri, json.dumps(behavior_json)))
+        test_case, root, b"POST", uri, behavior_json))
 
     test_case.assertEqual(response.code, 201)
     behavior_id = body.get("id")

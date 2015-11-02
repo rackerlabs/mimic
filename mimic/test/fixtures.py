@@ -26,7 +26,7 @@ class TenantAuthentication(object):
         :param password: the password with which to use to authenticate
         """
         _, self.service_catalog_json = test_case.successResultOf(json_request(
-            test_case, root, b"POST", "/identity/v2.0/tokens",
+            test_case, root, b"POST", b"/identity/v2.0/tokens",
             {
                 "auth": {
                     "passwordCredentials": {

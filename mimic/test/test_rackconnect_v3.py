@@ -28,7 +28,7 @@ class _IsString(object):
         """
         Returns true if the other is a string
         """
-        return isinstance(other, basestring)
+        return isinstance(other, text_type)
 
 
 class LoadBalancerObjectTests(SynchronousTestCase):
@@ -121,6 +121,13 @@ class LoadBalancerObjectTests(SynchronousTestCase):
         """
         self.assertIs(self.pool.nodes[5], self.pool.node_by_id("node_5"))
 
+    def test_LBPool_find_no_nodes_by_id(self):
+        """
+        If a node ID is specified that does not exist, ``node_by_id`` returns
+        None.
+        """
+        self.assertIs(None, self.pool.node_by_id("not_a_node"))
+
     def test_LBPool_find_nodes_by_server_id(self):
         """
         A node can be retrieved by its cloud server ID.
@@ -187,8 +194,8 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
         response, response_json = self.successResultOf(
             self.json_request(b"GET", "/load_balancer_pools"))
         self.assertEqual(200, response.code)
-        self.assertEqual(['application/json'],
-                         response.headers.getRawHeaders('content-type'))
+        self.assertEqual([b'application/json'],
+                         response.headers.getRawHeaders(b'content-type'))
         self.assertEqual(1, len(response_json))
 
         pool_json = response_json[0]
@@ -251,8 +258,8 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
 
         self.assertEqual(200, pool_details_response.code)
         self.assertEqual(
-            ['application/json'],
-            pool_details_response.headers.getRawHeaders('content-type'))
+            [b'application/json'],
+            pool_details_response.headers.getRawHeaders(b'content-type'))
         self.assertEqual(pool, pool_details_json)
 
     def test_get_pool_400_non_uuid_pool_id(self):
@@ -274,7 +281,8 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
                                       "/load_balancer_pools/{0}".format(random_pool_id)))
 
         self.assertEqual(404, response.code)
-        self.assertEqual("Load Balancer Pool {0} does not exist".format(random_pool_id), content)
+        self.assertEqual("Load Balancer Pool {0} does not exist".format(random_pool_id),
+                         content.decode("utf-8"))
 
     def _get_add_nodes_json(self):
         """
@@ -515,7 +523,7 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
         # delete
         response, _ = self.successResultOf(self.request_with_content(
             b"DELETE", "/load_balancer_pools/nodes",
-            body=json.dumps(server_data)))
+            body=json.dumps(server_data).encode("utf-8")))
         self.assertEqual(204, response.code)
 
         # ensure there are 0
@@ -595,7 +603,7 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
         self.assertEqual(201, response.code)
         response, _ = self.successResultOf(self.request_with_content(
             b"DELETE", "/load_balancer_pools/nodes",
-            body=json.dumps(add_data)))
+            body=json.dumps(add_data).encode("utf-8")))
         self.assertEqual(204, response.code)
 
         # get the node count for the lb pool
@@ -604,9 +612,9 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
 
         response, resp_json = self.successResultOf(self.request_with_content(
             b"DELETE", "/load_balancer_pools/nodes",
-            body=json.dumps(add_data)))
+            body=json.dumps(add_data).encode("utf-8")))
         self.assertEqual(409, response.code)
-        resp = json.loads(resp_json)
+        resp = json.loads(resp_json.decode("utf-8"))
         self.assertEqual("Cloud Server {0} is not a member of "
                          "Load Balancer Pool {1}".format(server_id, self.get_lb_ids()[0][0]),
                          resp["errors"][0])
@@ -660,7 +668,7 @@ class LoadbalancerPoolNodesAPITests(RackConnectTestMixin,
 
         self.assertEqual(404, response.code)
         self.assertEqual("Load Balancer Pool {0} does not exist".format(random_pool_id),
-                         content)
+                         content.decode("utf-8"))
 
     def test_get_pool_nodes_empty(self):
         """
@@ -689,7 +697,7 @@ class LoadbalancerPoolNodesAPITests(RackConnectTestMixin,
             b"POST", "/load_balancer_pools/{0}/nodes".format(self.pool_id),
             body=json.dumps({
                 "cloud_server": {"id": "d95ae0c4-6ab8-4873-b82f-f8433840cff2"}
-            })))
+            }).encode("utf-8")))
         self.assertEqual(501, response.code)
 
     def test_get_pool_node_unimplemented(self):

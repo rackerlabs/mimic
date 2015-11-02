@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from attr import Factory, attributes, attr, validators
 
-from six import string_types, text_type
+from six import text_type
 
 from zope.interface import implementer
 
@@ -44,8 +44,8 @@ class PasswordCredentials(object):
     :ivar password: The password used to authenticate the user.
     :ivar tenant_id: Optional - the tenant ID of the user.
     """
-    username = attr(validator=validators.instance_of(string_types))
-    password = attr(validator=validators.instance_of(string_types))
+    username = attr(validator=validators.instance_of(text_type))
+    password = attr(validator=validators.instance_of(text_type))
     tenant_id = attr(default=None)
     type_key = "passwordCredentials"
 
@@ -96,8 +96,8 @@ class APIKeyCredentials(object):
     :ivar api_key: The API key used to authenticate the user.
     :ivar tenant_id: Optional - the tenant ID of the user.
     """
-    username = attr(validator=validators.instance_of(string_types))
-    api_key = attr(validator=validators.instance_of(string_types))
+    username = attr(validator=validators.instance_of(text_type))
+    api_key = attr(validator=validators.instance_of(text_type))
     tenant_id = attr(default=None)
     type_key = "RAX-KSKEY:apiKeyCredentials"
 
@@ -146,8 +146,8 @@ class TokenCredentials(object):
     :ivar token: The auth token to be authenticated
     :ivar tenant_id: The tenant ID the token belongs to.
     """
-    token = attr(validator=validators.instance_of(string_types))
-    tenant_id = attr(validator=validators.instance_of(string_types))
+    token = attr(validator=validators.instance_of(text_type))
+    tenant_id = attr(validator=validators.instance_of(text_type))
     type_key = "token"
 
     def get_session(self, session_store):
@@ -198,13 +198,15 @@ class ImpersonationCredentials(object):
     :ivar int expires_in: The number of seconds the impersonation token will
         last.
     """
-    impersonator_token = attr()
+    impersonator_token = attr(
+        validator=validators.optional(validators.instance_of(text_type))
+    )
     impersonated_username = attr(
-        validator=validators.instance_of(string_types))
+        validator=validators.instance_of(text_type))
     expires_in = attr(validator=validators.instance_of(int))
     impersonated_token = attr(
         default=Factory(lambda: 'impersonated_token_' + text_type(uuid4())),
-        validator=validators.instance_of(string_types))
+        validator=validators.instance_of(text_type))
     type_key = 'RAX-AUTH:impersonation'
 
     def get_session(self, session_store):
