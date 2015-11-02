@@ -3,6 +3,7 @@ An image store representing Rackspace specific images
 """
 from __future__ import absolute_import, division, unicode_literals
 from characteristic import attributes, Attribute
+from six import iteritems
 from mimic.model.rackspace_images import (RackspaceWindowsImage, RackspaceArchImage,
                                           RackspaceCentOSPVImage, RackspaceCentOSPVHMImage,
                                           RackspaceCoreOSImage, RackspaceDebianImage,
@@ -36,7 +37,7 @@ class RackspaceImageStore(object):
                          RackspaceOnMetalFedoraImage, RackspaceOnMetalUbuntuImage]
         if len(self.image_list) < 1:
             for image_class in image_classes:
-                for image, image_spec in image_class.images.iteritems():
+                for image, image_spec in iteritems(image_class.images):
                     image_name = image
                     image_id = image_spec['id']
                     minRam = image_spec['minRam']
