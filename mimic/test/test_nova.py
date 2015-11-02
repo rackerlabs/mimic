@@ -26,6 +26,7 @@ from mimic.model.nova_objects import (
     RegionalServerCollection, Server, IPv4Address)
 import random
 
+
 def status_of_server(test_case, server_id):
     """
     Retrieve the status of a server.
