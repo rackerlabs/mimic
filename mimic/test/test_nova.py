@@ -1000,7 +1000,7 @@ class NovaAPITests(SynchronousTestCase):
         })
 
     def test_create_image(self):
-        create_image_request = json.dumps({"createImage": {"name": "CreatedImage"}})
+        create_image_request = json.dumps({"createImage": {"name": "CreatedImage"}}).encode("utf-8")
         nova_api = NovaApi(["ORD", "MIMIC"])
         helper = APIMockHelper(
             self, [nova_api, NovaControlApi(nova_api=nova_api)]
