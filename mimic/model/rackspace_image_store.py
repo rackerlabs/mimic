@@ -1,15 +1,19 @@
 """
 An image store representing Rackspace specific images
 """
+from __future__ import absolute_import, division, unicode_literals
 from characteristic import attributes, Attribute
-from rackspace_images import (RackspaceWindowsImage, RackspaceArchImage, RackspaceCentOSPVImage,
-                              RackspaceCentOSPVHMImage, RackspaceCoreOSImage, RackspaceDebianImage,
-                              RackspaceFedoraImage, RackspaceFreeBSDImage, RackspaceGentooImage,
-                              RackspaceOpenSUSEImage, RackspaceRedHatPVImage, RackspaceRedHatPVHMImage,
-                              RackspaceUbuntuPVImage, RackspaceUbuntuPVHMImage, RackspaceVyattaImage,
-                              RackspaceScientificImage, RackspaceOnMetalCentOSImage,
-                              RackspaceOnMetalCoreOSImage, RackspaceOnMetalDebianImage,
-                              RackspaceOnMetalFedoraImage, RackspaceOnMetalUbuntuImage)
+from mimic.model.rackspace_images import (RackspaceWindowsImage, RackspaceArchImage,
+                                          RackspaceCentOSPVImage, RackspaceCentOSPVHMImage,
+                                          RackspaceCoreOSImage, RackspaceDebianImage,
+                                          RackspaceFedoraImage, RackspaceFreeBSDImage,
+                                          RackspaceGentooImage, RackspaceOpenSUSEImage,
+                                          RackspaceRedHatPVImage, RackspaceRedHatPVHMImage,
+                                          RackspaceUbuntuPVImage, RackspaceUbuntuPVHMImage,
+                                          RackspaceVyattaImage, RackspaceScientificImage,
+                                          RackspaceOnMetalCentOSImage, RackspaceOnMetalCoreOSImage,
+                                          RackspaceOnMetalDebianImage, RackspaceOnMetalFedoraImage,
+                                          RackspaceOnMetalUbuntuImage)
 
 
 @attributes([Attribute("image_list", default_factory=list)])
