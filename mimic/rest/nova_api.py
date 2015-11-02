@@ -30,7 +30,7 @@ from mimic.model.flavor_collections import GlobalFlavorCollection
 from mimic.model.nova_image_collection import GlobalNovaImageCollection
 from mimic.model.rackspace_image_store import RackspaceImageStore
 from mimic.util.helper import json_from_request
-from mimic.model.image_collections import GlobalImageCollection
+
 
 @implementer(IAPIMock, IPlugin)
 class NovaApi(object):
@@ -39,7 +39,7 @@ class NovaApi(object):
     Rest endpoints for mocked Nova Api.
     """
 
-    def __init__(self, regions=["ORD", "IAD", "DFW"]):
+    def __init__(self, regions=["ORD", "DFW", "IAD"]):
         """
         Create a NovaApi with an empty region cache, no servers or tenants yet.
         """
