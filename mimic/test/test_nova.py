@@ -24,7 +24,7 @@ from mimic.test.fixtures import APIMockHelper, TenantAuthentication
 from mimic.util.helper import seconds_to_timestamp
 from mimic.model.nova_objects import (
     RegionalServerCollection, Server, IPv4Address)
-
+import random
 
 def status_of_server(test_case, server_id):
     """
@@ -997,6 +997,38 @@ class NovaAPITests(SynchronousTestCase):
                 "code": 409
             }
         })
+
+    def test_create_image(self):
+        create_image_request = json.dumps({"createImage": {"name": "CreatedImage"}})
+        nova_api = NovaApi(["ORD", "MIMIC"])
+        helper = APIMockHelper(
+            self, [nova_api, NovaControlApi(nova_api=nova_api)]
+        )
+        root = helper.root
+        uri = helper.uri
+        image_list = request(self, root, b"GET", uri + '/images')
+        image_list_response = self.successResultOf(image_list)
+        image_list_response_body = self.successResultOf(treq.json_content(image_list_response))
+        image_list_size = len(image_list_response_body['images'])
+        random_image_choice = random.randint(0, (len(image_list_response_body['images'])) - 1)
+        image_id = image_list_response_body['images'][random_image_choice]['id']
+        server_name = 'createdFromImage'
+        self.create_server_response, self.create_server_response_body = (
+            create_server(helper, name=server_name, imageRef=image_id))
+        server_id = self.create_server_response_body['server']['id']
+
+        create_image = request(self, root, b"POST", uri + '/servers/' + server_id + '/action',
+                               create_image_request)
+        create_image_response = self.successResultOf(create_image)
+        self.assertEqual(create_image_response.code, 202)
+
+        image_list = request(self, root, b"GET", uri + '/images/detail')
+        image_list_response = self.successResultOf(image_list)
+        image_list_response_body = self.successResultOf(treq.json_content(image_list_response))
+        image = [image for image in image_list_response_body['images']
+                 if image['name'] == 'CreatedImage']
+        self.assertEqual((image[0]['name']), "CreatedImage")
+        self.assertEqual(image_list_size + 1, len(image_list_response_body['images']))
 
 
 class NovaAPIChangesSinceTests(SynchronousTestCase):
