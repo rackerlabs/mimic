@@ -27,8 +27,9 @@ from mimic.model.nova_objects import (
     BadRequestError, GlobalServerCollections, LimitError, Server,
     bad_request, forbidden, not_found, server_creation)
 from mimic.model.flavor_collections import GlobalFlavorCollection
+from mimic.model.nova_image_collection import GlobalNovaImageCollection
+from mimic.model.rackspace_image_store import RackspaceImageStore
 from mimic.util.helper import json_from_request
-from mimic.model.image_collections import GlobalImageCollection
 
 
 @implementer(IAPIMock, IPlugin)
@@ -38,7 +39,7 @@ class NovaApi(object):
     Rest endpoints for mocked Nova Api.
     """
 
-    def __init__(self, regions=["ORD", "IAD", "DFW"]):
+    def __init__(self, regions=["ORD", "DFW", "IAD"]):
         """
         Create a NovaApi with an empty region cache, no servers or tenants yet.
         """
@@ -220,14 +221,23 @@ class NovaRegion(object):
                 .collection_for_region(self._name))
 
     def _image_collection_for_tenant(self, tenant_id):
+        image_store = self._image_store_for_tenant(tenant_id)
         tenant_session = self._session_store.session_for_tenant_id(tenant_id)
         image_global_collection = tenant_session.data_for_api(
-            "image_collection",
-            lambda: GlobalImageCollection(tenant_id=tenant_id,
-                                          clock=self._session_store.clock))
+            "nova_image_collection",
+            lambda: GlobalNovaImageCollection(tenant_id=tenant_id,
+                                              clock=self._session_store.clock))
         image_region_collection = image_global_collection.collection_for_region(
-            self._name)
+            self._name, image_store)
         return image_region_collection
+
+    def _image_store_for_tenant(self, tenant_id):
+        tenant_session = self._session_store.session_for_tenant_id(tenant_id)
+        image_store = tenant_session.data_for_api(
+            "rackspace_image_store",
+            lambda: RackspaceImageStore()
+        )
+        return image_store
 
     def _keypair_collection_for_tenant(self, tenant_id):
         """
@@ -324,10 +334,8 @@ class NovaRegion(object):
         """
         Returns a 204 response code, for any server id'
         """
-        return (
-            self._region_collection_for_tenant(tenant_id)
-            .request_delete(request, server_id)
-        )
+        return (self._region_collection_for_tenant(tenant_id)
+                .request_delete(request, server_id))
 
     @app.route('/v2/<string:tenant_id>/images/<string:image_id>', methods=['GET'])
     def get_image(self, request, tenant_id, image_id):
@@ -427,7 +435,11 @@ class NovaRegion(object):
         """
         Perform the requested action on the server
         """
-        return self._region_collection_for_tenant(tenant_id).request_action(request, server_id, self.url)
+        image_store = self._image_store_for_tenant(tenant_id)
+        regional_image_collection = self._image_collection_for_tenant(tenant_id)
+        return self._region_collection_for_tenant(tenant_id).request_action(request, server_id, self.url,
+                                                                            regional_image_collection,
+                                                                            image_store)
 
     @app.route("/v2/<string:tenant_id>/os-keypairs", methods=['GET'])
     def get_key_pairs(self, request, tenant_id):
