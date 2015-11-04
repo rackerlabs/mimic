@@ -7,23 +7,18 @@ import json
 from uuid import uuid4
 from six import text_type
 from zope.interface import implementer
-from twisted.web.server import Request
 from twisted.plugin import IPlugin
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.imimic import IAPIMock
 
-Request.defaultContentType = 'application/json'
-
 
 @implementer(IAPIMock, IPlugin)
 class DNSApi(object):
-
     """
     Rest endpoints for mocked DNS Api.
     """
-
     def __init__(self, regions=["ORD", "DFW", "IAD"]):
         """
         Create a DNSApi.
@@ -38,7 +33,7 @@ class DNSApi(object):
             Entry(
                 tenant_id, "rax:dns", "cloudDNS",
                 [
-                    Endpoint(tenant_id, region, text_type(uuid4()), prefix="v2")
+                    Endpoint(tenant_id, region, text_type(uuid4()), prefix="v1.0")
                     for region in self._regions
                 ]
             )
@@ -67,11 +62,10 @@ class DNSMock(object):
 
     app = MimicApp()
 
-    @app.route('/v2/<string:tenant_id>/rdns/cloudServersOpenStack', methods=['GET'])
-    def get_dns(self, request, tenant_id):
+    @app.route('/v1.0/<string:tenant_id>/rdns/cloudServersOpenStack', methods=['GET'])
+    def get_PTR_records(self, request, tenant_id):
         """
-        Reverse DNS call. Response code and response body hardcoded so servers details page in
-        cloud control panel will display the "Reverse DNS" field on the page.
+        Lists all PTR records configured for a specified Cloud device
         """
         request.setResponseCode(404)
         return json.dumps({})
