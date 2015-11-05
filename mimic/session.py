@@ -127,13 +127,11 @@ class SessionStore(object):
     def session_for_token(self, token, tenant_id=None):
         """
         :param unicode token: An authentication token previously created by
-            session_for_api_key or session_for_username_password.
+            session_for_api_key or session_for_username_password, or a new
+            token initialized outside Mimic.
 
-        :return: a session for the given token, only if that token already
-                 exists.
+        :return: a session for the given token.
         :rtype: Session
-
-        :raise: :obj:`KeyError` if no such thing exists.
         """
         if token in self._token_to_session:
             s = self._token_to_session[token]
@@ -143,6 +141,22 @@ class SessionStore(object):
         else:
             s = self._new_session(token=token, tenant_id=tenant_id)
         return s
+
+    def existing_session_for_token(self, token):
+        """
+        :param unicode token: An authentication token previously created by
+            session_for_api_key, session_for_username_password, or
+            get_or_create_session_for_token.
+
+        :return: a session for the given token, only if that token already
+                 exists.
+        :rtype: Session
+
+        :raise: :obj:`KeyError` if no such thing exists.
+        """
+        if token in self._token_to_session:
+            return self._token_to_session[token]
+        raise KeyError(token)
 
     def session_for_api_key(self, username, api_key, tenant_id=None):
         """

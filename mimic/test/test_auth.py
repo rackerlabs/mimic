@@ -613,6 +613,40 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
             }
         })
 
+    def test_list_tenants_for_token(self):
+        """
+        Identity can list the tenants associated with a given token.
+
+        Since Mimic sessions associate a single tenant with each token,
+        a list of 1 tenant will be returned.
+        """
+        core, root = core_and_root([ExampleAPI()])
+        (response, _) = authenticate_with_token(
+            self, root, tenant_id='turtlepower', token_id='ABCDEF987654321')
+        self.assertEqual(response.code, 200)
+
+        (response, json_body) = self.successResultOf(
+            json_request(self, root, b"GET",
+                         "/identity/v2.0/tenants",
+                         headers={b'X-Auth-Token': [b'ABCDEF987654321']}))
+        self.assertEqual(response.code, 200)
+        self.assertEqual(len(json_body['tenants']), 1)
+        self.assertEqual(json_body['tenants'][0]['id'], 'turtlepower')
+        self.assertEqual(json_body['tenants'][0]['name'], 'turtlepower')
+        self.assertTrue(json_body['tenants'][0]['enabled'] is True)
+
+    def test_list_tenants_for_unknown_token_gets_401(self):
+        """
+        Listing tenants for an unknown token causes a 401 Unauthorized.
+        """
+        core, root = core_and_root([ExampleAPI()])
+        (response, json_body) = self.successResultOf(
+            json_request(self, root, b"GET",
+                         "/identity/v2.0/tenants",
+                         headers={b'X-Auth-Token': [b'XYZDEF987654321']}))
+        self.assertEqual(response.code, 401)
+        self.assertEqual(json_body['unauthorized']['code'], 401)
+
     def test_rax_kskey_apikeycredentials(self):
         """
         Test apiKeyCredentials
