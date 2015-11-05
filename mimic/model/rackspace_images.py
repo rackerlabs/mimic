@@ -812,39 +812,3 @@ class RackspaceOnMetalCentOSImage(OnMetalImage):
             "vm_mode": "metal",
             "auto_disk_config": "disabled"
         }
-
-
-class ImageStore(object):
-    """
-    A store for images to share between nova_api and glance_api
-    """
-    _images_store = []
-
-    @classmethod
-    def create_image_store(cls, tenant_id):
-        """
-        Generates the data for each image in each image class
-        """
-        image_classes = [RackspaceWindowsImage, RackspaceArchImage, RackspaceCentOSPVImage,
-                         RackspaceCentOSPVHMImage, RackspaceCoreOSImage, RackspaceDebianImage,
-                         RackspaceFedoraImage, RackspaceFreeBSDImage, RackspaceGentooImage,
-                         RackspaceOpenSUSEImage, RackspaceRedHatPVImage, RackspaceRedHatPVHMImage,
-                         RackspaceUbuntuPVImage, RackspaceUbuntuPVHMImage, RackspaceVyattaImage,
-                         RackspaceScientificImage, RackspaceOnMetalCentOSImage,
-                         RackspaceOnMetalCoreOSImage, RackspaceOnMetalDebianImage,
-                         RackspaceOnMetalFedoraImage, RackspaceOnMetalUbuntuImage]
-        if len(cls._images_store) < 1:
-            for image_class in image_classes:
-                for image, image_spec in image_class.images.items():
-                    image_name = image
-                    image_id = image_spec['id']
-                    minRam = image_spec['minRam']
-                    minDisk = image_spec['minDisk']
-                    image_size = image_spec['OS-EXT-IMG-SIZE:size']
-                    image = image_class(image_id=image_id, tenant_id=tenant_id,
-                                        image_size=image_size, name=image_name, minRam=minRam,
-                                        minDisk=minDisk)
-                    if 'com.rackspace__1__ui_default_show' in image_spec:
-                        image.set_is_default()
-                    cls._images_store.append(image)
-        return cls._images_store
