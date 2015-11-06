@@ -1,5 +1,5 @@
 """
-Plugin for DNS glance mock.
+Plugin for DNS mock.
 """
 from mimic.rest.dns_api import DNSApi
 
