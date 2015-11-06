@@ -19,7 +19,7 @@ class DNSApi(object):
     """
     Rest endpoints for mocked DNS Api.
     """
-    def __init__(self, regions=["ORD", "DFW", "IAD"]):
+    def __init__(self, regions=[""]):
         """
         Create a DNSApi.
         """
@@ -68,4 +68,6 @@ class DNSMock(object):
         Lists all PTR records configured for a specified Cloud device
         """
         request.setResponseCode(404)
-        return json.dumps({})
+        return json.dumps({'message': 'Not Found',
+                           'code': 404,
+                           'details': 'No PTR records found'})
