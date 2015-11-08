@@ -72,7 +72,4 @@ class NetworksMock(object):
         https://developer.rackspace.com/docs/cloud-networks/v2/developer-guide/#retrieve-list-of-networks
         """
         request.setResponseCode(200)
-        return json.dumps({"networks": [],
-                           "networks_links":
-                               [{"href": "http://localhost:9696/v2.0/networks?page_reverse=True",
-                                 "rel": "previous"}]})
+        return json.dumps({"networks": []})
