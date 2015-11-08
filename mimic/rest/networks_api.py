@@ -6,7 +6,6 @@ import json
 from uuid import uuid4
 from six import text_type
 from zope.interface import implementer
-from twisted.web.server import Request
 from twisted.plugin import IPlugin
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
@@ -14,13 +13,10 @@ from mimic.catalog import Endpoint
 from mimic.imimic import IAPIMock
 
 
-Request.defaultContentType = 'application/json'
-
-
 @implementer(IAPIMock, IPlugin)
 class NetworksApi(object):
     """
-    Rest endpoints for mocked Glance Api.
+    Rest endpoints for mocked Networks Api.
     """
     def __init__(self, regions=["ORD", "DFW", "IAD"]):
         """
@@ -52,7 +48,7 @@ class NetworksApi(object):
 
 class NetworksMock(object):
     """
-    Networks Mock
+    Klein routes for the Networking API.
     """
     def __init__(self, api_mock, uri_prefix, session_store, name):
         """
