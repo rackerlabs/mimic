@@ -26,7 +26,7 @@ class NetworksTests(SynchronousTestCase):
         """
         Requesting a list of networks for a tenant that does not have any will return
         a 200 with an empty network list
-        https://developer.rackspace.com/docs/cloud-dns/v1/developer-guide/#list-ptr-records
+        https://developer.rackspace.com/docs/cloud-networks/v2/developer-guide/#retrieve-list-of-networks
         http://developer.openstack.org/api-ref-networking-v2.html
         """
         (response, content) = self.successResultOf(json_request(
