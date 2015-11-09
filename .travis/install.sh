@@ -20,8 +20,8 @@ if [[ "$DARWIN" = true ]]; then
     case "${TOXENV}" in
         py27)
             brew upgrade pyenv
-            pyenv install 2.7.10
-            pyenv global 2.7.10
+            pyenv install 2.7.9
+            pyenv global 2.7.9
             ;;
         pypy)
             brew upgrade pyenv
