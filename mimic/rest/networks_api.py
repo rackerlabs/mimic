@@ -1,5 +1,5 @@
 """
-Neutron API Plugin
+Networks API Plugin
 """
 from __future__ import absolute_import, division, unicode_literals
 
@@ -15,19 +15,19 @@ from mimic.imimic import IAPIMock
 
 
 @implementer(IAPIMock, IPlugin)
-class NeutronApi(object):
+class NetworksApi(object):
     """
-    Rest endpoints for mocked Neutron Api.
+    Rest endpoints for mocked Networks Api.
     """
     def __init__(self, regions=["ORD", "DFW", "IAD"]):
         """
-        Create a NeutronApi.
+        Create a NetworksApi.
         """
         self._regions = regions
 
     def catalog_entries(self, tenant_id):
         """
-        List catalog entries for the Neutron API.
+        List catalog entries for the Networks API.
         """
         return [
             Entry(
@@ -44,16 +44,16 @@ class NeutronApi(object):
         Get an :obj:`twisted.web.iweb.IResource` for the given URI prefix;
         implement :obj:`IAPIMock`.
         """
-        return NeutronMock(self, uri_prefix, session_store, region).app.resource()
+        return NetworksMock(self, uri_prefix, session_store, region).app.resource()
 
 
-class NeutronMock(object):
+class NetworksMock(object):
     """
-    Klein routes for the Neutron API.
+    Klein routes for the Networking API.
     """
     def __init__(self, api_mock, uri_prefix, session_store, name):
         """
-        Create a neutron region with a given URI prefix
+        Create a networks region with a given URI prefix
         """
         self.uri_prefix = uri_prefix
         self._api_mock = api_mock

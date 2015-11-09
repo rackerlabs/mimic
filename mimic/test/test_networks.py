@@ -1,24 +1,24 @@
 """
-Tests for neutron api
+Tests for networks api
 """
 
 from __future__ import absolute_import, division, unicode_literals
 from twisted.trial.unittest import SynchronousTestCase
 from mimic.test.helpers import json_request
-from mimic.rest.neutron_api import NeutronApi
+from mimic.rest.networks_api import NetworksApi
 from mimic.test.fixtures import APIMockHelper
 
 
-class NeutronTests(SynchronousTestCase):
+class NetworksTests(SynchronousTestCase):
     """
-    Tests for neutron using the Neutron Api plugin.
+    Tests for networks using the Networks Api plugin.
     """
     def setUp(self):
         """
-        Initialize core and root
+        Create a :obj:`MimicCore` with :obj: `NetworksApi` as the only plugin.
         """
-        neutron_api = NeutronApi(['DFW'])
-        self.helper = APIMockHelper(self, [neutron_api])
+        networks_api = NetworksApi(['DFW'])
+        self.helper = APIMockHelper(self, [networks_api])
         self.root = self.helper.root
         self.uri = self.helper.uri
 
@@ -26,7 +26,8 @@ class NeutronTests(SynchronousTestCase):
         """
         Requesting a list of networks for a tenant that does not have any will return
         a 200 with an empty network list
-        http://developer.openstack.org/api-ref-networking-v2.html#listNetworks
+        https://developer.rackspace.com/docs/cloud-networks/v2/developer-guide/#retrieve-list-of-networks
+        http://developer.openstack.org/api-ref-networking-v2.html
         """
         (response, content) = self.successResultOf(json_request(
             self, self.root, b"GET", self.uri + '/networks'))
