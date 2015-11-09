@@ -7,7 +7,7 @@ from mimic.core import MimicCore
 from mimic.plugins import (nova_plugin, loadbalancer_plugin, swift_plugin,
                            queue_plugin, maas_plugin, rackconnect_v3_plugin,
                            glance_plugin, cloudfeeds_plugin, heat_plugin,
-                           dns_plugin)
+                           dns_plugin, cinder_plugin)
 
 
 class CoreBuildingTests(SynchronousTestCase):
@@ -44,7 +44,8 @@ class CoreBuildingTests(SynchronousTestCase):
             swift_plugin.swift,
             cloudfeeds_plugin.cloudfeeds,
             cloudfeeds_plugin.cloudfeeds_control,
-            dns_plugin.dns
+            dns_plugin.dns,
+            cinder_plugin.cinder
         ))
         self.assertEqual(
             plugin_apis,
