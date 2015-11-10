@@ -9,6 +9,9 @@ else
     DARWIN=false
 fi
 
+PYPY_VERSION="pypy-4.0.0";
+PYTHON_VERSION="2.7.10";
+
 if [[ "$DARWIN" = true ]]; then
 
     brew update
@@ -20,13 +23,13 @@ if [[ "$DARWIN" = true ]]; then
     case "${TOXENV}" in
         py27)
             brew upgrade pyenv
-            pyenv install 2.7.9
-            pyenv global 2.7.9
+            pyenv install "${PYTHON_VERSION}";
+            pyenv global "${PYTHON_VERSION}";
             ;;
         pypy)
             brew upgrade pyenv
-            pyenv install pypy-2.6.1
-            pyenv global pypy-2.6.1
+            pyenv install "${PYPY_VERSION}";
+            pyenv global "${PYPY_VERSION}";
             ;;
     esac
     pyenv rehash
@@ -38,8 +41,8 @@ else
         PYENV_ROOT="$HOME/.pyenv"
         PATH="$PYENV_ROOT/bin:$PATH"
         eval "$(pyenv init -)"
-        pyenv install pypy-2.6.1
-        pyenv global pypy-2.6.1
+        pyenv install "${PYPY_VERSION}";
+        pyenv global "${PYPY_VERSION}";
     fi
     pip install virtualenv
 fi
