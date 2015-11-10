@@ -12,15 +12,13 @@ fi
 PYPY_VERSION="pypy-4.0.0";
 PYTHON_VERSION="2.7.10";
 USE_PYENV_PYTHON="";
+USE_HOMEBREW_PYTHON="";
 
 if [[ "$DARWIN" = true ]]; then
     sw_vers; # report system version.
     brew update
 
     case "${TOXENV}" in
-        py27)
-            USE_PYENV_PYTHON="${PYTHON_VERSION}";
-            ;;
         pypy)
             USE_PYENV_PYTHON="${PYPY_VERSION}";
             ;;
@@ -36,11 +34,12 @@ if [[ "$DARWIN" = true ]]; then
         pyenv global "${USE_PYENV_PYTHON}";
 
         pyenv rehash;
-    else
+    elif [ -n "${USE_HOMEBREW_PYTHON}" ]; then
         brew install python;
     fi;
 
-    pip install --user virtualenv
+    python -m ensurepip --user;
+    python -m pip install --user virtualenv;
 else
     uname -a; # report system version
     # temporary pyenv installation to get pypy-2.6 before container infra upgrade
@@ -52,7 +51,7 @@ else
         pyenv install "${PYPY_VERSION}";
         pyenv global "${PYPY_VERSION}";
     fi
-    pip install virtualenv
+    python -m pip install virtualenv;
 fi
 
 if [[ "${MACAPP_ENV}" == "system" ]]; then
