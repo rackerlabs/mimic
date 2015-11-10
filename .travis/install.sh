@@ -11,26 +11,33 @@ fi
 
 PYPY_VERSION="pypy-4.0.0";
 PYTHON_VERSION="2.7.10";
+USE_PYENV_PYTHON="";
 
 if [[ "$DARWIN" = true ]]; then
     sw_vers; # report system version.
     brew update
-
-    if which pyenv > /dev/null; then
-        eval "$(pyenv init -)"
-    fi
 
     case "${TOXENV}" in
         py27)
             brew install python
             ;;
         pypy)
-            brew upgrade pyenv
-            pyenv install "${PYPY_VERSION}";
-            pyenv global "${PYPY_VERSION}";
-            pyenv rehash
+            USE_PYENV_PYTHON="${PYPY_VERSION}";
             ;;
     esac
+
+    if [ -n "${USE_PYENV_PYTHON}" ]; then
+        brew install pyenv;
+        brew upgrade pyenv;
+
+        eval "$(pyenv init -)";
+
+        pyenv install "${USE_PYENV_PYTHON}";
+        pyenv global "${USE_PYENV_PYTHON}";
+
+        pyenv rehash;
+    fi;
+
     pip install --user virtualenv
 else
     uname -a; # report system version
