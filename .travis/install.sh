@@ -52,7 +52,7 @@ if [[ "${MACAPP_ENV}" == "system" ]]; then
 else
     python -m virtualenv ~/.venv
     source ~/.venv/bin/activate
-    pip install tox codecov
+    pip install 'tox==2.1.1' 'coverage==4.0.2' codecov
     coverage erase
     tox --recreate --notest
 
