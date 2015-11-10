@@ -4,10 +4,7 @@ set -e
 set -x
 
 # Use pyenv if pyenv is installed and available.
-
-PY_ENV="$(pyenv init -)";
-
-if [ -n "${PY_ENV}" ]; then
+if PY_ENV="$(pyenv init -)"; then
     eval "${PY_ENV}";
 fi
 
