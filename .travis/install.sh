@@ -19,7 +19,7 @@ if [[ "$DARWIN" = true ]]; then
 
     case "${TOXENV}" in
         py27)
-            brew install python
+            USE_PYENV_PYTHON="${PYTHON_VERSION}";
             ;;
         pypy)
             USE_PYENV_PYTHON="${PYPY_VERSION}";
