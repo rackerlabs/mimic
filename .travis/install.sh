@@ -36,6 +36,8 @@ if [[ "$DARWIN" = true ]]; then
         pyenv global "${USE_PYENV_PYTHON}";
 
         pyenv rehash;
+    else
+        brew install python;
     fi;
 
     pip install --user virtualenv
