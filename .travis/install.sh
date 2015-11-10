@@ -13,7 +13,7 @@ PYPY_VERSION="pypy-4.0.0";
 PYTHON_VERSION="2.7.10";
 
 if [[ "$DARWIN" = true ]]; then
-
+    sw_vers; # report system version.
     brew update
 
     if which pyenv > /dev/null; then
@@ -35,6 +35,7 @@ if [[ "$DARWIN" = true ]]; then
     pyenv rehash
     pip install --user virtualenv
 else
+    uname -a; # report system version
     # temporary pyenv installation to get pypy-2.6 before container infra upgrade
     if [[ "${TOXENV}" == "pypy" ]]; then
         git clone https://github.com/yyuu/pyenv.git ~/.pyenv
