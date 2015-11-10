@@ -9,39 +9,49 @@ else
     DARWIN=false
 fi
 
-if [[ "$DARWIN" = true ]]; then
+PYPY_VERSION="pypy-4.0.0";
+PYTHON_VERSION="2.7.10";
+USE_PYENV_PYTHON="";
+USE_HOMEBREW_PYTHON="";
 
+if [[ "$DARWIN" = true ]]; then
+    sw_vers; # report system version.
     brew update
 
-    if which pyenv > /dev/null; then
-        eval "$(pyenv init -)"
-    fi
-
     case "${TOXENV}" in
-        py27)
-            brew upgrade pyenv
-            pyenv install 2.7.9
-            pyenv global 2.7.9
-            ;;
         pypy)
-            brew upgrade pyenv
-            pyenv install pypy-2.6.1
-            pyenv global pypy-2.6.1
+            USE_PYENV_PYTHON="${PYPY_VERSION}";
             ;;
     esac
-    pyenv rehash
-    pip install --user virtualenv
+
+    if [ -n "${USE_PYENV_PYTHON}" ]; then
+        brew install pyenv;
+        brew upgrade pyenv || true;
+
+        eval "$(pyenv init -)";
+
+        pyenv install "${USE_PYENV_PYTHON}";
+        pyenv global "${USE_PYENV_PYTHON}";
+
+        pyenv rehash;
+    elif [ -n "${USE_HOMEBREW_PYTHON}" ]; then
+        brew install python;
+    fi;
+
+    python -m ensurepip --user;
+    python -m pip install --user virtualenv;
 else
+    uname -a; # report system version
     # temporary pyenv installation to get pypy-2.6 before container infra upgrade
     if [[ "${TOXENV}" == "pypy" ]]; then
         git clone https://github.com/yyuu/pyenv.git ~/.pyenv
         PYENV_ROOT="$HOME/.pyenv"
         PATH="$PYENV_ROOT/bin:$PATH"
         eval "$(pyenv init -)"
-        pyenv install pypy-2.6.1
-        pyenv global pypy-2.6.1
+        pyenv install "${PYPY_VERSION}";
+        pyenv global "${PYPY_VERSION}";
     fi
-    pip install virtualenv
+    python -m pip install virtualenv;
 fi
 
 if [[ "${MACAPP_ENV}" == "system" ]]; then
