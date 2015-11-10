@@ -28,9 +28,9 @@ if [[ "$DARWIN" = true ]]; then
             brew upgrade pyenv
             pyenv install "${PYPY_VERSION}";
             pyenv global "${PYPY_VERSION}";
+            pyenv rehash
             ;;
     esac
-    pyenv rehash
     pip install --user virtualenv
 else
     uname -a; # report system version
