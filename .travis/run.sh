@@ -3,8 +3,12 @@
 set -e
 set -x
 
-if [[ "$(uname -s)" == "Darwin" ]]; then
-    eval "$(pyenv init -)"
+# Use pyenv if pyenv is installed and available.
+
+PY_ENV="$(pyenv init -)";
+
+if [ -n "${PY_ENV}" ]; then
+    eval "${PY_ENV}";
 fi
 
 if [[ "${MACAPP_ENV}" == "system" ]]; then

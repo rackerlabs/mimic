@@ -22,9 +22,7 @@ if [[ "$DARWIN" = true ]]; then
 
     case "${TOXENV}" in
         py27)
-            brew upgrade pyenv
-            pyenv install "${PYTHON_VERSION}";
-            pyenv global "${PYTHON_VERSION}";
+            brew install python
             ;;
         pypy)
             brew upgrade pyenv
