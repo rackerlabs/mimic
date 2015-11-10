@@ -28,7 +28,7 @@ if [[ "$DARWIN" = true ]]; then
 
     if [ -n "${USE_PYENV_PYTHON}" ]; then
         brew install pyenv;
-        brew upgrade pyenv;
+        brew upgrade pyenv || true;
 
         eval "$(pyenv init -)";
 
