@@ -11,5 +11,5 @@ if [[ "${MACAPP_ENV}" == "system" ]]; then
     ./build-app.sh
 else
     source ~/.venv/bin/activate
-    tox -vvvvv --develop -- $TOX_FLAGS
+    tox --develop -- $TOX_FLAGS
 fi
