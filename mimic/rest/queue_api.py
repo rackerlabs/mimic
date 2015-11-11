@@ -19,6 +19,17 @@ from mimic.rest.mimicapp import MimicApp
 from zope.interface import implementer
 
 
+def _client_id(request):
+    """
+    Gets the value of the Client-ID header from the request.
+
+    We know the Client-ID must be decodable as ASCII because
+    Cloud Queues requires it to be submitted as a UUID. Mimic
+    is not so strict, but requiring ASCII is ok.
+    """
+    return request.requestHeaders.getRawHeaders(b'client-id')[0].decode("ascii")
+
+
 @implementer(IAPIMock, IPlugin)
 class QueueApi(object):
     """
@@ -77,7 +88,8 @@ class QueueApiRoutes(object):
         """
         return (self._session_store.session_for_tenant_id(tenant_id)
                 .data_for_api(self._api_mock,
-                              lambda: collections.defaultdict(QueueCollection))
+                              lambda: collections.defaultdict(
+                                  lambda: QueueCollection(clock=self._session_store.clock)))
                 [self._queue_name])
 
     @app.route("/v1/<string:tenant_id>/queues/<string:queue_name>", methods=['PUT'])
@@ -107,5 +119,29 @@ class QueueApiRoutes(object):
         """
         q_collection = self._queue_collection(tenant_id)
         (response_body, response_code) = q_collection.delete_queue(queue_name)
+        request.setResponseCode(response_code)
+        return json.dumps(response_body)
+
+    @app.route("/v1/<string:tenant_id>/queues/<string:queue_name>/messages", methods=['GET'])
+    def list_messages_for_queue(self, request, tenant_id, queue_name):
+        """
+        Lists messages from the queue.
+        """
+        q_collection = self._queue_collection(tenant_id)
+        echo = request.args.get(b'echo', [b'false'])[0] == b'true'
+        (response_body, response_code) = q_collection.list_messages_for_queue(
+            queue_name, _client_id(request), echo)
+        request.setResponseCode(response_code)
+        return json.dumps(response_body)
+
+    @app.route("/v1/<string:tenant_id>/queues/<string:queue_name>/messages", methods=['POST'])
+    def post_messages_to_queue(self, request, tenant_id, queue_name):
+        """
+        Posts messages to the queue.
+        """
+        q_collection = self._queue_collection(tenant_id)
+        messages = json.loads(request.content.read().decode("utf-8"))
+        (response_body, response_code) = q_collection.post_messages_to_queue(
+            queue_name, messages, _client_id(request))
         request.setResponseCode(response_code)
         return json.dumps(response_body)
