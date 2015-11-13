@@ -221,35 +221,30 @@ class MaasAPITests(SynchronousTestCase):
 
     def test_list_entity(self):
         """
-        test list entity
+        The entity list call returns paginated results.
         """
-        req = request(self, self.root, b"GET", self.uri + '/entities')
-        resp = self.successResultOf(req)
+        self.createEntity('entity-2')
+        (resp, data) = self.successResultOf(json_request(
+            self, self.root, b"GET", '{0}/entities?limit=1'.format(self.uri)))
         self.assertEquals(resp.code, 200)
-        data = self.get_responsebody(resp)
-        self.assertEquals(data['metadata']['count'], 1)
-        for q in range(1, 101):
-            self.createEntity('Cinnamon' + text_type(q))
-        # Invalid markers list all entities.
-        req = request(self, self.root, b"GET",
-                      self.uri + '/entities?marker=invalid-nonsense')
-        resp = self.successResultOf(req)
+        self.assertEquals(data['values'][0]['label'], 'ItsAnEntity')
+
+        (resp, data) = self.successResultOf(json_request(
+            self, self.root, b"GET", '{0}/entities?marker={1}'.format(
+                self.uri, data['metadata']['next_marker'])))
         self.assertEquals(resp.code, 200)
-        data = self.get_responsebody(resp)
-        self.assertEquals(data['metadata']['count'], 100)
-        for q in range(1, 101):
-            req = request(self, self.root, b"GET", self.uri + '/entities/?limit=' + text_type(q))
-            resp = self.successResultOf(req)
-            self.assertEquals(resp.code, 200)
-            data = self.get_responsebody(resp)
-            self.assertEquals(data['metadata']['count'], q)
-            marker = data['metadata']['next_marker']
-        req = request(self, self.root, b"GET", self.uri + '/entities/?marker=' + marker)
-        resp = self.successResultOf(req)
+        self.assertEquals(data['values'][0]['label'], 'entity-2')
+
+    def test_list_entity_pagination_marker_not_found(self):
+        """
+        When a pagination marker is not found, the entity list call
+        returns results from the beginning.
+        """
+        (resp, data) = self.successResultOf(json_request(
+            self, self.root, b"GET", '{0}/entities?marker=enDoesNotExist'.format(
+                self.uri)))
         self.assertEquals(resp.code, 200)
-        data = self.get_responsebody(resp)
-        self.assertEquals(data['metadata']['count'], 1)
-        self.assertEquals(data['metadata']['next_marker'], None)
+        self.assertEquals(data['values'][0]['label'], 'ItsAnEntity')
 
     def test_get_entity(self):
         """
