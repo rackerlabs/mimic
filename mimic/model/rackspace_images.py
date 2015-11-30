@@ -4,7 +4,7 @@ Model objects for mimic images.
 
 from __future__ import absolute_import, division, unicode_literals
 
-from characteristic import attributes
+from characteristic import attributes, Attribute
 import uuid
 import random
 
@@ -23,10 +23,36 @@ def random_image_size():
     return random.randint(250000, 80000000000)
 
 
-@attributes(['image_id', 'tenant_id', 'name', 'minDisk', 'minRam', 'image_size'])
+@attributes([
+    # Prior to refactor; no default value
+    'image_id', 'tenant_id', 'name', 'minDisk', 'minRam', 'image_size',
+    # Post-refactor; all have default values, but these should be slowly
+    # removed.
+    Attribute('flavor_classes', default_value="*"),
+    Attribute('image_type', default_value="base"),
+    Attribute('os_type', default_value="linux"),
+    Attribute('os_distro', default_value=""),
+    Attribute('vm_mode', default_value="hvm"),
+    Attribute('auto_disk_config', default_value="disabled"),
+])
 class Image(object):
     """
     A Image object
+
+    :ivar str flavor_classes: rackspace-specific metadata; a string describing
+        the flavor classes which apply to this image; this is (probably?)
+    :ivar str image_type: a string describing the type of image, possible
+        values are "base" meaning a public cloud image created by the cloud
+        provider, and "snapshot", which is created from a running server.
+    :ivar str os_type: rackspace-specific metadata; the operating system name,
+        such as "linux" or "windows"
+    :ivar str os_distro: an identifier for the the distribution vendor of the
+        operating system, such as "org.archlinux".
+    :ivar str vm_mode: the virtualization mode used with this image; possible
+        values: "hvm", "xen" or "metal" (for OnMetal).
+    :ivar str auto_disk_config: whether automatic disk configuration is used
+        with this image; possible values: "True", "disabled", and "False".
+        (TODO: what does "False" mean?)
     """
 
     is_default = False
@@ -73,6 +99,20 @@ class Image(object):
             "name": self.name
         })
         return template
+
+    def metadata_json(self):
+        """
+        Create a JSON-serializable data structure describing
+        ``metadata`` for an image.
+        """
+        return {
+            "flavor_classes": self.flavor_classes,
+            "image_type": self.image_type,
+            "os_type": self.os_type,
+            "org.openstack__1__os_distro": self.os_distro,
+            "vm_mode": self.vm_mode,
+            "auto_disk_config": self.auto_disk_config
+        }
 
     def detailed_json(self, absolutize_url):
         """
@@ -222,27 +262,24 @@ class RackspaceWindowsImage(Image):
         }
 
 
-class RackspaceArchImage(Image):
+def create_rackspace_images(tenant_id):
     """
-    A Rackspace Arch image object representation
+    Create :obj:`Image` instances as they would appear in the rackspace public
+    cloud.
     """
-    images = {"Arch 2015.7 (PVHVM)": {"minRam": 512, "minDisk": 20,
-                                      "OS-EXT-IMG-SIZE:size": random_image_size(),
-                                      "id": new_random_image_id()}}
-
-    def metadata_json(self):
-        """
-        Create a JSON-serializable data structure describing
-        ``metadata`` for an image.
-        """
-        return {
-            "flavor_classes": "*,!onmetal",
-            "image_type": "base",
-            "os_type": "linux",
-            "org.openstack__1__os_distro": "org.archlinux",
-            "vm_mode": "hvm",
-            "auto_disk_config": "disabled"
-        }
+    return [
+        Image(tenant_id=tenant_id,
+              name="Arch 2015.7 (PVHVM)",
+              image_id=new_random_image_id(),
+              image_size=random_image_size(),
+              minRam=512, minDisk=20,
+              flavor_classes="*,!onmetal",
+              os_type="linux",
+              os_distro="org.archlinux",
+              vm_mode="hvm",
+              auto_disk_config="disabled",
+        )
+    ]
 
 
 class RackspaceCentOSPVHMImage(Image):

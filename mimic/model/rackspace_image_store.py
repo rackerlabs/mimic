@@ -4,7 +4,7 @@ An image store representing Rackspace specific images
 from __future__ import absolute_import, division, unicode_literals
 from characteristic import attributes, Attribute
 from six import iteritems
-from mimic.model.rackspace_images import (RackspaceWindowsImage, RackspaceArchImage,
+from mimic.model.rackspace_images import (RackspaceWindowsImage,
                                           RackspaceCentOSPVImage, RackspaceCentOSPVHMImage,
                                           RackspaceCoreOSImage, RackspaceDebianImage,
                                           RackspaceFedoraImage, RackspaceFreeBSDImage,
@@ -16,6 +16,7 @@ from mimic.model.rackspace_images import (RackspaceWindowsImage, RackspaceArchIm
                                           RackspaceOnMetalDebianImage, RackspaceOnMetalFedoraImage,
                                           RackspaceOnMetalUbuntuImage)
 
+from mimic.model.rackspace_images import create_rackspace_images
 
 @attributes([Attribute("image_list", default_factory=list)])
 class RackspaceImageStore(object):
@@ -27,7 +28,7 @@ class RackspaceImageStore(object):
         """
         Generates the data for each image in each image class
         """
-        image_classes = [RackspaceWindowsImage, RackspaceArchImage, RackspaceCentOSPVImage,
+        image_classes = [RackspaceWindowsImage, RackspaceCentOSPVImage,
                          RackspaceCentOSPVHMImage, RackspaceCoreOSImage, RackspaceDebianImage,
                          RackspaceFedoraImage, RackspaceFreeBSDImage, RackspaceGentooImage,
                          RackspaceOpenSUSEImage, RackspaceRedHatPVImage, RackspaceRedHatPVHMImage,
@@ -49,6 +50,7 @@ class RackspaceImageStore(object):
                     if 'com.rackspace__1__ui_default_show' in image_spec:
                         image.set_is_default()
                     self.image_list.append(image)
+            self.image_list.extend(create_rackspace_images(tenant_id))
         return self.image_list
 
     def get_image_by_id(self, image_id):
