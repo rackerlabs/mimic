@@ -16,7 +16,7 @@ def new_random_image_id():
     return str(uuid.uuid4())
 
 
-def random_image_size(cls):
+def random_image_size():
     """
     Generate a random size for images
     """
