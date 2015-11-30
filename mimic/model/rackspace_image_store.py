@@ -18,6 +18,7 @@ from mimic.model.rackspace_images import (RackspaceWindowsImage,
 
 from mimic.model.rackspace_images import create_rackspace_images
 
+
 @attributes([Attribute("image_list", default_factory=list)])
 class RackspaceImageStore(object):
     """

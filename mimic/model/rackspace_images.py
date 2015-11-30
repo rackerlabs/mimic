@@ -268,16 +268,17 @@ def create_rackspace_images(tenant_id):
     cloud.
     """
     return [
-        Image(tenant_id=tenant_id,
-              name="Arch 2015.7 (PVHVM)",
-              image_id=new_random_image_id(),
-              image_size=random_image_size(),
-              minRam=512, minDisk=20,
-              flavor_classes="*,!onmetal",
-              os_type="linux",
-              os_distro="org.archlinux",
-              vm_mode="hvm",
-              auto_disk_config="disabled",
+        Image(
+            tenant_id=tenant_id,
+            name="Arch 2015.7 (PVHVM)",
+            image_id=new_random_image_id(),
+            image_size=random_image_size(),
+            minRam=512, minDisk=20,
+            flavor_classes="*,!onmetal",
+            os_type="linux",
+            os_distro="org.archlinux",
+            vm_mode="hvm",
+            auto_disk_config="disabled",
         )
     ]
 
