@@ -23,7 +23,6 @@ def random_image_size():
     return random.randint(250000, 80000000000)
 
 
-
 @attributes(['image_id', 'tenant_id', 'name', 'minDisk', 'minRam', 'image_size'])
 class Image(object):
     """
@@ -252,10 +251,12 @@ class RackspaceCentOSPVHMImage(Image):
     """
     images = {"CentOS 7 (PVHVM)": {"minRam": 512, "minDisk": 20,
                                    "OS-EXT-IMG-SIZE:size": random_image_size(),
-                                   "com.rackspace__1__ui_default_show": "True", "id": new_random_image_id()},
+                                   "com.rackspace__1__ui_default_show": "True",
+                                   "id": new_random_image_id()},
               "CentOS 6 (PVHVM)": {"minRam": 512, "minDisk": 20,
                                    "OS-EXT-IMG-SIZE:size": random_image_size(),
-                                   "com.rackspace__1__ui_default_show": "True", "id": new_random_image_id()}}
+                                   "com.rackspace__1__ui_default_show": "True",
+                                   "id": new_random_image_id()}}
 
     def metadata_json(self):
         """
@@ -276,9 +277,11 @@ class RackspaceCentOSPVImage(Image):
     """
     A Rackspace CentOS Xen image object representation
     """
-    images = {"CentOS 6 (PV)": {"minRam": 512, "minDisk": 20, "OS-EXT-IMG-SIZE:size": random_image_size(),
+    images = {"CentOS 6 (PV)": {"minRam": 512, "minDisk": 20,
+                                "OS-EXT-IMG-SIZE:size": random_image_size(),
                                 "id": new_random_image_id()},
-              "CentOS 5 (PV)": {"minRam": 512, "minDisk": 20, "OS-EXT-IMG-SIZE:size": random_image_size(),
+              "CentOS 5 (PV)": {"minRam": 512, "minDisk": 20,
+                                "OS-EXT-IMG-SIZE:size": random_image_size(),
                                 "id": new_random_image_id()}}
 
     def metadata_json(self):
@@ -300,14 +303,16 @@ class RackspaceCoreOSImage(Image):
     """
     A Rackspace CoreOS image object representation
     """
-    images = {"CoreOS (Beta)": {"minRam": 512, "minDisk": 20, "OS-EXT-IMG-SIZE:size": random_image_size(),
+    images = {"CoreOS (Beta)": {"minRam": 512, "minDisk": 20,
+                                "OS-EXT-IMG-SIZE:size": random_image_size(),
                                 "id": new_random_image_id()},
               "CoreOS (Alpha)": {"minRam": 512, "minDisk": 20,
                                  "OS-EXT-IMG-SIZE:size": random_image_size(),
                                  "id": new_random_image_id()},
               "CoreOS (Stable)": {"minRam": 512, "minDisk": 20,
                                   "OS-EXT-IMG-SIZE:size": random_image_size(),
-                                  "com.rackspace__1__ui_default_show": "True", "id": new_random_image_id()}}
+                                  "com.rackspace__1__ui_default_show": "True",
+                                  "id": new_random_image_id()}}
 
     def metadata_json(self):
         """
@@ -331,9 +336,11 @@ class RackspaceDebianImage(Image):
     images = {"Debian 7 (Wheezy) (PVHVM)": {"minRam": 512, "minDisk": 20, "id": new_random_image_id(),
                                             "OS-EXT-IMG-SIZE:size": random_image_size(),
                                             "com.rackspace__1__ui_default_show": "True"},
-              "Debian Unstable (Sid) (PVHVM)": {"minRam": 512, "minDisk": 20, "id": new_random_image_id(),
+              "Debian Unstable (Sid) (PVHVM)": {"minRam": 512, "minDisk": 20,
+                                                "id": new_random_image_id(),
                                                 "OS-EXT-IMG-SIZE:size": random_image_size()},
-              "Debian Testing (Stretch) (PVHVM)": {"minRam": 512, "minDisk": 20, "id": new_random_image_id(),
+              "Debian Testing (Stretch) (PVHVM)": {"minRam": 512, "minDisk": 20,
+                                                   "id": new_random_image_id(),
                                                    "OS-EXT-IMG-SIZE:size": random_image_size()},
               "Debian 8 (Jessie) (PVHVM)": {"minRam": 512, "minDisk": 20, "id": new_random_image_id(),
                                             "OS-EXT-IMG-SIZE:size": random_image_size(),
@@ -483,9 +490,11 @@ class RackspaceRedHatPVImage(Image):
     """
     A Rackspace Red Hat image object representation
     """
-    images = {"Red Hat Enterprise Linux 6 (PV)": {"minRam": 512, "minDisk": 20, "id": new_random_image_id(),
+    images = {"Red Hat Enterprise Linux 6 (PV)": {"minRam": 512, "minDisk": 20,
+                                                  "id": new_random_image_id(),
                                                   "OS-EXT-IMG-SIZE:size": random_image_size()},
-              "Red Hat Enterprise Linux 5 (PV)": {"minRam": 512, "minDisk": 20, "id": new_random_image_id(),
+              "Red Hat Enterprise Linux 5 (PV)": {"minRam": 512, "minDisk": 20,
+                                                  "id": new_random_image_id(),
                                                   "OS-EXT-IMG-SIZE:size": random_image_size()}}
 
     def metadata_json(self):
