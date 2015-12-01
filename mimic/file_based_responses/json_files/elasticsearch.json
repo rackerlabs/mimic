@@ -1,0 +1,479 @@
+[
+  {
+    "order_key": 1,
+    "index": "abacus",
+    "type": "syntheticNeutronAPICheck",
+    "data": {
+      "query": {
+        "match": {
+          "region": "DFW"
+        }
+      },
+      "aggs": {
+        "counts": {
+          "filter": {
+            "range": {
+              "@timestamp": {
+                "from": "1441737562000"
+              }
+            }
+          },
+          "aggs": {
+            "2xx": {
+              "sum": {
+                "field": "2xx"
+              }
+            },
+            "other": {
+              "sum": {
+                "field": "other"
+              }
+            },
+            "5xx": {
+              "sum": {
+                "field": "5xx"
+              }
+            }
+          }
+        }
+      }
+    },
+    "response": {
+      "hits": {
+        "hits": [
+          {
+            "_score": 2.8411749999999998,
+            "_type": "syntheticNeutronAPICheck",
+            "_id": "F29sLPlfS9W2klRN9wbPLQ",
+            "_source": {
+              "region": "dfw",
+              "5xx": 0,
+              "2xx": 0,
+              "other": 0,
+              "error": 7,
+              "@timestamp": 1431554357082
+            },
+            "_index": "abacus"
+          },
+          {
+            "_score": 2.8411749999999998,
+            "_type": "syntheticNeutronAPICheck",
+            "_id": "_8xG-mhNTUiFDq8_zhmWVA",
+            "_source": {
+              "region": "dfw",
+              "5xx": 0,
+              "2xx": 8,
+              "other": 0,
+              "error": 0,
+              "@timestamp": 1431565151693
+            },
+            "_index": "abacus"
+          },
+          {
+            "_score": 2.8411749999999998,
+            "_type": "syntheticNeutronAPICheck",
+            "_id": "iF4hpXYKSv-3DIo0UI1d2Q",
+            "_source": {
+              "region": "dfw",
+              "5xx": 0,
+              "2xx": 8,
+              "other": 0,
+              "error": 0,
+              "@timestamp": 1431712022463
+            },
+            "_index": "abacus"
+          },
+          {
+            "_score": 2.8411749999999998,
+            "_type": "syntheticNeutronAPICheck",
+            "_id": "oHNGXTvGR0eHhwqZ0648JA",
+            "_source": {
+              "region": "dfw",
+              "5xx": 0,
+              "2xx": 8,
+              "other": 0,
+              "error": 0,
+              "@timestamp": 1431724449689
+            },
+            "_index": "abacus"
+          },
+          {
+            "_score": 2.8411749999999998,
+            "_type": "syntheticNeutronAPICheck",
+            "_id": "TztqK1jGReeZmzXd9egJAw",
+            "_source": {
+              "region": "dfw",
+              "5xx": 0,
+              "2xx": 7,
+              "other": 0,
+              "error": 0,
+              "@timestamp": 1431742142837
+            },
+            "_index": "abacus"
+          },
+          {
+            "_score": 2.8411749999999998,
+            "_type": "syntheticNeutronAPICheck",
+            "_id": "zlFQL9AGQxuAySRX6pe6IA",
+            "_source": {
+              "region": "dfw",
+              "5xx": 0,
+              "2xx": 8,
+              "other": 0,
+              "error": 0,
+              "@timestamp": 1431749936383
+            },
+            "_index": "abacus"
+          },
+          {
+            "_score": 2.8411749999999998,
+            "_type": "syntheticNeutronAPICheck",
+            "_id": "SttjpDizR1Ch-Xz7rkyO6g",
+            "_source": {
+              "region": "dfw",
+              "5xx": 0,
+              "2xx": 8,
+              "other": 0,
+              "error": 0,
+              "@timestamp": 1431750539927
+            },
+            "_index": "abacus"
+          },
+          {
+            "_score": 2.8411749999999998,
+            "_type": "syntheticNeutronAPICheck",
+            "_id": "JNw0-HadSACmG3Btb6HGHA",
+            "_source": {
+              "region": "dfw",
+              "5xx": 0,
+              "2xx": 8,
+              "other": 0,
+              "error": 0,
+              "@timestamp": 1431755345677
+            },
+            "_index": "abacus"
+          },
+          {
+            "_score": 2.8411749999999998,
+            "_type": "syntheticNeutronAPICheck",
+            "_id": "WhBt1bOfS9G-Vm393DOtGg",
+            "_source": {
+              "region": "dfw",
+              "5xx": 0,
+              "2xx": 7,
+              "other": 0,
+              "error": 0,
+              "@timestamp": 1431762245382
+            },
+            "_index": "abacus"
+          },
+          {
+            "_score": 2.8411749999999998,
+            "_type": "syntheticNeutronAPICheck",
+            "_id": "lZhzgfdUT8W0mKLHMlj-vA",
+            "_source": {
+              "region": "dfw",
+              "5xx": 0,
+              "2xx": 8,
+              "other": 0,
+              "error": 0,
+              "@timestamp": 1431762848173
+            },
+            "_index": "abacus"
+          }
+        ],
+        "total": 35187,
+        "max_score": 2.8411749999999998
+      },
+      "_shards": {
+        "successful": 5,
+        "failed": 0,
+        "total": 5
+      },
+      "took": 6,
+      "aggregations": {
+        "counts": {
+          "2xx": {
+            "value": 60.0
+          },
+          "other": {
+            "value": 10.0
+          },
+          "5xx": {
+            "value": 30.0
+          },
+          "doc_count": 2015
+        }
+      },
+      "timed_out": false
+    }
+  },
+  {
+    "order_key": 2,
+    "index": "abacus",
+    "type": "syntheticNovaAPICheck",
+    "data": {
+      "query": {
+        "match": {
+          "region": "DFW"
+        }
+      },
+      "aggs": {
+        "counts": {
+          "filter": {
+            "range": {
+              "@timestamp": {
+                "from": 1441734186000
+              }
+            }
+          },
+          "aggs": {
+            "2xx": {
+              "sum": {
+                "field": "2xx"
+              }
+            },
+            "5xx": {
+              "sum": {
+                "field": "5xx"
+              }
+            },
+            "other": {
+              "sum": {
+                "field": "other"
+              }
+            }
+          }
+        }
+      }
+    },
+    "response": {
+      "hits": {
+        "hits": [
+          {
+            "_score": 2.8411746,
+            "_type": "syntheticNovaAPICheck",
+            "_id": "MIze_4yFTdudalG6-LqY_A",
+            "_source": {
+              "2xx": 9,
+              "region": "DFW",
+              "other": 0,
+              "@timestamp": 1425597505661,
+              "5xx": 0
+            },
+            "_index": "abacus"
+          },
+          {
+            "_score": 2.8411746,
+            "_type": "syntheticNovaAPICheck",
+            "_id": "9YnIIeViTaOr6FV_O-ihNA",
+            "_source": {
+              "2xx": 9,
+              "region": "DFW",
+              "other": 0,
+              "@timestamp": 1425599318355,
+              "5xx": 0
+            },
+            "_index": "abacus"
+          },
+          {
+            "_score": 2.8411746,
+            "_type": "syntheticNovaAPICheck",
+            "_id": "jqR_CuFvSciA3AljxFziFw",
+            "_source": {
+              "2xx": 10,
+              "region": "DFW",
+              "other": 0,
+              "@timestamp": 1425608033539,
+              "5xx": 0
+            },
+            "_index": "abacus"
+          },
+          {
+            "_score": 2.8411746,
+            "_type": "syntheticNovaAPICheck",
+            "_id": "mhRCbQFuRiWdJynMuMG6fw",
+            "_source": {
+              "2xx": 10,
+              "region": "DFW",
+              "other": 0,
+              "@timestamp": 1425610427572,
+              "5xx": 0
+            },
+            "_index": "abacus"
+          },
+          {
+            "_score": 2.8411746,
+            "_type": "syntheticNovaAPICheck",
+            "_id": "efeuvgfLSoy2t4fUaShqxQ",
+            "_source": {
+              "2xx": 9,
+              "region": "DFW",
+              "other": 0,
+              "@timestamp": 1425612522106,
+              "5xx": 0
+            },
+            "_index": "abacus"
+          },
+          {
+            "_score": 2.8411746,
+            "_type": "syntheticNovaAPICheck",
+            "_id": "RCNF4QRgSZKk_xKxEzn-kA",
+            "_source": {
+              "2xx": 10,
+              "region": "DFW",
+              "other": 0,
+              "@timestamp": 1425614332871,
+              "5xx": 0
+            },
+            "_index": "abacus"
+          },
+          {
+            "_score": 2.8411746,
+            "_type": "syntheticNovaAPICheck",
+            "_id": "UFgkdwFrTZOQT8bWEP1Mpw",
+            "_source": {
+              "2xx": 10,
+              "region": "DFW",
+              "other": 0,
+              "@timestamp": 1425620908444,
+              "5xx": 0
+            },
+            "_index": "abacus"
+          },
+          {
+            "_score": 2.8411746,
+            "_type": "syntheticNovaAPICheck",
+            "_id": "ZViEpBFHTcGH1UYVapCwfQ",
+            "_source": {
+              "2xx": 9,
+              "region": "DFW",
+              "other": 0,
+              "@timestamp": 1425627820343,
+              "5xx": 0
+            },
+            "_index": "abacus"
+          },
+          {
+            "_score": 2.8411746,
+            "_type": "syntheticNovaAPICheck",
+            "_id": "2eaOjAnzRrqZEYjMwZYIpA",
+            "_source": {
+              "2xx": 9,
+              "region": "DFW",
+              "other": 0,
+              "@timestamp": 1425637122725,
+              "5xx": 0
+            },
+            "_index": "abacus"
+          },
+          {
+            "_score": 2.8411746,
+            "_type": "syntheticNovaAPICheck",
+            "_id": "yhMtHEoDQdOwLDzVW1B8dg",
+            "_source": {
+              "2xx": 9,
+              "region": "DFW",
+              "other": 0,
+              "@timestamp": 1425643127929,
+              "5xx": 0
+            },
+            "_index": "abacus"
+          }
+        ],
+        "total": 62803,
+        "max_score": 2.8411746
+      },
+      "_shards": {
+        "successful": 5,
+        "failed": 0,
+        "total": 5
+      },
+      "took": 145,
+      "aggregations": {
+        "counts": {
+          "2xx": {
+            "value": 75000
+          },
+          "other": {
+            "value": 10000
+          },
+          "5xx": {
+            "value": 15000
+          },
+          "doc_count": 4032
+        }
+      },
+      "timed_out": false
+    }
+  },
+  {
+    "order_key": 3,
+    "index": "novaperf-*",
+    "type": "ALL",
+    "params": {"q": "notif.type: \"nova-create-stats\" AND notif.os_type: \"linux\" AND notif.region: \"dfw\" AND NOT notif.host: \"ironic-compute\""},
+    "data": {
+      "aggs": {
+        "filtered": {
+          "filter": {
+            "bool": {
+              "must": [
+                {
+                  "range": {
+                    "@timestamp": {
+                      "from": "1441734194000"
+                    }
+                  }
+                },
+                {
+                  "terms": {
+                    "notif.tenant": [
+                      "728975",
+                      "10039319"
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "aggs": {
+            "median": {
+              "percentiles": {
+                "field": "notif.perf_data.timings.to_active",
+                "percents": [
+                  97.0
+                ]
+              }
+            }
+          }
+        }
+      },
+      "size": 0
+    },
+    "response": {
+      "hits": {
+        "hits": [],
+        "total": 763583,
+        "max_score": 0.0
+      },
+      "_shards": {
+        "successful": 450,
+        "failed": 0,
+        "total": 450
+      },
+      "took": 44,
+      "aggregations": {
+        "filtered": {
+          "median": {
+            "values": {
+              "97.0": 1260.034931364059406,
+              "50.0": 660.013710173009113
+            }
+          },
+          "doc_count": 2619
+        }
+      },
+      "timed_out": false
+    }
+  }
+]
