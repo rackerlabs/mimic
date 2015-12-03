@@ -1,5 +1,7 @@
 # Transitive dependencies (not including those already specified in
-# documentation.txt) for spell-checking documentation.
+# documentation.txt) for spell-checking documentation.  This is separate from
+# 'documentation.txt' because this has the native dependency of 'libenchant'
+# and may cause problems for some contributors to get set up locally.
 
 pyenchant==1.6.6
 sphinxcontrib-spelling==2.1.1
