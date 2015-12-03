@@ -14,9 +14,9 @@ if [[ "${MACAPP_ENV}" == "system" ]]; then
 fi;
 
 if [[ "$(uname -s)" == 'Darwin' ]]; then
-    DARWIN=true
+    DARWIN="true";
 else
-    DARWIN=false
+    DARWIN="false";
 fi
 
 # Do we need to use a Python from pyenv, or will the system one suffice?
@@ -30,7 +30,7 @@ fi;
 # way appropriate to the platform.
 
 if [[ -n "${PYENV_PYTHON}" ]]; then
-    if [[ "$DARWIN" = true ]]; then
+    if [[ "$DARWIN" == "true" ]]; then
         brew update;
         brew install pyenv || brew upgrade pyenv;
     else
