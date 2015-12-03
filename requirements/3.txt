@@ -1,0 +1,4 @@
+# This is a temporary special-case requirements file for Python 3 only.
+
+-f "https://github.com/twisted/treq/tarball/9196ee2136cda472134e4d454d3aeab6cded7f54#egg=treq-15.0.0"
+-f "https://github.com/twisted/klein/tarball/dbf744c355d9a2e8cda961a834f256f556377767#egg=klein-15.2.0"

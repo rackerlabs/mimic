@@ -1,0 +1,5 @@
+# Transitive dependencies (not including those already specified in
+# documentation.txt) for spell-checking documentation.
+
+pyenchant==1.6.6
+sphinxcontrib-spelling==2.1.1

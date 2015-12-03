@@ -1,0 +1,6 @@
+flake8==2.3.0
+mccabe==0.3
+pep257==0.4.1
+pep8==1.6.2
+pyflakes==0.8.1
+wheel==0.24.0

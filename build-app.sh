@@ -16,13 +16,13 @@ rm -fr ./dist ./build;
 # installation.  Everywhere else, you can run this with PIP_USER=yes.
 
 # install the dependencies for the main application
-pip install -r requirements.txt;
+pip install -r ;
 
 # install the application itself
 pip install .;
 
 # install dependencies that are needed to build and run the mac application
-pip install -r py2app-requirements.txt;
+pip install -r requirements/mac-app.txt;
 
 # build the application using py2app
 python setup.py py2app;
