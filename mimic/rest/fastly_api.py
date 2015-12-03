@@ -24,7 +24,6 @@ def text_urldata(urldata):
 
 
 class FastlyApi(object):
-
     """
     Rest endpoints for mocked Fastly api.
     """
