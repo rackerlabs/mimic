@@ -59,6 +59,8 @@ else
     # against behavior changes.
     pip install --upgrade --requirement=requirements/toolchain.txt codecov
     coverage erase
+    tox --version;
+    env;
     tox --recreate --notest
 
     # If "installdeps" fails, "tox" exits with an error, and the "set -e" above
