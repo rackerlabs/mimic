@@ -9,7 +9,7 @@ fi
 
 if [[ "${MACAPP_ENV}" == "system" ]]; then
     ./build-app.sh;
-    exit;
+    exit "$?";
 fi;
 
 source ~/.venv/bin/activate;
