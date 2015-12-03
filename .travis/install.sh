@@ -48,7 +48,7 @@ fi;
 # (travis's default is system-site-packages) for tooling, so that it's all the
 # right versions.
 
-python -m virtualenv ~/.venv;
+virtualenv ~/.venv -p "$(which python)";
 source ~/.venv/bin/activate;
 
 pip install --upgrade pip;
