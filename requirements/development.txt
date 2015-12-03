@@ -6,11 +6,4 @@
 --requirement=documentation.txt
 --requirement=lint.txt
 --requirement=spellcheck.txt
-
-detox==0.10.0
-eventlet==0.17.4
-greenlet==0.4.9
-pluggy==0.3.1
-py==1.4.31
-tox==2.2.1
-virtualenv==13.1.2
+--requirement=toolchain.txt

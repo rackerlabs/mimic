@@ -3,6 +3,8 @@
 set -e
 set -x
 
+pip install --upgrade --requirement=requirements/toolchain.txt;
+
 if [[ "$(uname -s)" == 'Darwin' ]]; then
     DARWIN=true
 else
@@ -30,7 +32,6 @@ if [[ "$DARWIN" = true ]]; then
             ;;
     esac
     pyenv rehash
-    pip install --user virtualenv
 else
     # temporary pyenv installation to get pypy-2.6 before container infra upgrade
     if [[ "${TOXENV}" == "pypy" ]]; then
@@ -41,7 +42,6 @@ else
         pyenv install pypy-2.6.1
         pyenv global pypy-2.6.1
     fi
-    pip install virtualenv
 fi
 
 if [[ "${MACAPP_ENV}" == "system" ]]; then
@@ -49,7 +49,11 @@ if [[ "${MACAPP_ENV}" == "system" ]]; then
 else
     python -m virtualenv ~/.venv
     source ~/.venv/bin/activate
-    pip install tox codecov
+    # Codecov is special and must be allowed to float since it is a client for
+    # an online service, and changes actually do need to be synchronized with
+    # that service, unlike everything else which should be pinned to insulate
+    # against behavior changes.
+    pip install --upgrade --requirement=requirements/toolchain.txt codecov
     coverage erase
     tox --recreate --notest
 
