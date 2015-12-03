@@ -8,8 +8,9 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
 fi
 
 if [[ "${MACAPP_ENV}" == "system" ]]; then
-    ./build-app.sh
-else
-    source ~/.venv/bin/activate
-    tox --develop -- $TOX_FLAGS
-fi
+    ./build-app.sh;
+    exit "$?";
+fi;
+
+source ~/.venv/bin/activate;
+tox --develop -- $TOX_FLAGS;

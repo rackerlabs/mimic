@@ -163,10 +163,13 @@ If you would prefer to advance Mimic to something resembling the present day ins
 * validate the auth token
 
 ## Running Mimic on a cloud server ##
-1. create a cloud server with an image that by default comes with python 2.7 (eg: ubuntu 12.04) and ssh into it
-2. `git clone https://github.com/rackerlabs/mimic.git`
-3. `pip install -r requirements.txt` from within the mimic folder (if there is a gcc error, `apt-get install python-dev`)
-4. cd into mimic or add the mimic to the PYTHONPATH and run `twistd -n mimic`
+1. create a cloud server with an image that by default comes with python 2.7
+   (eg: ubuntu 14.04) and ssh into it
+2. install virtualenv; for ubuntu, `sudo apt-get install python-virtualenv`
+3. `virtualenv my-mimic-install`
+4. `. my-mimic-install/bin/activate`
+5. `pip install mimic`
+6. `twistd -n mimic`
 
 ## Running Mimic on Docker ##
 

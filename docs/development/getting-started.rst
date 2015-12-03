@@ -1,17 +1,17 @@
 Getting started
 ===============
 
-Working on ``mimic`` requires the installation of a small number of
-development dependencies, which are listed in ``dev-requirements.txt``.
-They can be installed in a `virtualenv`_ using `pip`_.
-This also installs ``mimic`` in ``editable`` mode.
+Working on ``mimic`` requires the installation of a small number of development
+dependencies, which are listed in ``requirements/development.txt``.  They can
+be installed in a `virtualenv`_ using `pip`_.  This also installs ``mimic`` in
+``editable`` mode.
 
 For example:
 
 .. code-block:: console
 
     $ # Create a virtualenv and activate it
-    $ pip install --requirement dev-requirements.txt
+    $ pip install --requirement requirements/development.txt
 
 You are now ready to run the tests and build the documentation.
 
@@ -22,32 +22,12 @@ having `homebrew`_ installed would be useful if developing on Mac OS.
 Running tests
 ~~~~~~~~~~~~~
 
-``mimic`` unit tests are found in the ``mimic/test/`` directory.
-They are written as `Twisted`_ tests and can be run either with Twisted's
-`trial`_ or with ``unittest2``.
+``mimic`` unit tests are found in the ``mimic/test/`` directory.  Then can be
+run via the built-in ``tox`` commands after setting up ``tox``.
 
 .. code-block:: console
 
-    $ trial mimic
-
-Or
-
-.. code-block:: console
-
-    $ python -m unittest discover
-
-You can also check test coverage by using the `coverage`_ tool:
-
-.. code-block:: console
-
-    $ coverage run `which trial` mimic
-
-Or
-
-.. code-block:: console
-
-    $ coverage run -m unittest discover
-
+    $ tox -e py27
 
 You can also run the tests for other python interpreters.  We use
 `tox`_, which creates a `virtualenv`_ per tox job to run tests, linting, etc.:
@@ -69,27 +49,28 @@ Building documentation
 ``mimic`` documentation is stored in the ``docs/`` directory. It is
 written in `reStructured Text`_ and rendered using `Sphinx`_.
 
-To build the documentation, run ``sphinx``:
-
-.. code-block:: console
-
-    $ sphinx-build -W -b html -d _tmp/doctrees docs docs/_build/html
-
-The HTML documentation index can now be found at
-``docs/_build/html/index.html``.
-
-Alternately, you can use our ``tox`` job:
+To build the documentation, use ``tox``:
 
 .. code-block:: console
 
     $ tox -e docs
 
+The HTML documentation index can now be found at
+``docs/_build/html/index.html``.
+
+Alternately, you can use ``sphinx`` directly, if you would like to specify
+options:
+
+.. code-block:: console
+
+    $ sphinx-build -W -b html -d _tmp/doctrees docs docs/_build/html
+
 Building a Mac application
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The officially supported method of building of the application depends on the
-system python, `pyobjc`_, and `py2app`_ libraries installed with Mac OS.
-`Travis-CI`_ is configured to build the mac application and run its tests.
+system python, and the `pyobjc`_, and `py2app`_ libraries.  `Travis-CI`_ is
+configured to build the mac application and run its tests.
 
 To build the application and run its tests locally use the following commands.
 
@@ -139,8 +120,8 @@ tests.
    $ source ./venv/bin/activate
 
    # install mimic's dependencies including pyobjc and py2app
-   $ pip install -r requirements.txt
-   $ pip install -r py2app-requirements.txt
+   $ pip install -r requirements/production.txt
+   $ pip install -r requirements/mac-app.txt
    $ python setup.py py2app
    $ ./dist/mimic.app/Contents/MacOS/run-tests
 
