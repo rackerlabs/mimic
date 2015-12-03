@@ -8,6 +8,9 @@ set -x
 virtualenv ~/.venv;
 source ~/.venv/bin/activate;
 
+pip install --upgrade pip;
+pip install --upgrade pip;
+pip --version;
 pip install --upgrade --requirement=requirements/toolchain.txt;
 
 if [[ "$(uname -s)" == 'Darwin' ]]; then
