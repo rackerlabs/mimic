@@ -45,7 +45,6 @@ REMOTE_CHECK_TYPE_REGEX = re.compile(r'^remote\.')
 
 @implementer(IAPIMock, IPlugin)
 class MaasApi(object):
-
     """
     Rest endpoints for mocked MAAS Api.
     """
@@ -80,7 +79,6 @@ class MaasApi(object):
 
 
 class MCache(object):
-
     """
     M(onitoring) Cache Object to hold dictionaries of all entities, checks and alarms.
     """
@@ -363,7 +361,6 @@ def _mcache_factory(clock):
 
 
 class MaasMock(object):
-
     """
     Klein routes for the Monitoring API.
     """

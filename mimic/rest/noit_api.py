@@ -18,7 +18,6 @@ from mimic.canned_responses.noit import (create_check, get_check,
 
 
 class NoitApi(object):
-
     """
     Rest endpoints for mocked Noit api.
     """

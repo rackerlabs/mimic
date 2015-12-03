@@ -34,7 +34,6 @@ from mimic.util.helper import json_from_request
 
 @implementer(IAPIMock, IPlugin)
 class NovaApi(object):
-
     """
     Rest endpoints for mocked Nova Api.
     """
@@ -90,7 +89,6 @@ class NovaApi(object):
 @implementer(IAPIMock, IPlugin)
 @attributes(["nova_api"])
 class NovaControlApi(object):
-
     """
     Rest endpoints for the Nova Control Api.
     """
@@ -186,7 +184,6 @@ class NovaControlApiRegion(object):
 
 
 class NovaRegion(object):
-
     """
     Klein routes for the API within a Cloud Servers region.
 
@@ -485,7 +482,6 @@ class NovaRegion(object):
 
 
 class ServerMetadata(object):
-
     """
     Klein routes for a particular server's metadata.
     """
