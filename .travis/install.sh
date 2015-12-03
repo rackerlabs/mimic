@@ -3,6 +3,11 @@
 set -e
 set -x
 
+# Create an isolated virtualenv (travis's default is system-site-packages) for
+# tooling, so that it's all the right versions.
+virtualenv ~/.venv;
+source ~/.venv/bin/activate;
+
 pip install --upgrade --requirement=requirements/toolchain.txt;
 
 if [[ "$(uname -s)" == 'Darwin' ]]; then
@@ -45,10 +50,9 @@ else
 fi
 
 if [[ "${MACAPP_ENV}" == "system" ]]; then
-    brew install python
+    deactivate;
+    brew install python;
 else
-    python -m virtualenv ~/.venv
-    source ~/.venv/bin/activate
     # Codecov is special and must be allowed to float since it is a client for
     # an online service, and changes actually do need to be synchronized with
     # that service, unlike everything else which should be pinned to insulate
