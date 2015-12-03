@@ -15,8 +15,8 @@ rm -fr ./dist ./build;
 # For the moment, on Travis, we just do everything in a homebrew Python
 # installation.  Everywhere else, you can run this with PIP_USER=yes.
 
-# install the dependencies for the main application
-pip install -r ;
+# install the stable dependencies for the main application
+pip install -r requirements/production.txt;
 
 # install the application itself
 pip install .;
