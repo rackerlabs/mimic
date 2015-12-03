@@ -58,7 +58,8 @@ To build the documentation, use ``tox``:
 The HTML documentation index can now be found at
 ``docs/_build/html/index.html``.
 
-Alternately, you can use ``sphinx`` directly, if you would like to specify options:
+Alternately, you can use ``sphinx`` directly, if you would like to specify
+options:
 
 .. code-block:: console
 
