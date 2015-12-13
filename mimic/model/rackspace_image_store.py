@@ -5,7 +5,6 @@ from __future__ import absolute_import, division, unicode_literals
 from characteristic import attributes, Attribute
 from six import iteritems
 from mimic.model.rackspace_images import (RackspaceWindowsImage,
-                                          RackspaceCentOSPVImage, RackspaceCentOSPVHMImage,
                                           RackspaceCoreOSImage, RackspaceDebianImage,
                                           RackspaceFedoraImage, RackspaceFreeBSDImage,
                                           RackspaceGentooImage, RackspaceOpenSUSEImage,
@@ -29,8 +28,8 @@ class RackspaceImageStore(object):
         """
         Generates the data for each image in each image class
         """
-        image_classes = [RackspaceWindowsImage, RackspaceCentOSPVImage,
-                         RackspaceCentOSPVHMImage, RackspaceCoreOSImage, RackspaceDebianImage,
+        image_classes = [RackspaceWindowsImage,
+                         RackspaceCoreOSImage, RackspaceDebianImage,
                          RackspaceFedoraImage, RackspaceFreeBSDImage, RackspaceGentooImage,
                          RackspaceOpenSUSEImage, RackspaceRedHatPVImage, RackspaceRedHatPVHMImage,
                          RackspaceUbuntuPVImage, RackspaceUbuntuPVHMImage, RackspaceVyattaImage,

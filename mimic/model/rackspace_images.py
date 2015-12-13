@@ -279,6 +279,56 @@ def create_rackspace_images(tenant_id):
             os_distro="org.archlinux",
             vm_mode="hvm",
             auto_disk_config="disabled",
+        ),
+        Image(
+            tenant_id=tenant_id,
+            name="CentOS 6 (PV)",
+            image_id=new_random_image_id(),
+            image_size=random_image_size(),
+            minRam=512, minDisk=20,
+            flavor_classes="*,!io1,!memory1,!compute1,!onmetal",
+            os_type="linux",
+            os_distro="org.centos",
+            vm_mode="xen",
+            auto_disk_config="True"
+        ),
+        Image(
+            tenant_id=tenant_id,
+            name="CentOS 5 (PV)",
+            image_id=new_random_image_id(),
+            image_size=random_image_size(),
+            minRam=512, minDisk=20,
+            flavor_classes="*,!io1,!memory1,!compute1,!onmetal",
+            os_type="linux",
+            os_distro="org.centos",
+            vm_mode="xen",
+            auto_disk_config="True"
+        ),
+        Image(
+            tenant_id=tenant_id,
+            name="CentOS 6 (PVHVM",
+            image_id=new_random_image_id(),
+            image_size=random_image_size(),
+            minRam=512, minDisk=20,
+            flavor_classes="*,!onmetal",
+            image_type="base",
+            os_type="linux",
+            os_distro="org.centos",
+            vm_mode="hvm",
+            auto_disk_config="disabled"
+        ),
+        Image(
+            tenant_id=tenant_id,
+            name="CentOS 7 (PVHVM",
+            image_id=new_random_image_id(),
+            image_size=random_image_size(),
+            minRam=512, minDisk=20,
+            flavor_classes="*,!onmetal",
+            image_type="base",
+            os_type="linux",
+            os_distro="org.centos",
+            vm_mode="hvm",
+            auto_disk_config="disabled"
         )
     ]
 
@@ -308,32 +358,6 @@ class RackspaceCentOSPVHMImage(Image):
             "org.openstack__1__os_distro": "org.centos",
             "vm_mode": "hvm",
             "auto_disk_config": "disabled"
-        }
-
-
-class RackspaceCentOSPVImage(Image):
-    """
-    A Rackspace CentOS Xen image object representation
-    """
-    images = {"CentOS 6 (PV)": {"minRam": 512, "minDisk": 20,
-                                "OS-EXT-IMG-SIZE:size": random_image_size(),
-                                "id": new_random_image_id()},
-              "CentOS 5 (PV)": {"minRam": 512, "minDisk": 20,
-                                "OS-EXT-IMG-SIZE:size": random_image_size(),
-                                "id": new_random_image_id()}}
-
-    def metadata_json(self):
-        """
-        Create a JSON-serializable data structure describing
-        ``metadata`` for an image.
-        """
-        return {
-            "flavor_classes": "*,!io1,!memory1,!compute1,!onmetal",
-            "image_type": "base",
-            "os_type": "linux",
-            "org.openstack__1__os_distro": "org.centos",
-            "vm_mode": "xen",
-            "auto_disk_config": "True"
         }
 
 
