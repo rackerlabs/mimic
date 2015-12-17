@@ -48,3 +48,38 @@ class ICredential(Interface):
             single tenant for all plugins across all regions.
         :rtype: :class:`mimic.session.SessionStore`
         """
+
+
+class IAPIDomainMock(Interface):
+    """
+    An :obj:`IAPIDomainMock` provides an API via a root resource with a fixed
+    name ahead of time.
+
+    Top level mocks will appear as
+    ``http://your-mimic-host.example:your-mimic-port/domain/<your-api>``, where
+    ``<your-api>`` is the result of :obj:`IAPIDomainMock.domain```()``.
+    """
+
+    def domain():
+        """
+        This should be a domain name.  For example, if you were mocking an API
+        typically present at ``https://api.foo.example.com/v2/``, this should
+        return ``u"api.foo.example.com"``.
+
+        :return: the domain name for this top-level mock.
+        :rtype: :obj:`six.text_type`
+        """
+
+    def resource():
+        """
+        The resource which would appear at the root of the domain.  For
+        example, if you were mocking an API typically present at
+        ``https://api.foo.example.com/v2/``, this should return a resource
+        whose ``.getChild("v2", ...)`` returns the root of the API.
+
+        :return: The resource for the root of the API implemented by this
+                 :obj:`IAPIDomainMock`.
+        :rtype: :obj:`twisted.web.iweb.IResource`
+        """
+
+
