@@ -9,7 +9,8 @@ from zope.interface import Attribute, Interface
 
 class IAPIMock(Interface):
     """
-    An :obj:`IAPIMock` provides an API.
+    An :obj:`IAPIMock` provides an API via an entry in a tenant's service
+    catalog.
     """
 
     def catalog_entries(tenant_id):  # pragma:nocover
