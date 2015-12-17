@@ -162,6 +162,15 @@ class MimicRoot(object):
             return NoResource()
         return service_object
 
+    @app.route('/domain/', methods=['GET'])
+    def get_domain_mocks(self, request):
+        """
+        :return: The list of all domain mocks
+        :rtype: Bytes of JSON serialized list
+        """
+        request.setResponseCode(200)
+        return json.dumps([])
+
     @app.route("/glance", branch=True)
     def glance_admin_api(self, request):
         """
