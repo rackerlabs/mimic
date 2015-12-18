@@ -169,7 +169,7 @@ class MimicRoot(object):
         :rtype: Bytes of JSON serialized list
         """
         request.setResponseCode(200)
-        return json.dumps([])
+        return json.dumps([mock.domain() for mock in self.core.domains])
 
     @app.route("/glance", branch=True)
     def glance_admin_api(self, request):
