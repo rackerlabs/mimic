@@ -47,11 +47,12 @@ class TestDomainMock(SynchronousTestCase):
         ``<a-domain>`` from its ``domain()`` method.
         """
         example_domain_api = ExampleDomainAPI()
-        core = MimicCore(Clock(), [], [example_domain_api])
+        core = MimicCore(Clock(), [], [ExampleDomainAPI(u'api2.example.com',
+                                                        b'"other-value"'),
+                                       example_domain_api])
         root = MimicRoot(core).app.resource()
         response, content = self.successResultOf(json_request(
             self, root, b"GET",
             "http://mybase/domain/api.example.com/"))
         self.assertEqual(200, response.code)
         self.assertEqual(content, u'test-value')
-

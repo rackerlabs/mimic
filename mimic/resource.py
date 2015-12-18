@@ -179,8 +179,8 @@ class MimicRoot(object):
         """
         request.setResponseCode(200)
         for mock in self.core.domains:
-            # if mock.domain() == domain:
-            return mock.resource()
+            if mock.domain() == domain:
+                return mock.resource()
 
     @app.route("/glance", branch=True)
     def glance_admin_api(self, request):
