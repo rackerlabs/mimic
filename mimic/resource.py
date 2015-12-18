@@ -171,6 +171,17 @@ class MimicRoot(object):
         request.setResponseCode(200)
         return json.dumps([mock.domain() for mock in self.core.domains])
 
+    @app.route('/domain/<string:domain>', branch=True)
+    def get_domain_resource(self, request, domain):
+        """
+        Retrieve a resource corresponding to a :obj:`IAPIDomainMock` for the
+        named domain.
+        """
+        request.setResponseCode(200)
+        for mock in self.core.domains:
+            # if mock.domain() == domain:
+            return mock.resource()
+
     @app.route("/glance", branch=True)
     def glance_admin_api(self, request):
         """
