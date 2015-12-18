@@ -78,5 +78,5 @@ class ExampleDomainAPI(object):
         """
         The resource for the ExampleDomainAPI.
         """
-        example_resource = ExampleResource("test")
+        example_resource = ExampleResource(b'"test-value"')
         return example_resource
