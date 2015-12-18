@@ -474,7 +474,7 @@ class RegionalCLBCollection(object):
         all_ids = [node.id for node in self.lbs[lb_id].nodes]
         non_nodes = set(node_ids).difference(all_ids)
         if non_nodes:
-            nodes = ','.join(map(str, non_nodes))
+            nodes = ','.join(map(str, sorted(non_nodes)))
             resp = {
                 "validationErrors": {
                     "messages": [
