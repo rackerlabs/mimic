@@ -89,7 +89,7 @@ class MCache(object):
         """
         current_time_milliseconds = int(1000 * clock.seconds())
 
-        self.entities_list = []
+        self.entities = collections.OrderedDict()
         self.checks_list = []
         self.alarms_list = []
         self.notifications_list = [Notification(id=u'ntTechnicalContactsEmail',
@@ -237,6 +237,23 @@ def _object_getter(collection, matcher, request, object_type, object_key):
         if matcher(obj):
             request.setResponseCode(200)
             return json.dumps(obj.to_json())
+    request.setResponseCode(404)
+    return json.dumps({'type': 'notFoundError',
+                       'code': 404,
+                       'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
+                       'message': 'Object does not exist',
+                       'details': 'Object "{0}" with key "{1}" does not exist'.format(
+                           object_type, object_key)
+                       })
+
+
+def _map_getter(collection, request, object_type, object_key):
+    """
+    Getter handler for objects in a Mapping type collection.
+    """
+    if object_key in collection:
+        request.setResponseCode(200)
+        return json.dumps(collection[object_key].to_json())
     request.setResponseCode(404)
     return json.dumps({'type': 'notFoundError',
                        'code': 404,
@@ -423,7 +440,7 @@ class MaasMock(object):
         """
         Replies the entities list call
         """
-        entities = self._entity_cache_for_tenant(tenant_id).entities_list
+        entities = list(self._entity_cache_for_tenant(tenant_id).entities.values())
 
         limit = 100
         marker = None
@@ -460,7 +477,7 @@ class MaasMock(object):
         content = request.content.read()
         postdata = json.loads(content.decode("utf-8"))
         newentity = create_entity(self._session_store.clock, postdata)
-        self._entity_cache_for_tenant(tenant_id).entities_list.append(newentity)
+        self._entity_cache_for_tenant(tenant_id).entities[newentity.id] = newentity
         status = 201
         request.setResponseCode(status)
         request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
@@ -475,11 +492,10 @@ class MaasMock(object):
         """
         Fetches a specific entity
         """
-        return _object_getter(self._entity_cache_for_tenant(tenant_id).entities_list,
-                              lambda entity: entity.id == entity_id,
-                              request,
-                              "Entity",
-                              entity_id)
+        return _map_getter(self._entity_cache_for_tenant(tenant_id).entities,
+                           request,
+                           "Entity",
+                           entity_id)
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks', methods=['GET'])
     def get_checks_for_entity(self, request, tenant_id, entity_id):
@@ -506,10 +522,9 @@ class MaasMock(object):
         update = json.loads(content.decode("utf-8"))
         update_kwargs = dict(update)
         update_kwargs['clock'] = self._session_store.clock
-        for entity in self._entity_cache_for_tenant(tenant_id).entities_list:
-            if entity.id == entity_id:
-                entity.update(**update_kwargs)
-                break
+        entities_by_id = self._entity_cache_for_tenant(tenant_id).entities
+        if entity_id in entities_by_id:
+            entities_by_id[entity_id].update(**update_kwargs)
 
         status = 204
         request.setResponseCode(status)
@@ -525,11 +540,9 @@ class MaasMock(object):
         """
         Delete an entity, all checks that belong to entity, all alarms that belong to those checks
         """
-        entities = self._entity_cache_for_tenant(tenant_id).entities_list
+        entities_by_id = self._entity_cache_for_tenant(tenant_id).entities
 
-        try:
-            entities.remove(Matcher(lambda entity: entity.id == entity_id))
-        except ValueError:
+        if entity_id not in entities_by_id:
             status = 404
             request.setResponseCode(status)
             self._audit('entities', request, tenant_id, status)
@@ -539,6 +552,7 @@ class MaasMock(object):
                                'details': 'Object "Entity" with key "{0}" does not exist'.format(
                                    entity_id),
                                'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+        del entities_by_id[entity_id]
 
         checks = self._entity_cache_for_tenant(tenant_id).checks_list
         checks[:] = [check for check in checks
@@ -843,11 +857,12 @@ class MaasMock(object):
         """
         serves the overview api call,returns all entities,checks and alarms
         """
-        all_entities = self._entity_cache_for_tenant(tenant_id).entities_list
+        entity_map = self._entity_cache_for_tenant(tenant_id).entities
+        all_entities = None
         if b'entityId' in request.args:
             entity_ids = [a.decode("utf-8") for a in request.args[b'entityId']]
-            all_entities = [entity for entity in all_entities
-                            if entity.id in entity_ids]
+            all_entities = [entity_map[entity_id] for entity_id in entity_ids
+                            if entity_id in entity_map]
             if len(all_entities) == 0:
                 request.setResponseCode(404)
                 return json.dumps({'type': 'notFoundError',
@@ -855,6 +870,8 @@ class MaasMock(object):
                                    'message': 'Object does not exist',
                                    'details': 'Object "Entity" with key "{0}" does not exist'.format(
                                        entity_ids)})
+        else:
+            all_entities = list(entity_map.values())
 
         checks = self._entity_cache_for_tenant(tenant_id).checks_list
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
@@ -946,7 +963,7 @@ class MaasMock(object):
         """
         Mocks the /views/agent_host_info API call.
         """
-        entities = self._entity_cache_for_tenant(tenant_id).entities_list
+        entities = self._entity_cache_for_tenant(tenant_id).entities
         maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
 
         if b'include' not in request.args:
@@ -970,7 +987,7 @@ class MaasMock(object):
 
         entity_id = request.args[b'entityId'][0].strip().decode("utf-8")
         agent_id = None
-        for entity in entities:
+        for entity in entities.values():
             if entity.id == entity_id:
                 if entity.agent_id is None:
                     request.setResponseCode(400)
@@ -1386,11 +1403,11 @@ class MaasMock(object):
         """
         All available metrics.
         """
-        entities = self._entity_cache_for_tenant(tenant_id).entities_list
+        entities = self._entity_cache_for_tenant(tenant_id).entities
         all_checks = self._entity_cache_for_tenant(tenant_id).checks_list
         maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
         values = [_metric_list_for_entity(maas_store, entity, all_checks)
-                  for entity in entities]
+                  for entity in entities.values()]
 
         metadata = {'count': len(values),
                     'marker': None,
@@ -1448,7 +1465,7 @@ class MaasMock(object):
         """
         Gets entities grouped with their latest alarm states.
         """
-        entities = self._entity_cache_for_tenant(tenant_id).entities_list
+        entities = self._entity_cache_for_tenant(tenant_id).entities
         maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
 
         values = [{'entity_id': entity.id,
@@ -1457,7 +1474,7 @@ class MaasMock(object):
                    'latest_alarm_states': [
                        state.detail_json()
                        for state in maas_store.latest_alarm_states_for_entity(entity.id)]}
-                  for entity in entities]
+                  for entity in entities.values()]
 
         metadata = {'count': len(values),
                     'marker': None,
@@ -1729,13 +1746,13 @@ class MaasController(object):
         """
         Creates or overwrites an agent on the entity.
         """
-        entities = self._entity_cache_for_tenant(tenant_id).entities_list
+        entities = self._entity_cache_for_tenant(tenant_id).entities
         maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
         entity = None
 
         try:
-            entity = entities[entities.index(Matcher(lambda en: en.id == entity_id))]
-        except ValueError:
+            entity = entities[entity_id]
+        except KeyError:
             request.setResponseCode(404)
             return json.dumps({'type': 'notFoundError',
                                'code': 404,
