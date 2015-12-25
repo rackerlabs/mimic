@@ -306,7 +306,7 @@ def create_rackspace_images(tenant_id):
         ),
         Image(
             tenant_id=tenant_id,
-            name="CentOS 6 (PVHVM",
+            name="CentOS 6 (PVHVM)",
             image_id=new_random_image_id(),
             image_size=random_image_size(),
             minRam=512, minDisk=20,
@@ -319,7 +319,7 @@ def create_rackspace_images(tenant_id):
         ),
         Image(
             tenant_id=tenant_id,
-            name="CentOS 7 (PVHVM",
+            name="CentOS 7 (PVHVM)",
             image_id=new_random_image_id(),
             image_size=random_image_size(),
             minRam=512, minDisk=20,
