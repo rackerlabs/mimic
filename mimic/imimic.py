@@ -81,5 +81,3 @@ class IAPIDomainMock(Interface):
                  :obj:`IAPIDomainMock`.
         :rtype: :obj:`twisted.web.iweb.IResource`
         """
-
-
