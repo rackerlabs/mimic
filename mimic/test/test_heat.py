@@ -96,6 +96,19 @@ class HeatAPITests(SynchronousTestCase):
         resp = self.successResultOf(req)
         self.assertEqual(resp.code, resp_code)
 
+    def check_stack(self, stack_name, stack_id, resp_code=201,
+                    req_body={'check': None}):
+        """
+        Request stack check and assert that the response matched the one
+        provided.
+        """
+        req = request(
+            self, self.root, b"POST",
+            '%s/stacks/%s/%s/actions' % (self.uri, stack_name, stack_id),
+            body=json.dumps(req_body).encode("utf-8"))
+        resp = self.successResultOf(req)
+        self.assertEqual(resp.code, resp_code)
+
     def delete_stack(self, stack_name, stack_id, resp_code=204):
         """
         Request stack delete and assert that the response matched the one
@@ -170,6 +183,53 @@ class HeatAPITests(SynchronousTestCase):
         two_stack_list = self.list_stacks()['stacks']
         self.assertEqual(set(stack['stack_name'] for stack in two_stack_list),
                          set(['foostack', 'barstack']))
+
+    def test_check_stack(self):
+        """
+        Stack updates with correct check status.
+        """
+        foo_resp = self.create_stack('foostack')
+        self.check_stack('barstack', foo_resp['stack']['id'])
+        new_stack_list = self.list_stacks()['stacks']
+        self.assertEqual(new_stack_list[0]['stack_status'], 'CHECK_COMPLETE')
+
+    def test_invalid_action(self):
+        """
+        Invalid stack-action requests generate 400.
+        """
+        foo_id = self.create_stack('foo')['stack']['id']
+        self.check_stack('foo', foo_id, req_body={'foo': None}, resp_code=400)
+
+    def test_missing_action(self):
+        """
+        Invalid stack-action requests generate 400.
+        """
+        foo_id = self.create_stack('foo')['stack']['id']
+        self.check_stack('foo', foo_id, req_body={}, resp_code=400)
+
+    def test_multiple_actions(self):
+        """
+        Supplying more than one action in stack-action requests generate 400.
+        """
+        foo_id = self.create_stack('foo')['stack']['id']
+        self.check_stack('foo', foo_id,
+                         req_body={'check': None, 'cancel_update': None},
+                         resp_code=400)
+
+    def test_disabled_actions(self):
+        """
+        Stack updates with correct check status.
+        """
+        foo_id = self.create_stack('foo')['stack']['id']
+        for action in ('cancel_update', 'resume', 'suspend'):
+            self.check_stack('foo', foo_id, req_body={action: None},
+                             resp_code=405)
+
+    def test_check_stack_missing(self):
+        """
+        Trying to check a stack that doesn't exists returns 404.
+        """
+        self.check_stack('does_not', 'exist', resp_code=404)
 
     def test_update_stack(self):
         """

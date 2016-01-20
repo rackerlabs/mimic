@@ -150,6 +150,30 @@ class HeatRegion(object):
         region_collection = self._region_collection_for_tenant(tenant_id)
         return region_collection.request_update(request, stack_name, stack_id)
 
+    @app.route(STACK_URL + '/actions', methods=['POST'])
+    def perform_action(self, request, tenant_id, stack_name, stack_id):
+        """
+        Performs an action on a stack. Only action-check is enabled at
+        Rackspace.
+        See http://api.rackspace.com/api-ref-orchestration.html#stack_update
+        """
+        region_collection = self._region_collection_for_tenant(tenant_id)
+
+        body = json_from_request(request)
+        valid_actions = ('cancel_update', 'check', 'resume', 'suspend')
+
+        if len(body.keys()) != 1 or body.keys()[0] not in valid_actions:
+            request.setResponseCode(400)
+            return "Action in request be one of %s" % ", ".join(valid_actions)
+
+        if 'check' in body:
+            return region_collection.request_check(
+                request, stack_name, stack_id)
+
+        request.setResponseCode(405)
+        return "Only action-check is allowed."
+
+
     @app.route(STACK_URL, methods=['DELETE'])
     def delete_stack(self, request, tenant_id, stack_name, stack_id):
         """
