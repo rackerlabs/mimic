@@ -84,6 +84,18 @@ class HeatAPITests(SynchronousTestCase):
         data = self.get_responsebody(resp)
         return data
 
+    def update_stack(self, stack_name, stack_id, resp_code=202):
+        """
+        Request stack update and assert that the response matched the one
+        provided.
+        """
+        req_body = {'foo': 'bar'}
+        req = request(self, self.root, b"PUT",
+                      '%s/stacks/%s/%s' % (self.uri, stack_name, stack_id),
+                      body=json.dumps(req_body).encode("utf-8"))
+        resp = self.successResultOf(req)
+        self.assertEqual(resp.code, resp_code)
+
     def delete_stack(self, stack_name, stack_id, resp_code=204):
         """
         Request stack delete and assert that the response matched the one
@@ -158,6 +170,21 @@ class HeatAPITests(SynchronousTestCase):
         two_stack_list = self.list_stacks()['stacks']
         self.assertEqual(set(stack['stack_name'] for stack in two_stack_list),
                          set(['foostack', 'barstack']))
+
+    def test_update_stack(self):
+        """
+        Stack updates with correct status.
+        """
+        foo_resp = self.create_stack('foostack')
+        self.update_stack('barstack', foo_resp['stack']['id'])
+        new_stack_list = self.list_stacks()['stacks']
+        self.assertEqual(new_stack_list[0]['stack_status'], 'UPDATE_COMPLETE')
+
+    def test_update_stack_missing(self):
+        """
+        Trying to update a stack that doesn't exists returns 404.
+        """
+        self.update_stack('does_not', 'exist', resp_code=404)
 
     def test_delete_stack(self):
         """

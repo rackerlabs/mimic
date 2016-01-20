@@ -141,6 +141,15 @@ class HeatRegion(object):
             tags=extract_tags(),
             absolutize_url=self.url)
 
+    @app.route(STACK_URL, methods=['PUT'])
+    def update_stack(self, request, tenant_id, stack_name, stack_id):
+        """
+        Updates a stack.
+        See http://api.rackspace.com/api-ref-orchestration.html#stack_update
+        """
+        region_collection = self._region_collection_for_tenant(tenant_id)
+        return region_collection.request_update(request, stack_name, stack_id)
+
     @app.route(STACK_URL, methods=['DELETE'])
     def delete_stack(self, request, tenant_id, stack_name, stack_id):
         """
