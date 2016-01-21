@@ -350,3 +350,17 @@ class HeatAPITests(SynchronousTestCase):
 
         self.assertTrue('Parameters' in resp_bodies['url'])
         self.assertTrue('Parameters' in resp_bodies['inline'])
+
+    def test_stack_preview(self):
+        """
+        Test stack preview, ensuring correct JSON response.
+        """
+        req_body = {'foo': 'bar'}
+
+        req = request(self, self.root, b"POST", self.uri + '/stacks/preview',
+                      body=json.dumps(req_body).encode("utf-8"))
+
+        resp = self.successResultOf(req)
+        body = self.get_responsebody(resp)
+        self.assertEqual(resp.code, 200)
+        self.assertTrue('stack' in body)

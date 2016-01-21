@@ -200,3 +200,13 @@ class HeatRegion(object):
                         "the request.")
 
         return response
+
+    @app.route(HEAT_URL + '/stacks/preview', methods=['POST'])
+    def preview_stack(self, request, tenant_id):
+        """
+        Preview a stack. Useful to validate stack arguments. Currently always
+        succeeds.
+        See http://developer.openstack.org/api-ref-orchestration-v1.html#stack_preview
+        """
+        request.setResponseCode(200)
+        return json.dumps({"stack": "preview would go here"})
