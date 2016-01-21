@@ -162,7 +162,7 @@ class HeatRegion(object):
         body = json_from_request(request)
         valid_actions = ('cancel_update', 'check', 'resume', 'suspend')
 
-        if len(body.keys()) != 1 or body.keys()[0] not in valid_actions:
+        if len(body.keys()) != 1 or list(body.keys())[0] not in valid_actions:
             request.setResponseCode(400)
             return "Action in request be one of %s" % ", ".join(valid_actions)
 
@@ -172,7 +172,6 @@ class HeatRegion(object):
 
         request.setResponseCode(405)
         return "Only action-check is allowed."
-
 
     @app.route(STACK_URL, methods=['DELETE'])
     def delete_stack(self, request, tenant_id, stack_name, stack_id):
