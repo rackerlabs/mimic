@@ -75,8 +75,8 @@ class HeatRegion(object):
     Rest endpoints for mocked Heat API.
     """
 
-    HEAT_URL = '/v1/<string:tenant_id>'
-    STACK_URL = HEAT_URL + '/stacks/<string:stack_name>/<string:stack_id>'
+    TENANT_URL = '/v1/<string:tenant_id>'
+    STACK_URL = TENANT_URL + '/stacks/<string:stack_name>/<string:stack_id>'
 
     def __init__(self, api_mock, uri_prefix, region_name, session_store):
         """
@@ -104,7 +104,7 @@ class HeatRegion(object):
 
     app = MimicApp()
 
-    @app.route(HEAT_URL + '/stacks', methods=['POST'])
+    @app.route(TENANT_URL + '/stacks', methods=['POST'])
     def create_stack(self, request, tenant_id):
         """
         Creates a stack.
@@ -115,7 +115,7 @@ class HeatRegion(object):
         return region_collection.request_creation(request, content,
                                                   absolutize_url=self.url)
 
-    @app.route(HEAT_URL + '/stacks', methods=['GET'])
+    @app.route(TENANT_URL + '/stacks', methods=['GET'])
     def list_stacks(self, request, tenant_id):
         """
         Lists stacks. Supports inclusion of query parameters.
@@ -182,7 +182,7 @@ class HeatRegion(object):
         region_collection = self._region_collection_for_tenant(tenant_id)
         return region_collection.request_deletion(request, stack_name, stack_id)
 
-    @app.route(HEAT_URL + '/validate', methods=['POST'])
+    @app.route(TENANT_URL + '/validate', methods=['POST'])
     def validate_template(self, request, tenant_id):
         """
         Validates a template.
@@ -200,7 +200,7 @@ class HeatRegion(object):
 
         return response
 
-    @app.route(HEAT_URL + '/stacks/preview', methods=['POST'])
+    @app.route(TENANT_URL + '/stacks/preview', methods=['POST'])
     def preview_stack(self, request, tenant_id):
         """
         Preview a stack. Useful to validate stack arguments. Currently always
