@@ -71,6 +71,8 @@ class HeatAPITests(SynchronousTestCase):
         """
         Request stack create, assert that the request was successful, and return
         the response.
+        :param: stack_name The user-defined name of the stack to create.
+        :param: tags A list of strings to tag the stack with. Defaults to None.
         """
         req_body = {'stack_name': stack_name}
 
@@ -88,6 +90,10 @@ class HeatAPITests(SynchronousTestCase):
         """
         Request stack update and assert that the response matched the one
         provided.
+        :param: stack_name The user-defined name of the stack.
+        :param: stack_id The ID of the stack provided by Heat.
+        :param: resp_code The response code to expect from the update call.
+                          Defaults to 201.
         """
         req_body = {'foo': 'bar'}
         req = request(self, self.root, b"PUT",
@@ -101,6 +107,12 @@ class HeatAPITests(SynchronousTestCase):
         """
         Request a stack action and assert that the response matched the one
         provided.
+        :param: stack_name The user-defined name of the stack.
+        :param: stack_id The ID of the stack provided by Heat.
+        :param: resp_code The response code to expect from the action call.
+                          Defaults to 201.
+        :param: req_body The data to include in the request. Defaults to the
+                         one to trigger action-check.
         """
         req = request(
             self, self.root, b"POST",
@@ -113,6 +125,10 @@ class HeatAPITests(SynchronousTestCase):
         """
         Request stack delete and assert that the response matched the one
         provided.
+        :param: stack_name The user-defined name of the stack.
+        :param: stack_id The ID of the stack provided by Heat.
+        :param: resp_code The response code to expect from the action call.
+                          Defaults to 204.
         """
         req = request(self, self.root, b"DELETE",
                       '{}/stacks/{}/{}'.format(self.uri, stack_name, stack_id))
