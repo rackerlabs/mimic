@@ -9,6 +9,16 @@ from random import randrange
 from mimic.model.behaviors import BehaviorRegistryCollection, EventDescription
 
 
+def get_stack_or_404(f):
+    def decorator(collection, request, stack_name, stack_id):
+        stack = collection.stack_by_id(stack_id)
+        if not stack:
+            request.setResponseCode(404)
+            return b''
+        return f(collection, request, stack)
+    return decorator
+
+
 @attributes(['collection', 'stack_name',
              Attribute('stack_id',
                        default_factory=lambda: Stack.generate_stack_id()),
@@ -152,48 +162,33 @@ def default_create_behavior(collection, request, body, absolutize_url):
 
 
 @stack_update.declare_default_behavior
-def default_update_behavior(collection, request, stack_name, stack_id):
+@get_stack_or_404
+def default_update_behavior(collection, request, stack):
     """
     Successfully update a stack as long as it exists. Updates the stacks status.
     """
-    stack = collection.stack_by_id(stack_id)
-
-    if not stack:
-        request.setResponseCode(404)
-        return b''
-
     stack.update_action_and_status(Stack.UPDATE, Stack.COMPLETE)
     request.setResponseCode(202)
     return b''
 
 
 @stack_check.declare_default_behavior
-def default_check_behavior(collection, request, stack_name, stack_id):
+@get_stack_or_404
+def default_check_behavior(collection, request, stack):
     """
     Successfully check a stack as long as it exists. Updates the stacks status.
     """
-    stack = collection.stack_by_id(stack_id)
-
-    if not stack:
-        request.setResponseCode(404)
-        return b''
-
     stack.update_action_and_status(Stack.CHECK, Stack.COMPLETE)
     request.setResponseCode(201)
     return b''
 
 
 @stack_deletion.declare_default_behavior
-def default_delete_behavior(collection, request, stack_name, stack_id):
+@get_stack_or_404
+def default_delete_behavior(collection, request, stack):
     """
     Successfully delete a stack as long as it exists. Updates the stacks status.
     """
-    stack = collection.stack_by_id(stack_id)
-
-    if not stack:
-        request.setResponseCode(404)
-        return b''
-
     stack.update_action_and_status(Stack.DELETE, Stack.COMPLETE)
     request.setResponseCode(204)
     return b''
