@@ -35,7 +35,7 @@ class HeatObjectTests(SynchronousTestCase):
         Test correctness of stack links.
         """
         prefix = 'http://foo.bar/baz/'
-        href = prefix + 'v1/%s/stacks/%s/%s' % (
+        href = prefix + 'v1/{}/stacks/{}/{}'.format(
             self.coll.tenant_id, self.stack.stack_name, self.stack.stack_id)
 
         self.assertEqual(self.stack.links_json(lambda suffix: prefix + suffix),
@@ -91,20 +91,20 @@ class HeatAPITests(SynchronousTestCase):
         """
         req_body = {'foo': 'bar'}
         req = request(self, self.root, b"PUT",
-                      '%s/stacks/%s/%s' % (self.uri, stack_name, stack_id),
+                      '{}/stacks/{}/{}'.format(self.uri, stack_name, stack_id),
                       body=json.dumps(req_body).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEqual(resp.code, resp_code)
 
-    def check_stack(self, stack_name, stack_id, resp_code=201,
-                    req_body={'check': None}):
+    def stack_action(self, stack_name, stack_id, resp_code=201,
+                     req_body={'check': None}):
         """
-        Request stack check and assert that the response matched the one
+        Request a stack action and assert that the response matched the one
         provided.
         """
         req = request(
             self, self.root, b"POST",
-            '%s/stacks/%s/%s/actions' % (self.uri, stack_name, stack_id),
+            '{}/stacks/{}/{}/actions'.format(self.uri, stack_name, stack_id),
             body=json.dumps(req_body).encode("utf-8"))
         resp = self.successResultOf(req)
         self.assertEqual(resp.code, resp_code)
@@ -115,7 +115,7 @@ class HeatAPITests(SynchronousTestCase):
         provided.
         """
         req = request(self, self.root, b"DELETE",
-                      '%s/stacks/%s/%s' % (self.uri, stack_name, stack_id))
+                      '{}/stacks/{}/{}'.format(self.uri, stack_name, stack_id))
         resp = self.successResultOf(req)
         self.assertEqual(resp.code, resp_code)
 
@@ -189,7 +189,7 @@ class HeatAPITests(SynchronousTestCase):
         Stack updates with correct check status.
         """
         foo_resp = self.create_stack('foostack')
-        self.check_stack('barstack', foo_resp['stack']['id'])
+        self.stack_action('foostack', foo_resp['stack']['id'])
         new_stack_list = self.list_stacks()['stacks']
         self.assertEqual(new_stack_list[0]['stack_status'], 'CHECK_COMPLETE')
 
@@ -198,38 +198,38 @@ class HeatAPITests(SynchronousTestCase):
         Invalid stack-action requests generate 400.
         """
         foo_id = self.create_stack('foo')['stack']['id']
-        self.check_stack('foo', foo_id, req_body={'foo': None}, resp_code=400)
+        self.stack_action('foo', foo_id, req_body={'foo': None}, resp_code=400)
 
     def test_missing_action(self):
         """
         Invalid stack-action requests generate 400.
         """
         foo_id = self.create_stack('foo')['stack']['id']
-        self.check_stack('foo', foo_id, req_body={}, resp_code=400)
+        self.stack_action('foo', foo_id, req_body={}, resp_code=400)
 
     def test_multiple_actions(self):
         """
         Supplying more than one action in stack-action requests generate 400.
         """
         foo_id = self.create_stack('foo')['stack']['id']
-        self.check_stack('foo', foo_id,
-                         req_body={'check': None, 'cancel_update': None},
-                         resp_code=400)
+        self.stack_action('foo', foo_id,
+                          req_body={'check': None, 'cancel_update': None},
+                          resp_code=400)
 
     def test_disabled_actions(self):
         """
-        Stack updates with correct check status.
+        Using disabled actions generates 405.
         """
         foo_id = self.create_stack('foo')['stack']['id']
         for action in ('cancel_update', 'resume', 'suspend'):
-            self.check_stack('foo', foo_id, req_body={action: None},
-                             resp_code=405)
+            self.stack_action('foo', foo_id, req_body={action: None},
+                              resp_code=405)
 
     def test_check_stack_missing(self):
         """
         Trying to check a stack that doesn't exists returns 404.
         """
-        self.check_stack('does_not', 'exist', resp_code=404)
+        self.stack_action('does_not', 'exist', resp_code=404)
 
     def test_update_stack(self):
         """

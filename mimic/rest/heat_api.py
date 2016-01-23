@@ -155,7 +155,8 @@ class HeatRegion(object):
         """
         Performs an action on a stack. Only action-check is enabled at
         Rackspace.
-        See http://api.rackspace.com/api-ref-orchestration.html#stack_update
+        http://developer.openstack.org/api-ref-orchestration-v1.html#stack-actions
+        http://developer.openstack.org/api-ref-orchestration-v1.html#stack_action_check
         """
         region_collection = self._region_collection_for_tenant(tenant_id)
 
@@ -164,7 +165,8 @@ class HeatRegion(object):
 
         if len(body.keys()) != 1 or list(body.keys())[0] not in valid_actions:
             request.setResponseCode(400)
-            return "Action in request be one of %s" % ", ".join(valid_actions)
+            return "Action in request must be one of {}".format(
+                ", ".join(valid_actions))
 
         if 'check' in body:
             return region_collection.request_check(
