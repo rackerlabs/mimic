@@ -9,3 +9,4 @@ pyobjc-core==3.0.4
 pyobjc-framework-CFNetwork==3.0.4
 pyobjc-framework-Cocoa==3.0.4
 setuptools==19.6
+
