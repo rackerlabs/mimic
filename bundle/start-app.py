@@ -26,6 +26,10 @@ from twisted.web.server import Site
 from twisted.python import log
 from twisted.plugin import getPlugins, IPlugin
 
+# required by pkg_resources.resource_string, which is used by treq; so trick
+# modulegraph into including it.
+import pkg_resources._vendor.packaging
+
 from sys import stdout
 
 # This is the port on which mimic will listen for requests. It has been
