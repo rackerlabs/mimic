@@ -135,6 +135,8 @@ class Stack(object):
 
 
 stack_creation = EventDescription()
+stack_check = EventDescription()
+stack_update = EventDescription()
 stack_deletion = EventDescription()
 
 
@@ -149,6 +151,38 @@ def default_create_behavior(collection, request, body, absolutize_url):
     return json.dumps(response)
 
 
+@stack_update.declare_default_behavior
+def default_update_behavior(collection, request, stack_name, stack_id):
+    """
+    Successfully update a stack as long as it exists. Updates the stacks status.
+    """
+    stack = collection.stack_by_id(stack_id)
+
+    if stack is None:
+        request.setResponseCode(404)
+        return b''
+
+    stack.update_action_and_status(Stack.UPDATE, Stack.COMPLETE)
+    request.setResponseCode(202)
+    return b''
+
+
+@stack_check.declare_default_behavior
+def default_check_behavior(collection, request, stack_name, stack_id):
+    """
+    Successfully check a stack as long as it exists. Updates the stacks status.
+    """
+    stack = collection.stack_by_id(stack_id)
+
+    if stack is None:
+        request.setResponseCode(404)
+        return b''
+
+    stack.update_action_and_status(Stack.CHECK, Stack.COMPLETE)
+    request.setResponseCode(201)
+    return b''
+
+
 @stack_deletion.declare_default_behavior
 def default_delete_behavior(collection, request, stack_name, stack_id):
     """
@@ -156,7 +190,7 @@ def default_delete_behavior(collection, request, stack_name, stack_id):
     """
     stack = collection.stack_by_id(stack_id)
 
-    if not stack:
+    if stack is None:
         request.setResponseCode(404)
         return b''
 
@@ -221,6 +255,36 @@ class RegionalStackCollection(object):
 
         return behavior(collection=self, request=request, body=body,
                         absolutize_url=absolutize_url)
+
+    def request_check(self, request, stack_name, stack_id):
+        """
+        Tries a stack check operation.
+        """
+        registry = self.behavior_registry_collection.registry_by_event(
+            stack_check)
+        behavior = registry.behavior_for_attributes({
+            'tenant_id': self.tenant_id,
+            'stack_name': stack_name,
+            'stack_id': stack_id
+        })
+
+        return behavior(collection=self, request=request, stack_name=stack_name,
+                        stack_id=stack_id)
+
+    def request_update(self, request, stack_name, stack_id):
+        """
+        Tries a stack update operation.
+        """
+        registry = self.behavior_registry_collection.registry_by_event(
+            stack_update)
+        behavior = registry.behavior_for_attributes({
+            'tenant_id': self.tenant_id,
+            'stack_name': stack_name,
+            'stack_id': stack_id
+        })
+
+        return behavior(collection=self, request=request, stack_name=stack_name,
+                        stack_id=stack_id)
 
     def request_deletion(self, request, stack_name, stack_id):
         """
