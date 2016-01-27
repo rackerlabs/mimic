@@ -158,7 +158,7 @@ def default_update_behavior(collection, request, stack_name, stack_id):
     """
     stack = collection.stack_by_id(stack_id)
 
-    if not stack:
+    if stack is None:
         request.setResponseCode(404)
         return b''
 
@@ -174,7 +174,7 @@ def default_check_behavior(collection, request, stack_name, stack_id):
     """
     stack = collection.stack_by_id(stack_id)
 
-    if not stack:
+    if stack is None:
         request.setResponseCode(404)
         return b''
 
@@ -190,7 +190,7 @@ def default_delete_behavior(collection, request, stack_name, stack_id):
     """
     stack = collection.stack_by_id(stack_id)
 
-    if not stack:
+    if stack is None:
         request.setResponseCode(404)
         return b''
 
