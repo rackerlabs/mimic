@@ -10,17 +10,6 @@ from mimic.model.behaviors import BehaviorRegistryCollection, EventDescription
 
 
 def get_stack_or_404(f):
-    """
-    Decorator which retrieves a stack from a collection and adds it to the
-    function's arguments if it exists. If the stack does not exist, a 404
-    response is generated.
-
-    Use like so::
-
-        @get_stack_or_404
-        def do_something_behavior(collection, request, stack):
-            ...
-    """
     def decorator(collection, request, stack_name, stack_id):
         stack = collection.stack_by_id(stack_id)
         if not stack:
