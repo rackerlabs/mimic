@@ -28,7 +28,7 @@ class TestDomainMock(SynchronousTestCase):
     def test_domain_mock_with_an_example_mock(self):
         """
         A GET on the ``http://mimic-host.example.com:port/domain`` should
-        return the list of all the domains.
+        return the list of all the domains, enumerating all registered plugins.
         """
         example_domain_api = ExampleDomainAPI()
         core = MimicCore(Clock(), [], [example_domain_api])
