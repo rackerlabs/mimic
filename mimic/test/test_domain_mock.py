@@ -13,8 +13,8 @@ class TestDomainMock(SynchronousTestCase):
 
     def test_domain_mock(self):
         """
-        A GET on the ``http://mimic-host.example.com:port/domain`` should
-        return the list of all the domains.
+        A GET on ``http://mimic-host.example.com:port/domain`` should return
+        the list of all the domains; empty, if no plugins are registered.
         """
 
         core = MimicCore(Clock(), [])
