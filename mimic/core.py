@@ -26,7 +26,7 @@ class MimicCore(object):
     mocks.
     """
 
-    def __init__(self, clock, apis):
+    def __init__(self, clock, apis, domains=()):
         """
         Create a MimicCore with an IReactorTime to do any time-based scheduling
         against.
@@ -45,6 +45,7 @@ class MimicCore(object):
         self.ironic_node_store = IronicNodeStore()
         self.glance_admin_image_store = GlanceAdminImageStore()
         self.valkyrie_store = ValkyrieStore()
+        self.domains = list(domains)
 
         for api in apis:
             this_api_id = ((api.__class__.__name__) + '-' +

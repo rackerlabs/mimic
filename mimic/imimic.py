@@ -9,7 +9,8 @@ from zope.interface import Attribute, Interface
 
 class IAPIMock(Interface):
     """
-    An :obj:`IAPIMock` provides an API.
+    An :obj:`IAPIMock` provides an API via an entry in a tenant's service
+    catalog.
     """
 
     def catalog_entries(tenant_id):  # pragma:nocover
@@ -46,4 +47,37 @@ class ICredential(Interface):
         :return: A session corresponding to the user and plugin data for a
             single tenant for all plugins across all regions.
         :rtype: :class:`mimic.session.SessionStore`
+        """
+
+
+class IAPIDomainMock(Interface):
+    """
+    An :obj:`IAPIDomainMock` provides an API via a root resource with a fixed
+    name ahead of time.
+
+    Top level mocks will appear as
+    ``http://your-mimic-host.example:your-mimic-port/domain/<your-api>``, where
+    ``<your-api>`` is the result of :obj:`IAPIDomainMock.domain```()``.
+    """
+
+    def domain():               # pragma:nocover
+        """
+        This should be a domain name.  For example, if you were mocking an API
+        typically present at ``https://api.foo.example.com/v2/``, this should
+        return ``u"api.foo.example.com"``.
+
+        :return: the domain name for this top-level mock.
+        :rtype: :obj:`six.text_type`
+        """
+
+    def resource():             # pragma:nocover
+        """
+        The resource which would appear at the root of the domain.  For
+        example, if you were mocking an API typically present at
+        ``https://api.foo.example.com/v2/``, this should return a resource
+        whose ``.getChild("v2", ...)`` returns the root of the API.
+
+        :return: The resource for the root of the API implemented by this
+                 :obj:`IAPIDomainMock`.
+        :rtype: :obj:`twisted.web.iweb.IResource`
         """

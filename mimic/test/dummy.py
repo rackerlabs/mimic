@@ -11,7 +11,7 @@ from twisted.web.resource import Resource
 
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
-from mimic.imimic import IAPIMock
+from mimic.imimic import IAPIMock, IAPIDomainMock
 
 
 class ExampleResource(Resource):
@@ -60,3 +60,34 @@ class ExampleAPI(object):
         """
         self.store['uri_prefix'] = uri_prefix
         return ExampleResource(self.response_message)
+
+
+@implementer(IAPIDomainMock, IPlugin)
+class ExampleDomainAPI(object):
+    """
+    Example domain API the return nothing.
+    """
+
+    def __init__(self, domain=u"api.example.com", response=b'"test-value"'):
+        """
+        Create an :obj:`ExampleDomainAPI`.
+
+        :param text_type domain: the domain to respond with
+        :param bytes response: the HTTP response body for all contained
+            resources
+        """
+        self._domain = domain
+        self._response = response
+
+    def domain(self):
+        """
+        The domain for the ExampleDomainAPI.
+        """
+        return self._domain
+
+    def resource(self):
+        """
+        The resource for the ExampleDomainAPI.
+        """
+        example_resource = ExampleResource(self._response)
+        return example_resource
