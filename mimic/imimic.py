@@ -60,7 +60,7 @@ class IAPIDomainMock(Interface):
     ``<your-api>`` is the result of :obj:`IAPIDomainMock.domain```()``.
     """
 
-    def domain():
+    def domain():               # pragma:nocover
         """
         This should be a domain name.  For example, if you were mocking an API
         typically present at ``https://api.foo.example.com/v2/``, this should
@@ -70,7 +70,7 @@ class IAPIDomainMock(Interface):
         :rtype: :obj:`six.text_type`
         """
 
-    def resource():
+    def resource():             # pragma:nocover
         """
         The resource which would appear at the root of the domain.  For
         example, if you were mocking an API typically present at
