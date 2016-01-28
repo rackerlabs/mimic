@@ -24,7 +24,11 @@ from twisted.internet.endpoints import serverFromString
 from twisted.internet.task import Clock
 from twisted.web.server import Site
 from twisted.python import log
-from twisted.plugin import getPlugins, IPlugin
+
+# The following are required by pkg_resources.resource_string, which is used by
+# treq; so trick modulegraph into including it.
+from pkg_resources._vendor.packaging import version, specifiers
+version, specifiers # pacify pyflakes
 
 from sys import stdout
 
