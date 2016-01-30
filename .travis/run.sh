@@ -14,4 +14,4 @@ fi;
 
 source ~/.venv/bin/activate;
 
-PIP_WHEEL_DIR=".wheels" PIP_NO_INDEX=yes tox --recreate --develop -- $TOX_FLAGS;
+PIP_FIND_LINKS=".wheels" PIP_NO_INDEX=yes tox --recreate --develop -- $TOX_FLAGS;
