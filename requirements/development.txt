@@ -3,7 +3,6 @@
 # mimic, we explicitly do not include the installation of mimic itself in this
 # set of requirements.
 
-# Documentation reqs
 --requirement=documentation-only.txt
 --requirement=lint-only.txt
 --requirement=spellcheck.txt
