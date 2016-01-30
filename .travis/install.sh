@@ -72,6 +72,7 @@ tox --version;
 export PIP_WHEEL_DIR=".wheels";
 export PIP_FIND_LINKS=".wheels";
 
+pip install wheel;
 for req in requirements/*.txt; do
     pip wheel -r "${req}";
 done;
