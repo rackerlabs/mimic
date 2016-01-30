@@ -80,8 +80,6 @@ for req in requirements/*.txt; do
     ./.tox/"${TOXENV}"/bin/pip wheel -r "${req}" || true;
 done;
 
-PIP_NO_INDEX="yes" tox --recreate --notest;
-
 # If "installdeps" fails, "tox" exits with an error, and the "set -e" above
 # causes it to retry.  If "inst" fails, however, no error is reported for some
 # reason.  The following line causes "grep" to exit with error (and thanks to
