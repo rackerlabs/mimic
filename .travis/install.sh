@@ -83,7 +83,9 @@ done;
 # https://github.com/pypa/pip/issues/3414
 
 for fn in .wheels/*pp27*; do
-    mv -v "${fn}" "$(echo "${fn}" | sed -e s/pp27/pp240/g)";
+    if [ "${fn}" != '.wheels/*pp27*' ]; then
+        mv -v "${fn}" "$(echo "${fn}" | sed -e s/pp27/pp240/g)";
+    fi;
 done;
 
 # If "installdeps" fails, "tox" exits with an error, and the "set -e" above
