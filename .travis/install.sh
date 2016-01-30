@@ -63,6 +63,8 @@ hash -r;
 coverage erase;
 tox --version;
 
+tox --recreate --notest;
+
 # Pip has no dependency resolver: https://github.com/pypa/pip/issues/988.  This
 # means that if requirements.txt conflicts with setup.py, we won't find out
 # about it from tox alone.  Therefore, let's ensure that we give tox *only* the
@@ -72,9 +74,10 @@ tox --version;
 export PIP_WHEEL_DIR=".wheels";
 export PIP_FIND_LINKS=".wheels";
 
-pip install wheel;
 for req in requirements/*.txt; do
-    pip wheel -r "${req}";
+    # Ignore failures, because not all requirements are relevant on all
+    # platforms.
+    ./.tox/"${TOXENV}"/bin/pip wheel -r "${req}" || true;
 done;
 
 PIP_NO_INDEX="yes" tox --recreate --notest;
