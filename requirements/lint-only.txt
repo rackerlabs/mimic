@@ -1,5 +1,5 @@
-flake8==2.5.0
-mccabe==0.3.1
+flake8==2.5.1
+mccabe==0.4.0
 pep257==0.7.0
-pep8==1.6.2
+pep8==1.7.0
 pyflakes==1.0.0
