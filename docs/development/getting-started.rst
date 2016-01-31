@@ -115,11 +115,11 @@ tests.
    $ brew install python
    $ cd /dir/where/mimic/lives/
 
-   # build a virtualenv using the brewed python
+   $ # build a virtualenv using the brewed python
    $ virtualenv -p /usr/local/bin/python2.7 ./venv
    $ source ./venv/bin/activate
 
-   # install mimic's dependencies including pyobjc and py2app
+   $ # install mimic's dependencies including pyobjc and py2app
    $ pip install -r requirements/production.txt
    $ pip install -r requirements/mac-app.txt
    $ python setup.py py2app

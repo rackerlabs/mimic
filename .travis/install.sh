@@ -62,7 +62,31 @@ hash -r;
 
 coverage erase;
 tox --version;
+
 tox --recreate --notest;
+
+# Pip has no dependency resolver: https://github.com/pypa/pip/issues/988.  This
+# means that if requirements.txt conflicts with setup.py, we won't find out
+# about it from tox alone.  Therefore, let's ensure that we give tox *only* the
+# versions of the wheels specified in the pinned dependencies, and ensure that
+# they satisfy the requirements specified in setup.py.
+
+export PIP_WHEEL_DIR=".wheels";
+export PIP_FIND_LINKS=".wheels";
+
+for req in requirements/*.txt; do
+    # Ignore failures, because not all requirements are relevant on all
+    # platforms.
+    ./.tox/"${TOXENV}"/bin/pip wheel -r "${req}" || true;
+done;
+
+# https://github.com/pypa/pip/issues/3414
+
+for fn in .wheels/*pp27*; do
+    if [ "${fn}" != '.wheels/*pp27*' ]; then
+        mv -v "${fn}" "$(echo "${fn}" | sed -e s/pp27/pp240/g)";
+    fi;
+done;
 
 # If "installdeps" fails, "tox" exits with an error, and the "set -e" above
 # causes it to retry.  If "inst" fails, however, no error is reported for some

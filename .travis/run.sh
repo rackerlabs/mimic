@@ -13,4 +13,6 @@ if [[ "${MACAPP_ENV}" == "system" ]]; then
 fi;
 
 source ~/.venv/bin/activate;
-tox --develop -- $TOX_FLAGS;
+
+ls .wheels;
+PIP_FIND_LINKS="$(pwd)/.wheels" PIP_NO_INDEX=yes tox --recreate --develop -- $TOX_FLAGS;
