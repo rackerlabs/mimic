@@ -728,9 +728,10 @@ class MaasMock(object):
 
         entity = entities[entity_id]
         del entity.checks[check_id]
-        for (alarm_id, alarm) in entity.alarms.items():
-            if alarm.check_id == check_id:
-                del entity.alarms[alarm.id]
+        alarms_to_delete = [alarm_id for alarm_id in entity.alarms
+                            if entity.alarms[alarm_id].check_id == check_id]
+        for alarm_id in alarms_to_delete:
+            del entity.alarms[alarm_id]
         status = 204
         request.setResponseCode(status)
         request.setHeader(b'content-type', b'text/plain')
