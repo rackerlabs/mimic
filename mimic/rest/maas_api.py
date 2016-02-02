@@ -90,11 +90,13 @@ class MCache(object):
         current_time_milliseconds = int(1000 * clock.seconds())
 
         self.entities = collections.OrderedDict()
-        self.notifications_list = [Notification(id=u'ntTechnicalContactsEmail',
-                                                label=u'Email All Technical Contacts',
-                                                created_at=current_time_milliseconds,
-                                                updated_at=current_time_milliseconds,
-                                                type=u'technicalContactsEmail')]
+        self.notifications = collections.OrderedDict(
+            [(u'ntTechnicalContactsEmail',
+              Notification(id=u'ntTechnicalContactsEmail',
+                           label=u'Email All Technical Contacts',
+                           created_at=current_time_milliseconds,
+                           updated_at=current_time_milliseconds,
+                           type=u'technicalContactsEmail'))])
         self.notificationplans_list = [NotificationPlan(id=u'npTechnicalContactsEmail',
                                                         label=u'Technical Contacts - Email',
                                                         created_at=current_time_milliseconds,
@@ -1159,7 +1161,8 @@ class MaasMock(object):
         """
         content = request.content.read()
         new_n = create_notification(self._session_store.clock, json.loads(content.decode("utf-8")))
-        self._entity_cache_for_tenant(tenant_id).notifications_list.append(new_n)
+        notifications = self._entity_cache_for_tenant(tenant_id).notifications
+        notifications[new_n.id] = new_n
         status = 201
         request.setResponseCode(status)
         request.setHeader(b'content-type', b'text/plain')
@@ -1174,14 +1177,15 @@ class MaasMock(object):
         """
         Get notification targets
         """
-        nt_list = self._entity_cache_for_tenant(tenant_id).notifications_list
-        metadata = {'count': len(nt_list),
+        notifications = self._entity_cache_for_tenant(tenant_id).notifications
+        metadata = {'count': len(notifications),
                     'limit': 100,
                     'marker': None,
                     'next_marker': None,
                     'next_href': None}
         request.setResponseCode(200)
-        return json.dumps({'values': [nt.to_json() for nt in nt_list], 'metadata': metadata})
+        return json.dumps({'values': [nt.to_json() for nt in notifications.values()],
+                           'metadata': metadata})
 
     @app.route('/v1.0/<string:tenant_id>/notifications/<string:nt_id>', methods=['PUT'])
     def update_notifications(self, request, tenant_id, nt_id):
@@ -1192,11 +1196,19 @@ class MaasMock(object):
         postdata = json.loads(content.decode("utf-8"))
         update_kwargs = dict(postdata)
         update_kwargs['clock'] = self._session_store.clock
-        nt_list = self._entity_cache_for_tenant(tenant_id).notifications_list
-        for nt in nt_list:
-            if nt.id == nt_id:
-                nt.update(**update_kwargs)
-                break
+        notifications = self._entity_cache_for_tenant(tenant_id).notifications
+
+        if nt_id not in notifications:
+            request.setResponseCode(404)
+            return json.dumps({'type': 'notFoundError',
+                               'code': 404,
+                               'message': 'Object does not exist',
+                               'details': 'Object "Notification" with key "{0}" does not exist'.format(
+                                   nt_id),
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'
+                               })
+
+        notifications[nt_id].update(**update_kwargs)
 
         status = 204
         request.setResponseCode(status)
@@ -1209,20 +1221,19 @@ class MaasMock(object):
         """
         Delete a notification
         """
-        notifications = self._entity_cache_for_tenant(tenant_id).notifications_list
+        notifications = self._entity_cache_for_tenant(tenant_id).notifications
 
-        try:
-            notifications.remove(Matcher(lambda nt: nt.id == nt_id))
-        except ValueError:
-            status = 404
-            request.setResponseCode(status)
-            self._audit('notifications', request, tenant_id, status)
+        if nt_id not in notifications:
+            request.setResponseCode(404)
             return json.dumps({'type': 'notFoundError',
-                               'code': status,
+                               'code': 404,
                                'message': 'Object does not exist',
                                'details': 'Object "Notification" with key "{0}" does not exist'.format(
                                    nt_id),
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'
+                               })
+
+        del notifications[nt_id]
 
         status = 204
         request.setResponseCode(status)
