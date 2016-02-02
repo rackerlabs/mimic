@@ -340,6 +340,16 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(1, data['metadata']['count'])
         self.assertEquals(self.check_id, data['values'][0]['id'])
 
+    def test_get_checks_for_missing_entity(self):
+        """
+        Trying to list checks for a non-existing entity causes a 404.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, b"GET", '{0}/entities/enDoesNotExist/checks'.format(
+                self.uri)))
+        self.assertEquals(resp.code, 404)
+        self.assertEquals(data['message'], 'Parent does not exist')
+
     def test_create_check_missing_type_400s(self):
         """
         When trying to create a check and missing a `type` property,
@@ -352,6 +362,18 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 400)
         self.assertEquals(data['type'], 'badRequest')
         self.assertEquals(data['message'], 'Validation error for key \'type\'')
+
+    def test_create_check_on_missing_entity_404s(self):
+        """
+        When trying to create a check on a non-existing entity, MaaS
+        returns 404.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, b"POST",
+                         '{0}/entities/enDoesNotExist/checks'.format(self.uri),
+                         json.dumps({'label': 'a', 'type': 'agent.cpu'})))
+        self.assertEquals(resp.code, 404)
+        self.assertEquals(data['type'], 'notFoundError')
 
     def test_create_entity_with_unrecognized_keys(self):
         """
@@ -502,6 +524,17 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals('internet7_v4', data['target_alias'])
         self.assertEquals('ItsAcheck', data['label'])
 
+    def test_update_nonexisting_check_404s(self):
+        """
+        Updating a check on a non-existing entity causes a 404.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, b"PUT",
+                         '{0}/entities/{1}/checks/chDoesNotExist'.format(self.uri, self.entity_id),
+                         json.dumps({'label': 'awesome test check'})))
+        self.assertEquals(resp.code, 404)
+        self.assertEquals(data['message'], 'Object does not exist')
+
     def test_create_check_with_unrecognized_keys(self):
         """
         When creating a check with properties that are not
@@ -557,6 +590,17 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals('np123456', data['notification_plan_id'])
         self.assertEquals('ItsAnAlarm', data['label'])
 
+    def test_update_nonexisting_alarm(self):
+        """
+        Attempting to update a non-existing alarm causes a 404.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, b"PUT",
+                         '{0}/entities/{1}/alarms/alDoesNotExist'.format(
+                             self.uri, self.entity_id),
+                         json.dumps({'label': 'awesome test alarm'})))
+        self.assertEquals(resp.code, 404)
+
     def test_create_alarm_with_unrecognized_keys(self):
         """
         When creating an alarm with properties that are not
@@ -572,6 +616,19 @@ class MaasAPITests(SynchronousTestCase):
                                 'notification_plan_id': 'npL01Wu7',
                                 'whut': 'WAT'}).encode("utf-8")))
         self.assertEquals(resp.code, 201)
+
+    def test_create_alarm_missing_entity_404s(self):
+        """
+        Trying to create an alarm on a non-existing entity causes a 404.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, b"POST",
+                         '{0}/entities/enDoesNotExist/alarms'.format(self.uri),
+                         json.dumps({'label': 'a',
+                                     'check_id': self.check_id,
+                                     'criteria': 'OK',
+                                     'notification_plan_id': 'npL01Wu7'})))
+        self.assertEquals(resp.code, 404)
 
     def test_delete_alarm(self):
         """
@@ -875,6 +932,16 @@ class MaasAPITests(SynchronousTestCase):
         data = self.get_responsebody(resp)
         self.assertEquals(1, data['metadata']['count'])
         self.assertEquals(self.alarm_id, data['values'][0]['id'])
+
+    def test_get_alarms_for_missing_entity(self):
+        """
+        Getting alarms for a non-existing entity causes a 404.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, b"GET",
+                         '{0}/entities/enDoesNotExist/alarms'.format(self.uri)))
+        self.assertEquals(resp.code, 404)
+        self.assertEquals(data['message'], 'Parent does not exist')
 
     def test_delete_check(self):
         """
@@ -1300,6 +1367,17 @@ class MaasAPITests(SynchronousTestCase):
         self.assertIsNot(None, mynt)
         self.assertEquals('changed', mynt['label'])
 
+    def test_update_missing_notification(self):
+        """
+        Attempting to update a non-existing notification causes a 404.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, b"PUT",
+                         '{0}/notifications/ntDoesNotExist'.format(self.uri),
+                         json.dumps({'label': 'my awesome notification'})))
+        self.assertEquals(resp.code, 404)
+        self.assertEquals(data['message'], 'Object does not exist')
+
     def test_delete_notification(self):
         """
         Delete a notification target
@@ -1341,6 +1419,17 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
         self.assertEquals('changed', data['label'])
+
+    def test_update_missing_notification_plan(self):
+        """
+        Attempting to update a non-existing notification plan causes a 404.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, b"PUT",
+                         '{0}/notification_plans/npDoesNotExist'.format(self.uri),
+                         json.dumps({'label': 'WAT WAT WAT'})))
+        self.assertEquals(resp.code, 404)
+        self.assertEquals(data['message'], 'Object does not exist')
 
     def test_delete_notificationplan(self):
         """
@@ -1418,6 +1507,17 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 200)
         data = self.get_responsebody(resp)
         self.assertEquals('changed', data['label'])
+
+    def test_update_missing_suppression(self):
+        """
+        Attempting to update a non-existing suppression causes a 404.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, b"PUT",
+                         '{0}/suppressions/spDoesNotExist'.format(self.uri),
+                         json.dumps({'label': 'my-suppression'})))
+        self.assertEquals(resp.code, 404)
+        self.assertEquals(data['message'], 'Object does not exist')
 
     def test_delete_suppression(self):
         """

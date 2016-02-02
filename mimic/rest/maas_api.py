@@ -26,6 +26,7 @@ from mimic.imimic import IAPIMock
 from mimic.canned_responses.maas_json_home import json_home
 from mimic.canned_responses.maas_monitoring_zones import monitoring_zones
 from mimic.canned_responses.maas_alarm_examples import alarm_examples
+from mimic.model.maas_errors import ObjectDoesNotExist, ParentDoesNotExist
 from mimic.model.maas_objects import (Agent,
                                       Alarm,
                                       AlarmState,
@@ -231,39 +232,29 @@ def create_suppression(clock, params):
     return Suppression(**params_copy)
 
 
-def _object_getter(collection, matcher, request, object_type, object_key):
+def _assert_object_exists(collection, object_type, object_key, alt_key=None):
     """
-    Generic getter handler for objects in a collection.
+    Asserts that the specified object is present in the collection.
+
+    The collection should behave like a dict where object_key retrieves
+    an object from the collection.
     """
-    for obj in collection:
-        if matcher(obj):
-            request.setResponseCode(200)
-            return json.dumps(obj.to_json())
-    request.setResponseCode(404)
-    return json.dumps({'type': 'notFoundError',
-                       'code': 404,
-                       'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
-                       'message': 'Object does not exist',
-                       'details': 'Object "{0}" with key "{1}" does not exist'.format(
-                           object_type, object_key)
-                       })
+    if object_key not in collection:
+        raise ObjectDoesNotExist(object_type=object_type,
+                                 key=(alt_key or object_key))
 
 
 def _map_getter(collection, request, object_type, object_key):
     """
     Getter handler for objects in a Mapping type collection.
     """
-    if object_key in collection:
-        request.setResponseCode(200)
-        return json.dumps(collection[object_key].to_json())
-    request.setResponseCode(404)
-    return json.dumps({'type': 'notFoundError',
-                       'code': 404,
-                       'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
-                       'message': 'Object does not exist',
-                       'details': 'Object "{0}" with key "{1}" does not exist'.format(
-                           object_type, object_key)
-                       })
+    try:
+        _assert_object_exists(collection, object_type, object_key)
+    except ObjectDoesNotExist as e:
+        request.setResponseCode(e.code)
+        return json.dumps(e.to_json())
+
+    return json.dumps(collection[object_key].to_json())
 
 
 def _metric_list_for_check(maas_store, entity, check):
@@ -358,6 +349,64 @@ def _compute_multiplot(maas_store, entity_id, check, metric_name, from_date, to_
                           timestamp=int(from_date + (i * interval)),
                           **metric_value_kwargs)}
                      for i in range(points)]}
+
+
+def _assert_entity_exists(entities, entity_id):
+    """
+    Asserts that the specified entity is present in the collection.
+    """
+    _assert_object_exists(entities, 'Entity', entity_id)
+
+
+def _assert_parent_entity_exists(entities, entity_id):
+    """
+    Asserts that the specified entity exists as a potential parent object.
+    """
+    if entity_id not in entities:
+        raise ParentDoesNotExist(object_type='Entity', key=entity_id)
+
+
+def _assert_check_exists(entities, entity_id, check_id):
+    """
+    Asserts that the specified check is present in the collection.
+    """
+    _assert_parent_entity_exists(entities, entity_id)
+    _assert_object_exists(entities[entity_id].checks,
+                          'Check',
+                          check_id,
+                          '{0}:{1}'.format(entity_id, check_id))
+
+
+def _assert_alarm_exists(entities, entity_id, alarm_id):
+    """
+    Asserts that the specified alarm is present in the collection.
+    """
+    _assert_parent_entity_exists(entities, entity_id)
+    _assert_object_exists(entities[entity_id].alarms,
+                          'Alarm',
+                          alarm_id,
+                          '{0}:{1}'.format(entity_id, alarm_id))
+
+
+def _assert_suppression_exists(suppressions, sp_id):
+    """
+    Asserts that the specified suppression is present in the collection.
+    """
+    _assert_object_exists(suppressions, 'Suppression', sp_id)
+
+
+def _assert_notification_exists(notifications, nt_id):
+    """
+    Asserts that the specified notification is present in the collection.
+    """
+    _assert_object_exists(notifications, 'Notification', nt_id)
+
+
+def _assert_notification_plan_exists(notification_plans, np_id):
+    """
+    Asserts that the specified notification plan is present in the collection.
+    """
+    _assert_object_exists(notification_plans, 'NotificationPlan', np_id)
 
 
 def parse_and_flatten_qs(url):
@@ -505,15 +554,13 @@ class MaasMock(object):
         Returns all the checks for a paricular entity
         """
         entities = self._entity_cache_for_tenant(tenant_id).entities
-        if entity_id not in entities:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
-                               'message': 'Parent does not exist',
-                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
-                                   entity_id)
-                               })
+
+        try:
+            _assert_parent_entity_exists(entities, entity_id)
+        except ParentDoesNotExist as e:
+            request.setResponseCode(e.code)
+            return json.dumps(e.to_json())
+
         checks = entities[entity_id].list_checks()
         metadata = {'count': len(checks),
                     'limit': 1000,
@@ -550,19 +597,17 @@ class MaasMock(object):
         """
         Delete an entity, all checks that belong to entity, all alarms that belong to those checks
         """
-        entities_by_id = self._entity_cache_for_tenant(tenant_id).entities
+        entities = self._entity_cache_for_tenant(tenant_id).entities
 
-        if entity_id not in entities_by_id:
-            status = 404
+        try:
+            _assert_entity_exists(entities, entity_id)
+        except ObjectDoesNotExist as e:
+            status = e.code
             request.setResponseCode(status)
             self._audit('entities', request, tenant_id, status)
-            return json.dumps({'type': 'notFoundError',
-                               'code': status,
-                               'message': 'Object does not exist',
-                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
-                                   entity_id),
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
-        del entities_by_id[entity_id]
+            return json.dumps(e.to_json())
+
+        del entities[entity_id]
 
         status = 204
         request.setResponseCode(status)
@@ -594,15 +639,13 @@ class MaasMock(object):
                                'details': 'Missing required key ({0})'.format(missing_key),
                                'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
 
-        if entity_id not in entities:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
-                               'message': 'Parent does not exist',
-                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
-                                   entity_id)
-                               })
+        try:
+            _assert_entity_exists(entities, entity_id)
+        except ObjectDoesNotExist as e:
+            status = e.code
+            request.setResponseCode(status)
+            self._audit('checks', request, tenant_id, status, content)
+            return json.dumps(e.to_json())
 
         entities[entity_id].checks[newcheck.id] = newcheck
         status = 201
@@ -621,25 +664,12 @@ class MaasMock(object):
         Get a specific check that was created before
         """
         entities = self._entity_cache_for_tenant(tenant_id).entities
-        if entity_id not in entities:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
-                               'message': 'Parent does not exist',
-                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
-                                   entity_id)
-                               })
 
-        if check_id not in entities[entity_id].checks:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
-                               'message': 'Object does not exist',
-                               'details': 'Object "Check" with key "{0}" does not exist'.format(
-                                   '{0}:{1}'.format(entity_id, check_id))
-                               })
+        try:
+            _assert_check_exists(entities, entity_id, check_id)
+        except (ObjectDoesNotExist, ParentDoesNotExist) as e:
+            request.setResponseCode(e.code)
+            return json.dumps(e.to_json())
 
         return json.dumps(entities[entity_id].checks[check_id].to_json())
 
@@ -655,25 +685,13 @@ class MaasMock(object):
         update_kwargs['clock'] = self._session_store.clock
         entities = self._entity_cache_for_tenant(tenant_id).entities
 
-        if entity_id not in entities:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
-                               'message': 'Parent does not exist',
-                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
-                                   entity_id)
-                               })
-
-        if check_id not in entities[entity_id].checks:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
-                               'message': 'Object does not exist',
-                               'details': 'Object "Check" with key "{0}" does not exist'.format(
-                                   '{0}:{1}'.format(entity_id, check_id))
-                               })
+        try:
+            _assert_check_exists(entities, entity_id, check_id)
+        except (ObjectDoesNotExist, ParentDoesNotExist) as e:
+            status = e.code
+            request.setResponseCode(status)
+            self._audit('checks', request, tenant_id, status)
+            return json.dumps(e.to_json())
 
         entities[entity_id].checks[check_id].update(**update_kwargs)
         status = 204
@@ -693,27 +711,15 @@ class MaasMock(object):
         """
         entities = self._entity_cache_for_tenant(tenant_id).entities
 
-        if entity_id not in entities:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
-                               'message': 'Parent does not exist',
-                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
-                                   entity_id)
-                               })
+        try:
+            _assert_check_exists(entities, entity_id, check_id)
+        except (ObjectDoesNotExist, ParentDoesNotExist) as e:
+            status = e.code
+            request.setResponseCode(status)
+            self._audit('checks', request, tenant_id, status)
+            return json.dumps(e.to_json())
 
         entity = entities[entity_id]
-        if check_id not in entity.checks:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
-                               'message': 'Object does not exist',
-                               'details': 'Object "Check" with key "{0}" does not exist'.format(
-                                   '{0}:{1}'.format(entity_id, check_id))
-                               })
-
         del entity.checks[check_id]
         for (alarm_id, alarm) in entity.alarms.items():
             if alarm.check_id == check_id:
@@ -770,15 +776,12 @@ class MaasMock(object):
                                'details': 'Missing required key ({0})'.format(missing_key),
                                'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
 
-        if entity_id not in entities:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
-                               'message': 'Parent does not exist',
-                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
-                                   entity_id)
-                               })
+        try:
+            _assert_parent_entity_exists(entities, entity_id)
+        except ParentDoesNotExist as e:
+            request.setResponseCode(e.code)
+            self._audit('alarms', request, tenant_id, e.code, content)
+            return json.dumps(e.to_json())
 
         entities[entity_id].alarms[newalarm.id] = newalarm
         status = 201
@@ -797,25 +800,12 @@ class MaasMock(object):
         Gets an alarm by ID.
         """
         entities = self._entity_cache_for_tenant(tenant_id).entities
-        if entity_id not in entities:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
-                               'message': 'Parent does not exist',
-                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
-                                   entity_id)
-                               })
 
-        if alarm_id not in entities[entity_id].alarms:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
-                               'message': 'Object does not exist',
-                               'details': 'Object "Alarm" with key "{0}" does not exist'.format(
-                                   '{0}:{1}'.format(entity_id, alarm_id))
-                               })
+        try:
+            _assert_alarm_exists(entities, entity_id, alarm_id)
+        except (ObjectDoesNotExist, ParentDoesNotExist) as e:
+            request.setResponseCode(e.code)
+            return json.dumps(e.to_json())
 
         return json.dumps(entities[entity_id].alarms[alarm_id].to_json())
 
@@ -838,25 +828,13 @@ class MaasMock(object):
         update_kwargs['clock'] = self._session_store.clock
         entities = self._entity_cache_for_tenant(tenant_id).entities
 
-        if entity_id not in entities:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
-                               'message': 'Parent does not exist',
-                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
-                                   entity_id)
-                               })
-
-        if alarm_id not in entities[entity_id].alarms:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
-                               'message': 'Object does not exist',
-                               'details': 'Object "Alarm" with key "{0}" does not exist'.format(
-                                   '{0}:{1}'.format(entity_id, alarm_id))
-                               })
+        try:
+            _assert_alarm_exists(entities, entity_id, alarm_id)
+        except (ObjectDoesNotExist, ParentDoesNotExist) as e:
+            status = e.code
+            request.setResponseCode(status)
+            self._audit('alarms', request, tenant_id, status, content)
+            return json.dumps(e.to_json())
 
         entities[entity_id].alarms[alarm_id].update(**update_kwargs)
         status = 204
@@ -876,27 +854,15 @@ class MaasMock(object):
         """
         entities = self._entity_cache_for_tenant(tenant_id).entities
 
-        if entity_id not in entities:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
-                               'message': 'Parent does not exist',
-                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
-                                   entity_id)
-                               })
+        try:
+            _assert_alarm_exists(entities, entity_id, alarm_id)
+        except (ObjectDoesNotExist, ParentDoesNotExist) as e:
+            status = e.code
+            request.setResponseCode(status)
+            self._audit('alarms', request, tenant_id, status)
+            return json.dumps(e.to_json())
 
         entity = entities[entity_id]
-        if alarm_id not in entity.alarms:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
-                               'message': 'Object does not exist',
-                               'details': 'Object "Alarm" with key "{0}" does not exist'.format(
-                                   '{0}:{1}'.format(entity_id, alarm_id))
-                               })
-
         del entity.alarms[alarm_id]
 
         status = 204
@@ -954,15 +920,13 @@ class MaasMock(object):
         Get all alarms for the specified entity.
         """
         entities = self._entity_cache_for_tenant(tenant_id).entities
-        if entity_id not in entities:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
-                               'message': 'Parent does not exist',
-                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
-                                   entity_id)
-                               })
+
+        try:
+            _assert_parent_entity_exists(entities, entity_id)
+        except ParentDoesNotExist as e:
+            request.setResponseCode(e.code)
+            return json.dumps(e.to_json())
+
         alarms = entities[entity_id].list_alarms()
         metadata = {'count': len(alarms),
                     'limit': 1000,
@@ -984,12 +948,9 @@ class MaasMock(object):
             all_entities = [entity_map[entity_id] for entity_id in entity_ids
                             if entity_id in entity_map]
             if len(all_entities) == 0:
-                request.setResponseCode(404)
-                return json.dumps({'type': 'notFoundError',
-                                   'code': 404,
-                                   'message': 'Object does not exist',
-                                   'details': 'Object "Entity" with key "{0}" does not exist'.format(
-                                       entity_ids)})
+                err = ObjectDoesNotExist(object_type='Entity', key=','.join(entity_ids))
+                request.setResponseCode(err.code)
+                return json.dumps(err.to_json())
         else:
             all_entities = list(entity_map.values())
 
@@ -1101,27 +1062,23 @@ class MaasMock(object):
 
         entity_id = request.args[b'entityId'][0].strip().decode("utf-8")
         agent_id = None
-        for entity in entities.values():
-            if entity.id == entity_id:
-                if entity.agent_id is None:
-                    request.setResponseCode(400)
-                    return json.dumps({'type': 'agentDoesNotExist',
-                                       'code': 400,
-                                       'message': 'Agent does not exist',
-                                       'details': 'Agent null does not exist',
-                                       'txnId': ('.fake.mimic.transaction.id.c-1111111.'
-                                                 'ts-123444444.v-12344frf')})
-                agent_id = entity.agent_id
-                break
-        else:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'message': 'Object does not exist',
-                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
-                                   entity_id),
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'
-                               })
+
+        try:
+            _assert_entity_exists(entities, entity_id)
+        except ObjectDoesNotExist as e:
+            request.setResponseCode(e.code)
+            return json.dumps(e.to_json())
+
+        entity = entities[entity_id]
+        if entity.agent_id is None:
+            request.setResponseCode(400)
+            return json.dumps({'type': 'agentDoesNotExist',
+                               'code': 400,
+                               'message': 'Agent does not exist',
+                               'details': 'Agent null does not exist',
+                               'txnId': ('.fake.mimic.transaction.id.c-1111111.'
+                                         'ts-123444444.v-12344frf')})
+        agent_id = entity.agent_id
 
         agent = maas_store.agents[maas_store.agents.index(Matcher(
             lambda agent: agent.id == agent_id))]
@@ -1200,15 +1157,12 @@ class MaasMock(object):
         update_kwargs['clock'] = self._session_store.clock
         notifications = self._entity_cache_for_tenant(tenant_id).notifications
 
-        if nt_id not in notifications:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'message': 'Object does not exist',
-                               'details': 'Object "Notification" with key "{0}" does not exist'.format(
-                                   nt_id),
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'
-                               })
+        try:
+            _assert_notification_exists(notifications, nt_id)
+        except ObjectDoesNotExist as e:
+            request.setResponseCode(e.code)
+            self._audit('notifications', request, tenant_id, e.code, content)
+            return json.dumps(e.to_json())
 
         notifications[nt_id].update(**update_kwargs)
 
@@ -1225,15 +1179,12 @@ class MaasMock(object):
         """
         notifications = self._entity_cache_for_tenant(tenant_id).notifications
 
-        if nt_id not in notifications:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'message': 'Object does not exist',
-                               'details': 'Object "Notification" with key "{0}" does not exist'.format(
-                                   nt_id),
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'
-                               })
+        try:
+            _assert_notification_exists(notifications, nt_id)
+        except ObjectDoesNotExist as e:
+            request.setResponseCode(e.code)
+            self._audit('notifications', request, tenant_id, e.code)
+            return json.dumps(e.to_json())
 
         del notifications[nt_id]
 
@@ -1282,17 +1233,7 @@ class MaasMock(object):
         Get specific notif plan
         """
         notification_plans = self._entity_cache_for_tenant(tenant_id).notification_plans
-        if np_id not in notification_plans:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'message': 'Object does not exist',
-                               'details': ('Object "NotificationPlan" with key "{0}" '
-                                           'does not exist').format(np_id),
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'
-                               })
-
-        return json.dumps(notification_plans[np_id].to_json())
+        return _map_getter(notification_plans, request, 'NotificationPlan', np_id)
 
     @app.route('/v1.0/<string:tenant_id>/notification_plans/<string:np_id>', methods=['PUT'])
     def update_notification_plan(self, request, tenant_id, np_id):
@@ -1304,15 +1245,14 @@ class MaasMock(object):
         update_kwargs = dict(postdata)
         update_kwargs['clock'] = self._session_store.clock
         notification_plans = self._entity_cache_for_tenant(tenant_id).notification_plans
-        if np_id not in notification_plans:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'message': 'Object does not exist',
-                               'details': ('Object "NotificationPlan" with key "{0}" '
-                                           'does not exist').format(np_id),
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'
-                               })
+
+        try:
+            _assert_notification_plan_exists(notification_plans, np_id)
+        except ObjectDoesNotExist as e:
+            status = e.code
+            request.setResponseCode(status)
+            self._audit('notification_plans', request, tenant_id, status)
+            return json.dumps(e.to_json())
 
         notification_plans[np_id].update(**update_kwargs)
         status = 204
@@ -1345,16 +1285,12 @@ class MaasMock(object):
                                'message': err_message,
                                'details': err_message})
 
-        if np_id not in notification_plans:
-            status = 404
-            request.setResponseCode(status)
-            self._audit('notification_plans', request, tenant_id, status)
-            return json.dumps({'type': 'notFoundError',
-                               'code': status,
-                               'message': 'Object does not exist',
-                               'details': ('Object "NotificationPlan" with key "{0}" '.format(np_id) +
-                                           'does not exist'),
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+        try:
+            _assert_notification_plan_exists(notification_plans, np_id)
+        except ObjectDoesNotExist as e:
+            request.setResponseCode(e.code)
+            self._audit('notification_plans', request, tenant_id, e.code)
+            return json.dumps(e.to_json())
 
         del notification_plans[np_id]
 
@@ -1386,17 +1322,7 @@ class MaasMock(object):
         Get a suppression by ID.
         """
         suppressions = self._entity_cache_for_tenant(tenant_id).suppressions
-        if sp_id not in suppressions:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'message': 'Object does not exist',
-                               'details': ('Object "Suppression" with key "{0}" '
-                                           'does not exist').format(sp_id),
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'
-                               })
-
-        return json.dumps(suppressions[sp_id].to_json())
+        return _map_getter(suppressions, request, 'Suppression', sp_id)
 
     @app.route('/v1.0/<string:tenant_id>/suppressions', methods=['POST'])
     def create_suppression(self, request, tenant_id):
@@ -1428,17 +1354,12 @@ class MaasMock(object):
         update_kwargs['clock'] = self._session_store.clock
         suppressions = self._entity_cache_for_tenant(tenant_id).suppressions
 
-        if sp_id not in suppressions:
-            status = 404
-            request.setResponseCode(status)
-            self._audit('suppressions', request, tenant_id, status, content)
-            return json.dumps({'type': 'notFoundError',
-                               'code': status,
-                               'message': 'Object does not exist',
-                               'details': ('Object "Suppression" with key "{0}" '
-                                           'does not exist').format(sp_id),
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'
-                               })
+        try:
+            _assert_suppression_exists(suppressions, sp_id)
+        except ObjectDoesNotExist as e:
+            request.setResponseCode(e.code)
+            self._audit('suppressions', request, tenant_id, e.code, content)
+            return json.dumps(e.to_json())
 
         suppressions[sp_id].update(**update_kwargs)
         status = 204
@@ -1454,17 +1375,12 @@ class MaasMock(object):
         """
         suppressions = self._entity_cache_for_tenant(tenant_id).suppressions
 
-        if sp_id not in suppressions:
-            status = 404
-            request.setResponseCode(status)
-            self._audit('suppressions', request, tenant_id, status)
-            return json.dumps({'type': 'notFoundError',
-                               'code': status,
-                               'message': 'Object does not exist',
-                               'details': ('Object "Suppression" with key "{0}" '
-                                           'does not exist').format(sp_id),
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'
-                               })
+        try:
+            _assert_suppression_exists(suppressions, sp_id)
+        except ObjectDoesNotExist as e:
+            request.setResponseCode(e.code)
+            self._audit('suppressions', request, tenant_id, e.code)
+            return json.dumps(e.to_json())
 
         del suppressions[sp_id]
 
@@ -1802,23 +1718,11 @@ class MaasController(object):
         check_id = None
         alarm_label = None
 
-        if entity_id not in entities:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'message': 'Parent does not exist',
-                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
-                                   entity_id)
-                               })
-
-        if alarm_id not in entities[entity_id].alarms:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'message': 'Object does not exist',
-                               'details': 'Object "Alarm" with key "{0}:{1}" does not exist'.format(
-                                   entity_id, alarm_id)
-                               })
+        try:
+            _assert_alarm_exists(entities, entity_id, alarm_id)
+        except (ObjectDoesNotExist, ParentDoesNotExist) as e:
+            request.setResponseCode(e.code)
+            return json.dumps(e.to_json())
 
         alarm = entities[entity_id].alarms[alarm_id]
         alarm_label = alarm.label
@@ -1869,25 +1773,11 @@ class MaasController(object):
         entities = self._entity_cache_for_tenant(tenant_id).entities
         check = None
 
-        if entity_id not in entities:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
-                               'message': 'Parent does not exist',
-                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
-                                   entity_id)
-                               })
-
-        if check_id not in entities[entity_id].checks:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
-                               'message': 'Object does not exist',
-                               'details': 'Object "Check" with key "{0}" does not exist'.format(
-                                   '{0}:{1}'.format(entity_id, check_id))
-                               })
+        try:
+            _assert_check_exists(entities, entity_id, check_id)
+        except (ObjectDoesNotExist, ParentDoesNotExist) as e:
+            request.setResponseCode(e.code)
+            return json.dumps(e.to_json())
 
         check = entities[entity_id].checks[check_id]
         maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
@@ -1933,16 +1823,12 @@ class MaasController(object):
         entity = None
 
         try:
-            entity = entities[entity_id]
-        except KeyError:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'message': 'Object does not exist',
-                               'details': ('Object "Entity" with key "{0}" '.format(entity_id) +
-                                           'does not exist'),
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+            _assert_entity_exists(entities, entity_id)
+        except ObjectDoesNotExist as e:
+            request.setResponseCode(e.code)
+            return json.dumps(e.to_json())
 
+        entity = entities[entity_id]
         agent = Agent()
         maas_store.agents.append(agent)
         entity.agent_id = agent.id
