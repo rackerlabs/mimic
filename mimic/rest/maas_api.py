@@ -579,9 +579,16 @@ class MaasMock(object):
         update = json.loads(content.decode("utf-8"))
         update_kwargs = dict(update)
         update_kwargs['clock'] = self._session_store.clock
-        entities_by_id = self._entity_cache_for_tenant(tenant_id).entities
-        if entity_id in entities_by_id:
-            entities_by_id[entity_id].update(**update_kwargs)
+        entities = self._entity_cache_for_tenant(tenant_id).entities
+
+        try:
+            _assert_entity_exists(entities, entity_id)
+        except ObjectDoesNotExist as e:
+            request.setResponseCode(e.code)
+            self._audit('entities', request, tenant_id, e.code, content)
+            return json.dumps(e.to_json())
+
+        entities[entity_id].update(**update_kwargs)
 
         status = 204
         request.setResponseCode(status)

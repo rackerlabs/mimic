@@ -419,6 +419,17 @@ class MaasAPITests(SynchronousTestCase):
             ))['label']
         )
 
+    def test_update_nonexisting_entity_404s(self):
+        """
+        Attempting to update an non-existing entity causes a 404.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, b"PUT",
+                         '{0}/entities/enDoesNotExist'.format(self.uri),
+                         json.dumps({'label': 'wow entity'}).encode("utf-8")))
+        self.assertEquals(resp.code, 404)
+        self.assertEquals(data['message'], 'Object does not exist')
+
     def test_partial_update_entity(self):
         """
         Update an entity, fields not specified in the body don't change.
@@ -957,6 +968,23 @@ class MaasAPITests(SynchronousTestCase):
         data = self.get_responsebody(resp)
         self.assertEquals(0, len(data['values'][0]['checks']))
         self.assertEquals(0, len(data['values'][0]['alarms']))
+
+    def test_delete_check_only_deletes_own_alarms(self):
+        """
+        Deleting a check only deletes alarms under that entity
+        that belong to the check that was deleted.
+        """
+        other_check_id = self.getXobjectIDfromResponse(self.createCheck('check-2', self.entity_id))
+        other_alarm_id = self.getXobjectIDfromResponse(
+            self.createAlarm('alarm-2', self.entity_id, other_check_id))
+        resp = self.successResultOf(
+            request(self, self.root, b"DELETE",
+                    '{0}/entities/{1}/checks/{2}'.format(self.uri, self.entity_id, self.check_id)))
+        self.assertEquals(resp.code, 204)
+        resp = self.successResultOf(
+            request(self, self.root, b"GET",
+                    '{0}/entities/{1}/alarms/{2}'.format(self.uri, self.entity_id, other_alarm_id)))
+        self.assertEquals(resp.code, 200)
 
     def test_delete_nonexistent_check_404s(self):
         """
