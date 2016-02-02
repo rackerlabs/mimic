@@ -371,7 +371,7 @@ class MaasAPITests(SynchronousTestCase):
         (resp, data) = self.successResultOf(
             json_request(self, self.root, b"POST",
                          '{0}/entities/enDoesNotExist/checks'.format(self.uri),
-                         json.dumps({'label': 'a', 'type': 'agent.cpu'})))
+                         json.dumps({'label': 'a', 'type': 'agent.cpu'}).encode("utf-8")))
         self.assertEquals(resp.code, 404)
         self.assertEquals(data['type'], 'notFoundError')
 
@@ -466,7 +466,7 @@ class MaasAPITests(SynchronousTestCase):
             json_request(self, self.root, b"POST",
                          '{0}/entities/{1}/alarms'.format(self.uri, self.entity_id),
                          json.dumps({'label': 'wow-alarm',
-                                     'notification_plan_id': self.np_id})))
+                                     'notification_plan_id': self.np_id}).encode("utf-8")))
         self.assertEquals(resp.code, 400)
         self.assertEquals(data['type'], 'badRequest')
         self.assertEquals(data['message'], 'Validation error for key \'check_id\'')
@@ -531,7 +531,7 @@ class MaasAPITests(SynchronousTestCase):
         (resp, data) = self.successResultOf(
             json_request(self, self.root, b"PUT",
                          '{0}/entities/{1}/checks/chDoesNotExist'.format(self.uri, self.entity_id),
-                         json.dumps({'label': 'awesome test check'})))
+                         json.dumps({'label': 'awesome test check'}).encode("utf-8")))
         self.assertEquals(resp.code, 404)
         self.assertEquals(data['message'], 'Object does not exist')
 
@@ -598,7 +598,7 @@ class MaasAPITests(SynchronousTestCase):
             json_request(self, self.root, b"PUT",
                          '{0}/entities/{1}/alarms/alDoesNotExist'.format(
                              self.uri, self.entity_id),
-                         json.dumps({'label': 'awesome test alarm'})))
+                         json.dumps({'label': 'awesome test alarm'}).encode("utf-8")))
         self.assertEquals(resp.code, 404)
 
     def test_create_alarm_with_unrecognized_keys(self):
@@ -627,7 +627,7 @@ class MaasAPITests(SynchronousTestCase):
                          json.dumps({'label': 'a',
                                      'check_id': self.check_id,
                                      'criteria': 'OK',
-                                     'notification_plan_id': 'npL01Wu7'})))
+                                     'notification_plan_id': 'npL01Wu7'}).encode("utf-8")))
         self.assertEquals(resp.code, 404)
 
     def test_delete_alarm(self):
@@ -1374,7 +1374,7 @@ class MaasAPITests(SynchronousTestCase):
         (resp, data) = self.successResultOf(
             json_request(self, self.root, b"PUT",
                          '{0}/notifications/ntDoesNotExist'.format(self.uri),
-                         json.dumps({'label': 'my awesome notification'})))
+                         json.dumps({'label': 'my awesome notification'}).encode("utf-8")))
         self.assertEquals(resp.code, 404)
         self.assertEquals(data['message'], 'Object does not exist')
 
@@ -1427,7 +1427,7 @@ class MaasAPITests(SynchronousTestCase):
         (resp, data) = self.successResultOf(
             json_request(self, self.root, b"PUT",
                          '{0}/notification_plans/npDoesNotExist'.format(self.uri),
-                         json.dumps({'label': 'WAT WAT WAT'})))
+                         json.dumps({'label': 'WAT WAT WAT'}).encode("utf-8")))
         self.assertEquals(resp.code, 404)
         self.assertEquals(data['message'], 'Object does not exist')
 
@@ -1515,7 +1515,7 @@ class MaasAPITests(SynchronousTestCase):
         (resp, data) = self.successResultOf(
             json_request(self, self.root, b"PUT",
                          '{0}/suppressions/spDoesNotExist'.format(self.uri),
-                         json.dumps({'label': 'my-suppression'})))
+                         json.dumps({'label': 'my-suppression'}).encode("utf-8")))
         self.assertEquals(resp.code, 404)
         self.assertEquals(data['message'], 'Object does not exist')
 
