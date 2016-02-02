@@ -26,6 +26,7 @@ from mimic.imimic import IAPIMock
 from mimic.canned_responses.maas_json_home import json_home
 from mimic.canned_responses.maas_monitoring_zones import monitoring_zones
 from mimic.canned_responses.maas_alarm_examples import alarm_examples
+from mimic.model.maas_errors import ObjectDoesNotExist, ParentDoesNotExist
 from mimic.model.maas_objects import (Agent,
                                       Alarm,
                                       AlarmState,
@@ -89,18 +90,20 @@ class MCache(object):
         """
         current_time_milliseconds = int(1000 * clock.seconds())
 
-        self.entities_list = []
-        self.checks_list = []
-        self.alarms_list = []
-        self.notifications_list = [Notification(id=u'ntTechnicalContactsEmail',
-                                                label=u'Email All Technical Contacts',
-                                                created_at=current_time_milliseconds,
-                                                updated_at=current_time_milliseconds,
-                                                type=u'technicalContactsEmail')]
-        self.notificationplans_list = [NotificationPlan(id=u'npTechnicalContactsEmail',
-                                                        label=u'Technical Contacts - Email',
-                                                        created_at=current_time_milliseconds,
-                                                        updated_at=current_time_milliseconds)]
+        self.entities = collections.OrderedDict()
+        self.notifications = collections.OrderedDict(
+            [(u'ntTechnicalContactsEmail',
+              Notification(id=u'ntTechnicalContactsEmail',
+                           label=u'Email All Technical Contacts',
+                           created_at=current_time_milliseconds,
+                           updated_at=current_time_milliseconds,
+                           type=u'technicalContactsEmail'))])
+        self.notification_plans = collections.OrderedDict(
+            [(u'npTechnicalContactsEmail',
+              NotificationPlan(id=u'npTechnicalContactsEmail',
+                               label=u'Technical Contacts - Email',
+                               created_at=current_time_milliseconds,
+                               updated_at=current_time_milliseconds))])
         self.notificationtypes_list = [{'id': 'webhook', 'fields': [{'name': 'url',
                                                                      'optional': False,
                                                                      'description': 'An HTTP or \
@@ -119,7 +122,7 @@ class MCache(object):
                                                                   the notification to, \
                                                                   with leading + and country \
                                                                   code (E.164 format)'}]}]
-        self.suppressions_list = []
+        self.suppressions = collections.OrderedDict()
         self.audits_list = []
         self.maas_store = MaasStore(clock)
         self.test_alarm_responses = {}
@@ -229,22 +232,29 @@ def create_suppression(clock, params):
     return Suppression(**params_copy)
 
 
-def _object_getter(collection, matcher, request, object_type, object_key):
+def _assert_object_exists(collection, object_type, object_key, alt_key=None):
     """
-    Generic getter handler for objects in a collection.
+    Asserts that the specified object is present in the collection.
+
+    The collection should behave like a dict where object_key retrieves
+    an object from the collection.
     """
-    for obj in collection:
-        if matcher(obj):
-            request.setResponseCode(200)
-            return json.dumps(obj.to_json())
-    request.setResponseCode(404)
-    return json.dumps({'type': 'notFoundError',
-                       'code': 404,
-                       'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
-                       'message': 'Object does not exist',
-                       'details': 'Object "{0}" with key "{1}" does not exist'.format(
-                           object_type, object_key)
-                       })
+    if object_key not in collection:
+        raise ObjectDoesNotExist(object_type=object_type,
+                                 key=(alt_key or object_key))
+
+
+def _map_getter(collection, request, object_type, object_key):
+    """
+    Getter handler for objects in a Mapping type collection.
+    """
+    try:
+        _assert_object_exists(collection, object_type, object_key)
+    except ObjectDoesNotExist as e:
+        request.setResponseCode(e.code)
+        return json.dumps(e.to_json())
+
+    return json.dumps(collection[object_key].to_json())
 
 
 def _metric_list_for_check(maas_store, entity, check):
@@ -272,7 +282,7 @@ def _metric_list_for_check(maas_store, entity, check):
             for metric in maas_store.check_types[check.type].metrics]
 
 
-def _metric_list_for_entity(maas_store, entity, checks):
+def _metric_list_for_entity(maas_store, entity):
     """
     Creates the metrics list for one entity.
     """
@@ -282,7 +292,7 @@ def _metric_list_for_entity(maas_store, entity, checks):
                         'label': check.label,
                         'type': check.type,
                         'metrics': _metric_list_for_check(maas_store, entity, check)}
-                       for check in checks if check.entity_id == entity.id]}
+                       for check in entity.checks.values()]}
 
 
 def _multiplot_interval(from_date, to_date, points):
@@ -339,6 +349,64 @@ def _compute_multiplot(maas_store, entity_id, check, metric_name, from_date, to_
                           timestamp=int(from_date + (i * interval)),
                           **metric_value_kwargs)}
                      for i in range(points)]}
+
+
+def _assert_entity_exists(entities, entity_id):
+    """
+    Asserts that the specified entity is present in the collection.
+    """
+    _assert_object_exists(entities, 'Entity', entity_id)
+
+
+def _assert_parent_entity_exists(entities, entity_id):
+    """
+    Asserts that the specified entity exists as a potential parent object.
+    """
+    if entity_id not in entities:
+        raise ParentDoesNotExist(object_type='Entity', key=entity_id)
+
+
+def _assert_check_exists(entities, entity_id, check_id):
+    """
+    Asserts that the specified check is present in the collection.
+    """
+    _assert_parent_entity_exists(entities, entity_id)
+    _assert_object_exists(entities[entity_id].checks,
+                          'Check',
+                          check_id,
+                          '{0}:{1}'.format(entity_id, check_id))
+
+
+def _assert_alarm_exists(entities, entity_id, alarm_id):
+    """
+    Asserts that the specified alarm is present in the collection.
+    """
+    _assert_parent_entity_exists(entities, entity_id)
+    _assert_object_exists(entities[entity_id].alarms,
+                          'Alarm',
+                          alarm_id,
+                          '{0}:{1}'.format(entity_id, alarm_id))
+
+
+def _assert_suppression_exists(suppressions, sp_id):
+    """
+    Asserts that the specified suppression is present in the collection.
+    """
+    _assert_object_exists(suppressions, 'Suppression', sp_id)
+
+
+def _assert_notification_exists(notifications, nt_id):
+    """
+    Asserts that the specified notification is present in the collection.
+    """
+    _assert_object_exists(notifications, 'Notification', nt_id)
+
+
+def _assert_notification_plan_exists(notification_plans, np_id):
+    """
+    Asserts that the specified notification plan is present in the collection.
+    """
+    _assert_object_exists(notification_plans, 'NotificationPlan', np_id)
 
 
 def parse_and_flatten_qs(url):
@@ -423,7 +491,7 @@ class MaasMock(object):
         """
         Replies the entities list call
         """
-        entities = self._entity_cache_for_tenant(tenant_id).entities_list
+        entities = list(self._entity_cache_for_tenant(tenant_id).entities.values())
 
         limit = 100
         marker = None
@@ -460,7 +528,7 @@ class MaasMock(object):
         content = request.content.read()
         postdata = json.loads(content.decode("utf-8"))
         newentity = create_entity(self._session_store.clock, postdata)
-        self._entity_cache_for_tenant(tenant_id).entities_list.append(newentity)
+        self._entity_cache_for_tenant(tenant_id).entities[newentity.id] = newentity
         status = 201
         request.setResponseCode(status)
         request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
@@ -475,20 +543,25 @@ class MaasMock(object):
         """
         Fetches a specific entity
         """
-        return _object_getter(self._entity_cache_for_tenant(tenant_id).entities_list,
-                              lambda entity: entity.id == entity_id,
-                              request,
-                              "Entity",
-                              entity_id)
+        return _map_getter(self._entity_cache_for_tenant(tenant_id).entities,
+                           request,
+                           "Entity",
+                           entity_id)
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks', methods=['GET'])
     def get_checks_for_entity(self, request, tenant_id, entity_id):
         """
         Returns all the checks for a paricular entity
         """
-        checks = [check.to_json()
-                  for check in self._entity_cache_for_tenant(tenant_id).checks_list
-                  if check.entity_id == entity_id]
+        entities = self._entity_cache_for_tenant(tenant_id).entities
+
+        try:
+            _assert_parent_entity_exists(entities, entity_id)
+        except ParentDoesNotExist as e:
+            request.setResponseCode(e.code)
+            return json.dumps(e.to_json())
+
+        checks = entities[entity_id].list_checks()
         metadata = {'count': len(checks),
                     'limit': 1000,
                     'marker': None,
@@ -506,10 +579,16 @@ class MaasMock(object):
         update = json.loads(content.decode("utf-8"))
         update_kwargs = dict(update)
         update_kwargs['clock'] = self._session_store.clock
-        for entity in self._entity_cache_for_tenant(tenant_id).entities_list:
-            if entity.id == entity_id:
-                entity.update(**update_kwargs)
-                break
+        entities = self._entity_cache_for_tenant(tenant_id).entities
+
+        try:
+            _assert_entity_exists(entities, entity_id)
+        except ObjectDoesNotExist as e:
+            request.setResponseCode(e.code)
+            self._audit('entities', request, tenant_id, e.code, content)
+            return json.dumps(e.to_json())
+
+        entities[entity_id].update(**update_kwargs)
 
         status = 204
         request.setResponseCode(status)
@@ -525,28 +604,17 @@ class MaasMock(object):
         """
         Delete an entity, all checks that belong to entity, all alarms that belong to those checks
         """
-        entities = self._entity_cache_for_tenant(tenant_id).entities_list
+        entities = self._entity_cache_for_tenant(tenant_id).entities
 
         try:
-            entities.remove(Matcher(lambda entity: entity.id == entity_id))
-        except ValueError:
-            status = 404
+            _assert_entity_exists(entities, entity_id)
+        except ObjectDoesNotExist as e:
+            status = e.code
             request.setResponseCode(status)
             self._audit('entities', request, tenant_id, status)
-            return json.dumps({'type': 'notFoundError',
-                               'code': status,
-                               'message': 'Object does not exist',
-                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
-                                   entity_id),
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+            return json.dumps(e.to_json())
 
-        checks = self._entity_cache_for_tenant(tenant_id).checks_list
-        checks[:] = [check for check in checks
-                     if check.entity_id != entity_id]
-
-        alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
-        alarms[:] = [alarm for alarm in alarms
-                     if alarm.entity_id != entity_id]
+        del entities[entity_id]
 
         status = 204
         request.setResponseCode(status)
@@ -561,6 +629,7 @@ class MaasMock(object):
         """
         content = request.content.read()
         postdata = json.loads(content.decode("utf-8"))
+        entities = self._entity_cache_for_tenant(tenant_id).entities
 
         newcheck = None
         try:
@@ -577,7 +646,15 @@ class MaasMock(object):
                                'details': 'Missing required key ({0})'.format(missing_key),
                                'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
 
-        self._entity_cache_for_tenant(tenant_id).checks_list.append(newcheck)
+        try:
+            _assert_entity_exists(entities, entity_id)
+        except ObjectDoesNotExist as e:
+            status = e.code
+            request.setResponseCode(status)
+            self._audit('checks', request, tenant_id, status, content)
+            return json.dumps(e.to_json())
+
+        entities[entity_id].checks[newcheck.id] = newcheck
         status = 201
         request.setResponseCode(status)
         request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
@@ -593,11 +670,15 @@ class MaasMock(object):
         """
         Get a specific check that was created before
         """
-        return _object_getter(self._entity_cache_for_tenant(tenant_id).checks_list,
-                              lambda check: check.id == check_id,
-                              request,
-                              "Check",
-                              '{0}:{1}'.format(entity_id, check_id))
+        entities = self._entity_cache_for_tenant(tenant_id).entities
+
+        try:
+            _assert_check_exists(entities, entity_id, check_id)
+        except (ObjectDoesNotExist, ParentDoesNotExist) as e:
+            request.setResponseCode(e.code)
+            return json.dumps(e.to_json())
+
+        return json.dumps(entities[entity_id].checks[check_id].to_json())
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks/<string:check_id>',
                methods=['PUT'])
@@ -609,10 +690,17 @@ class MaasMock(object):
         update = json.loads(content.decode("utf-8"))
         update_kwargs = dict(update)
         update_kwargs['clock'] = self._session_store.clock
-        for check in self._entity_cache_for_tenant(tenant_id).checks_list:
-            if check.entity_id == entity_id and check.id == check_id:
-                check.update(**update_kwargs)
-                break
+        entities = self._entity_cache_for_tenant(tenant_id).entities
+
+        try:
+            _assert_check_exists(entities, entity_id, check_id)
+        except (ObjectDoesNotExist, ParentDoesNotExist) as e:
+            status = e.code
+            request.setResponseCode(status)
+            self._audit('checks', request, tenant_id, status)
+            return json.dumps(e.to_json())
+
+        entities[entity_id].checks[check_id].update(**update_kwargs)
         status = 204
         request.setResponseCode(status)
         request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
@@ -628,25 +716,22 @@ class MaasMock(object):
         """
         Deletes check and all alarms associated to it
         """
-        checks = self._entity_cache_for_tenant(tenant_id).checks_list
+        entities = self._entity_cache_for_tenant(tenant_id).entities
 
         try:
-            checks.remove(Matcher(
-                lambda check: check.id == check_id and check.entity_id == entity_id))
-        except ValueError:
-            status = 404
+            _assert_check_exists(entities, entity_id, check_id)
+        except (ObjectDoesNotExist, ParentDoesNotExist) as e:
+            status = e.code
             request.setResponseCode(status)
             self._audit('checks', request, tenant_id, status)
-            return json.dumps({'type': 'notFoundError',
-                               'code': status,
-                               'message': 'Object does not exist',
-                               'details': 'Object "Check" with key "{0}:{1}" does not exist'.format(
-                                   entity_id, check_id),
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+            return json.dumps(e.to_json())
 
-        alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
-        alarms[:] = [alarm for alarm in alarms
-                     if not (alarm.check_id == check_id and alarm.entity_id == entity_id)]
+        entity = entities[entity_id]
+        del entity.checks[check_id]
+        alarms_to_delete = [alarm_id for alarm_id in entity.alarms
+                            if entity.alarms[alarm_id].check_id == check_id]
+        for alarm_id in alarms_to_delete:
+            del entity.alarms[alarm_id]
         status = 204
         request.setResponseCode(status)
         request.setHeader(b'content-type', b'text/plain')
@@ -683,6 +768,7 @@ class MaasMock(object):
         """
         content = request.content.read()
         postdata = json.loads(content.decode("utf-8"))
+        entities = self._entity_cache_for_tenant(tenant_id).entities
 
         try:
             newalarm = create_alarm(self._session_store.clock, entity_id, postdata)
@@ -698,7 +784,14 @@ class MaasMock(object):
                                'details': 'Missing required key ({0})'.format(missing_key),
                                'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
 
-        self._entity_cache_for_tenant(tenant_id).alarms_list.append(newalarm)
+        try:
+            _assert_parent_entity_exists(entities, entity_id)
+        except ParentDoesNotExist as e:
+            request.setResponseCode(e.code)
+            self._audit('alarms', request, tenant_id, e.code, content)
+            return json.dumps(e.to_json())
+
+        entities[entity_id].alarms[newalarm.id] = newalarm
         status = 201
         request.setResponseCode(status)
         request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
@@ -714,11 +807,15 @@ class MaasMock(object):
         """
         Gets an alarm by ID.
         """
-        return _object_getter(self._entity_cache_for_tenant(tenant_id).alarms_list,
-                              lambda alarm: alarm.entity_id == entity_id and alarm.id == alarm_id,
-                              request,
-                              "Alarm",
-                              '{0}:{1}'.format(entity_id, alarm_id))
+        entities = self._entity_cache_for_tenant(tenant_id).entities
+
+        try:
+            _assert_alarm_exists(entities, entity_id, alarm_id)
+        except (ObjectDoesNotExist, ParentDoesNotExist) as e:
+            request.setResponseCode(e.code)
+            return json.dumps(e.to_json())
+
+        return json.dumps(entities[entity_id].alarms[alarm_id].to_json())
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/<string:alarm_id>',
                methods=['PUT'])
@@ -737,11 +834,17 @@ class MaasMock(object):
         update = json.loads(content.decode("utf-8"))
         update_kwargs = dict(update)
         update_kwargs['clock'] = self._session_store.clock
-        for alarm in self._entity_cache_for_tenant(tenant_id).alarms_list:
-            if alarm.entity_id == entity_id and alarm.id == alarm_id:
-                alarm.update(**update_kwargs)
-                break
+        entities = self._entity_cache_for_tenant(tenant_id).entities
 
+        try:
+            _assert_alarm_exists(entities, entity_id, alarm_id)
+        except (ObjectDoesNotExist, ParentDoesNotExist) as e:
+            status = e.code
+            request.setResponseCode(status)
+            self._audit('alarms', request, tenant_id, status, content)
+            return json.dumps(e.to_json())
+
+        entities[entity_id].alarms[alarm_id].update(**update_kwargs)
         status = 204
         request.setResponseCode(status)
         request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
@@ -757,21 +860,18 @@ class MaasMock(object):
         """
         Delete an alarm
         """
-        alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
+        entities = self._entity_cache_for_tenant(tenant_id).entities
 
         try:
-            alarms.remove(Matcher(
-                lambda alarm: alarm.entity_id == entity_id and alarm.id == alarm_id))
-        except ValueError:
-            status = 404
+            _assert_alarm_exists(entities, entity_id, alarm_id)
+        except (ObjectDoesNotExist, ParentDoesNotExist) as e:
+            status = e.code
             request.setResponseCode(status)
             self._audit('alarms', request, tenant_id, status)
-            return json.dumps({'type': 'notFoundError',
-                               'code': status,
-                               'message': 'Object does not exist',
-                               'details': 'Object "Alarm" with key "{0}:{1}" does not exist'.format(
-                                   entity_id, alarm_id),
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+            return json.dumps(e.to_json())
+
+        entity = entities[entity_id]
+        del entity.alarms[alarm_id]
 
         status = 204
         request.setResponseCode(status)
@@ -827,9 +927,15 @@ class MaasMock(object):
         """
         Get all alarms for the specified entity.
         """
-        alarms = [alarm.to_json()
-                  for alarm in self._entity_cache_for_tenant(tenant_id).alarms_list
-                  if alarm.entity_id == entity_id]
+        entities = self._entity_cache_for_tenant(tenant_id).entities
+
+        try:
+            _assert_parent_entity_exists(entities, entity_id)
+        except ParentDoesNotExist as e:
+            request.setResponseCode(e.code)
+            return json.dumps(e.to_json())
+
+        alarms = entities[entity_id].list_alarms()
         metadata = {'count': len(alarms),
                     'limit': 1000,
                     'marker': None,
@@ -843,21 +949,19 @@ class MaasMock(object):
         """
         serves the overview api call,returns all entities,checks and alarms
         """
-        all_entities = self._entity_cache_for_tenant(tenant_id).entities_list
+        entity_map = self._entity_cache_for_tenant(tenant_id).entities
+        all_entities = None
         if b'entityId' in request.args:
             entity_ids = [a.decode("utf-8") for a in request.args[b'entityId']]
-            all_entities = [entity for entity in all_entities
-                            if entity.id in entity_ids]
+            all_entities = [entity_map[entity_id] for entity_id in entity_ids
+                            if entity_id in entity_map]
             if len(all_entities) == 0:
-                request.setResponseCode(404)
-                return json.dumps({'type': 'notFoundError',
-                                   'code': 404,
-                                   'message': 'Object does not exist',
-                                   'details': 'Object "Entity" with key "{0}" does not exist'.format(
-                                       entity_ids)})
+                err = ObjectDoesNotExist(object_type='Entity', key=','.join(entity_ids))
+                request.setResponseCode(err.code)
+                return json.dumps(err.to_json())
+        else:
+            all_entities = list(entity_map.values())
 
-        checks = self._entity_cache_for_tenant(tenant_id).checks_list
-        alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
         maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
         page_limit = min(int(request.args.get(b'limit', [100])[0]), 1000)
         offset = 0
@@ -881,12 +985,8 @@ class MaasMock(object):
             'limit': page_limit,
             'next_href': None
         }
-        values = [{'alarms': [alarm.to_json()
-                              for alarm in alarms
-                              if alarm.entity_id == entity.id],
-                   'checks': [check.to_json()
-                              for check in checks
-                              if check.entity_id == entity.id],
+        values = [{'alarms': entity.list_alarms(),
+                   'checks': entity.list_checks(),
                    'entity': entity.to_json(),
                    'latest_alarm_states': [
                        state.brief_json()
@@ -946,7 +1046,7 @@ class MaasMock(object):
         """
         Mocks the /views/agent_host_info API call.
         """
-        entities = self._entity_cache_for_tenant(tenant_id).entities_list
+        entities = self._entity_cache_for_tenant(tenant_id).entities
         maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
 
         if b'include' not in request.args:
@@ -970,27 +1070,23 @@ class MaasMock(object):
 
         entity_id = request.args[b'entityId'][0].strip().decode("utf-8")
         agent_id = None
-        for entity in entities:
-            if entity.id == entity_id:
-                if entity.agent_id is None:
-                    request.setResponseCode(400)
-                    return json.dumps({'type': 'agentDoesNotExist',
-                                       'code': 400,
-                                       'message': 'Agent does not exist',
-                                       'details': 'Agent null does not exist',
-                                       'txnId': ('.fake.mimic.transaction.id.c-1111111.'
-                                                 'ts-123444444.v-12344frf')})
-                agent_id = entity.agent_id
-                break
-        else:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'message': 'Object does not exist',
-                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
-                                   entity_id),
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'
-                               })
+
+        try:
+            _assert_entity_exists(entities, entity_id)
+        except ObjectDoesNotExist as e:
+            request.setResponseCode(e.code)
+            return json.dumps(e.to_json())
+
+        entity = entities[entity_id]
+        if entity.agent_id is None:
+            request.setResponseCode(400)
+            return json.dumps({'type': 'agentDoesNotExist',
+                               'code': 400,
+                               'message': 'Agent does not exist',
+                               'details': 'Agent null does not exist',
+                               'txnId': ('.fake.mimic.transaction.id.c-1111111.'
+                                         'ts-123444444.v-12344frf')})
+        agent_id = entity.agent_id
 
         agent = maas_store.agents[maas_store.agents.index(Matcher(
             lambda agent: agent.id == agent_id))]
@@ -1032,7 +1128,8 @@ class MaasMock(object):
         """
         content = request.content.read()
         new_n = create_notification(self._session_store.clock, json.loads(content.decode("utf-8")))
-        self._entity_cache_for_tenant(tenant_id).notifications_list.append(new_n)
+        notifications = self._entity_cache_for_tenant(tenant_id).notifications
+        notifications[new_n.id] = new_n
         status = 201
         request.setResponseCode(status)
         request.setHeader(b'content-type', b'text/plain')
@@ -1047,14 +1144,15 @@ class MaasMock(object):
         """
         Get notification targets
         """
-        nt_list = self._entity_cache_for_tenant(tenant_id).notifications_list
-        metadata = {'count': len(nt_list),
+        notifications = self._entity_cache_for_tenant(tenant_id).notifications
+        metadata = {'count': len(notifications),
                     'limit': 100,
                     'marker': None,
                     'next_marker': None,
                     'next_href': None}
         request.setResponseCode(200)
-        return json.dumps({'values': [nt.to_json() for nt in nt_list], 'metadata': metadata})
+        return json.dumps({'values': [nt.to_json() for nt in notifications.values()],
+                           'metadata': metadata})
 
     @app.route('/v1.0/<string:tenant_id>/notifications/<string:nt_id>', methods=['PUT'])
     def update_notifications(self, request, tenant_id, nt_id):
@@ -1065,11 +1163,16 @@ class MaasMock(object):
         postdata = json.loads(content.decode("utf-8"))
         update_kwargs = dict(postdata)
         update_kwargs['clock'] = self._session_store.clock
-        nt_list = self._entity_cache_for_tenant(tenant_id).notifications_list
-        for nt in nt_list:
-            if nt.id == nt_id:
-                nt.update(**update_kwargs)
-                break
+        notifications = self._entity_cache_for_tenant(tenant_id).notifications
+
+        try:
+            _assert_notification_exists(notifications, nt_id)
+        except ObjectDoesNotExist as e:
+            request.setResponseCode(e.code)
+            self._audit('notifications', request, tenant_id, e.code, content)
+            return json.dumps(e.to_json())
+
+        notifications[nt_id].update(**update_kwargs)
 
         status = 204
         request.setResponseCode(status)
@@ -1082,20 +1185,16 @@ class MaasMock(object):
         """
         Delete a notification
         """
-        notifications = self._entity_cache_for_tenant(tenant_id).notifications_list
+        notifications = self._entity_cache_for_tenant(tenant_id).notifications
 
         try:
-            notifications.remove(Matcher(lambda nt: nt.id == nt_id))
-        except ValueError:
-            status = 404
-            request.setResponseCode(status)
-            self._audit('notifications', request, tenant_id, status)
-            return json.dumps({'type': 'notFoundError',
-                               'code': status,
-                               'message': 'Object does not exist',
-                               'details': 'Object "Notification" with key "{0}" does not exist'.format(
-                                   nt_id),
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+            _assert_notification_exists(notifications, nt_id)
+        except ObjectDoesNotExist as e:
+            request.setResponseCode(e.code)
+            self._audit('notifications', request, tenant_id, e.code)
+            return json.dumps(e.to_json())
+
+        del notifications[nt_id]
 
         status = 204
         request.setResponseCode(status)
@@ -1110,8 +1209,9 @@ class MaasMock(object):
         """
         content = request.content.read()
         postdata = json.loads(content.decode("utf-8"))
+        notification_plans = self._entity_cache_for_tenant(tenant_id).notification_plans
         newnp = create_notification_plan(self._session_store.clock, postdata)
-        self._entity_cache_for_tenant(tenant_id).notificationplans_list.append(newnp)
+        notification_plans[newnp.id] = newnp
         status = 201
         request.setResponseCode(status)
         request.setHeader(b'content-type', b'text/plain')
@@ -1126,7 +1226,7 @@ class MaasMock(object):
         """
         Get all notification plans
         """
-        np_list = self._entity_cache_for_tenant(tenant_id).notificationplans_list
+        np_list = self._entity_cache_for_tenant(tenant_id).notification_plans.values()
         metadata = {'count': len(np_list),
                     'limit': 100,
                     'marker': None,
@@ -1140,11 +1240,8 @@ class MaasMock(object):
         """
         Get specific notif plan
         """
-        return _object_getter(self._entity_cache_for_tenant(tenant_id).notificationplans_list,
-                              lambda np: np.id == np_id,
-                              request,
-                              "Notification Plan",
-                              np_id)
+        notification_plans = self._entity_cache_for_tenant(tenant_id).notification_plans
+        return _map_getter(notification_plans, request, 'NotificationPlan', np_id)
 
     @app.route('/v1.0/<string:tenant_id>/notification_plans/<string:np_id>', methods=['PUT'])
     def update_notification_plan(self, request, tenant_id, np_id):
@@ -1155,11 +1252,17 @@ class MaasMock(object):
         postdata = json.loads(content.decode("utf-8"))
         update_kwargs = dict(postdata)
         update_kwargs['clock'] = self._session_store.clock
-        np_list = self._entity_cache_for_tenant(tenant_id).notificationplans_list
-        for np in np_list:
-            if np.id == np_id:
-                np.update(**update_kwargs)
-                break
+        notification_plans = self._entity_cache_for_tenant(tenant_id).notification_plans
+
+        try:
+            _assert_notification_plan_exists(notification_plans, np_id)
+        except ObjectDoesNotExist as e:
+            status = e.code
+            request.setResponseCode(status)
+            self._audit('notification_plans', request, tenant_id, status)
+            return json.dumps(e.to_json())
+
+        notification_plans[np_id].update(**update_kwargs)
         status = 204
         request.setResponseCode(status)
         request.setHeader(b'content-type', b'text/plain')
@@ -1171,9 +1274,11 @@ class MaasMock(object):
         """
         Remove a notification plan
         """
-        all_alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
-        nplist = self._entity_cache_for_tenant(tenant_id).notificationplans_list
-        alarmids_using_np = [alarm.id for alarm in all_alarms
+        notification_plans = self._entity_cache_for_tenant(tenant_id).notification_plans
+        entities = self._entity_cache_for_tenant(tenant_id).entities
+        alarmids_using_np = [alarm.id
+                             for entity in entities.values()
+                             for alarm in entity.alarms.values()
                              if alarm.notification_plan_id == np_id]
 
         if len(alarmids_using_np):
@@ -1189,17 +1294,13 @@ class MaasMock(object):
                                'details': err_message})
 
         try:
-            nplist.remove(Matcher(lambda np: np.id == np_id))
-        except ValueError:
-            status = 404
-            request.setResponseCode(status)
-            self._audit('notification_plans', request, tenant_id, status)
-            return json.dumps({'type': 'notFoundError',
-                               'code': status,
-                               'message': 'Object does not exist',
-                               'details': ('Object "NotificationPlan" with key "{0}" '.format(np_id) +
-                                           'does not exist'),
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+            _assert_notification_plan_exists(notification_plans, np_id)
+        except ObjectDoesNotExist as e:
+            request.setResponseCode(e.code)
+            self._audit('notification_plans', request, tenant_id, e.code)
+            return json.dumps(e.to_json())
+
+        del notification_plans[np_id]
 
         status = 204
         request.setResponseCode(status)
@@ -1212,7 +1313,7 @@ class MaasMock(object):
         """
         Get the list of suppressions for this tenant.
         """
-        sp_list = self._entity_cache_for_tenant(tenant_id).suppressions_list
+        sp_list = self._entity_cache_for_tenant(tenant_id).suppressions.values()
         metadata = {
             'count': len(sp_list),
             'limit': 100,
@@ -1228,11 +1329,8 @@ class MaasMock(object):
         """
         Get a suppression by ID.
         """
-        return _object_getter(self._entity_cache_for_tenant(tenant_id).suppressions_list,
-                              lambda sp: sp.id == sp_id,
-                              request,
-                              "Suppression",
-                              sp_id)
+        suppressions = self._entity_cache_for_tenant(tenant_id).suppressions
+        return _map_getter(suppressions, request, 'Suppression', sp_id)
 
     @app.route('/v1.0/<string:tenant_id>/suppressions', methods=['POST'])
     def create_suppression(self, request, tenant_id):
@@ -1242,7 +1340,8 @@ class MaasMock(object):
         content = request.content.read()
         postdata = json.loads(content.decode("utf-8"))
         newsp = create_suppression(self._session_store.clock, postdata)
-        self._entity_cache_for_tenant(tenant_id).suppressions_list.append(newsp)
+        suppressions = self._entity_cache_for_tenant(tenant_id).suppressions
+        suppressions[newsp.id] = newsp
         status = 201
         request.setResponseCode(status)
         request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
@@ -1261,11 +1360,16 @@ class MaasMock(object):
         postdata = json.loads(content.decode("utf-8"))
         update_kwargs = dict(postdata)
         update_kwargs['clock'] = self._session_store.clock
-        sp_list = self._entity_cache_for_tenant(tenant_id).suppressions_list
-        for sp in sp_list:
-            if sp.id == sp_id:
-                sp.update(**update_kwargs)
-                break
+        suppressions = self._entity_cache_for_tenant(tenant_id).suppressions
+
+        try:
+            _assert_suppression_exists(suppressions, sp_id)
+        except ObjectDoesNotExist as e:
+            request.setResponseCode(e.code)
+            self._audit('suppressions', request, tenant_id, e.code, content)
+            return json.dumps(e.to_json())
+
+        suppressions[sp_id].update(**update_kwargs)
         status = 204
         request.setResponseCode(status)
         request.setHeader(b'content-type', b'text/plain')
@@ -1277,20 +1381,16 @@ class MaasMock(object):
         """
         Delete a suppression.
         """
-        suppressions = self._entity_cache_for_tenant(tenant_id).suppressions_list
+        suppressions = self._entity_cache_for_tenant(tenant_id).suppressions
 
         try:
-            suppressions.remove(Matcher(lambda sp: sp.id == sp_id))
-        except ValueError:
-            status = 404
-            request.setResponseCode(status)
-            self._audit('suppressions', request, tenant_id, status)
-            return json.dumps({'type': 'notFoundError',
-                               'code': status,
-                               'message': 'Object does not exist',
-                               'details': 'Object "Suppression" with key "{0}" does not exist'.format(
-                                   sp_id),
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+            _assert_suppression_exists(suppressions, sp_id)
+        except ObjectDoesNotExist as e:
+            request.setResponseCode(e.code)
+            self._audit('suppressions', request, tenant_id, e.code)
+            return json.dumps(e.to_json())
+
+        del suppressions[sp_id]
 
         status = 204
         request.setResponseCode(status)
@@ -1335,13 +1435,15 @@ class MaasMock(object):
         """
         All NotificationPlans a number of alarms pointing to them.
         """
-        all_alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
-        all_nps = self._entity_cache_for_tenant(tenant_id).notificationplans_list
+        notification_plans = self._entity_cache_for_tenant(tenant_id).notification_plans
+        entities = self._entity_cache_for_tenant(tenant_id).entities
 
         values = [{'notification_plan_id': np.id,
-                   'alarm_count': len([alarm for alarm in all_alarms
+                   'alarm_count': len([alarm
+                                       for entity in entities.values()
+                                       for alarm in entity.alarms.values()
                                        if alarm.notification_plan_id == np.id])}
-                  for np in all_nps]
+                  for np in notification_plans.values()]
 
         metadata = {'limit': 100,
                     'marker': None,
@@ -1356,8 +1458,10 @@ class MaasMock(object):
         """
         List of alarms pointing to a particular NotificationPlan
         """
-        all_alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
-        values = [alarm.to_json() for alarm in all_alarms
+        entities = self._entity_cache_for_tenant(tenant_id).entities
+        values = [alarm.to_json()
+                  for entity in entities.values()
+                  for alarm in entity.alarms.values()
                   if alarm.notification_plan_id == np_id]
         metadata = {'limit': 100,
                     'marker': None,
@@ -1386,11 +1490,10 @@ class MaasMock(object):
         """
         All available metrics.
         """
-        entities = self._entity_cache_for_tenant(tenant_id).entities_list
-        all_checks = self._entity_cache_for_tenant(tenant_id).checks_list
+        entities = self._entity_cache_for_tenant(tenant_id).entities
         maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
-        values = [_metric_list_for_entity(maas_store, entity, all_checks)
-                  for entity in entities]
+        values = [_metric_list_for_entity(maas_store, entity)
+                  for entity in entities.values()]
 
         metadata = {'count': len(values),
                     'marker': None,
@@ -1407,14 +1510,15 @@ class MaasMock(object):
         datapoints for all metrics requested
         Right now, only checks of type remote.ping work
         """
-        checks = self._entity_cache_for_tenant(tenant_id).checks_list
+        entities = self._entity_cache_for_tenant(tenant_id).entities
         maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
         content = request.content.read()
         multiplot_request = json.loads(content.decode("utf-8"))
 
         requested_check_ids = set([metric['check_id'] for metric in multiplot_request['metrics']])
         checks_by_id = dict([(check.id, check)
-                             for check in checks
+                             for entity in entities.values()
+                             for check in entity.checks.values()
                              if check.id in requested_check_ids])
 
         for requested_metric in multiplot_request['metrics']:
@@ -1448,7 +1552,7 @@ class MaasMock(object):
         """
         Gets entities grouped with their latest alarm states.
         """
-        entities = self._entity_cache_for_tenant(tenant_id).entities_list
+        entities = self._entity_cache_for_tenant(tenant_id).entities
         maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
 
         values = [{'entity_id': entity.id,
@@ -1457,7 +1561,7 @@ class MaasMock(object):
                    'latest_alarm_states': [
                        state.detail_json()
                        for state in maas_store.latest_alarm_states_for_entity(entity.id)]}
-                  for entity in entities]
+                  for entity in entities.values()]
 
         metadata = {'count': len(values),
                     'marker': None,
@@ -1616,23 +1720,21 @@ class MaasController(object):
         Adds a new alarm state to the collection of alarm states.
         """
         maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
+        entities = self._entity_cache_for_tenant(tenant_id).entities
         request_body = json_from_request(request)
 
         check_id = None
         alarm_label = None
-        for al in self._entity_cache_for_tenant(tenant_id).alarms_list:
-            if al.entity_id == entity_id and al.id == alarm_id:
-                alarm_label = al.label
-                check_id = al.check_id
-                break
-        else:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'message': 'Object does not exist',
-                               'details': 'Object "Alarm" with key "{0}:{1}" does not exist'.format(
-                                   entity_id, alarm_id)
-                               })
+
+        try:
+            _assert_alarm_exists(entities, entity_id, alarm_id)
+        except (ObjectDoesNotExist, ParentDoesNotExist) as e:
+            request.setResponseCode(e.code)
+            return json.dumps(e.to_json())
+
+        alarm = entities[entity_id].alarms[alarm_id]
+        alarm_label = alarm.label
+        check_id = alarm.check_id
 
         previous_state = u'UNKNOWN'
         alarm_states_same_entity_and_alarm = [
@@ -1676,21 +1778,16 @@ class MaasController(object):
         """
         Sets overrides on a metric.
         """
-        checks = self._entity_cache_for_tenant(tenant_id).checks_list
+        entities = self._entity_cache_for_tenant(tenant_id).entities
         check = None
 
-        for c in checks:
-            if c.id == check_id and c.entity_id == entity_id:
-                check = c
-                break
-        else:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'message': 'Object does not exist',
-                               'details': 'Object "Check" with key "{0}:{1}" does not exist'.format(
-                                   entity_id, check_id)})
+        try:
+            _assert_check_exists(entities, entity_id, check_id)
+        except (ObjectDoesNotExist, ParentDoesNotExist) as e:
+            request.setResponseCode(e.code)
+            return json.dumps(e.to_json())
 
+        check = entities[entity_id].checks[check_id]
         maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
         metric = maas_store.check_types[check.type].get_metric_by_name(metric_name)
         request_body = json_from_request(request)
@@ -1729,21 +1826,17 @@ class MaasController(object):
         """
         Creates or overwrites an agent on the entity.
         """
-        entities = self._entity_cache_for_tenant(tenant_id).entities_list
+        entities = self._entity_cache_for_tenant(tenant_id).entities
         maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
         entity = None
 
         try:
-            entity = entities[entities.index(Matcher(lambda en: en.id == entity_id))]
-        except ValueError:
-            request.setResponseCode(404)
-            return json.dumps({'type': 'notFoundError',
-                               'code': 404,
-                               'message': 'Object does not exist',
-                               'details': ('Object "Entity" with key "{0}" '.format(entity_id) +
-                                           'does not exist'),
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+            _assert_entity_exists(entities, entity_id)
+        except ObjectDoesNotExist as e:
+            request.setResponseCode(e.code)
+            return json.dumps(e.to_json())
 
+        entity = entities[entity_id]
         agent = Agent()
         maas_store.agents.append(agent)
         entity.agent_id = agent.id

@@ -4,6 +4,7 @@ MaaS API data model
 
 from __future__ import absolute_import, division, unicode_literals
 
+import collections
 import random
 import string
 from uuid import uuid4
@@ -19,7 +20,9 @@ METRIC_TYPE_STRING = 's'
 
 
 @attributes([Attribute('agent_id', default_value=None),
+             Attribute('alarms', default_factory=collections.OrderedDict),
              Attribute('created_at', instance_of=int),
+             Attribute('checks', default_factory=collections.OrderedDict),
              Attribute('id',
                        default_factory=(lambda: u'en' + random_hex_generator(4)),
                        instance_of=text_type),
@@ -62,6 +65,18 @@ class Entity(object):
             if key in kwargs:
                 setattr(self, key, kwargs[key])
         self.updated_at = int(1000 * kwargs['clock'].seconds())
+
+    def list_checks(self):
+        """
+        Lists checks under this Entity.
+        """
+        return [check.to_json() for check in self.checks.values()]
+
+    def list_alarms(self):
+        """
+        Lists alarms under this Entity.
+        """
+        return [alarm.to_json() for alarm in self.alarms.values()]
 
 
 @attributes([Attribute('created_at', instance_of=int),
