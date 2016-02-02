@@ -90,7 +90,6 @@ class MCache(object):
         current_time_milliseconds = int(1000 * clock.seconds())
 
         self.entities = collections.OrderedDict()
-        self.alarms_list = []
         self.notifications_list = [Notification(id=u'ntTechnicalContactsEmail',
                                                 label=u'Email All Technical Contacts',
                                                 created_at=current_time_milliseconds,
@@ -561,10 +560,6 @@ class MaasMock(object):
                                'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
         del entities_by_id[entity_id]
 
-        alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
-        alarms[:] = [alarm for alarm in alarms
-                     if alarm.entity_id != entity_id]
-
         status = 204
         request.setResponseCode(status)
         request.setHeader(b'content-type', b'text/plain')
@@ -704,7 +699,8 @@ class MaasMock(object):
                                    entity_id)
                                })
 
-        if check_id not in entities[entity_id].checks:
+        entity = entities[entity_id]
+        if check_id not in entity.checks:
             request.setResponseCode(404)
             return json.dumps({'type': 'notFoundError',
                                'code': 404,
@@ -714,11 +710,10 @@ class MaasMock(object):
                                    '{0}:{1}'.format(entity_id, check_id))
                                })
 
-        del entities[entity_id].checks[check_id]
-
-        alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
-        alarms[:] = [alarm for alarm in alarms
-                     if not (alarm.check_id == check_id and alarm.entity_id == entity_id)]
+        del entity.checks[check_id]
+        for (alarm_id, alarm) in entity.alarms.items():
+            if alarm.check_id == check_id:
+                del entity.alarms[alarm.id]
         status = 204
         request.setResponseCode(status)
         request.setHeader(b'content-type', b'text/plain')
@@ -755,6 +750,7 @@ class MaasMock(object):
         """
         content = request.content.read()
         postdata = json.loads(content.decode("utf-8"))
+        entities = self._entity_cache_for_tenant(tenant_id).entities
 
         try:
             newalarm = create_alarm(self._session_store.clock, entity_id, postdata)
@@ -770,7 +766,17 @@ class MaasMock(object):
                                'details': 'Missing required key ({0})'.format(missing_key),
                                'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
 
-        self._entity_cache_for_tenant(tenant_id).alarms_list.append(newalarm)
+        if entity_id not in entities:
+            request.setResponseCode(404)
+            return json.dumps({'type': 'notFoundError',
+                               'code': 404,
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
+                               'message': 'Parent does not exist',
+                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
+                                   entity_id)
+                               })
+
+        entities[entity_id].alarms[newalarm.id] = newalarm
         status = 201
         request.setResponseCode(status)
         request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
@@ -786,11 +792,28 @@ class MaasMock(object):
         """
         Gets an alarm by ID.
         """
-        return _object_getter(self._entity_cache_for_tenant(tenant_id).alarms_list,
-                              lambda alarm: alarm.entity_id == entity_id and alarm.id == alarm_id,
-                              request,
-                              "Alarm",
-                              '{0}:{1}'.format(entity_id, alarm_id))
+        entities = self._entity_cache_for_tenant(tenant_id).entities
+        if entity_id not in entities:
+            request.setResponseCode(404)
+            return json.dumps({'type': 'notFoundError',
+                               'code': 404,
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
+                               'message': 'Parent does not exist',
+                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
+                                   entity_id)
+                               })
+
+        if alarm_id not in entities[entity_id].alarms:
+            request.setResponseCode(404)
+            return json.dumps({'type': 'notFoundError',
+                               'code': 404,
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
+                               'message': 'Object does not exist',
+                               'details': 'Object "Alarm" with key "{0}" does not exist'.format(
+                                   '{0}:{1}'.format(entity_id, alarm_id))
+                               })
+
+        return json.dumps(entities[entity_id].alarms[alarm_id].to_json())
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/alarms/<string:alarm_id>',
                methods=['PUT'])
@@ -809,11 +832,29 @@ class MaasMock(object):
         update = json.loads(content.decode("utf-8"))
         update_kwargs = dict(update)
         update_kwargs['clock'] = self._session_store.clock
-        for alarm in self._entity_cache_for_tenant(tenant_id).alarms_list:
-            if alarm.entity_id == entity_id and alarm.id == alarm_id:
-                alarm.update(**update_kwargs)
-                break
+        entities = self._entity_cache_for_tenant(tenant_id).entities
 
+        if entity_id not in entities:
+            request.setResponseCode(404)
+            return json.dumps({'type': 'notFoundError',
+                               'code': 404,
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
+                               'message': 'Parent does not exist',
+                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
+                                   entity_id)
+                               })
+
+        if alarm_id not in entities[entity_id].alarms:
+            request.setResponseCode(404)
+            return json.dumps({'type': 'notFoundError',
+                               'code': 404,
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
+                               'message': 'Object does not exist',
+                               'details': 'Object "Alarm" with key "{0}" does not exist'.format(
+                                   '{0}:{1}'.format(entity_id, alarm_id))
+                               })
+
+        entities[entity_id].alarms[alarm_id].update(**update_kwargs)
         status = 204
         request.setResponseCode(status)
         request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
@@ -829,21 +870,30 @@ class MaasMock(object):
         """
         Delete an alarm
         """
-        alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
+        entities = self._entity_cache_for_tenant(tenant_id).entities
 
-        try:
-            alarms.remove(Matcher(
-                lambda alarm: alarm.entity_id == entity_id and alarm.id == alarm_id))
-        except ValueError:
-            status = 404
-            request.setResponseCode(status)
-            self._audit('alarms', request, tenant_id, status)
+        if entity_id not in entities:
+            request.setResponseCode(404)
             return json.dumps({'type': 'notFoundError',
-                               'code': status,
+                               'code': 404,
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
+                               'message': 'Parent does not exist',
+                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
+                                   entity_id)
+                               })
+
+        entity = entities[entity_id]
+        if alarm_id not in entity.alarms:
+            request.setResponseCode(404)
+            return json.dumps({'type': 'notFoundError',
+                               'code': 404,
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
                                'message': 'Object does not exist',
-                               'details': 'Object "Alarm" with key "{0}:{1}" does not exist'.format(
-                                   entity_id, alarm_id),
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+                               'details': 'Object "Alarm" with key "{0}" does not exist'.format(
+                                   '{0}:{1}'.format(entity_id, alarm_id))
+                               })
+
+        del entity.alarms[alarm_id]
 
         status = 204
         request.setResponseCode(status)
@@ -899,9 +949,17 @@ class MaasMock(object):
         """
         Get all alarms for the specified entity.
         """
-        alarms = [alarm.to_json()
-                  for alarm in self._entity_cache_for_tenant(tenant_id).alarms_list
-                  if alarm.entity_id == entity_id]
+        entities = self._entity_cache_for_tenant(tenant_id).entities
+        if entity_id not in entities:
+            request.setResponseCode(404)
+            return json.dumps({'type': 'notFoundError',
+                               'code': 404,
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
+                               'message': 'Parent does not exist',
+                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
+                                   entity_id)
+                               })
+        alarms = entities[entity_id].list_alarms()
         metadata = {'count': len(alarms),
                     'limit': 1000,
                     'marker': None,
@@ -931,7 +989,6 @@ class MaasMock(object):
         else:
             all_entities = list(entity_map.values())
 
-        alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
         maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
         page_limit = min(int(request.args.get(b'limit', [100])[0]), 1000)
         offset = 0
@@ -955,10 +1012,8 @@ class MaasMock(object):
             'limit': page_limit,
             'next_href': None
         }
-        values = [{'alarms': [alarm.to_json()
-                              for alarm in alarms
-                              if alarm.entity_id == entity.id],
-                   'checks': [check.to_json() for check in entity.checks.values()],
+        values = [{'alarms': entity.list_alarms(),
+                   'checks': entity.list_checks(),
                    'entity': entity.to_json(),
                    'latest_alarm_states': [
                        state.brief_json()
@@ -1243,9 +1298,11 @@ class MaasMock(object):
         """
         Remove a notification plan
         """
-        all_alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
         nplist = self._entity_cache_for_tenant(tenant_id).notificationplans_list
-        alarmids_using_np = [alarm.id for alarm in all_alarms
+        entities = self._entity_cache_for_tenant(tenant_id).entities
+        alarmids_using_np = [alarm.id
+                             for entity in entities.values()
+                             for alarm in entity.alarms.values()
                              if alarm.notification_plan_id == np_id]
 
         if len(alarmids_using_np):
@@ -1407,11 +1464,13 @@ class MaasMock(object):
         """
         All NotificationPlans a number of alarms pointing to them.
         """
-        all_alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
         all_nps = self._entity_cache_for_tenant(tenant_id).notificationplans_list
+        entities = self._entity_cache_for_tenant(tenant_id).entities
 
         values = [{'notification_plan_id': np.id,
-                   'alarm_count': len([alarm for alarm in all_alarms
+                   'alarm_count': len([alarm
+                                       for entity in entities.values()
+                                       for alarm in entity.alarms.values()
                                        if alarm.notification_plan_id == np.id])}
                   for np in all_nps]
 
@@ -1428,8 +1487,10 @@ class MaasMock(object):
         """
         List of alarms pointing to a particular NotificationPlan
         """
-        all_alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
-        values = [alarm.to_json() for alarm in all_alarms
+        entities = self._entity_cache_for_tenant(tenant_id).entities
+        values = [alarm.to_json()
+                  for entity in entities.values()
+                  for alarm in entity.alarms.values()
                   if alarm.notification_plan_id == np_id]
         metadata = {'limit': 100,
                     'marker': None,
@@ -1688,16 +1749,22 @@ class MaasController(object):
         Adds a new alarm state to the collection of alarm states.
         """
         maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
+        entities = self._entity_cache_for_tenant(tenant_id).entities
         request_body = json_from_request(request)
 
         check_id = None
         alarm_label = None
-        for al in self._entity_cache_for_tenant(tenant_id).alarms_list:
-            if al.entity_id == entity_id and al.id == alarm_id:
-                alarm_label = al.label
-                check_id = al.check_id
-                break
-        else:
+
+        if entity_id not in entities:
+            request.setResponseCode(404)
+            return json.dumps({'type': 'notFoundError',
+                               'code': 404,
+                               'message': 'Parent does not exist',
+                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
+                                   entity_id)
+                               })
+
+        if alarm_id not in entities[entity_id].alarms:
             request.setResponseCode(404)
             return json.dumps({'type': 'notFoundError',
                                'code': 404,
@@ -1705,6 +1772,10 @@ class MaasController(object):
                                'details': 'Object "Alarm" with key "{0}:{1}" does not exist'.format(
                                    entity_id, alarm_id)
                                })
+
+        alarm = entities[entity_id].alarms[alarm_id]
+        alarm_label = alarm.label
+        check_id = alarm.check_id
 
         previous_state = u'UNKNOWN'
         alarm_states_same_entity_and_alarm = [

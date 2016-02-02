@@ -20,6 +20,7 @@ METRIC_TYPE_STRING = 's'
 
 
 @attributes([Attribute('agent_id', default_value=None),
+             Attribute('alarms', default_factory=collections.OrderedDict),
              Attribute('created_at', instance_of=int),
              Attribute('checks', default_factory=collections.OrderedDict),
              Attribute('id',
@@ -70,6 +71,12 @@ class Entity(object):
         Lists checks under this Entity.
         """
         return [check.to_json() for check in self.checks.values()]
+
+    def list_alarms(self):
+        """
+        Lists alarms under this Entity.
+        """
+        return [alarm.to_json() for alarm in self.alarms.values()]
 
 
 @attributes([Attribute('created_at', instance_of=int),
