@@ -90,7 +90,6 @@ class MCache(object):
         current_time_milliseconds = int(1000 * clock.seconds())
 
         self.entities = collections.OrderedDict()
-        self.checks_list = []
         self.alarms_list = []
         self.notifications_list = [Notification(id=u'ntTechnicalContactsEmail',
                                                 label=u'Email All Technical Contacts',
@@ -289,7 +288,7 @@ def _metric_list_for_check(maas_store, entity, check):
             for metric in maas_store.check_types[check.type].metrics]
 
 
-def _metric_list_for_entity(maas_store, entity, checks):
+def _metric_list_for_entity(maas_store, entity):
     """
     Creates the metrics list for one entity.
     """
@@ -299,7 +298,7 @@ def _metric_list_for_entity(maas_store, entity, checks):
                         'label': check.label,
                         'type': check.type,
                         'metrics': _metric_list_for_check(maas_store, entity, check)}
-                       for check in checks if check.entity_id == entity.id]}
+                       for check in entity.checks.values()]}
 
 
 def _multiplot_interval(from_date, to_date, points):
@@ -502,9 +501,17 @@ class MaasMock(object):
         """
         Returns all the checks for a paricular entity
         """
-        checks = [check.to_json()
-                  for check in self._entity_cache_for_tenant(tenant_id).checks_list
-                  if check.entity_id == entity_id]
+        entities = self._entity_cache_for_tenant(tenant_id).entities
+        if entity_id not in entities:
+            request.setResponseCode(404)
+            return json.dumps({'type': 'notFoundError',
+                               'code': 404,
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
+                               'message': 'Parent does not exist',
+                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
+                                   entity_id)
+                               })
+        checks = entities[entity_id].list_checks()
         metadata = {'count': len(checks),
                     'limit': 1000,
                     'marker': None,
@@ -554,10 +561,6 @@ class MaasMock(object):
                                'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
         del entities_by_id[entity_id]
 
-        checks = self._entity_cache_for_tenant(tenant_id).checks_list
-        checks[:] = [check for check in checks
-                     if check.entity_id != entity_id]
-
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
         alarms[:] = [alarm for alarm in alarms
                      if alarm.entity_id != entity_id]
@@ -575,6 +578,7 @@ class MaasMock(object):
         """
         content = request.content.read()
         postdata = json.loads(content.decode("utf-8"))
+        entities = self._entity_cache_for_tenant(tenant_id).entities
 
         newcheck = None
         try:
@@ -591,7 +595,17 @@ class MaasMock(object):
                                'details': 'Missing required key ({0})'.format(missing_key),
                                'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
 
-        self._entity_cache_for_tenant(tenant_id).checks_list.append(newcheck)
+        if entity_id not in entities:
+            request.setResponseCode(404)
+            return json.dumps({'type': 'notFoundError',
+                               'code': 404,
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
+                               'message': 'Parent does not exist',
+                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
+                                   entity_id)
+                               })
+
+        entities[entity_id].checks[newcheck.id] = newcheck
         status = 201
         request.setResponseCode(status)
         request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
@@ -607,11 +621,28 @@ class MaasMock(object):
         """
         Get a specific check that was created before
         """
-        return _object_getter(self._entity_cache_for_tenant(tenant_id).checks_list,
-                              lambda check: check.id == check_id,
-                              request,
-                              "Check",
-                              '{0}:{1}'.format(entity_id, check_id))
+        entities = self._entity_cache_for_tenant(tenant_id).entities
+        if entity_id not in entities:
+            request.setResponseCode(404)
+            return json.dumps({'type': 'notFoundError',
+                               'code': 404,
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
+                               'message': 'Parent does not exist',
+                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
+                                   entity_id)
+                               })
+
+        if check_id not in entities[entity_id].checks:
+            request.setResponseCode(404)
+            return json.dumps({'type': 'notFoundError',
+                               'code': 404,
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
+                               'message': 'Object does not exist',
+                               'details': 'Object "Check" with key "{0}" does not exist'.format(
+                                   '{0}:{1}'.format(entity_id, check_id))
+                               })
+
+        return json.dumps(entities[entity_id].checks[check_id].to_json())
 
     @app.route('/v1.0/<string:tenant_id>/entities/<string:entity_id>/checks/<string:check_id>',
                methods=['PUT'])
@@ -623,10 +654,29 @@ class MaasMock(object):
         update = json.loads(content.decode("utf-8"))
         update_kwargs = dict(update)
         update_kwargs['clock'] = self._session_store.clock
-        for check in self._entity_cache_for_tenant(tenant_id).checks_list:
-            if check.entity_id == entity_id and check.id == check_id:
-                check.update(**update_kwargs)
-                break
+        entities = self._entity_cache_for_tenant(tenant_id).entities
+
+        if entity_id not in entities:
+            request.setResponseCode(404)
+            return json.dumps({'type': 'notFoundError',
+                               'code': 404,
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
+                               'message': 'Parent does not exist',
+                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
+                                   entity_id)
+                               })
+
+        if check_id not in entities[entity_id].checks:
+            request.setResponseCode(404)
+            return json.dumps({'type': 'notFoundError',
+                               'code': 404,
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
+                               'message': 'Object does not exist',
+                               'details': 'Object "Check" with key "{0}" does not exist'.format(
+                                   '{0}:{1}'.format(entity_id, check_id))
+                               })
+
+        entities[entity_id].checks[check_id].update(**update_kwargs)
         status = 204
         request.setResponseCode(status)
         request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
@@ -642,21 +692,29 @@ class MaasMock(object):
         """
         Deletes check and all alarms associated to it
         """
-        checks = self._entity_cache_for_tenant(tenant_id).checks_list
+        entities = self._entity_cache_for_tenant(tenant_id).entities
 
-        try:
-            checks.remove(Matcher(
-                lambda check: check.id == check_id and check.entity_id == entity_id))
-        except ValueError:
-            status = 404
-            request.setResponseCode(status)
-            self._audit('checks', request, tenant_id, status)
+        if entity_id not in entities:
+            request.setResponseCode(404)
             return json.dumps({'type': 'notFoundError',
-                               'code': status,
+                               'code': 404,
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
+                               'message': 'Parent does not exist',
+                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
+                                   entity_id)
+                               })
+
+        if check_id not in entities[entity_id].checks:
+            request.setResponseCode(404)
+            return json.dumps({'type': 'notFoundError',
+                               'code': 404,
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
                                'message': 'Object does not exist',
-                               'details': 'Object "Check" with key "{0}:{1}" does not exist'.format(
-                                   entity_id, check_id),
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+                               'details': 'Object "Check" with key "{0}" does not exist'.format(
+                                   '{0}:{1}'.format(entity_id, check_id))
+                               })
+
+        del entities[entity_id].checks[check_id]
 
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
         alarms[:] = [alarm for alarm in alarms
@@ -873,7 +931,6 @@ class MaasMock(object):
         else:
             all_entities = list(entity_map.values())
 
-        checks = self._entity_cache_for_tenant(tenant_id).checks_list
         alarms = self._entity_cache_for_tenant(tenant_id).alarms_list
         maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
         page_limit = min(int(request.args.get(b'limit', [100])[0]), 1000)
@@ -901,9 +958,7 @@ class MaasMock(object):
         values = [{'alarms': [alarm.to_json()
                               for alarm in alarms
                               if alarm.entity_id == entity.id],
-                   'checks': [check.to_json()
-                              for check in checks
-                              if check.entity_id == entity.id],
+                   'checks': [check.to_json() for check in entity.checks.values()],
                    'entity': entity.to_json(),
                    'latest_alarm_states': [
                        state.brief_json()
@@ -1404,9 +1459,8 @@ class MaasMock(object):
         All available metrics.
         """
         entities = self._entity_cache_for_tenant(tenant_id).entities
-        all_checks = self._entity_cache_for_tenant(tenant_id).checks_list
         maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
-        values = [_metric_list_for_entity(maas_store, entity, all_checks)
+        values = [_metric_list_for_entity(maas_store, entity)
                   for entity in entities.values()]
 
         metadata = {'count': len(values),
@@ -1424,14 +1478,15 @@ class MaasMock(object):
         datapoints for all metrics requested
         Right now, only checks of type remote.ping work
         """
-        checks = self._entity_cache_for_tenant(tenant_id).checks_list
+        entities = self._entity_cache_for_tenant(tenant_id).entities
         maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
         content = request.content.read()
         multiplot_request = json.loads(content.decode("utf-8"))
 
         requested_check_ids = set([metric['check_id'] for metric in multiplot_request['metrics']])
         checks_by_id = dict([(check.id, check)
-                             for check in checks
+                             for entity in entities.values()
+                             for check in entity.checks.values()
                              if check.id in requested_check_ids])
 
         for requested_metric in multiplot_request['metrics']:
@@ -1693,21 +1748,30 @@ class MaasController(object):
         """
         Sets overrides on a metric.
         """
-        checks = self._entity_cache_for_tenant(tenant_id).checks_list
+        entities = self._entity_cache_for_tenant(tenant_id).entities
         check = None
 
-        for c in checks:
-            if c.id == check_id and c.entity_id == entity_id:
-                check = c
-                break
-        else:
+        if entity_id not in entities:
             request.setResponseCode(404)
             return json.dumps({'type': 'notFoundError',
                                'code': 404,
-                               'message': 'Object does not exist',
-                               'details': 'Object "Check" with key "{0}:{1}" does not exist'.format(
-                                   entity_id, check_id)})
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
+                               'message': 'Parent does not exist',
+                               'details': 'Object "Entity" with key "{0}" does not exist'.format(
+                                   entity_id)
+                               })
 
+        if check_id not in entities[entity_id].checks:
+            request.setResponseCode(404)
+            return json.dumps({'type': 'notFoundError',
+                               'code': 404,
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf',
+                               'message': 'Object does not exist',
+                               'details': 'Object "Check" with key "{0}" does not exist'.format(
+                                   '{0}:{1}'.format(entity_id, check_id))
+                               })
+
+        check = entities[entity_id].checks[check_id]
         maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
         metric = maas_store.check_types[check.type].get_metric_by_name(metric_name)
         request_body = json_from_request(request)
