@@ -97,10 +97,12 @@ class MCache(object):
                            created_at=current_time_milliseconds,
                            updated_at=current_time_milliseconds,
                            type=u'technicalContactsEmail'))])
-        self.notificationplans_list = [NotificationPlan(id=u'npTechnicalContactsEmail',
-                                                        label=u'Technical Contacts - Email',
-                                                        created_at=current_time_milliseconds,
-                                                        updated_at=current_time_milliseconds)]
+        self.notification_plans = collections.OrderedDict(
+            [(u'npTechnicalContactsEmail',
+              NotificationPlan(id=u'npTechnicalContactsEmail',
+                               label=u'Technical Contacts - Email',
+                               created_at=current_time_milliseconds,
+                               updated_at=current_time_milliseconds))])
         self.notificationtypes_list = [{'id': 'webhook', 'fields': [{'name': 'url',
                                                                      'optional': False,
                                                                      'description': 'An HTTP or \
@@ -1248,8 +1250,9 @@ class MaasMock(object):
         """
         content = request.content.read()
         postdata = json.loads(content.decode("utf-8"))
+        notification_plans = self._entity_cache_for_tenant(tenant_id).notification_plans
         newnp = create_notification_plan(self._session_store.clock, postdata)
-        self._entity_cache_for_tenant(tenant_id).notificationplans_list.append(newnp)
+        notification_plans[newnp.id] = newnp
         status = 201
         request.setResponseCode(status)
         request.setHeader(b'content-type', b'text/plain')
@@ -1264,7 +1267,7 @@ class MaasMock(object):
         """
         Get all notification plans
         """
-        np_list = self._entity_cache_for_tenant(tenant_id).notificationplans_list
+        np_list = self._entity_cache_for_tenant(tenant_id).notification_plans.values()
         metadata = {'count': len(np_list),
                     'limit': 100,
                     'marker': None,
@@ -1278,11 +1281,18 @@ class MaasMock(object):
         """
         Get specific notif plan
         """
-        return _object_getter(self._entity_cache_for_tenant(tenant_id).notificationplans_list,
-                              lambda np: np.id == np_id,
-                              request,
-                              "Notification Plan",
-                              np_id)
+        notification_plans = self._entity_cache_for_tenant(tenant_id).notification_plans
+        if np_id not in notification_plans:
+            request.setResponseCode(404)
+            return json.dumps({'type': 'notFoundError',
+                               'code': 404,
+                               'message': 'Object does not exist',
+                               'details': ('Object "NotificationPlan" with key "{0}" '
+                                           'does not exist').format(np_id),
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'
+                               })
+
+        return json.dumps(notification_plans[np_id].to_json())
 
     @app.route('/v1.0/<string:tenant_id>/notification_plans/<string:np_id>', methods=['PUT'])
     def update_notification_plan(self, request, tenant_id, np_id):
@@ -1293,11 +1303,18 @@ class MaasMock(object):
         postdata = json.loads(content.decode("utf-8"))
         update_kwargs = dict(postdata)
         update_kwargs['clock'] = self._session_store.clock
-        np_list = self._entity_cache_for_tenant(tenant_id).notificationplans_list
-        for np in np_list:
-            if np.id == np_id:
-                np.update(**update_kwargs)
-                break
+        notification_plans = self._entity_cache_for_tenant(tenant_id).notification_plans
+        if np_id not in notification_plans:
+            request.setResponseCode(404)
+            return json.dumps({'type': 'notFoundError',
+                               'code': 404,
+                               'message': 'Object does not exist',
+                               'details': ('Object "NotificationPlan" with key "{0}" '
+                                           'does not exist').format(np_id),
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'
+                               })
+
+        notification_plans[np_id].update(**update_kwargs)
         status = 204
         request.setResponseCode(status)
         request.setHeader(b'content-type', b'text/plain')
@@ -1309,7 +1326,7 @@ class MaasMock(object):
         """
         Remove a notification plan
         """
-        nplist = self._entity_cache_for_tenant(tenant_id).notificationplans_list
+        notification_plans = self._entity_cache_for_tenant(tenant_id).notification_plans
         entities = self._entity_cache_for_tenant(tenant_id).entities
         alarmids_using_np = [alarm.id
                              for entity in entities.values()
@@ -1328,9 +1345,7 @@ class MaasMock(object):
                                'message': err_message,
                                'details': err_message})
 
-        try:
-            nplist.remove(Matcher(lambda np: np.id == np_id))
-        except ValueError:
+        if np_id not in notification_plans:
             status = 404
             request.setResponseCode(status)
             self._audit('notification_plans', request, tenant_id, status)
@@ -1340,6 +1355,8 @@ class MaasMock(object):
                                'details': ('Object "NotificationPlan" with key "{0}" '.format(np_id) +
                                            'does not exist'),
                                'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+
+        del notification_plans[np_id]
 
         status = 204
         request.setResponseCode(status)
@@ -1475,7 +1492,7 @@ class MaasMock(object):
         """
         All NotificationPlans a number of alarms pointing to them.
         """
-        all_nps = self._entity_cache_for_tenant(tenant_id).notificationplans_list
+        notification_plans = self._entity_cache_for_tenant(tenant_id).notification_plans
         entities = self._entity_cache_for_tenant(tenant_id).entities
 
         values = [{'notification_plan_id': np.id,
@@ -1483,7 +1500,7 @@ class MaasMock(object):
                                        for entity in entities.values()
                                        for alarm in entity.alarms.values()
                                        if alarm.notification_plan_id == np.id])}
-                  for np in all_nps]
+                  for np in notification_plans.values()]
 
         metadata = {'limit': 100,
                     'marker': None,
