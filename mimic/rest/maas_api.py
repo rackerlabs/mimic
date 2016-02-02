@@ -121,7 +121,7 @@ class MCache(object):
                                                                   the notification to, \
                                                                   with leading + and country \
                                                                   code (E.164 format)'}]}]
-        self.suppressions_list = []
+        self.suppressions = collections.OrderedDict()
         self.audits_list = []
         self.maas_store = MaasStore(clock)
         self.test_alarm_responses = {}
@@ -1369,7 +1369,7 @@ class MaasMock(object):
         """
         Get the list of suppressions for this tenant.
         """
-        sp_list = self._entity_cache_for_tenant(tenant_id).suppressions_list
+        sp_list = self._entity_cache_for_tenant(tenant_id).suppressions.values()
         metadata = {
             'count': len(sp_list),
             'limit': 100,
@@ -1385,11 +1385,18 @@ class MaasMock(object):
         """
         Get a suppression by ID.
         """
-        return _object_getter(self._entity_cache_for_tenant(tenant_id).suppressions_list,
-                              lambda sp: sp.id == sp_id,
-                              request,
-                              "Suppression",
-                              sp_id)
+        suppressions = self._entity_cache_for_tenant(tenant_id).suppressions
+        if sp_id not in suppressions:
+            request.setResponseCode(404)
+            return json.dumps({'type': 'notFoundError',
+                               'code': 404,
+                               'message': 'Object does not exist',
+                               'details': ('Object "Suppression" with key "{0}" '
+                                           'does not exist').format(sp_id),
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'
+                               })
+
+        return json.dumps(suppressions[sp_id].to_json())
 
     @app.route('/v1.0/<string:tenant_id>/suppressions', methods=['POST'])
     def create_suppression(self, request, tenant_id):
@@ -1399,7 +1406,8 @@ class MaasMock(object):
         content = request.content.read()
         postdata = json.loads(content.decode("utf-8"))
         newsp = create_suppression(self._session_store.clock, postdata)
-        self._entity_cache_for_tenant(tenant_id).suppressions_list.append(newsp)
+        suppressions = self._entity_cache_for_tenant(tenant_id).suppressions
+        suppressions[newsp.id] = newsp
         status = 201
         request.setResponseCode(status)
         request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
@@ -1418,11 +1426,21 @@ class MaasMock(object):
         postdata = json.loads(content.decode("utf-8"))
         update_kwargs = dict(postdata)
         update_kwargs['clock'] = self._session_store.clock
-        sp_list = self._entity_cache_for_tenant(tenant_id).suppressions_list
-        for sp in sp_list:
-            if sp.id == sp_id:
-                sp.update(**update_kwargs)
-                break
+        suppressions = self._entity_cache_for_tenant(tenant_id).suppressions
+
+        if sp_id not in suppressions:
+            status = 404
+            request.setResponseCode(status)
+            self._audit('suppressions', request, tenant_id, status, content)
+            return json.dumps({'type': 'notFoundError',
+                               'code': status,
+                               'message': 'Object does not exist',
+                               'details': ('Object "Suppression" with key "{0}" '
+                                           'does not exist').format(sp_id),
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'
+                               })
+
+        suppressions[sp_id].update(**update_kwargs)
         status = 204
         request.setResponseCode(status)
         request.setHeader(b'content-type', b'text/plain')
@@ -1434,20 +1452,21 @@ class MaasMock(object):
         """
         Delete a suppression.
         """
-        suppressions = self._entity_cache_for_tenant(tenant_id).suppressions_list
+        suppressions = self._entity_cache_for_tenant(tenant_id).suppressions
 
-        try:
-            suppressions.remove(Matcher(lambda sp: sp.id == sp_id))
-        except ValueError:
+        if sp_id not in suppressions:
             status = 404
             request.setResponseCode(status)
             self._audit('suppressions', request, tenant_id, status)
             return json.dumps({'type': 'notFoundError',
                                'code': status,
                                'message': 'Object does not exist',
-                               'details': 'Object "Suppression" with key "{0}" does not exist'.format(
-                                   sp_id),
-                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+                               'details': ('Object "Suppression" with key "{0}" '
+                                           'does not exist').format(sp_id),
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'
+                               })
+
+        del suppressions[sp_id]
 
         status = 204
         request.setResponseCode(status)
