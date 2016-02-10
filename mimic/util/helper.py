@@ -203,3 +203,18 @@ class Matcher(object):
         Implements the == comparison based on the custom matcher.
         """
         return self._match_fn(other)
+
+
+def one_of_validator(*items):
+    """
+    Return an :mod:`attr` validator which raises a :class:`TypeError`
+    if the value is not equivalent to one of the provided items.
+
+    :param items: Items to compare against
+    :return: a callable that returns with None or raises :class:`TypeError`
+    """
+    def validate(inst, attribute, value):
+        if value not in items:
+            raise TypeError("{0} must be one of {1}".format(
+                attribute.name, items))
+    return validate

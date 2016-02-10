@@ -11,6 +11,7 @@ import random
 import re
 from uuid import uuid4
 
+import attr
 from six import text_type
 
 from characteristic import attributes
@@ -40,7 +41,8 @@ from mimic.util.helper import json_from_request
 from mimic.util.helper import Matcher, random_hex_generator, random_hipsum
 
 
-MISSING_REQUIRED_KEY_REGEX = re.compile(r'Missing keyword value for \'(\w+)\'.')
+MISSING_REQUIRED_ARGUMENT_REGEX = re.compile(
+    r'__init__\(\) missing \d+ required positional argument: \'(\w+)\'')
 REMOTE_CHECK_TYPE_REGEX = re.compile(r'^remote\.')
 
 
@@ -152,7 +154,7 @@ def create_entity(clock, params):
     return Entity(**params_copy)
 
 
-def create_check(clock, entity_id, params):
+def create_check(clock, params):
     """
     Returns a dictionary representing a check
 
@@ -164,7 +166,6 @@ def create_check(clock, entity_id, params):
     """
     current_time_milliseconds = int(1000 * clock.seconds())
     params_copy = _only_keys(params, Check.USER_SPECIFIABLE_KEYS)
-    params_copy['entity_id'] = entity_id
     params_copy['created_at'] = params_copy['updated_at'] = current_time_milliseconds
     return Check(**params_copy)
 
@@ -387,6 +388,19 @@ def _map_getter(collection, request, object_type, object_key):
     except ObjectDoesNotExist as e:
         request.setResponseCode(e.code)
         return json.dumps(e.to_json())
+
+
+def _find_missing_required_key(cls, post_data, additional_keys):
+    """
+    Finds a missing required key in the case that trying to create an instance
+    failed with a TypeError.
+    """
+    fields_by_name = {field.name: field for field in attr.fields(cls)}
+    specified_keys = {key for sublist in [post_data.keys(), additional_keys]
+                      for key in sublist}
+    missing_keys = [key for key in fields_by_name
+                    if fields_by_name[key].default is attr.NOTHING and key not in specified_keys]
+    return missing_keys[0]
 
 
 def _metric_list_for_check(maas_store, entity, check):
@@ -701,10 +715,9 @@ class MaasMock(object):
 
         newcheck = None
         try:
-            newcheck = create_check(self._session_store.clock, entity_id, postdata)
-        except ValueError as err:
-            match = MISSING_REQUIRED_KEY_REGEX.match(text_type(err))
-            missing_key = match.group(1)
+            newcheck = create_check(self._session_store.clock, postdata)
+        except TypeError:
+            missing_key = _find_missing_required_key(Check, postdata, ['created_at', 'updated_at'])
             status = 400
             request.setResponseCode(status)
             self._audit('checks', request, tenant_id, status, content)
@@ -829,9 +842,10 @@ class MaasMock(object):
 
         try:
             newalarm = create_alarm(self._session_store.clock, entity_id, postdata)
-        except ValueError as err:
-            match = MISSING_REQUIRED_KEY_REGEX.match(text_type(err))
-            missing_key = match.group(1)
+        except TypeError:
+            missing_key = _find_missing_required_key(Alarm, postdata, ['created_at',
+                                                                       'updated_at',
+                                                                       'entity_id'])
             status = 400
             request.setResponseCode(status)
             self._audit('alarms', request, tenant_id, status, content)
