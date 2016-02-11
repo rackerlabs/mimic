@@ -102,6 +102,13 @@ def random_hex_generator(num):
     return binascii.hexlify(os.urandom(num)).decode('utf-8')
 
 
+def random_port():
+    """
+    Returns a random number in the range of registered non-system ports.
+    """
+    return randint(1024, 49151)
+
+
 def seconds_to_timestamp(seconds, format=fmt):
     """
     Return an ISO8601 Zulu timestamp given seconds since the epoch.

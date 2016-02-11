@@ -1135,6 +1135,35 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 400)
         self.assertEquals(data['message'], 'Validation error for key \'include\'')
 
+    def test_view_connections_missing_agentid_400s(self):
+        """
+        Attempting to view connections without an agentId causes a 400.
+        """
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, b"GET",
+                         '{0}/views/connections'.format(self.uri)))
+        self.assertEquals(resp.code, 400)
+        self.assertEquals(data['message'], 'Validation error for key \'agentId\'')
+
+    def test_view_connections(self):
+        """
+        An existing agent returns a list of connections, and a non-existing agent
+        returns an empty list.
+        """
+        resp = self.successResultOf(
+            request(self, self.root, b"POST",
+                    '{0}/entities/{1}/agents'.format(self.ctl_uri, self.entity_id),
+                    json.dumps({}).encode("utf-8")))
+        agent_id = one_text_header(resp, b'x-object-id')
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, b"GET",
+                         '{0}/views/connections?agentId={1}&agentId=agent-that-does-not-exist'.format(
+                             self.uri, agent_id)))
+        self.assertEquals(resp.code, 200)
+        connections_by_agent_id = {conn['agent_id']: conn['connections'] for conn in data['values']}
+        self.assertEquals(len(connections_by_agent_id[agent_id]), 3)
+        self.assertEquals(len(connections_by_agent_id['agent-that-does-not-exist']), 0)
+
     def test_create_agent_missing_entity_returns_404(self):
         """
         Trying to create an agent on an entity that does not exist causes a 404.

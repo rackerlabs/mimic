@@ -12,7 +12,7 @@ from uuid import uuid4
 from characteristic import attributes, Attribute
 from six import text_type
 
-from mimic.util.helper import random_hex_generator, random_string
+from mimic.util.helper import Matcher, random_hex_generator, random_port, random_string
 
 METRIC_TYPE_INTEGER = 'i'
 METRIC_TYPE_NUMBER = 'n'
@@ -568,6 +568,9 @@ class MultiHostInfoType(object):
 
 
 @attributes([Attribute('id', instance_of=text_type, default_factory=lambda: text_type(uuid4())),
+             Attribute('connection_guid',
+                       instance_of=text_type,
+                       default_factory=lambda: text_type(uuid4())),
              Attribute('counts',
                        instance_of=dict,
                        default_factory=lambda: {
@@ -599,6 +602,55 @@ class Agent(object):
                            self.id,
                            current_timestamp)))
                      for rtype in requested_types])
+
+    def list_connections(self):
+        """
+        Lists connections that this agent has.
+        """
+        return [AgentConnection(id=self.id + '_' + dc,
+                                guid=self.connection_guid,
+                                agent_id=self.id,
+                                endpoint=dc,
+                                datacenter=dc)
+                for dc in ('dfw1', 'ord1', 'lon3')]
+
+
+@attributes([Attribute('id', instance_of=text_type),
+             Attribute('guid', instance_of=text_type),
+             Attribute('agent_id', instance_of=text_type),
+             Attribute('endpoint', instance_of=text_type),
+             Attribute('datacenter', instance_of=text_type),
+             Attribute('process_version', instance_of=text_type, default_value='1.0.0-mimic'),
+             Attribute('bundle_version', instance_of=text_type, default_value='1.0.0-mimic'),
+             Attribute('agent_ip', instance_of=text_type, default_value='::1'),
+             Attribute('features', instance_of=list, default_factory=lambda: [
+                 {'version': '1.0.0-mimic',
+                  'name': 'upgrades'},
+                 {'version': '1.0.0-mimic',
+                  'name': 'confd'},
+                 {'version': '1.0.0-mimic',
+                  'name': 'health'}]),
+             Attribute('agent_port',
+                       instance_of=text_type,
+                       default_factory=lambda: text_type(random_port()))])
+class AgentConnection(object):
+    """
+    Models an agent connection, which can be queried from MaaS.
+    """
+    def to_json(self):
+        """
+        Serializes this AgentConnection to a JSON-encodable dict.
+        """
+        return {'id': self.id,
+                'guid': self.guid,
+                'agent_id': self.agent_id,
+                'endpoint': self.endpoint,
+                'datacenter': self.datacenter,
+                'process_version': self.process_version,
+                'bundle_version': self.bundle_version,
+                'agent_ip': self.agent_ip,
+                'features': self.features,
+                'agent_port': self.agent_port}
 
 
 class MaasStore(object):
@@ -797,3 +849,13 @@ class MaasStore(object):
         for state in alarm_states_for_entity:
             latest_alarm_states_by_alarm[state.alarm_id] = state
         return latest_alarm_states_by_alarm.values()
+
+    def list_connections_for_agent(self, agent_id):
+        """
+        Lists connections for an agent, or returns empty list if there is no such agent.
+        """
+        try:
+            agent = self.agents[self.agents.index(Matcher(lambda agent: agent.id == agent_id))]
+            return agent.list_connections()
+        except ValueError:
+            return []
