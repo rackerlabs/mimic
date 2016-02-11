@@ -1118,7 +1118,6 @@ class MaasMock(object):
                                          '.ts-123444444.v-12344frf')})
 
         entity_id = request.args[b'entityId'][0].strip().decode("utf-8")
-        agent_id = None
         entity = None
 
         try:
@@ -1136,14 +1135,21 @@ class MaasMock(object):
                                'details': 'Agent null does not exist',
                                'txnId': ('.fake.mimic.transaction.id.c-1111111.'
                                          'ts-123444444.v-12344frf')})
-        agent_id = entity.agent_id
 
-        agent = maas_store.agents[maas_store.agents.index(Matcher(
-            lambda agent: agent.id == agent_id))]
+        try:
+            agent = maas_store.agents[entity.agent_id]
+        except KeyError:
+            request.setResponseCode(400)
+            return json.dumps({'type': 'agentDoesNotExist',
+                               'code': 400,
+                               'message': 'Agent does not exist',
+                               'details': 'Agent {0} does not exist'.format(entity.agent_id),
+                               'txnId': ('.fake.mimic.transaction.id.c-1111111.'
+                                         'ts-123444444.v-12344frf')})
 
         request.setResponseCode(200)
         return json.dumps({
-            'values': [{'agent_id': agent_id,
+            'values': [{'agent_id': entity.agent_id,
                         'entity_id': entity_id,
                         'entity_uri': entity.uri,
                         'host_info': agent.get_host_info(
@@ -1899,7 +1905,7 @@ class MaasController(object):
             request.setResponseCode(e.code)
             return json.dumps(e.to_json())
 
-        maas_store.agents.append(agent)
+        maas_store.agents[agent.id] = agent
         request.setResponseCode(201)
         request.setHeader(b'x-object-id', agent.id.encode('utf-8'))
         request.setHeader(b'content-type', b'text/plain')
