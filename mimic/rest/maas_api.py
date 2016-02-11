@@ -1158,6 +1158,35 @@ class MaasMock(object):
                          'next_marker': None,
                          'next_href': None}})
 
+    @app.route('/v1.0/<string:tenant_id>/views/connections', methods=['GET'])
+    def view_connections(self, request, tenant_id):
+        """
+        Lists agent connections.
+        """
+        maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
+
+        if b'agentId' not in request.args:
+            request.setResponseCode(400)
+            return json.dumps({'type': 'badRequest',
+                               'code': 400,
+                               'message': 'Validation error for key \'agentId\'',
+                               'details': 'You must specify an agentId',
+                               'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
+
+        agent_ids = request.args[b'agentId']
+        decoded_agent_ids = [agent_id.decode("utf-8") for agent_id in agent_ids]
+        connections = [{'agent_id': agent_id,
+                        'connections': [connection.to_json()
+                                        for connection in maas_store.list_connections_for_agent(
+                                            agent_id)]}
+                       for agent_id in decoded_agent_ids]
+        return json.dumps({'values': connections,
+                           'metadata': {'count': len(connections),
+                                        'limit': None,
+                                        'marker': None,
+                                        'next_marker': None,
+                                        'next_href': None}})
+
     @app.route('/v1.0/<string:tenant_id>/agent_installers', methods=['POST'])
     def agent_installer(self, request, tenant_id):
         """
