@@ -20,7 +20,11 @@ class MaasObjectsTests(SynchronousTestCase):
         Known types for TestCheckMetric are 'i', 'n', and 's'. Other types
         raise ValueError.
         """
-        metric = Metric(name='whuut', type='z', override_key=lambda **kw: 'x')
+        metric = Metric(name='whuut', type='i', override_key=lambda **kw: 'x')
+
+        # Update `type` after construction to bypass validation.
+        metric.type = 'z'
+
         with self.assertRaises(ValueError):
             metric.get_value_for_test_check(
                 timestamp=0,

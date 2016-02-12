@@ -9,33 +9,42 @@ import random
 import string
 from uuid import uuid4
 
-from characteristic import attributes, Attribute
+import attr
+from attr.validators import instance_of, optional, provides
 from six import text_type
+from twisted.internet.interfaces import IReactorTime
 
-from mimic.util.helper import random_hex_generator, random_port, random_string
+from mimic.util.helper import one_of_validator, random_hex_generator, random_port, random_string
 
 METRIC_TYPE_INTEGER = 'i'
 METRIC_TYPE_NUMBER = 'n'
 METRIC_TYPE_STRING = 's'
 
 
-@attributes([Attribute('agent_id', default_value=None),
-             Attribute('alarms', default_factory=collections.OrderedDict),
-             Attribute('created_at', instance_of=int),
-             Attribute('checks', default_factory=collections.OrderedDict),
-             Attribute('id',
-                       default_factory=(lambda: u'en' + random_hex_generator(4)),
-                       instance_of=text_type),
-             Attribute('ip_addresses', default_factory=dict, instance_of=dict),
-             Attribute('label', default_value=u'', instance_of=text_type),
-             Attribute('managed', default_value=False, instance_of=bool),
-             Attribute('metadata', default_factory=dict, instance_of=dict),
-             Attribute('updated_at', instance_of=int),
-             Attribute('uri', default_value=None)])
+@attr.s
 class Entity(object):
     """
     Models a MaaS Entity.
     """
+    created_at = attr.ib(validator=instance_of(int))
+    updated_at = attr.ib(validator=instance_of(int))
+    agent_id = attr.ib(validator=optional(instance_of(text_type)),
+                       default=None)
+    alarms = attr.ib(validator=instance_of(collections.OrderedDict),
+                     default=attr.Factory(collections.OrderedDict))
+    checks = attr.ib(validator=instance_of(collections.OrderedDict),
+                     default=attr.Factory(collections.OrderedDict))
+    id = attr.ib(validator=instance_of(text_type),
+                 default=attr.Factory(lambda: 'en' + random_hex_generator(4)))
+    ip_addresses = attr.ib(validator=instance_of(dict),
+                           default=attr.Factory(dict))
+    label = attr.ib(validator=instance_of(text_type), default='')
+    managed = attr.ib(validator=instance_of(bool), default=False)
+    metadata = attr.ib(validator=instance_of(dict),
+                       default=attr.Factory(dict))
+    uri = attr.ib(validator=optional(instance_of(text_type)),
+                  default=None)
+
     USER_SPECIFIABLE_KEYS = ['agent_id',
                              'ip_addresses',
                              'label',
@@ -79,27 +88,33 @@ class Entity(object):
         return [alarm.to_json() for alarm in self.alarms.values()]
 
 
-@attributes([Attribute('created_at', instance_of=int),
-             Attribute('details', default_factory=dict, instance_of=dict),
-             Attribute('disabled', default_value=False, instance_of=bool),
-             Attribute('entity_id', instance_of=text_type),
-             Attribute('id',
-                       default_factory=(lambda: u'ch' + random_hex_generator(4)),
-                       instance_of=text_type),
-             Attribute('label', default_value=u'', instance_of=text_type),
-             Attribute('metadata', default_factory=dict, instance_of=dict),
-             Attribute('monitoring_zones_poll', default_factory=list, instance_of=list),
-             Attribute('period', default_value=60, instance_of=int),
-             Attribute('target_alias', default_value=None),
-             Attribute('target_hostname', default_value=None),
-             Attribute('target_resolver', default_value=None),
-             Attribute('timeout', default_value=10, instance_of=int),
-             Attribute('type', instance_of=text_type),
-             Attribute('updated_at', instance_of=int)])
+@attr.s
 class Check(object):
     """
     Models a MaaS Check.
     """
+    created_at = attr.ib(validator=instance_of(int))
+    type = attr.ib(validator=instance_of(text_type))
+    updated_at = attr.ib(validator=instance_of(int))
+    details = attr.ib(validator=instance_of(dict),
+                      default=attr.Factory(dict))
+    disabled = attr.ib(validator=instance_of(bool), default=False)
+    id = attr.ib(validator=instance_of(text_type),
+                 default=attr.Factory(lambda: 'ch' + random_hex_generator(4)))
+    label = attr.ib(validator=instance_of(text_type), default='')
+    metadata = attr.ib(validator=instance_of(dict),
+                       default=attr.Factory(dict))
+    monitoring_zones_poll = attr.ib(validator=instance_of(list),
+                                    default=attr.Factory(list))
+    period = attr.ib(validator=instance_of(int), default=60)
+    target_alias = attr.ib(validator=optional(instance_of(text_type)),
+                           default=None)
+    target_hostname = attr.ib(validator=optional(instance_of(text_type)),
+                              default=None)
+    target_resolver = attr.ib(validator=optional(instance_of(text_type)),
+                              default=None)
+    timeout = attr.ib(validator=instance_of(int), default=10)
+
     USER_SPECIFIABLE_KEYS = ['details',
                              'disabled',
                              'label',
@@ -116,20 +131,7 @@ class Check(object):
         """
         Serializes the Check to a JSON-encodable dict.
         """
-        return {'label': self.label,
-                'id': self.id,
-                'type': self.type,
-                'monitoring_zones_poll': self.monitoring_zones_poll,
-                'created_at': self.created_at,
-                'updated_at': self.updated_at,
-                'timeout': self.timeout,
-                'period': self.period,
-                'disabled': self.disabled,
-                'metadata': self.metadata,
-                'target_alias': self.target_alias,
-                'target_resolver': self.target_resolver,
-                'target_hostname': self.target_hostname,
-                'details': self.details}
+        return attr.asdict(self)
 
     def update(self, **kwargs):
         """
@@ -141,22 +143,24 @@ class Check(object):
         self.updated_at = int(1000 * kwargs['clock'].seconds())
 
 
-@attributes([Attribute('check_id', instance_of=text_type),
-             Attribute('created_at', instance_of=int),
-             Attribute('criteria', default_value=u'', instance_of=text_type),
-             Attribute('disabled', default_value=False, instance_of=bool),
-             Attribute('entity_id', instance_of=text_type),
-             Attribute('id',
-                       default_factory=(lambda: u'al' + random_hex_generator(4)),
-                       instance_of=text_type),
-             Attribute('label', default_value=u'', instance_of=text_type),
-             Attribute('metadata', default_factory=dict, instance_of=dict),
-             Attribute('notification_plan_id', instance_of=text_type),
-             Attribute('updated_at', instance_of=int)])
+@attr.s
 class Alarm(object):
     """
     Models a MaaS Alarm.
     """
+    check_id = attr.ib(validator=instance_of(text_type))
+    created_at = attr.ib(validator=instance_of(int))
+    entity_id = attr.ib(validator=instance_of(text_type))
+    notification_plan_id = attr.ib(validator=instance_of(text_type))
+    updated_at = attr.ib(validator=instance_of(int))
+    criteria = attr.ib(validator=instance_of(text_type), default='')
+    disabled = attr.ib(validator=instance_of(bool), default=False)
+    id = attr.ib(validator=instance_of(text_type),
+                 default=attr.Factory(lambda: 'al' + random_hex_generator(4)))
+    label = attr.ib(validator=instance_of(text_type), default='')
+    metadata = attr.ib(validator=instance_of(dict),
+                       default=attr.Factory(dict))
+
     USER_SPECIFIABLE_KEYS = ['check_id',
                              'criteria',
                              'disabled',
@@ -168,16 +172,7 @@ class Alarm(object):
         """
         Serializes the Alarm to a JSON-encodable dict.
         """
-        return {'id': self.id,
-                'label': self.label,
-                'criteria': self.criteria,
-                'check_id': self.check_id,
-                'entity_id': self.entity_id,
-                'notification_plan_id': self.notification_plan_id,
-                'created_at': self.created_at,
-                'updated_at': self.updated_at,
-                'disabled': self.disabled,
-                'metadata': self.metadata}
+        return attr.asdict(self)
 
     def update(self, **kwargs):
         """
@@ -189,32 +184,29 @@ class Alarm(object):
         self.updated_at = int(1000 * kwargs['clock'].seconds())
 
 
-@attributes([Attribute('created_at', instance_of=int),
-             Attribute('details', default_factory=dict, instance_of=dict),
-             Attribute('id',
-                       default_factory=(lambda: u'nt' + random_hex_generator(4)),
-                       instance_of=text_type),
-             Attribute('label', default_value=u'', instance_of=text_type),
-             Attribute('metadata', default_factory=dict, instance_of=dict),
-             Attribute('type', default_value='email', instance_of=text_type),
-             Attribute('updated_at', instance_of=int)])
+@attr.s
 class Notification(object):
     """
     Models a MaaS Notification.
     """
+    created_at = attr.ib(validator=instance_of(int))
+    updated_at = attr.ib(validator=instance_of(int))
+    details = attr.ib(validator=instance_of(dict),
+                      default=attr.Factory(dict))
+    id = attr.ib(validator=instance_of(text_type),
+                 default=attr.Factory(lambda: 'nt' + random_hex_generator(4)))
+    label = attr.ib(validator=instance_of(text_type), default='')
+    metadata = attr.ib(validator=instance_of(dict),
+                       default=attr.Factory(dict))
+    type = attr.ib(validator=instance_of(text_type), default='email')
+
     USER_SPECIFIABLE_KEYS = ['details', 'label', 'metadata', 'type']
 
     def to_json(self):
         """
         Serializes the Notification to a JSON-encodable dict.
         """
-        return {'id': self.id,
-                'label': self.label,
-                'type': self.type,
-                'details': self.details,
-                'created_at': self.created_at,
-                'updated_at': self.updated_at,
-                'metadata': self.metadata}
+        return attr.asdict(self)
 
     def update(self, **kwargs):
         """
@@ -226,20 +218,25 @@ class Notification(object):
         self.updated_at = int(1000 * kwargs['clock'].seconds())
 
 
-@attributes([Attribute('created_at', instance_of=int),
-             Attribute('critical_state', default_factory=list, instance_of=list),
-             Attribute('id',
-                       default_factory=(lambda: u'np' + random_hex_generator(4)),
-                       instance_of=text_type),
-             Attribute('label', default_value=u'', instance_of=text_type),
-             Attribute('metadata', default_factory=dict, instance_of=dict),
-             Attribute('ok_state', default_factory=list, instance_of=list),
-             Attribute('updated_at', instance_of=int),
-             Attribute('warning_state', default_factory=list, instance_of=list)])
+@attr.s
 class NotificationPlan(object):
     """
     Models a MaaS notification plan.
     """
+    created_at = attr.ib(validator=instance_of(int))
+    updated_at = attr.ib(validator=instance_of(int))
+    critical_state = attr.ib(validator=instance_of(list),
+                             default=attr.Factory(list))
+    id = attr.ib(validator=instance_of(text_type),
+                 default=attr.Factory(lambda: 'np' + random_hex_generator(4)))
+    label = attr.ib(validator=instance_of(text_type), default='')
+    metadata = attr.ib(validator=instance_of(dict),
+                       default=attr.Factory(dict))
+    ok_state = attr.ib(validator=instance_of(list),
+                       default=attr.Factory(list))
+    warning_state = attr.ib(validator=instance_of(list),
+                            default=attr.Factory(list))
+
     USER_SPECIFIABLE_KEYS = ['critical_state',
                              'label',
                              'metadata',
@@ -250,14 +247,7 @@ class NotificationPlan(object):
         """
         Serializes the Notification Plan to a JSON-encodable dict.
         """
-        return {'id': self.id,
-                'label': self.label,
-                'critical_state': self.critical_state,
-                'warning_state': self.warning_state,
-                'ok_state': self.ok_state,
-                'created_at': self.created_at,
-                'updated_at': self.updated_at,
-                'metadata': self.metadata}
+        return attr.asdict(self)
 
     def update(self, **kwargs):
         """
@@ -269,22 +259,27 @@ class NotificationPlan(object):
         self.updated_at = int(1000 * kwargs['clock'].seconds())
 
 
-@attributes([Attribute('alarms', default_factory=list, instance_of=list),
-             Attribute('checks', default_factory=list, instance_of=list),
-             Attribute('created_at', instance_of=int),
-             Attribute('end_time', default_value=0, instance_of=int),
-             Attribute('entities', default_factory=list, instance_of=list),
-             Attribute('id',
-                       default_factory=(lambda: u'sp' + random_hex_generator(4)),
-                       instance_of=text_type),
-             Attribute('label', default_value=u'', instance_of=text_type),
-             Attribute('notification_plans', default_factory=list, instance_of=list),
-             Attribute('start_time', default_value=0, instance_of=int),
-             Attribute('updated_at', instance_of=int)])
+@attr.s
 class Suppression(object):
     """
     Models a MaaS suppression.
     """
+    created_at = attr.ib(validator=instance_of(int))
+    updated_at = attr.ib(validator=instance_of(int))
+    alarms = attr.ib(validator=instance_of(list),
+                     default=attr.Factory(list))
+    checks = attr.ib(validator=instance_of(list),
+                     default=attr.Factory(list))
+    end_time = attr.ib(validator=instance_of(int), default=0)
+    entities = attr.ib(validator=instance_of(list),
+                       default=attr.Factory(list))
+    id = attr.ib(validator=instance_of(text_type),
+                 default=attr.Factory(lambda: 'sp' + random_hex_generator(4)))
+    label = attr.ib(validator=instance_of(text_type), default='')
+    notification_plans = attr.ib(validator=instance_of(list),
+                                 default=attr.Factory(list))
+    start_time = attr.ib(validator=instance_of(int), default=0)
+
     USER_SPECIFIABLE_KEYS = ['alarms',
                              'checks',
                              'end_time',
@@ -297,14 +292,7 @@ class Suppression(object):
         """
         Serializes the Suppression to a JSON-encodable dict.
         """
-        return {'id': self.id,
-                'label': self.label,
-                'start_time': self.start_time,
-                'end_time': self.end_time,
-                'notification_plans': self.notification_plans,
-                'entities': self.entities,
-                'checks': self.checks,
-                'alarms': self.alarms}
+        return attr.asdict(self)
 
     def update(self, **kwargs):
         """
@@ -316,25 +304,26 @@ class Suppression(object):
         self.updated_at = int(1000 * kwargs['clock'].seconds())
 
 
-@attributes([Attribute('alarm_changelog_id',
-                       default_factory=(lambda: text_type(uuid4())),
-                       instance_of=text_type),
-             Attribute('alarm_id', instance_of=text_type),
-             Attribute('alarm_label', instance_of=text_type),
-             Attribute('analyzed_by_monitoring_zone_id', default_value=u'mzord', instance_of=text_type),
-             Attribute('check_id', instance_of=text_type),
-             Attribute('entity_id', instance_of=text_type),
-             Attribute('id',
-                       default_factory=(lambda: u'as' + random_hex_generator(4)),
-                       instance_of=text_type),
-             Attribute('previous_state', instance_of=text_type),
-             Attribute('state', instance_of=text_type),
-             Attribute('status', instance_of=text_type),
-             Attribute('timestamp', instance_of=int)])
+@attr.s
 class AlarmState(object):
     """
     Models a MaaS alarm state.
     """
+    alarm_id = attr.ib(validator=instance_of(text_type))
+    alarm_label = attr.ib(validator=instance_of(text_type))
+    check_id = attr.ib(validator=instance_of(text_type))
+    entity_id = attr.ib(validator=instance_of(text_type))
+    previous_state = attr.ib(validator=one_of_validator("OK", "WARNING", "CRITICAL", "UNKNOWN"))
+    state = attr.ib(validator=one_of_validator("OK", "WARNING", "CRITICAL", "UNKNOWN"))
+    status = attr.ib(validator=instance_of(text_type))
+    timestamp = attr.ib(validator=instance_of(int))
+    alarm_changelog_id = attr.ib(validator=instance_of(text_type),
+                                 default=attr.Factory(lambda: text_type(uuid4())))
+    analyzed_by_monitoring_zone_id = attr.ib(validator=instance_of(text_type),
+                                             default='mzord')
+    id = attr.ib(validator=instance_of(text_type),
+                 default=attr.Factory(lambda: 'as' + random_hex_generator(4)))
+
     def brief_json(self):
         """
         Serializes this alarm state to a JSON-encodable dict.
@@ -358,15 +347,20 @@ class AlarmState(object):
         return details
 
 
-@attributes(["name",
-             "type",
-             Attribute("unit", default_value="other"),
-             Attribute("_overrides", default_factory=dict),
-             Attribute("_override_key")])
+@attr.s
 class Metric(object):
     """
     Models a MaaS metric type.
     """
+    name = attr.ib(validator=instance_of(text_type))
+    type = attr.ib(validator=one_of_validator(METRIC_TYPE_INTEGER,
+                                              METRIC_TYPE_NUMBER,
+                                              METRIC_TYPE_STRING))
+    _override_key = attr.ib()
+    unit = attr.ib(validator=instance_of(text_type), default='other')
+    _overrides = attr.ib(validator=instance_of(dict),
+                         default=attr.Factory(dict))
+
     def set_override(self, **kwargs):
         """
         Sets the override metric for a given tenant, entity and check.
@@ -466,15 +460,20 @@ def _multi_host_info_metric(**kwargs):
         **kwargs)
 
 
-@attributes(["metrics",
-             Attribute("_clock"),
-             Attribute("test_check_available", default_factory=dict),
-             Attribute("test_check_status", default_factory=dict),
-             Attribute("test_check_response_code", default_factory=dict)])
+@attr.s
 class CheckType(object):
     """
     Data model for a MaaS check type (e.g., remote.ping).
     """
+    metrics = attr.ib(validator=instance_of(list))
+    _clock = attr.ib(validator=provides(IReactorTime))
+    test_check_available = attr.ib(validator=instance_of(dict),
+                                   default=attr.Factory(dict))
+    test_check_status = attr.ib(validator=instance_of(dict),
+                                default=attr.Factory(dict))
+    test_check_response_code = attr.ib(validator=instance_of(dict),
+                                       default=attr.Factory(dict))
+
     def clear_overrides(self):
         """
         Clears the overrides for test-checks and metrics.
@@ -525,12 +524,15 @@ class CheckType(object):
                  for monitoring_zone in monitoring_zones])
 
 
-@attributes([Attribute('metrics', instance_of=list)])
+@attr.s
 class SingleHostInfoType(object):
     """
     Models a MaaS host info type returning a single block of metrics,
     i.e., a hash for the info field as opposed to an array.
     """
+    metrics = attr.ib(validator=instance_of(list),
+                      default=attr.Factory(list))
+
     def get_info(self, entity_id, agent_id, timestamp):
         """
         Gets the host info.
@@ -545,12 +547,15 @@ class SingleHostInfoType(object):
                               for metric in self.metrics])}
 
 
-@attributes([Attribute('metrics', instance_of=list)])
+@attr.s
 class MultiHostInfoType(object):
     """
     Models a MaaS host info type returning multiple blocks of metrics,
     such as the CPU agent host info (one for each CPU).
     """
+    metrics = attr.ib(validator=instance_of(list),
+                      default=attr.Factory(list))
+
     def get_info(self, entity_id, agent_id, timestamp, num_blocks):
         """
         Gets the host info.
@@ -567,23 +572,24 @@ class MultiHostInfoType(object):
                          for i in range(num_blocks)]}
 
 
-@attributes([Attribute('id', instance_of=text_type, default_factory=lambda: text_type(uuid4())),
-             Attribute('connection_guid',
-                       instance_of=text_type,
-                       default_factory=lambda: text_type(uuid4())),
-             Attribute('counts',
-                       instance_of=dict,
-                       default_factory=lambda: {
-                           'cpus': 1,
-                           'processes': 20,
-                           'who': 1,
-                           'filesystems': 4,
-                           'disks': 1,
-                           'network_interfaces': 2})])
+@attr.s
 class Agent(object):
     """
     Models a MaaS agent.
     """
+    id = attr.ib(validator=instance_of(text_type),
+                 default=attr.Factory(lambda: text_type(uuid4())))
+    connection_guid = attr.ib(validator=instance_of(text_type),
+                              default=attr.Factory(lambda: text_type(uuid4())))
+    counts = attr.ib(validator=instance_of(dict),
+                     default=attr.Factory(lambda: {
+                         'cpus': 1,
+                         'processes': 20,
+                         'who': 1,
+                         'filesystems': 4,
+                         'disks': 1,
+                         'network_interfaces': 2}))
+
     def get_host_info(self, available_types, requested_types, entity_id, clock):
         """
         Gets this agent's host information.
@@ -615,42 +621,34 @@ class Agent(object):
                 for dc in ('dfw1', 'ord1', 'lon3')]
 
 
-@attributes([Attribute('id', instance_of=text_type),
-             Attribute('guid', instance_of=text_type),
-             Attribute('agent_id', instance_of=text_type),
-             Attribute('endpoint', instance_of=text_type),
-             Attribute('datacenter', instance_of=text_type),
-             Attribute('process_version', instance_of=text_type, default_value='1.0.0-mimic'),
-             Attribute('bundle_version', instance_of=text_type, default_value='1.0.0-mimic'),
-             Attribute('agent_ip', instance_of=text_type, default_value='::1'),
-             Attribute('features', instance_of=list, default_factory=lambda: [
-                 {'version': '1.0.0-mimic',
-                  'name': 'upgrades'},
-                 {'version': '1.0.0-mimic',
-                  'name': 'confd'},
-                 {'version': '1.0.0-mimic',
-                  'name': 'health'}]),
-             Attribute('agent_port',
-                       instance_of=text_type,
-                       default_factory=lambda: text_type(random_port()))])
+@attr.s
 class AgentConnection(object):
     """
     Models an agent connection, which can be queried from MaaS.
     """
+    id = attr.ib(validator=instance_of(text_type))
+    guid = attr.ib(validator=instance_of(text_type))
+    agent_id = attr.ib(validator=instance_of(text_type))
+    endpoint = attr.ib(validator=instance_of(text_type))
+    datacenter = attr.ib(validator=instance_of(text_type))
+    process_version = attr.ib(validator=instance_of(text_type), default='1.0.0-mimic')
+    bundle_version = attr.ib(validator=instance_of(text_type), default='1.0.0-mimic')
+    agent_ip = attr.ib(validator=instance_of(text_type), default='::1')
+    features = attr.ib(validator=instance_of(list), default=attr.Factory(lambda: [
+        {'version': '1.0.0-mimic',
+         'name': 'upgrades'},
+        {'version': '1.0.0-mimic',
+         'name': 'confd'},
+        {'version': '1.0.0-mimic',
+         'name': 'health'}]))
+    agent_port = attr.ib(validator=instance_of(text_type),
+                         default=attr.Factory(lambda: text_type(random_port())))
+
     def to_json(self):
         """
         Serializes this AgentConnection to a JSON-encodable dict.
         """
-        return {'id': self.id,
-                'guid': self.guid,
-                'agent_id': self.agent_id,
-                'endpoint': self.endpoint,
-                'datacenter': self.datacenter,
-                'process_version': self.process_version,
-                'bundle_version': self.bundle_version,
-                'agent_ip': self.agent_ip,
-                'features': self.features,
-                'agent_port': self.agent_port}
+        return attr.asdict(self)
 
 
 class MaasStore(object):

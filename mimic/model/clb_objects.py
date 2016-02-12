@@ -34,23 +34,9 @@ from mimic.model.clb_errors import (
 from mimic.util.helper import (EMPTY_RESPONSE,
                                invalid_resource,
                                not_found_response,
+                               one_of_validator,
                                seconds_to_timestamp,
                                set_resource_status)
-
-
-def _one_of_validator(*items):
-    """
-    Return an :mod:`attr` validator which raises a :class:`TypeError`
-    if the value is not equivalent to one of the provided items.
-
-    :param items: Items to compare against
-    :return: a callable that returns with None or raises :class:`TypeError`
-    """
-    def validate(inst, attribute, value):
-        if value not in items:
-            raise TypeError("{0} must be one of {1}".format(
-                attribute.name, items))
-    return validate
 
 
 @attr.s
@@ -71,11 +57,11 @@ class Node(object):
     """
     address = attr.ib(validator=attr.validators.instance_of(text_type))
     port = attr.ib(validator=attr.validators.instance_of(int))
-    type = attr.ib(validator=_one_of_validator("PRIMARY", "SECONDARY"),
+    type = attr.ib(validator=one_of_validator("PRIMARY", "SECONDARY"),
                    default="PRIMARY")
     weight = attr.ib(validator=attr.validators.instance_of(int), default=1)
     condition = attr.ib(
-        validator=_one_of_validator("ENABLED", "DISABLED", "DRAINING"),
+        validator=one_of_validator("ENABLED", "DISABLED", "DRAINING"),
         default="ENABLED")
     id = attr.ib(validator=attr.validators.instance_of(int),
                  default=attr.Factory(lambda: randrange(999999)))
