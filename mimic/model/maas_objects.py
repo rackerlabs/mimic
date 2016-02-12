@@ -12,7 +12,7 @@ from uuid import uuid4
 from characteristic import attributes, Attribute
 from six import text_type
 
-from mimic.util.helper import Matcher, random_hex_generator, random_port, random_string
+from mimic.util.helper import random_hex_generator, random_port, random_string
 
 METRIC_TYPE_INTEGER = 'i'
 METRIC_TYPE_NUMBER = 'n'
@@ -667,7 +667,7 @@ class MaasStore(object):
         can be found in `the Rackspace Cloud Monitoring Developer Guide, appendix B
             <http://docs.rackspace.com/cm/api/v1.0/cm-devguide/content/appendix-check-types.html>`_
         """
-        self.agents = []
+        self.agents = {}
         self.alarm_states = []
 
         self.check_types = {
@@ -855,7 +855,6 @@ class MaasStore(object):
         Lists connections for an agent, or returns empty list if there is no such agent.
         """
         try:
-            agent = self.agents[self.agents.index(Matcher(lambda agent: agent.id == agent_id))]
-            return agent.list_connections()
-        except ValueError:
+            return self.agents[agent_id].list_connections()
+        except KeyError:
             return []

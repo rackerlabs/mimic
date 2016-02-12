@@ -1164,6 +1164,22 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(len(connections_by_agent_id[agent_id]), 3)
         self.assertEquals(len(connections_by_agent_id['agent-that-does-not-exist']), 0)
 
+    def test_agenthostinfo_bad_agent_id_returns_400(self):
+        """
+        Setting a wrong agent ID on the entity and getting host info causes a 400.
+        """
+        resp = self.successResultOf(
+            request(self, self.root, b"PUT",
+                    '{0}/entities/{1}'.format(self.uri, self.entity_id),
+                    json.dumps({'agent_id': 'LOLWUT'}).encode("utf-8")))
+        self.assertEquals(resp.code, 204)
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, b"GET",
+                         '{0}/views/agent_host_info?entityId={1}&include=system'.format(
+                             self.uri, self.entity_id)))
+        self.assertEquals(resp.code, 400)
+        self.assertEquals(data['details'], 'Agent LOLWUT does not exist')
+
     def test_create_agent_missing_entity_returns_404(self):
         """
         Trying to create an agent on an entity that does not exist causes a 404.
