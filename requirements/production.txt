@@ -3,7 +3,7 @@
 # install coverage", and running 'pip freeze'.
 
 attrs==15.2.0
-cffi==1.5.1
+cffi==1.5.2
 characteristic==14.3.0
 coverage==4.0.3
 cryptography==1.2.2
