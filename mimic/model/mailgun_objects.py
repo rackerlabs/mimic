@@ -4,18 +4,23 @@ Mailgun object storage
 
 from __future__ import absolute_import, division, unicode_literals
 
+import attr
 import time
-from characteristic import attributes, Attribute
 
 
-@attributes(["message_id", "to", "msg_from", "subject", "body",
-             Attribute("custom_headers", default_factory=dict)])
+@attr.s
 class Message(object):
     """
     A :obj:`Message` is a representation of an email in Mailgun.
     It can produce JSON-serializable objects for various pieces of
     state that are required for API responses.
     """
+    message_id = attr.ib()
+    to = attr.ib()
+    msg_from = attr.ib()
+    subject = attr.ib()
+    body = attr.ib()
+    custom_headers = attr.ib(default=attr.Factory(dict))
 
     static_defaults = {
         "tags": [],
@@ -76,11 +81,12 @@ class Message(object):
         return template
 
 
-@attributes([Attribute("message_store", default_factory=list)])
+@attr.s
 class MessageStore(object):
     """
     A collection of message objects.
     """
+    message_store = attr.ib(default=attr.Factory(list))
 
     def add_to_message_store(self, **attributes):
         """

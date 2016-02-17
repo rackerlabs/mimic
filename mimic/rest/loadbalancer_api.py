@@ -23,7 +23,7 @@ from random import randrange
 
 from mimic.util.helper import invalid_resource, json_dump
 from mimic.util.helper import json_from_request
-from characteristic import attributes
+import attr
 
 
 @implementer(IAPIMock, IPlugin)
@@ -78,12 +78,14 @@ class LoadBalancerApi(object):
 
 
 @implementer(IAPIMock, IPlugin)
-@attributes(["lb_api"])
+@attr.s
 class LoadBalancerControlApi(object):
     """
     This class registers the load balancer controller API in the service
     catalog.
     """
+    lb_api = attr.ib()
+
     def catalog_entries(self, tenant_id):
         """
         Cloud load balancer controller endpoints.
@@ -108,11 +110,15 @@ class LoadBalancerControlApi(object):
         return lbc_region.app.resource()
 
 
-@attributes(["api_mock", "uri_prefix", "session_store", "region"])
+@attr.s
 class LoadBalancerControlRegion(object):
     """
     Klein routes for load balancer's control API within a particular region.
     """
+    api_mock = attr.ib()
+    uri_prefix = attr.ib()
+    session_store = attr.ib()
+    region = attr.ib()
 
     app = MimicApp()
 
@@ -151,18 +157,9 @@ class LoadBalancerControlRegion(object):
 
         try:
             regional_lbs.set_attributes(clb_id, content)
-        except BadKeysError as bke:
-            request.setResponseCode(400)
-            return json.dumps({
-                "message": str(bke),
-                "code": 400,
-            })
-        except BadValueError as bve:
-            request.setResponseCode(400)
-            return json.dumps({
-                "message": str(bve),
-                "code": 400,
-            })
+        except (BadKeysError, BadValueError) as err:
+            request.setResponseCode(err.code)
+            return json.dumps(err.to_json())
         else:
             request.setResponseCode(204)
             return b''

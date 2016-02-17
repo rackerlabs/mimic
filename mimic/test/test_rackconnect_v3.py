@@ -4,6 +4,7 @@ Unit tests for the Rackspace RackConnect V3 API.
 
 from __future__ import absolute_import, division, unicode_literals
 
+import attr
 import json
 from random import randint
 from uuid import uuid4
@@ -201,14 +202,14 @@ class LoadbalancerPoolAPITests(RackConnectTestMixin, SynchronousTestCase):
         pool_json = response_json[0]
         # has the right JSON
         self.assertTrue(all(
-            attr.name in pool_json
-            for attr in LoadBalancerPool.characteristic_attributes
-            if attr.name != "nodes"))
+            aa.name in pool_json
+            for aa in attr.fields(LoadBalancerPool)
+            if aa.name != "nodes"))
         # Generated values
         self.assertTrue(all(
-            pool_json.get(attr.name)
-            for attr in LoadBalancerPool.characteristic_attributes
-            if attr.name not in ("nodes", "status_detail")))
+            pool_json.get(aa.name)
+            for aa in attr.fields(LoadBalancerPool)
+            if aa.name not in ("nodes", "status_detail")))
 
         self.assertEqual(
             {

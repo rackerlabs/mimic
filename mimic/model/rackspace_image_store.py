@@ -2,7 +2,7 @@
 An image store representing Rackspace specific images
 """
 from __future__ import absolute_import, division, unicode_literals
-from characteristic import attributes, Attribute
+import attr
 from six import iteritems
 from mimic.model.rackspace_images import (RackspaceWindowsImage,
                                           RackspaceCentOSPVImage, RackspaceCentOSPVHMImage,
@@ -19,12 +19,14 @@ from mimic.model.rackspace_images import (RackspaceWindowsImage,
 from mimic.model.rackspace_images import create_rackspace_images
 
 
-@attributes([Attribute("image_list", default_factory=list)])
+@attr.s
 class RackspaceImageStore(object):
     """
     A store for images to share between nova_api and glance_api
     :var image_list: list of Rackspace images
     """
+    image_list = attr.ib(default=attr.Factory(list))
+
     def create_image_store(self, tenant_id):
         """
         Generates the data for each image in each image class
