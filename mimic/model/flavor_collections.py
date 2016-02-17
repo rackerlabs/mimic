@@ -6,7 +6,7 @@ from __future__ import absolute_import, division, unicode_literals
 
 from six import iteritems
 
-from characteristic import attributes, Attribute
+import attr
 from json import dumps
 from mimic.model.flavors import (
     RackspaceStandardFlavor, RackspaceComputeFlavor, RackspaceMemoryFlavor,
@@ -16,14 +16,16 @@ from mimic.model.flavors import (
 from mimic.model.nova_objects import not_found
 
 
-@attributes(
-    ["tenant_id", "region_name", "clock",
-     Attribute("flavors_store", default_factory=list)]
-)
+@attr.s
 class RegionalFlavorCollection(object):
     """
     A collection of flavors, in a given region, for a given tenant.
     """
+    tenant_id = attr.ib()
+    region_name = attr.ib()
+    clock = attr.ib()
+    flavors_store = attr.ib(default=attr.Factory(list))
+
     def flavor_by_id(self, flavor_id):
         """
         Retrieve a :obj:`Flavor` object by its ID.
@@ -87,14 +89,16 @@ class RegionalFlavorCollection(object):
         return dumps({"flavor": flavor.detailed_json(absolutize_url)})
 
 
-@attributes(["tenant_id", "clock",
-             Attribute("regional_collections", default_factory=dict)])
+@attr.s
 class GlobalFlavorCollection(object):
     """
     A :obj:`GlobalFlavorCollection` is a set of all the
     :obj:`RegionalFlavorCollection` objects owned by a given tenant.  In other
     words, all the flavor objects that a single tenant owns globally.
     """
+    tenant_id = attr.ib()
+    clock = attr.ib()
+    regional_collections = attr.ib(default=attr.Factory(dict))
 
     def collection_for_region(self, region_name):
         """

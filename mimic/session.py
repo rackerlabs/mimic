@@ -10,17 +10,21 @@ from six import text_type
 from uuid import uuid4
 from datetime import datetime, timedelta
 
-from characteristic import attributes, Attribute
+import attr
 
 
-@attributes(['username', 'token', 'tenant_id', 'expires',
-             Attribute('impersonator_session_map', default_factory=dict),
-             Attribute('_api_objects', default_factory=dict)])
+@attr.s
 class Session(object):
     """
     A mimic Session is a record of an authentication token for a particular
     username and tenant_id.
     """
+    username = attr.ib()
+    token = attr.ib()
+    tenant_id = attr.ib()
+    expires = attr.ib()
+    impersonator_session_map = attr.ib(default=attr.Factory(dict))
+    _api_objects = attr.ib(default=attr.Factory(dict))
 
     @property
     def user_id(self):
@@ -46,12 +50,13 @@ class Session(object):
         return self._api_objects[api_mock]
 
 
-@attributes([Attribute('session', instance_of=Session),
-             'desired_tenant'])
+@attr.s
 class NonMatchingTenantError(Exception):
     """
     A session's tenant ID does not match the desired tenant ID.
     """
+    session = attr.ib(validator=attr.validators.instance_of(Session))
+    desired_tenant = attr.ib()
 
 
 class SessionStore(object):

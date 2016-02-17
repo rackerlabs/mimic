@@ -6,7 +6,7 @@ from __future__ import absolute_import, division, unicode_literals
 
 import re
 import uuid
-from characteristic import attributes, Attribute
+import attr
 from random import randrange
 from json import loads, dumps
 from six.moves.urllib.parse import urlencode
@@ -28,18 +28,20 @@ from twisted.web.http import ACCEPTED, BAD_REQUEST, FORBIDDEN, NOT_FOUND, CONFLI
 from mimic.model.rackspace_images import RackspaceSavedImage
 
 
-@attributes(['nova_message'])
+@attr.s
 class LimitError(Exception):
     """
     Error to be raised when a limit has been exceeded.
     """
+    nova_message = attr.ib()
 
 
-@attributes(['nova_message'])
+@attr.s
 class BadRequestError(Exception):
     """
     Error to be raised when bad input has been received to Nova.
     """
+    nova_message = attr.ib()
 
 
 def _nova_error_message(msg_type, message, status_code, request):
@@ -115,18 +117,29 @@ def conflicting(message, request):
     return _nova_error_message("conflictingRequest", message, CONFLICT, request)
 
 
-@attributes(["collection", "server_id", "server_name", "metadata",
-             "creation_time", "update_time", "public_ips", "private_ips",
-             "status", "flavor_ref", "image_ref", "disk_config", "key_name",
-             "admin_password", "creation_request_json",
-             Attribute('max_metadata_items', instance_of=int,
-                       default_value=40)])
+@attr.s
 class Server(object):
     """
     A :obj:`Server` is a representation of all the state associated with a nova
     server.  It can produce JSON-serializable objects for various pieces of
     state that are required for API responses.
     """
+    admin_password = attr.ib()
+    collection = attr.ib()
+    creation_request_json = attr.ib()
+    creation_time = attr.ib()
+    disk_config = attr.ib()
+    flavor_ref = attr.ib()
+    image_ref = attr.ib()
+    key_name = attr.ib()
+    metadata = attr.ib()
+    private_ips = attr.ib()
+    public_ips = attr.ib()
+    server_id = attr.ib()
+    server_name = attr.ib()
+    status = attr.ib()
+    update_time = attr.ib()
+    max_metadata_items = attr.ib(validator=attr.validators.instance_of(int), default=40)
 
     static_defaults = {
         "OS-EXT-STS:power_state": 1,
@@ -339,11 +352,12 @@ class Server(object):
         return self
 
 
-@attributes(["address"])
+@attr.s
 class IPv4Address(object):
     """
     An IPv4 address for a server.
     """
+    address = attr.ib()
 
     def json(self):
         """
@@ -352,11 +366,12 @@ class IPv4Address(object):
         return {"addr": self.address, "version": 4}
 
 
-@attributes(["address"])
+@attr.s
 class IPv6Address(object):
     """
     An IPv6 address for a server.
     """
+    address = attr.ib()
 
     def json(self):
         """
@@ -650,17 +665,17 @@ def metadata_to_creation_behavior(metadata):
     return None
 
 
-@attributes(
-    ["tenant_id", "region_name", "clock",
-     Attribute("servers", default_factory=list),
-     Attribute(
-         "behavior_registry_collection",
-         default_factory=lambda: BehaviorRegistryCollection())]
-)
+@attr.s
 class RegionalServerCollection(object):
     """
     A collection of servers, in a given region, for a given tenant.
     """
+    tenant_id = attr.ib()
+    region_name = attr.ib()
+    clock = attr.ib()
+    servers = attr.ib(default=attr.Factory(list))
+    behavior_registry_collection = attr.ib(default=attr.Factory(
+        lambda: BehaviorRegistryCollection()))
 
     def server_by_id(self, server_id):
         """
@@ -973,8 +988,7 @@ class RegionalServerCollection(object):
             return dumps(bad_request("There is no such action currently supported", http_action_request))
 
 
-@attributes(["tenant_id", "clock",
-             Attribute("regional_collections", default_factory=dict)])
+@attr.s
 class GlobalServerCollections(object):
     """
     A :obj:`GlobalServerCollections` is a set of all the
@@ -982,6 +996,9 @@ class GlobalServerCollections(object):
     words, all the objects that a single tenant owns globally in a Nova
     service.
     """
+    tenant_id = attr.ib()
+    clock = attr.ib()
+    regional_collections = attr.ib(default=attr.Factory(dict))
 
     def collection_for_region(self, region_name):
         """

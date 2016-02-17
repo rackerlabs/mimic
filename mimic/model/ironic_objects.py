@@ -4,7 +4,7 @@ Model objects for the Nova mimic.
 
 from __future__ import absolute_import, division, unicode_literals
 
-from characteristic import attributes, Attribute
+import attr
 from uuid import uuid4
 from json import dumps
 
@@ -12,26 +12,26 @@ from mimic.util.helper import json_from_request
 from mimic.util.helper import random_hex_generator
 
 
-@attributes(["node_id",
-             Attribute("chassis_uuid", default_value=None),
-             Attribute("driver", default_value=None),
-             Attribute("driver_info", default_value=None),
-             Attribute("properties", default_value=None),
-             Attribute("flavor_id", default_value="onmetal-io1"),
-             Attribute("power_state", default_value="power on"),
-             Attribute("provision_state", default_value="available"),
-             Attribute("instance_uuid", default_value=None),
-             Attribute("maintenance", default_value=False),
-             Attribute("cache_image_id", default_value=None),
-             Attribute("memory_mb", default_value=None),
-             Attribute("name", default_value=None)
-             ])
+@attr.s
 class Node(object):
     """
     A :obj:`Node` is a representation of all the state associated with a ironic
     node.  It can produce JSON-serializable objects for various pieces of
     state that are required for API responses.
     """
+    node_id = attr.ib()
+    chassis_uuid = attr.ib(default=None)
+    driver = attr.ib(default=None)
+    driver_info = attr.ib(default=None)
+    properties = attr.ib(default=None)
+    flavor_id = attr.ib(default="onmetal-io1")
+    power_state = attr.ib(default="power on")
+    provision_state = attr.ib(default="available")
+    instance_uuid = attr.ib(default=None)
+    maintenance = attr.ib(default=False)
+    cache_image_id = attr.ib(default=None)
+    memory_mb = attr.ib(default=None)
+    name = attr.ib(default=None)
 
     static_defaults = {
         "target_power_state": None,
@@ -178,11 +178,12 @@ class Node(object):
         return template
 
 
-@attributes([Attribute("ironic_node_store", default_factory=list)])
+@attr.s
 class IronicNodeStore(object):
     """
     A collection of ironic :obj:`Node` objects.
     """
+    ironic_node_store = attr.ib(default=attr.Factory(list))
 
     memory_to_flavor_map = {131072: "onmetal-io1",
                             32768: "onmetal-compute1",

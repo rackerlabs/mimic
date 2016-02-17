@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, unicode_literals
 from uuid import uuid4
 import json
 
-from characteristic import attributes
+import attr
 from six import text_type
 
 from zope.interface import implementer
@@ -87,11 +87,12 @@ class NovaApi(object):
 
 
 @implementer(IAPIMock, IPlugin)
-@attributes(["nova_api"])
+@attr.s
 class NovaControlApi(object):
     """
     Rest endpoints for the Nova Control Api.
     """
+    nova_api = attr.ib()
 
     def catalog_entries(self, tenant_id):
         """
@@ -128,11 +129,16 @@ Handlers for CRUD operations on create server behaviors.
 """
 
 
-@attributes(["api_mock", "uri_prefix", "session_store", "region"])
+@attr.s
 class NovaControlApiRegion(object):
     """
     Klein resources for the Nova Control plane API
     """
+    api_mock = attr.ib()
+    uri_prefix = attr.ib()
+    session_store = attr.ib()
+    region = attr.ib()
+
     app = MimicApp()
 
     @app.route('/v2/<string:tenant_id>/behaviors', branch=True)

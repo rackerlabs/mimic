@@ -12,8 +12,6 @@ from random import randrange
 
 import attr
 
-from characteristic import attributes, Attribute
-
 from six import text_type
 
 from toolz.dicttoolz import dissoc
@@ -157,20 +155,40 @@ class CLB(object):
         return result
 
 
-@attributes(["keys"])
+@attr.s
 class BadKeysError(Exception):
     """
     When trying to alter the settings of a load balancer, this exception will
     be raised if you attempt to alter an attribute which doesn't exist.
     """
+    keys = attr.ib()
+    code = attr.ib(validator=attr.validators.instance_of(int), default=400)
+
+    def to_json(self):
+        """
+        :return: a JSON dict representation of this error.
+        """
+        return {'message': 'Attempt to alter a bad attribute',
+                'code': self.code}
 
 
-@attributes(["value", "accepted_values"])
+@attr.s
 class BadValueError(Exception):
     """
     When trying to alter the settings of a load balancer, this exception will
     be raised if you attempt to set a valid attribute to an invalid setting.
     """
+    value = attr.ib()
+    accepted_values = attr.ib()
+    code = attr.ib(validator=attr.validators.instance_of(int), default=400)
+
+    def to_json(self):
+        """
+        :return: a JSON dict representation of this error.
+        """
+        return {'message': ('Unsupported status {0} not one of {1}'.format(
+                            self.value, self.accepted_values)),
+                'code': self.code}
 
 
 def node_feed_xml(events):
@@ -296,7 +314,7 @@ class RegionalCLBCollection(object):
             if k not in supported_keys:
                 badKeys.append(k)
         if len(badKeys) > 0:
-            raise BadKeysError("Attempt to alter a bad attribute", keys=badKeys)
+            raise BadKeysError(keys=badKeys)
 
         if "status" in kvpairs:
             supported_statuses = [
@@ -305,9 +323,6 @@ class RegionalCLBCollection(object):
             s = kvpairs["status"]
             if s not in supported_statuses:
                 raise BadValueError(
-                    "Unsupported status {0} not one of {1}".format(
-                        s, supported_statuses
-                    ),
                     value=s, accepted_values=supported_statuses
                 )
 
@@ -624,8 +639,7 @@ class RegionalCLBCollection(object):
         return not_found_response("loadbalancer"), 404
 
 
-@attributes(["clock",
-             Attribute("regional_collections", default_factory=dict)])
+@attr.s
 class GlobalCLBCollections(object):
     """
     A :obj:`GlobalCLBCollections` is a set of all the
@@ -633,6 +647,8 @@ class GlobalCLBCollections(object):
     words, all the objects that a single tenant owns globally in a
     cloud load balancer service.
     """
+    clock = attr.ib()
+    regional_collections = attr.ib(default=attr.Factory(dict))
 
     def collection_for_region(self, region_name):
         """

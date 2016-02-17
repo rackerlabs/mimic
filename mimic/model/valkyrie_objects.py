@@ -4,7 +4,7 @@ Model objects for the Valkyrie mimic.
 
 from __future__ import absolute_import, division, unicode_literals
 
-from characteristic import attributes, Attribute
+import attr
 from json import dumps
 
 from mimic.util.helper import random_hex_generator
@@ -67,7 +67,7 @@ class AccountContactPermission(object):
         }
 
 
-@attributes([Attribute("valkyrie_store", default_factory=list)])
+@attr.s
 class ValkyrieStore(object):
     """
 
@@ -85,6 +85,7 @@ class ValkyrieStore(object):
         http://localhost:8900/valkyrie/v2/account/123456/permissions/contacts/devices/by_contact/56/effective
 
     """
+    valkyrie_store = attr.ib(default=attr.Factory(list))
 
     permissions = []
     # Arguments are: account, contact, (direct) permission, item, item_type (1=account or 2=device)

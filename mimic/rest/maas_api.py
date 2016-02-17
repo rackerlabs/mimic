@@ -14,7 +14,6 @@ from uuid import uuid4
 import attr
 from six import text_type
 
-from characteristic import attributes
 from zope.interface import implementer
 
 from twisted.plugin import IPlugin
@@ -1662,11 +1661,13 @@ class MaasMock(object):
 
 
 @implementer(IAPIMock, IPlugin)
-@attributes(["maas_api"])
+@attr.s
 class MaasControlApi(object):
     """
     This class registers the MaaS controller API in the service catalog.
     """
+    maas_api = attr.ib()
+
     def catalog_entries(self, tenant_id):
         """
         List catalog entries for the MaaS API.
@@ -1693,11 +1694,14 @@ class MaasControlApi(object):
         return maas_controller.app.resource()
 
 
-@attributes(["api_mock", "session_store", "region"])
+@attr.s
 class MaasController(object):
     """
     Klein routes for MaaS control API.
     """
+    api_mock = attr.ib()
+    session_store = attr.ib()
+    region = attr.ib()
 
     def _entity_cache_for_tenant(self, tenant_id):
         """

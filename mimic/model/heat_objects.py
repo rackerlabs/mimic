@@ -2,23 +2,24 @@
 Model objects for the Heat mimic.
 """
 
-from characteristic import attributes, Attribute
+import attr
 import json
 from random import randrange
 
 from mimic.model.behaviors import BehaviorRegistryCollection, EventDescription
 
 
-@attributes(['collection', 'stack_name',
-             Attribute('stack_id',
-                       default_factory=lambda: Stack.generate_stack_id()),
-             Attribute('action', default_factory=lambda: Stack.CREATE),
-             Attribute('status', default_factory=lambda: Stack.COMPLETE),
-             Attribute('tags', default_factory=list)])
+@attr.s
 class Stack(object):
     """
     A :obj:`Stack` is a representation of a Heat stack.
     """
+    collection = attr.ib()
+    stack_name = attr.ib()
+    stack_id = attr.ib(default=attr.Factory(lambda: Stack.generate_stack_id()))
+    action = attr.ib(default=attr.Factory(lambda: Stack.CREATE))
+    status = attr.ib(default=attr.Factory(lambda: Stack.COMPLETE))
+    tags = attr.ib(default=attr.Factory(list))
 
     ACTIONS = (
         CREATE, DELETE, UPDATE, ROLLBACK, SUSPEND, RESUME, ADOPT,
@@ -199,17 +200,17 @@ def default_delete_behavior(collection, request, stack_name, stack_id):
     return b''
 
 
-@attributes(
-    ["tenant_id", "region_name",
-     Attribute("stacks", default_factory=list),
-     Attribute(
-         "behavior_registry_collection",
-         default_factory=lambda: BehaviorRegistryCollection())]
-)
+@attr.s
 class RegionalStackCollection(object):
     """
     A collection of :obj:`Stack` objects for a region.
     """
+    tenant_id = attr.ib()
+    region_name = attr.ib()
+    stacks = attr.ib(default=attr.Factory(list))
+    behavior_registry_collection = attr.ib(default=attr.Factory(
+        lambda: BehaviorRegistryCollection()))
+
     def stack_by_id(self, stack_id):
         """
         Retrieves a stack by its ID
@@ -302,12 +303,14 @@ class RegionalStackCollection(object):
                         stack_id=stack_id)
 
 
-@attributes(["tenant_id",
-             Attribute("regional_collections", default_factory=dict)])
+@attr.s
 class GlobalStackCollections(object):
     """
     A set of :obj:`RegionalStackCollection` objects owned by a tenant.
     """
+    tenant_id = attr.ib()
+    regional_collections = attr.ib(default=attr.Factory(dict))
+
     def collection_for_region(self, region_name):
         """
         Retrieves a :obj:`RegionalStackCollection` for a region.

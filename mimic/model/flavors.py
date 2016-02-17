@@ -4,14 +4,21 @@ Model objects for mimic flavors.
 
 from __future__ import absolute_import, division, unicode_literals
 
-from characteristic import attributes
+import attr
 
 
-@attributes(['flavor_id', 'tenant_id', 'name', 'ram', 'vcpus', 'rxtx', 'disk'])
+@attr.s
 class Flavor(object):
     """
     A Flavor object
     """
+    flavor_id = attr.ib()
+    tenant_id = attr.ib()
+    name = attr.ib()
+    ram = attr.ib()
+    vcpus = attr.ib()
+    rxtx = attr.ib()
+    disk = attr.ib()
 
     static_defaults = {
         "swap": "",

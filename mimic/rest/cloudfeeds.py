@@ -14,7 +14,7 @@ from mimic.imimic import IAPIMock
 from mimic.rest.mimicapp import MimicApp
 
 
-from characteristic import attributes
+import attr
 
 
 @implementer(IAPIMock, IPlugin)
@@ -57,12 +57,14 @@ class CloudFeedsApi(object):
 
 
 @implementer(IAPIMock, IPlugin)
-@attributes(["cf_api"])
+@attr.s
 class CloudFeedsControlApi(object):
     """
     This class registers the load balancer controller API in the service
     catalog.
     """
+    cf_api = attr.ib()
+
     def catalog_entries(self, tenant_id):
         """
         Cloud feeds controller endpoints.
@@ -89,11 +91,15 @@ class CloudFeedsControlApi(object):
         return cfc_region.app.resource()
 
 
-@attributes(["api_mock", "uri_prefix", "session_store", "region"])
+@attr.s
 class CloudFeedsControlRegion(object):
     """
     Klein routes for cloud feed's control API within a particular region.
     """
+    api_mock = attr.ib()
+    uri_prefix = attr.ib()
+    session_store = attr.ib()
+    region = attr.ib()
 
     app = MimicApp()
 

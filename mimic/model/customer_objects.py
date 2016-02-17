@@ -4,16 +4,19 @@ Customer Contacts storage object
 
 from __future__ import absolute_import, division, unicode_literals
 
-from characteristic import attributes, Attribute
+import attr
 
 
-@attributes(["tenant_id", "email_address", "role",
-             Attribute("first_name", default_value="Test FirstName"),
-             Attribute("last_name", default_value="Test LastName")])
+@attr.s
 class Contact(object):
     """
     A :obj:`Contact` is a representation for each contact for a tenant.
     """
+    tenant_id = attr.ib()
+    email_address = attr.ib()
+    role = attr.ib()
+    first_name = attr.ib(default="Test FirstName")
+    last_name = attr.ib(default="Test LastName")
 
     static_defaults = {
         "firstName": "Pat",
@@ -72,11 +75,12 @@ class Contact(object):
         return template
 
 
-@attributes([Attribute("contacts_store", default_factory=dict)])
+@attr.s
 class ContactsStore(object):
     """
     A collection of contact objects for a tenant.
     """
+    contacts_store = attr.ib(default=attr.Factory(dict))
 
     def add_to_contacts_store(self, tenant_id, contact_list):
         """

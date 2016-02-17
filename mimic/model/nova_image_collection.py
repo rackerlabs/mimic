@@ -4,7 +4,7 @@ Model objects for images.
 
 from __future__ import absolute_import, division, unicode_literals
 
-from characteristic import attributes, Attribute
+import attr
 from json import dumps
 from mimic.model.rackspace_images import OnMetalImage
 
@@ -12,12 +12,16 @@ from mimic.model.nova_objects import not_found
 from mimic.canned_responses.mimic_presets import get_presets
 
 
-@attributes(
-    ["tenant_id", "region_name", "clock", "image_store"])
+@attr.s
 class RegionalNovaImageCollection(object):
     """
     A collection of nova images, in a given region, for a given tenant.
     """
+    tenant_id = attr.ib()
+    region_name = attr.ib()
+    clock = attr.ib()
+    image_store = attr.ib()
+
     def list_images(self, include_details, absolutize_url):
         """
         Return a list of images.
@@ -49,14 +53,16 @@ class RegionalNovaImageCollection(object):
         return dumps({"image": image.detailed_json(absolutize_url)})
 
 
-@attributes(["tenant_id", "clock",
-             Attribute("regional_collections", default_factory=dict)])
+@attr.s
 class GlobalNovaImageCollection(object):
     """
     A :obj:`GlobalNovaImageCollection` is a set of all the
     :obj:`RegionalNovaImageCollection` objects owned by a given tenant.  In other
     words, all the image objects that a single tenant owns globally.
     """
+    tenant_id = attr.ib()
+    clock = attr.ib()
+    regional_collections = attr.ib(default=attr.Factory(dict))
 
     def collection_for_region(self, region_name, image_store):
         """

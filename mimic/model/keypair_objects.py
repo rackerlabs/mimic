@@ -6,14 +6,17 @@ from __future__ import absolute_import, division, unicode_literals
 
 import json
 
-from characteristic import attributes, Attribute
+import attr
 
 
-@attributes(['name', 'public_key'])
+@attr.s
 class KeyPair(object):
     """
     A KeyPair object
     """
+    name = attr.ib()
+    public_key = attr.ib()
+
     fingerprint = "aa:aa:aa:aa:aa:aa:aa:aa:aa:aa:aa:aa:aa:aa:aa:aa"
     user_id = "fake"
 
@@ -31,15 +34,16 @@ class KeyPair(object):
         }
 
 
-@attributes(
-    ["tenant_id", "region_name", "clock",
-     Attribute("keypairs", default_factory=list)]
-)
+@attr.s
 class RegionalKeyPairCollection(object):
     """
     A :obj:`ReionalKeyPairCollection` is a collection of
     :obj:`KeyPair` objects owned by a given tenant for a region.
     """
+    tenant_id = attr.ib()
+    region_name = attr.ib()
+    clock = attr.ib()
+    keypairs = attr.ib(default=attr.Factory(list))
 
     def create_keypair(self, keypair):
         """
@@ -82,14 +86,16 @@ class RegionalKeyPairCollection(object):
         self.keypairs.remove(kp_to_remove)
 
 
-@attributes(["tenant_id", "clock",
-             Attribute("regional_collections", default_factory=dict)])
+@attr.s
 class GlobalKeyPairCollections(object):
     """
     A :obj:`GlobalKeyPairCollections` is a set of all the
     :obj:`RegionalKeyPairCollection` objects owned by a given tenant.  In other
     words, all the objects that a single tenant owns globally.
     """
+    tenant_id = attr.ib()
+    clock = attr.ib()
+    regional_collections = attr.ib(default=attr.Factory(dict))
 
     def collection_for_region(self, region_name):
         """

@@ -4,7 +4,7 @@ Model objects for mimic images.
 
 from __future__ import absolute_import, division, unicode_literals
 
-from characteristic import attributes, Attribute
+import attr
 import uuid
 import random
 
@@ -23,18 +23,7 @@ def random_image_size():
     return random.randint(250000, 80000000000)
 
 
-@attributes([
-    # Prior to refactor; no default value
-    'image_id', 'tenant_id', 'name', 'minDisk', 'minRam', 'image_size',
-    # Post-refactor; all have default values, but these should be slowly
-    # removed.
-    Attribute('flavor_classes', default_value="*"),
-    Attribute('image_type', default_value="base"),
-    Attribute('os_type', default_value="linux"),
-    Attribute('os_distro', default_value=""),
-    Attribute('vm_mode', default_value="hvm"),
-    Attribute('auto_disk_config', default_value="disabled"),
-])
+@attr.s
 class Image(object):
     """
     A Image object
@@ -54,6 +43,22 @@ class Image(object):
         with this image; possible values: "True", "disabled", and "False".
         (TODO: what does "False" mean?)
     """
+    # Prior to refactor; no default value
+    image_id = attr.ib()
+    tenant_id = attr.ib()
+    name = attr.ib()
+    minDisk = attr.ib()
+    minRam = attr.ib()
+    image_size = attr.ib()
+
+    # Post-refactor; all have default values, but these should be slowly
+    # removed.
+    flavor_classes = attr.ib(default="*")
+    image_type = attr.ib(default="base")
+    os_type = attr.ib(default="linux")
+    os_distro = attr.ib(default="")
+    vm_mode = attr.ib(default="hvm")
+    auto_disk_config = attr.ib(default="disabled")
 
     is_default = False
 
@@ -138,12 +143,25 @@ class Image(object):
         return template
 
 
-@attributes(['image_id', 'tenant_id', 'name', 'minDisk', 'minRam', 'image_size', 'server_id', 'links',
-             'flavor_classes', 'os_type', 'os_distro', 'vm_mode', 'disk_config'])
+@attr.s
 class RackspaceSavedImage(object):
     """
     A Rackspace saved image object representation
     """
+    image_id = attr.ib()
+    tenant_id = attr.ib()
+    name = attr.ib()
+    minDisk = attr.ib()
+    minRam = attr.ib()
+    image_size = attr.ib()
+    server_id = attr.ib()
+    links = attr.ib()
+    flavor_classes = attr.ib()
+    os_type = attr.ib()
+    os_distro = attr.ib()
+    vm_mode = attr.ib()
+    disk_config = attr.ib()
+
     is_default = False
 
     def metadata_json(self):
@@ -654,11 +672,17 @@ class RackspaceVyattaImage(Image):
         }
 
 
-@attributes(['image_id', 'tenant_id', 'name', 'minDisk', 'minRam', 'image_size'])
+@attr.s
 class OnMetalImage(object):
     """
     A Image object
     """
+    image_id = attr.ib()
+    tenant_id = attr.ib()
+    name = attr.ib()
+    minDisk = attr.ib()
+    minRam = attr.ib()
+    image_size = attr.ib()
 
     is_default = False
 

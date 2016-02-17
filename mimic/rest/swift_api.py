@@ -9,7 +9,7 @@ from __future__ import absolute_import, division, unicode_literals
 from uuid import uuid4, uuid5, NAMESPACE_URL
 from six import text_type
 
-from characteristic import attributes, Attribute
+import attr
 from json import dumps
 
 from mimic.imimic import IAPIMock
@@ -79,12 +79,15 @@ class SwiftMock(object):
             session_store=session_store).app.resource()
 
 
-@attributes("api uri_prefix session_store".split())
+@attr.s
 class SwiftRegion(object):
     """
     :obj:`SwiftRegion` is a set of klein routes and application representing a
     Swift endpoint.
     """
+    api = attr.ib()
+    uri_prefix = attr.ib()
+    session_store = attr.ib()
 
     app = MimicApp()
 
@@ -99,12 +102,15 @@ class SwiftRegion(object):
                               SwiftTenantInRegion().app.resource()))
 
 
-@attributes(["name", "content_type", "data"])
+@attr.s
 class Object(object):
     """
     A Python object (i.e. instance) representing a Swift object (i.e. bag of
     octets).
     """
+    name = attr.ib()
+    content_type = attr.ib()
+    data = attr.ib()
 
     def as_json(self):
         """
@@ -118,11 +124,13 @@ class Object(object):
         }
 
 
-@attributes(["name", Attribute("objects", default_factory=dict)])
+@attr.s
 class Container(object):
     """
     A Swift container (collection of :obj:`Object`.)
     """
+    name = attr.ib()
+    objects = attr.ib(default=attr.Factory(dict))
 
 
 class SwiftTenantInRegion(object):
