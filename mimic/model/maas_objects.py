@@ -514,13 +514,11 @@ class CheckType(object):
                   'available': self.test_check_available.get(ench_key, True),
                   'status': self.test_check_status.get(
                       ench_key, 'code=200,rt=0.4s,bytes=99'),
-                  'metrics': dict([(m.name,
-                                    m.get_value_for_test_check(
-                                        entity_id=entity_id,
-                                        check_id=check_id,
-                                        monitoring_zone=monitoring_zone,
-                                        timestamp=timestamp))
-                                   for m in self.metrics])}
+                  'metrics': {m.name: m.get_value_for_test_check(entity_id=entity_id,
+                                                                 check_id=check_id,
+                                                                 monitoring_zone=monitoring_zone,
+                                                                 timestamp=timestamp)
+                              for m in self.metrics}}
                  for monitoring_zone in monitoring_zones])
 
 
@@ -539,12 +537,10 @@ class SingleHostInfoType(object):
         """
         return {'timestamp': timestamp,
                 'error': None,
-                'info': dict([(metric.name,
-                               metric.get_value(
-                                   entity_id=entity_id,
-                                   agent_id=agent_id,
-                                   timestamp=timestamp))
-                              for metric in self.metrics])}
+                'info': {metric.name: metric.get_value(entity_id=entity_id,
+                                                       agent_id=agent_id,
+                                                       timestamp=timestamp)
+                         for metric in self.metrics}}
 
 
 @attr.s
@@ -562,13 +558,11 @@ class MultiHostInfoType(object):
         """
         return {'timestamp': timestamp,
                 'error': None,
-                'info': [dict([(metric.name,
-                                metric.get_value(
-                                    entity_id=entity_id,
-                                    agent_id=agent_id,
-                                    block_index=i,
-                                    timestamp=timestamp))
-                               for metric in self.metrics])
+                'info': [{metric.name: metric.get_value(entity_id=entity_id,
+                                                        agent_id=agent_id,
+                                                        block_index=i,
+                                                        timestamp=timestamp)
+                          for metric in self.metrics}
                          for i in range(num_blocks)]}
 
 
@@ -596,18 +590,15 @@ class Agent(object):
         """
         current_timestamp = int(1000 * clock.seconds())
 
-        return dict([(rtype,
-                      (available_types[rtype].get_info(
-                          entity_id,
-                          self.id,
-                          current_timestamp,
-                          self.counts[rtype])
-                       if rtype in self.counts
-                       else available_types[rtype].get_info(
-                           entity_id,
-                           self.id,
-                           current_timestamp)))
-                     for rtype in requested_types])
+        return {rtype: available_types[rtype].get_info(entity_id,
+                                                       self.id,
+                                                       current_timestamp,
+                                                       self.counts[rtype])
+                if rtype in self.counts
+                else available_types[rtype].get_info(entity_id,
+                                                     self.id,
+                                                     current_timestamp)
+                for rtype in requested_types}
 
     def list_connections(self):
         """

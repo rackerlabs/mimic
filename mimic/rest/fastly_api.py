@@ -19,8 +19,8 @@ def text_urldata(urldata):
 
     :return: a dictionary mapping text to lists of text.
     """
-    return dict([(k.decode("utf-8"), [vv.decode("utf-8") for vv in v])
-                 for [k, v] in urldata.items()])
+    return {k.decode("utf-8"): [vv.decode("utf-8") for vv in urldata[k]]
+            for k in urldata}
 
 
 class FastlyApi(object):
@@ -85,9 +85,8 @@ class FastlyApi(object):
 
         https://docs.fastly.com/api/config#service_3
         """
-        url_data = text_urldata(request.args).items()
-        data = dict((key, value) for key, value in url_data)
-        service_name = data['name'][0]
+        url_data = text_urldata(request.args)
+        service_name = url_data['name'][0]
 
         response = self.fastly_response.get_service_by_name(service_name)
         return json.dumps(response)

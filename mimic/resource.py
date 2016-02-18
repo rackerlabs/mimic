@@ -227,8 +227,8 @@ class MimicLoggingRequest(MimicRequest, object):
             "{body}",
             method=self.method.decode("utf-8"), url=self.uri.decode("utf-8"),
             headers=json.dumps(
-                dict((k.decode("utf-8"), [vv.decode("utf-8") for vv in v])
-                     for (k, v) in self.requestHeaders.getAllRawHeaders())
+                {k.decode("utf-8"): [vv.decode("utf-8") for vv in v]
+                 for (k, v) in self.requestHeaders.getAllRawHeaders()}
             ),
             body=("\n" + content.decode("utf-8") + "\n" if content else ""))
         return super(MimicLoggingRequest, self).process()
@@ -251,8 +251,8 @@ class MimicLoggingRequest(MimicRequest, object):
             method=self.method.decode("utf-8"), url=self.uri.decode("utf-8"),
             code=self.code,
             headers=json.dumps(
-                dict((k.decode("utf-8"), [vv.decode("utf-8") for vv in v])
-                     for (k, v) in self.responseHeaders.getAllRawHeaders())),
+                {k.decode("utf-8"): [vv.decode("utf-8") for vv in v]
+                 for (k, v) in self.responseHeaders.getAllRawHeaders()}),
             body=("\n" + content.decode("utf-8") + "\n" if content else ""))
         return super(MimicLoggingRequest, self).finish()
 

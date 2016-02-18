@@ -71,7 +71,7 @@ class FastlyResponse(object):
                  response for fastly_client.create_service()
                  ("/service") request.
         """
-        data = dict((key, value[0]) for key, value in url_data)
+        data = {key: value[0] for key, value in url_data}
 
         publish_key = uuid.uuid4().hex
         service_id = uuid.uuid4().hex
@@ -149,7 +149,7 @@ class FastlyResponse(object):
                  ("/service/<service_id>/version/<service_version>/domain")
                  request.
         """
-        request_dict = dict((k, v[0]) for k, v in url_data)
+        request_dict = {k: v[0] for k, v in url_data}
         domain_name = request_dict['name']
 
         create_domain = {
@@ -187,7 +187,7 @@ class FastlyResponse(object):
                  ("/service/<service_id>/version/<service_version>/backend")
                  request.
         """
-        request_dict = dict((k, v[0]) for k, v in url_data)
+        request_dict = {k: v[0] for k, v in url_data}
 
         create_backend = {
             u'comment': '',
@@ -231,7 +231,7 @@ class FastlyResponse(object):
                  ("/service/<service_id>/version/<service_version>/condition")
                  request.
         """
-        request_dict = dict((k, v[0]) for k, v in url_data)
+        request_dict = {k: v[0] for k, v in url_data}
 
         create_condition = {
             u"type": "REQUEST",
@@ -259,7 +259,7 @@ class FastlyResponse(object):
                  ("/service/<service_id>/version/<service_version>/cache_settings")
                  request.
         """
-        request_dict = dict((k, v[0]) for k, v in url_data)
+        request_dict = {k: v[0] for k, v in url_data}
 
         create_cache_settings = {
             "stale_ttl": request_dict.get("stale_ttl", 0),
@@ -287,7 +287,7 @@ class FastlyResponse(object):
                  ("/service/<service_id>/version/<service_version>/response_object)
                  request.
         """
-        request_dict = dict((k, v[0]) for k, v in url_data)
+        request_dict = {k: v[0] for k, v in url_data}
 
         create_response_object = {
             "status": request_dict["status"],
@@ -317,7 +317,7 @@ class FastlyResponse(object):
                  ("/service/<service_id>/version/<service_version>/settings)
                  request.
         """
-        request_dict = dict((k, v[0]) for k, v in url_data)
+        request_dict = {k: v[0] for k, v in url_data}
 
         create_settings = {
             "service_id": service_id,
