@@ -2107,8 +2107,8 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         should return an HTTP status code of 403 and an error message saying
         there are too many items.
         """
-        metadata = dict(("key{0}".format(i), "value{0}".format(i))
-                        for i in range(100))
+        metadata = {"key{0}".format(i): "value{0}".format(i)
+                    for i in range(100)}
         self.assert_maximum_metadata(
             *create_server(self.helper, metadata=metadata))
 
@@ -2126,7 +2126,7 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         When ``create_server`` is passed metadata with too many items and
         invalid metadata values, the too many items error takes precedence.
         """
-        metadata = dict(("key{0}".format(i), []) for i in range(100))
+        metadata = {"key{0}".format(i): [] for i in range(100)}
         self.assert_maximum_metadata(
             *create_server(self.helper, metadata=metadata))
 
@@ -2237,8 +2237,8 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         should return an HTTP status code of 403 and an error message saying
         there are too many items.
         """
-        metadata = dict(("key{0}".format(i), "value{0}".format(i))
-                        for i in range(100))
+        metadata = {"key{0}".format(i): "value{0}".format(i)
+                    for i in range(100)}
         self.assert_maximum_metadata(
             *self.set_metadata({"metadata": metadata}))
 
@@ -2267,7 +2267,7 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         When ``set_metadata`` is passed metadata with too many items and
         invalid metadata values, the too many items error takes precedence.
         """
-        metadata = dict(("key{0}".format(i), []) for i in range(100))
+        metadata = {"key{0}".format(i): [] for i in range(100)}
         self.assert_maximum_metadata(
             *self.set_metadata({"metadata": metadata}))
 
@@ -2367,8 +2367,8 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         it should return an HTTP status code of 403 and an error message
         saying there are too many items.
         """
-        metadata = dict(("key{0}".format(i), "value{0}".format(i))
-                        for i in range(40))
+        metadata = {"key{0}".format(i): "value{0}".format(i)
+                    for i in range(40)}
         self.assert_maximum_metadata(
             *self.set_metadata_item(metadata, 'newkey',
                                     {"meta": {"newkey": "newval"}}))
@@ -2380,15 +2380,15 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         key, it should succeed (because it replaces the original metadata
         item).
         """
-        metadata = dict(("key{0}".format(i), "value{0}".format(i))
-                        for i in range(40))
+        metadata = {"key{0}".format(i): "value{0}".format(i)
+                    for i in range(40)}
         response, body = self.set_metadata_item(
             metadata, 'key0', {"meta": {"key0": "newval"}})
         self.assertEqual(response.code, 200)
         self.assertEqual(body, {"meta": {"key0": "newval"}})
 
-        expected = dict(("key{0}".format(i), "value{0}".format(i))
-                        for i in range(1, 40))
+        expected = {"key{0}".format(i): "value{0}".format(i)
+                    for i in range(1, 40)}
         expected['key0'] = 'newval'
         self.assertEqual(self.get_created_server_metadata(), expected)
 
@@ -2418,8 +2418,8 @@ class NovaAPIMetadataTests(SynchronousTestCase):
         When ``set_metadata_item`` is passed metadata with too many items and
         invalid metadata values, the too many items error takes precedence.
         """
-        metadata = dict(("key{0}".format(i), "value{0}".format(i))
-                        for i in range(40))
+        metadata = {"key{0}".format(i): "value{0}".format(i)
+                    for i in range(40)}
         self.assert_maximum_metadata(
             *self.set_metadata_item(metadata, 'key', {"meta": {"key": []}}))
 
