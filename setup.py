@@ -26,7 +26,6 @@ def setup_options(name, version):
     """
     info = dict(
         install_requires=[
-            "characteristic>=14.2.0",
             "klein>=15.3.1",
             "twisted>=15.5.0",
             "jsonschema>=2.0",
