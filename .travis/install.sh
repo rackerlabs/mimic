@@ -80,14 +80,6 @@ for req in requirements/*.txt; do
     ./.tox/"${TOXENV}"/bin/pip wheel -r "${req}" || true;
 done;
 
-# https://github.com/pypa/pip/issues/3414
-
-for fn in .wheels/*pp27*; do
-    if [ "${fn}" != '.wheels/*pp27*' ]; then
-        mv -v "${fn}" "$(echo "${fn}" | sed -e s/pp27/pp240/g)";
-    fi;
-done;
-
 # If "installdeps" fails, "tox" exits with an error, and the "set -e" above
 # causes it to retry.  If "inst" fails, however, no error is reported for some
 # reason.  The following line causes "grep" to exit with error (and thanks to
