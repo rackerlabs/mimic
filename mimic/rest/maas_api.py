@@ -134,7 +134,7 @@ def _only_keys(dict_ins, keys):
     """
     Filters out unwanted keys of a dict.
     """
-    return dict([(k, dict_ins[k]) for k in dict_ins if k in keys])
+    return {k: dict_ins[k] for k in dict_ins if k in keys}
 
 
 def create_entity(clock, params):
@@ -539,12 +539,9 @@ class MaasMock(object):
                 )
 
     def _audit(self, app, request, tenant_id, status, content=b''):
-        headers = dict([
-            (k.decode("utf-8"),
-             [vv.decode("utf-8") if isinstance(vv, bytes) else vv for vv in v])
-            for k, v in request.getAllHeaders().items()
-            if k != b'x-auth-token']
-        )
+        headers = {k.decode("utf-8"): [vv.decode("utf-8") if isinstance(vv, bytes) else vv for vv in v]
+                   for k, v in request.getAllHeaders().items()
+                   if k != b'x-auth-token'}
 
         record = {
             'id': text_type(uuid4()),
@@ -1603,10 +1600,10 @@ class MaasMock(object):
         multiplot_request = json.loads(content.decode("utf-8"))
 
         requested_check_ids = set([metric['check_id'] for metric in multiplot_request['metrics']])
-        checks_by_id = dict([(check.id, check)
-                             for entity in entities.values()
-                             for check in entity.checks.values()
-                             if check.id in requested_check_ids])
+        checks_by_id = {check.id: check
+                        for entity in entities.values()
+                        for check in entity.checks.values()
+                        if check.id in requested_check_ids}
 
         for requested_metric in multiplot_request['metrics']:
             if requested_metric['check_id'] not in checks_by_id:
