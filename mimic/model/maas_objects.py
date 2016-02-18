@@ -56,15 +56,7 @@ class Entity(object):
         """
         Serializes the Entity to a JSON-encodable dict.
         """
-        return {'label': self.label,
-                'id': self.id,
-                'agent_id': self.agent_id,
-                'created_at': self.created_at,
-                'updated_at': self.updated_at,
-                'managed': self.managed,
-                'metadata': self.metadata,
-                'ip_addresses': self.ip_addresses,
-                'uri': self.uri}
+        return attr.asdict(self, filter=lambda aa, _: aa.name not in ['alarms', 'checks'])
 
     def update(self, **kwargs):
         """
@@ -328,15 +320,7 @@ class AlarmState(object):
         """
         Serializes this alarm state to a JSON-encodable dict.
         """
-        return {'timestamp': self.timestamp,
-                'entity_id': self.entity_id,
-                'alarm_id': self.alarm_id,
-                'check_id': self.check_id,
-                'status': self.status,
-                'state': self.state,
-                'previous_state': self.previous_state,
-                'alarm_changelog_id': self.alarm_changelog_id,
-                'analyzed_by_monitoring_zone_id': self.analyzed_by_monitoring_zone_id}
+        return attr.asdict(self, filter=lambda aa, _: aa.name not in ['alarm_label', 'id'])
 
     def detail_json(self):
         """
