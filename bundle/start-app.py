@@ -27,7 +27,7 @@ from twisted.python import log
 
 # The following are required by pkg_resources.resource_string, which is used by
 # treq; so trick modulegraph into including it.
-from pkg_resources._vendor.packaging import version, specifiers
+from pkg_resources._vendor.packaging import version, specifiers, requirements
 version, specifiers # pacify pyflakes
 
 from sys import stdout
