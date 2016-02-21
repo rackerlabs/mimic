@@ -8,11 +8,9 @@ coverage==4.0.3
 cryptography==1.2.2
 enum34==1.1.2
 extras==0.0.3
-functools32==3.2.3.post2; python_version=='2.7'
 idna==2.0
 ipaddress==1.0.16
 iso8601==0.1.11
-jsonschema==2.5.1
 klein==15.3.1
 linecache2==1.0.0
 pyasn1==0.1.9
