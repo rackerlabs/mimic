@@ -14,8 +14,6 @@ import attr
 
 from six import text_type
 
-from toolz.dicttoolz import dissoc
-
 from twisted.internet.interfaces import IReactorTime
 from twisted.python import log
 
@@ -89,7 +87,7 @@ class Node(object):
         """
         :return: a JSON dictionary representing the node.
         """
-        return dissoc(attr.asdict(self), "feed_events")
+        return attr.asdict(self, filter=lambda aa, _: aa.name != "feed_events")
 
     def same_as(self, other):
         """
