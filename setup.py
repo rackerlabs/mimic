@@ -28,7 +28,6 @@ def setup_options(name, version):
         install_requires=[
             "klein>=15.3.1",
             "twisted>=15.5.0",
-            "jsonschema>=2.0",
             "treq>=15.1.0",
             "six>=1.6.0",
             "xmltodict>=0.9.1",
