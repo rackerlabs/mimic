@@ -34,7 +34,6 @@ def setup_options(name, version):
             "attrs>=15.1.0",
             "testtools>=1.7.1,<1.8.0",
             "iso8601>=0.1.10",
-            "toolz>=0.7.4"
         ],
         package_dir={"mimic": "mimic"},
         packages=find_packages(exclude=[]) + ["twisted.plugins"],
