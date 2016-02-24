@@ -26,7 +26,7 @@ class MimicCore(object):
     mocks.
     """
 
-    def __init__(self, clock, apis, domains=()):
+    def __init__(self, clock, apis=None, domains=(), sessions=None):
         """
         Create a MimicCore with an IReactorTime to do any time-based scheduling
         against.
@@ -39,7 +39,7 @@ class MimicCore(object):
             will expose.
         """
         self._uuid_to_api = {}
-        self.sessions = SessionStore(clock)
+        self.sessions = sessions if sessions else SessionStore(clock)
         self.message_store = MessageStore()
         self.contacts_store = ContactsStore()
         self.ironic_node_store = IronicNodeStore()
@@ -53,11 +53,11 @@ class MimicCore(object):
             self._uuid_to_api[this_api_id] = api
 
     @classmethod
-    def fromPlugins(cls, clock):
+    def fromPlugins(cls, clock, sessions=None):
         """
         Create a :obj:`MimicCore` from all :obj:`IAPIMock` plugins.
         """
-        return cls(clock, list(getPlugins(IAPIMock, plugins)))
+        return cls(clock, list(getPlugins(IAPIMock, plugins)), sessions=sessions)
 
     def service_with_region(self, region_name, service_id, base_uri):
         """

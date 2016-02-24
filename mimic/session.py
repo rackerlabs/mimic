@@ -6,7 +6,8 @@ Implementation of simple in-memory session storage and generation for Mimic.
 
 from __future__ import absolute_import, division, unicode_literals
 
-import shelve
+import dill
+import os
 
 from six import text_type
 from uuid import uuid4
@@ -242,11 +243,13 @@ class ShelvedSessionStore(SessionStore):
         self.filename = filename
 
     def load(self):
-        with shelve.open(self.filename) as shelf:
-            for session in shelf.values():
-                self._add_session(session)
+        print('LOADING')
+        if os.path.isfile(self.filename):
+            with open(self.filename, 'r') as f:
+                for session in dill.load(f):
+                    self._add_session(session)
 
     def save(self):
-        with shelve.open(self.filename) as shelf:
-            shelf.clear()
-            shelf.update(self._token_to_session)
+        print('SAVING')
+        with open(self.filename, 'w') as f:
+            dill.dump(self._token_to_session.values(), f)
