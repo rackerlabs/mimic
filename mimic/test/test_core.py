@@ -9,6 +9,7 @@ from mimic.plugins import (nova_plugin, loadbalancer_plugin, swift_plugin,
                            glance_plugin, cloudfeeds_plugin, heat_plugin,
                            neutron_plugin, dns_plugin, cinder_plugin)
 
+from mimic.test import dummy
 
 class CoreBuildingTests(SynchronousTestCase):
     """
@@ -48,6 +49,9 @@ class CoreBuildingTests(SynchronousTestCase):
             dns_plugin.dns,
             cinder_plugin.cinder
         ))
+        domain_apis = set((
+            dummy.dummy_domain_plugin,
+        ))
         self.assertEqual(
             plugin_apis,
             set(core._uuid_to_api.values()))
@@ -55,3 +59,6 @@ class CoreBuildingTests(SynchronousTestCase):
             len(plugin_apis),
             len(list(core.entries_for_tenant('any_tenant', {},
                                              'http://mimic'))))
+        self.assertEqual(
+            len(domain_apis),
+            len(list(core.domains)))

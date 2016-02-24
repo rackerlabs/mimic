@@ -10,7 +10,7 @@ from twisted.python.urlpath import URLPath
 from twisted.plugin import getPlugins
 from mimic import plugins
 
-from mimic.imimic import IAPIMock
+from mimic.imimic import IAPIMock, IAPIDomainMock
 from mimic.session import SessionStore
 from mimic.util.helper import random_hex_generator
 from mimic.model.mailgun_objects import MessageStore
@@ -37,6 +37,9 @@ class MimicCore(object):
 
         :param apis: an iterable of all :obj:`IAPIMock`s that this MimicCore
             will expose.
+
+        :param domains: an iterable of all :obj:`IAPIDomainMock`s that this
+            MimicCore will expose.
         """
         self._uuid_to_api = {}
         self.sessions = SessionStore(clock)
@@ -55,9 +58,12 @@ class MimicCore(object):
     @classmethod
     def fromPlugins(cls, clock):
         """
-        Create a :obj:`MimicCore` from all :obj:`IAPIMock` plugins.
+        Create a :obj:`MimicCore` from all :obj:`IAPIMock` and
+        :obj:`IAPIDomainMock` plugins.
         """
-        return cls(clock, list(getPlugins(IAPIMock, plugins)))
+        all_plugins = getPlugins(IAPIMock, plugins)
+        domain_plugins = getPlugins(IAPIDomainMock, plugins)
+        return cls(clock, all_plugins, domain_plugins)
 
     def service_with_region(self, region_name, service_id, base_uri):
         """

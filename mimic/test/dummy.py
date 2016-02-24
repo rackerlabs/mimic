@@ -91,3 +91,6 @@ class ExampleDomainAPI(object):
         """
         example_resource = ExampleResource(self._response)
         return example_resource
+
+# build an instance that can be imported as a plugin
+dummy_domain_plugin = ExampleDomainAPI()
