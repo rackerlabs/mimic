@@ -6,6 +6,8 @@ Implementation of simple in-memory session storage and generation for Mimic.
 
 from __future__ import absolute_import, division, unicode_literals
 
+import shelve
+
 from six import text_type
 from uuid import uuid4
 from datetime import datetime, timedelta
@@ -116,7 +118,17 @@ class SessionStore(object):
                 + timedelta(days=1)
             )
 
-        session = Session(**attributes)
+        return self._add_session(Session(**attributes), username_key=username_key)
+
+    def _add_session(self, session, username_key=None):
+        """
+        Persist a session according to its username and token values.
+
+        :param session: A session.
+
+        :return: The same session object.
+        :rtype: :obj:`Session`
+        """
         if username_key is None:
             username_key = session.username
         self._username_to_token[username_key] = session.token
@@ -218,3 +230,23 @@ class SessionStore(object):
         if tenant_id not in self._tenant_to_session:
             return self._new_session(tenant_id=tenant_id, token=token_id)
         return self._tenant_to_session[tenant_id]
+
+
+class ShelvedSessionStore(SessionStore):
+    """
+    A mimic Session with the capability of saving to/restoring from a file.
+    """
+
+    def __init__(self, clock, filename):
+        super(ShelvedSessionStore, self).__init__(clock)
+        self.filename = filename
+
+    def load(self):
+        with shelve.open(self.filename) as shelf:
+            for session in shelf.values():
+                self._add_session(session)
+
+    def save(self):
+        with shelve.open(self.filename) as shelf:
+            shelf.clear()
+            shelf.update(self._token_to_session)
