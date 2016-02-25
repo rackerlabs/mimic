@@ -54,6 +54,7 @@ source ~/.venv/bin/activate;
 # Before we run any 'pip' or 'tox' commands (which will run 'pip'), ensure that
 # we can find cached wheels explicitly built by previous runs.
 
+mkdir -p "${HOME}/.mimic-cache";
 export PIP_FIND_LINKS="file://${HOME}/.mimic-cache";
 
 pip install --upgrade pip;
