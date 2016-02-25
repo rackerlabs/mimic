@@ -2,12 +2,9 @@ sudo: false
 language: python
 cache:
     directories:
+      - $HOME/.mimic-cache
       - $HOME/.cache/pip
-
-env:
-    global:
-        - PIP_WHEEL_DIR=$HOME/.cache/pip/wheels
-        - PIP_FIND_LINKS=file://$HOME/.cache/pip/wheels
+      - $HOME/Library/Caches/pip
 
 matrix:
     include:
@@ -33,12 +30,15 @@ matrix:
           env: TOXENV=lint
         - language: generic
           os: osx
+          osx_image: xcode7.2
           env: TOXENV=py27
         - language: generic
           os: osx
+          osx_image: xcode7.2
           env: TOXENV=pypy
         - language: c
           os: osx
+          osx_image: xcode7.2
           env: MACAPP_ENV=system
     allow_failures:
       - env: TOXENV=docs-linkcheck
