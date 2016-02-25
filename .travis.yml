@@ -2,13 +2,9 @@ sudo: false
 language: python
 cache:
     directories:
+      - $HOME/.mimic-cache
       - $HOME/.cache/pip
       - $HOME/Library/Caches/pip
-
-env:
-    global:
-        - PIP_WHEEL_DIR=$HOME/.cache/pip/wheels
-        - PIP_FIND_LINKS=file://$HOME/.cache/pip/wheels
 
 matrix:
     include:

@@ -51,6 +51,11 @@ fi;
 virtualenv ~/.venv -p "$(which python)";
 source ~/.venv/bin/activate;
 
+# Before we run any 'pip' or 'tox' commands (which will run 'pip'), ensure that
+# we can find cached wheels explicitly built by previous runs.
+
+export PIP_FIND_LINKS="file://${HOME}/.mimic-cache";
+
 pip install --upgrade pip;
 pip --version;
 # Codecov is special and must be allowed to float since it is a client for an
@@ -71,13 +76,14 @@ tox --recreate --notest;
 # versions of the wheels specified in the pinned dependencies, and ensure that
 # they satisfy the requirements specified in setup.py.
 
-export PIP_WHEEL_DIR=".wheels";
-export PIP_FIND_LINKS=".wheels";
-
 for req in requirements/*.txt; do
     # Ignore failures, because not all requirements are relevant on all
-    # platforms.
-    ./.tox/"${TOXENV}"/bin/pip wheel -r "${req}" || true;
+    # platforms; share a cache for *building* wheels, but ensure .wheels only
+    # contains wheels that are specified by the current set of requirements (so
+    # e.g. previous versions from previous builds will not be available in the
+    # install phase).
+    ./.tox/"${TOXENV}"/bin/pip wheel -w .wheels -r "${req}" || true;
+    cp -v .wheels/*.whl "${HOME}/.mimic-cache";
 done;
 
 # If "installdeps" fails, "tox" exits with an error, and the "set -e" above
