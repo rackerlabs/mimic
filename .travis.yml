@@ -3,6 +3,7 @@ language: python
 cache:
     directories:
       - $HOME/.cache/pip
+      - $HOME/Library/Caches/pip
 
 env:
     global:
