@@ -30,6 +30,11 @@ from twisted.python import log
 from pkg_resources._vendor.packaging import version, specifiers, requirements
 version, specifiers, requirements # pacify pyflakes
 
+# these packages are imported _by_ _vendor.packaging from the "extern" package,
+# which dynamically populates its own namespace.
+from pkg_resources._vendor import pyparsing, six
+pyparsing, six # pyflakes
+
 from sys import stdout
 
 # This is the port on which mimic will listen for requests. It has been
