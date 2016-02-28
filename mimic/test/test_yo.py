@@ -82,3 +82,35 @@ class YoAPITests(SynchronousTestCase):
                         'location': '12 3rd St'}).encode("utf-8")))
         self.assertEquals(resp.code, 400)
         self.assertEquals(data['error'], 'Can\'t send Yo with location and link.')
+
+    def test_check_username_missing_username_errors(self):
+        """
+        Trying to check the username without specifying a username causes an error.
+        """
+        (resp, data) = self.successResultOf(json_request(
+            self, self.root, b"GET", '{0}/check_username/'.format(self.uri)))
+        self.assertEquals(resp.code, 400)
+        self.assertEquals(data['error'], 'Must supply username')
+
+    def test_check_existing_username_is_true(self):
+        """
+        Checking a username that exists gets a true response.
+        """
+        (resp, _) = self.successResultOf(json_request(
+            self, self.root, b"POST", '{0}/yo/'.format(self.uri),
+            json.dumps({'username': 'TESTUSER4',
+                        'api_key': 'A1234567890'}).encode("utf-8")))
+        self.assertEquals(resp.code, 200)
+        (resp, data) = self.successResultOf(json_request(
+            self, self.root, b"GET", '{0}/check_username/?username=TESTUSER4'.format(self.uri)))
+        self.assertEquals(resp.code, 200)
+        self.assertEquals(data['exists'], True)
+
+    def test_check_non_existing_username_is_false(self):
+        """
+        Checking a username that do not exist gives a false response.
+        """
+        (resp, data) = self.successResultOf(json_request(
+            self, self.root, b"GET", '{0}/check_username/?username=TESTUSER5'.format(self.uri)))
+        self.assertEquals(resp.code, 200)
+        self.assertEquals(data['exists'], False)

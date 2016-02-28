@@ -76,3 +76,17 @@ class YoAPIRoutes(object):
         return json.dumps({'success': True,
                            'yo_id': random_hex_generator(12),
                            'recipient': user.to_json()})
+
+    @app.route("/check_username/", methods=['GET'])
+    def check_username(self, request):
+        """
+        Checks to see if a user exists.
+        """
+        if b'username' not in request.args:
+            request.setResponseCode(400)
+            return json.dumps({'error': 'Must supply username',
+                               'errors': [{'message': 'Must supply username'}]})
+
+        username = request.args[b'username'][0].strip().decode("utf-8")
+        request.setResponseCode(200)
+        return json.dumps({'exists': username.upper() in self.yo_collections.users})
