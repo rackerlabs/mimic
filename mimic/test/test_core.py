@@ -59,7 +59,6 @@ class CoreBuildingTests(SynchronousTestCase):
             len(list(core.entries_for_tenant('any_tenant', {},
                                              'http://mimic'))))
 
-
     def test_load_domain_plugin_includes_all_domain_plugins(self):
         """
         Using the :func:`MimicRoot.fromPlugin` creator for a
@@ -70,8 +69,7 @@ class CoreBuildingTests(SynchronousTestCase):
         self.root.createDirectory()
         self.package = self.root.child('fakeplugins')
         self.package.createDirectory()
-        init = b"""
-from fakeplugins._domain import domain_plugin
+        init = b"""from fakeplugins._domain import domain_plugin
 __all__ = [domain_plugin]
 """
         self.package.child('__init__.py').setContent(init)
