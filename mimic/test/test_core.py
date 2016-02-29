@@ -62,7 +62,7 @@ class CoreBuildingTests(SynchronousTestCase):
     def test_load_domain_plugin_includes_all_domain_plugins(self):
         """
         Using the :func:`MimicRoot.fromPlugin` creator for a
-        :class:`MimicCore`, domains mocks implementing `class`:`IAPIDomainMock`
+        :class:`MimicCore`, domain mocks implementing `class`:`IAPIDomainMock`
         are included.
         """
         # build a fake plugins package with a domain plugin
