@@ -65,6 +65,7 @@ class CoreBuildingTests(SynchronousTestCase):
         :class:`MimicCore`, domains mocks implementing `class`:`IAPIDomainMock`
         are included.
         """
+        # build a fake plugins package with a domain plugin
         self.root = FilePath(self.mktemp())
         self.root.createDirectory()
         self.package = self.root.child('fakeplugins')
@@ -78,13 +79,11 @@ domain_plugin = ExampleDomainAPI()
 __all__ = [domain_plugin]
 """
         self.package.child('_domain.py').setContent(plugin)
-        sys.path.insert(1, self.root.path)
+        sys.path.append(self.root.path)
 
+        # monkey patch mimic.plugins package with fakeplugins
         import fakeplugins
         import mimic.plugins
-
-        self.original = mimic.plugins
-        # monkey patch mimic.plugins to be fakeplugins
         mimic.plugins = fakeplugins
 
         core = MimicCore.fromPlugins(Clock())
@@ -96,5 +95,3 @@ __all__ = [domain_plugin]
             1,
             len(list(core.domains))
         )
-        # cleanup, remove monkey patch
-        mimic.plugins = self.original
