@@ -84,7 +84,14 @@ __all__ = [domain_plugin]
         # monkey patch mimic.plugins package with fakeplugins
         import fakeplugins
         import mimic.plugins
+        original = mimic.plugins
         mimic.plugins = fakeplugins
+
+        # reassign real mimic.plugins to mimic.plugins once
+        # the test completes.
+        def cleanup():
+            mimic.plugins = original
+        self.addCleanup(cleanup)
 
         core = MimicCore.fromPlugins(Clock())
         self.assertIdentical(
