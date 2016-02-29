@@ -1,7 +1,10 @@
 from __future__ import absolute_import, division, unicode_literals
 
+import sys
+
 from twisted.internet.task import Clock
 from twisted.trial.unittest import SynchronousTestCase
+from twisted.python.filepath import FilePath
 
 from mimic.core import MimicCore
 from mimic.plugins import (nova_plugin, loadbalancer_plugin, swift_plugin,
@@ -9,7 +12,6 @@ from mimic.plugins import (nova_plugin, loadbalancer_plugin, swift_plugin,
                            glance_plugin, cloudfeeds_plugin, heat_plugin,
                            neutron_plugin, dns_plugin, cinder_plugin)
 
-from mimic.test import dummy
 
 class CoreBuildingTests(SynchronousTestCase):
     """
@@ -49,9 +51,6 @@ class CoreBuildingTests(SynchronousTestCase):
             dns_plugin.dns,
             cinder_plugin.cinder
         ))
-        domain_apis = set((
-            dummy.dummy_domain_plugin,
-        ))
         self.assertEqual(
             plugin_apis,
             set(core._uuid_to_api.values()))
@@ -59,6 +58,36 @@ class CoreBuildingTests(SynchronousTestCase):
             len(plugin_apis),
             len(list(core.entries_for_tenant('any_tenant', {},
                                              'http://mimic'))))
+
+
+    def test_load_domain_plugin_includes_all_domain_plugins(self):
+        """
+        Using the :func:`MimicRoot.fromPlugin` creator for a
+        :class:`MimicCore`, domains mocks implementing `class`:`IAPIDomainMock`
+        are included.
+        """
+        # start out by looking at:
+        # https://github.com/twisted/twisted/blob/a63e52279a1d6b001b1aa99814d9611cf196ff6d/twisted/test/test_plugin.py
+        self.originalPath = sys.path[:]
+
+        self.root = FilePath(self.mktemp())
+        self.root.createDirectory()
+        self.package = self.root.child('fakeplugins')
+        self.package.createDirectory()
+        self.package.child('__init__.py').setContent(b"")
+        plugin = b"""from mimic.test.dummy import ExampleDomainAPI
+domain_plugin = ExampleDomainAPI()
+"""
+        self.package.child('domain.py').setContent(plugin)
+
+        import mimic.plugins
+        mimic.plugins.__path__ = [self.root.path,]
+        print(mimic.plugins.__path__)
+
+        core = MimicCore.fromPlugins(Clock())
         self.assertEqual(
-            len(domain_apis),
-            len(list(core.domains)))
+            1,
+            len(list(core.domains))
+        )
+
+        sys.path[:] = self.originalPath
