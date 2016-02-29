@@ -66,28 +66,37 @@ class CoreBuildingTests(SynchronousTestCase):
         :class:`MimicCore`, domains mocks implementing `class`:`IAPIDomainMock`
         are included.
         """
-        # start out by looking at:
-        # https://github.com/twisted/twisted/blob/a63e52279a1d6b001b1aa99814d9611cf196ff6d/twisted/test/test_plugin.py
-        self.originalPath = sys.path[:]
-
         self.root = FilePath(self.mktemp())
         self.root.createDirectory()
         self.package = self.root.child('fakeplugins')
         self.package.createDirectory()
-        self.package.child('__init__.py').setContent(b"")
+        init = b"""
+from fakeplugins._domain import domain_plugin
+__all__ = [domain_plugin]
+"""
+        self.package.child('__init__.py').setContent(init)
         plugin = b"""from mimic.test.dummy import ExampleDomainAPI
 domain_plugin = ExampleDomainAPI()
+__all__ = [domain_plugin]
 """
-        self.package.child('domain.py').setContent(plugin)
+        self.package.child('_domain.py').setContent(plugin)
+        sys.path.insert(1, self.root.path)
 
+        import fakeplugins
         import mimic.plugins
-        mimic.plugins.__path__ = [self.root.path,]
-        print(mimic.plugins.__path__)
+
+        self.original = mimic.plugins
+        # monkey patch mimic.plugins to be fakeplugins
+        mimic.plugins = fakeplugins
 
         core = MimicCore.fromPlugins(Clock())
+        self.assertIdentical(
+            fakeplugins.domain_plugin,
+            core.domains[0]
+        )
         self.assertEqual(
             1,
             len(list(core.domains))
         )
-
-        sys.path[:] = self.originalPath
+        # cleanup, remove monkey patch
+        mimic.plugins = self.original
