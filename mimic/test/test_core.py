@@ -65,37 +65,25 @@ class CoreBuildingTests(SynchronousTestCase):
         :class:`MimicCore`, domain mocks implementing `class`:`IAPIDomainMock`
         are included.
         """
-        # build a fake plugins package with a domain plugin
         self.root = FilePath(self.mktemp())
         self.root.createDirectory()
-        self.package = self.root.child('fakeplugins')
-        self.package.createDirectory()
-        init = b"""from fakeplugins._domain import domain_plugin
-__all__ = [domain_plugin]
-"""
-        self.package.child('__init__.py').setContent(init)
         plugin = b"""from mimic.test.dummy import ExampleDomainAPI
-domain_plugin = ExampleDomainAPI()
-__all__ = [domain_plugin]
+dummy_domain_plugin = ExampleDomainAPI()
 """
-        self.package.child('_domain.py').setContent(plugin)
-        sys.path.append(self.root.path)
+        self.root.child('fake_plugin.py').setContent(plugin)
 
-        # monkey patch mimic.plugins package with fakeplugins
-        import fakeplugins
         import mimic.plugins
-        original = mimic.plugins
-        mimic.plugins = fakeplugins
+        mimic.plugins.__path__.append(self.root.path)
+        from mimic.plugins import fake_plugin
 
-        # reassign real mimic.plugins to mimic.plugins once
-        # the test completes.
         def cleanup():
-            mimic.plugins = original
+            sys.modules.pop("mimic.plugins.fake_plugin")
+            del mimic.plugins.fake_plugin
         self.addCleanup(cleanup)
 
         core = MimicCore.fromPlugins(Clock())
         self.assertIdentical(
-            fakeplugins.domain_plugin,
+            fake_plugin.dummy_domain_plugin,
             core.domains[0]
         )
         self.assertEqual(
