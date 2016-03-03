@@ -82,11 +82,7 @@ dummy_domain_plugin = ExampleDomainAPI()
         self.addCleanup(cleanup)
 
         core = MimicCore.fromPlugins(Clock())
-        self.assertIdentical(
+        self.assertIn(
             fake_plugin.dummy_domain_plugin,
-            core.domains[0]
-        )
-        self.assertEqual(
-            1,
-            len(list(core.domains))
+            core.domains
         )
