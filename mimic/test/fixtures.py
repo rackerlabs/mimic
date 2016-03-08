@@ -80,3 +80,21 @@ class APIMockHelper(object):
         tenant_id = self.auth.service_catalog_json["access"]["token"]["tenant"]["id"]
         service_name = apis[0].catalog_entries(tenant_id)[0].name
         self.uri = self.get_service_endpoint(service_name)
+
+
+class APIDomainMockHelper(object):
+    """
+    Provides common functionality for testing API domain mocks
+    """
+
+    def __init__(self, test_case, domains):
+        """
+        Initialize a mimic core and the specified :obj:`mimic.imimic.IAPIMock`s
+        :param domains: A list of :obj:`mimic.imimic.IAPIDomainMock` objects to be initialized
+        """
+        self.test_case = test_case
+        self.clock = Clock()
+        self.core = MimicCore(self.clock, [], domains=domains)
+        self.root = MimicRoot(self.core).app.resource()
+
+        self.uri = '/domain/{0}'.format(domains[0].domain())
