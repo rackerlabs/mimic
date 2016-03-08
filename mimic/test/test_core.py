@@ -1,7 +1,10 @@
 from __future__ import absolute_import, division, unicode_literals
 
+import sys
+
 from twisted.internet.task import Clock
 from twisted.trial.unittest import SynchronousTestCase
+from twisted.python.filepath import FilePath
 
 from mimic.core import MimicCore
 from mimic.plugins import (nova_plugin, loadbalancer_plugin, swift_plugin,
@@ -55,3 +58,31 @@ class CoreBuildingTests(SynchronousTestCase):
             len(plugin_apis),
             len(list(core.entries_for_tenant('any_tenant', {},
                                              'http://mimic'))))
+
+    def test_load_domain_plugin_includes_all_domain_plugins(self):
+        """
+        Using the :func:`MimicRoot.fromPlugin` creator for a
+        :class:`MimicCore`, domain mocks implementing `class`:`IAPIDomainMock`
+        are included.
+        """
+        self.root = FilePath(self.mktemp())
+        self.root.createDirectory()
+        plugin = b"""from mimic.test.dummy import ExampleDomainAPI
+dummy_domain_plugin = ExampleDomainAPI()
+"""
+        self.root.child('fake_plugin.py').setContent(plugin)
+
+        import mimic.plugins
+        mimic.plugins.__path__.append(self.root.path)
+        from mimic.plugins import fake_plugin
+
+        def cleanup():
+            sys.modules.pop("mimic.plugins.fake_plugin")
+            del mimic.plugins.fake_plugin
+        self.addCleanup(cleanup)
+
+        core = MimicCore.fromPlugins(Clock())
+        self.assertIn(
+            fake_plugin.dummy_domain_plugin,
+            core.domains
+        )
