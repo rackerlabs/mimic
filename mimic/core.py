@@ -61,9 +61,9 @@ class MimicCore(object):
         Create a :obj:`MimicCore` from all :obj:`IAPIMock` and
         :obj:`IAPIDomainMock` plugins.
         """
-        all_plugins = getPlugins(IAPIMock, plugins)
+        service_catalog_plugins = getPlugins(IAPIMock, plugins)
         domain_plugins = getPlugins(IAPIDomainMock, plugins)
-        return cls(clock, all_plugins, domain_plugins)
+        return cls(clock, service_catalog_plugins, domain_plugins)
 
     def service_with_region(self, region_name, service_id, base_uri):
         """
