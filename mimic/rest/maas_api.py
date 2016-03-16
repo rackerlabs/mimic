@@ -1136,7 +1136,6 @@ class MaasMock(object):
             request.setResponseCode(e.code)
             return json.dumps(e.to_json())
 
-        entity = entities[entity_id]
         if entity.agent_id is None:
             request.setResponseCode(400)
             return json.dumps({'type': 'agentDoesNotExist',
