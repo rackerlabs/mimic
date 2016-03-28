@@ -77,7 +77,7 @@ export PIP_FIND_LINKS=".wheels";
 for req in requirements/*.txt; do
     # Ignore failures, because not all requirements are relevant on all
     # platforms.
-    ./.tox/"${TOXENV}"/bin/pip wheel -r "${req}" || true;
+    ./.tox/"${TOXENV}"/bin/pip wheel -r "${req}" < /dev/null || true;
 done;
 
 # If "installdeps" fails, "tox" exits with an error, and the "set -e" above
