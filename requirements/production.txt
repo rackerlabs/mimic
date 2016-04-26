@@ -17,7 +17,7 @@ pyasn1==0.1.9
 pyasn1-modules==0.0.8
 pycparser==2.14
 pyOpenSSL==16.0.0
-python-mimeparse==1.5.1
+python-mimeparse==1.5.2
 requests==2.9.1
 service-identity==16.0.0
 six==1.10.0
