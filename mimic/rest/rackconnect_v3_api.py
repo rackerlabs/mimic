@@ -4,26 +4,28 @@
 API mock for the Rackspace RackConnect v3 API, which is documented at:
 http://docs.rcv3.apiary.io/
 """
+
+from __future__ import absolute_import, division, unicode_literals
+
 from collections import defaultdict
 import json
 from uuid import uuid4, UUID
 
-from characteristic import attributes, Attribute
+import attr
 from six import text_type
 
 from twisted.plugin import IPlugin
 from twisted.web.http import NOT_FOUND, NOT_IMPLEMENTED
-from twisted.web.server import Request
 from zope.interface import implementer
 
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.imimic import IAPIMock
 from mimic.rest.mimicapp import MimicApp
+from mimic.util.helper import json_from_request
 from mimic.util.helper import random_ipv4, seconds_to_timestamp
 
 
-Request.defaultContentType = 'application/json'
 timestamp_format = '%Y-%m-%dT%H:%M:%SZ'
 
 
@@ -70,17 +72,7 @@ class RackConnectV3(object):
             default_pools=self.default_pools).app.resource()
 
 
-@attributes(
-    [Attribute("id", default_factory=lambda: text_type(uuid4()),
-               instance_of=text_type),
-     Attribute("name", default_value=u"default", instance_of=text_type),
-     Attribute("port", default_value=80, instance_of=int),
-     Attribute("status", default_value=u"ACTIVE", instance_of=text_type),
-     Attribute("status_detail", default_value=None),
-     Attribute("virtual_ip", default_factory=random_ipv4,
-               instance_of=text_type),
-     Attribute('nodes', default_factory=list, instance_of=list)],
-    apply_with_cmp=False)
+@attr.s(hash=False)
 class LoadBalancerPool(object):
     """
     Represents a RackConnecvt v3 Load Balancer Pool.
@@ -100,17 +92,25 @@ class LoadBalancerPool(object):
     :param text_type virtual_ip: The IP of the load balancer pool
     :param list nodes: :class:`LoadBalancerPoolNode`s
     """
+    id = attr.ib(default=attr.Factory(lambda: text_type(uuid4())),
+                 validator=attr.validators.instance_of(text_type))
+    name = attr.ib(default="default", validator=attr.validators.instance_of(text_type))
+    port = attr.ib(default=80, validator=attr.validators.instance_of(int))
+    status = attr.ib(default="ACTIVE", validator=attr.validators.instance_of(text_type))
+    status_detail = attr.ib(default=None)
+    virtual_ip = attr.ib(default=attr.Factory(random_ipv4),
+                         validator=attr.validators.instance_of(text_type))
+    nodes = attr.ib(default=attr.Factory(list), validator=attr.validators.instance_of(list))
+
     def as_json(self):
         """
         Create a JSON-serializable representation of the contents of this
         object, which can be used in a REST response for a request for the
         details of this particular object
         """
-        # no dictionary comprehensions in py2.6
-        response = dict([
-            (attr.name, getattr(self, attr.name))
-            for attr in LoadBalancerPool.characteristic_attributes
-            if attr.name != "nodes"])
+        response = {aa.name: getattr(self, aa.name)
+                    for aa in attr.fields(LoadBalancerPool)
+                    if aa.name != "nodes"}
         response['node_counts'] = {
             "cloud_servers": len(self.nodes),
             "external": 0,
@@ -139,13 +139,7 @@ class LoadBalancerPool(object):
         return next((node for node in self.nodes if node.id == node_id), None)
 
 
-@attributes(["created", "load_balancer_pool", "cloud_server",
-             Attribute("id", default_factory=lambda: text_type(uuid4()),
-                       instance_of=text_type),
-             Attribute("updated", default_value=None),
-             Attribute("status", default_value=text_type("ACTIVE"),
-                       instance_of=text_type),
-             Attribute("status_detail", default_value=None)])
+@attr.s
 class LoadBalancerPoolNode(object):
     """
     Represents a Load Balancer Pool Node.
@@ -171,6 +165,15 @@ class LoadBalancerPoolNode(object):
         in theory can also be some external (not a cloud server) resource,
         but that is not supported yet on the API.
     """
+    created = attr.ib()
+    load_balancer_pool = attr.ib()
+    cloud_server = attr.ib()
+    id = attr.ib(default=attr.Factory(lambda: text_type(uuid4())),
+                 validator=attr.validators.instance_of(text_type))
+    updated = attr.ib(default=None)
+    status = attr.ib(default="ACTIVE", validator=attr.validators.instance_of(text_type))
+    status_detail = attr.ib(default=None)
+
     def short_json(self):
         """
         Create a short JSON-serializable representation of the contents of
@@ -182,11 +185,9 @@ class LoadBalancerPoolNode(object):
         GET /v3/{tenant_id}/load_balancer_pools/{load_balancer_pool_id}/nodes
         (list load balancer pool nodes)
         """
-        # no dictionary comprehensions in py2.6
-        response = dict([
-            (attr.name, getattr(self, attr.name))
-            for attr in LoadBalancerPoolNode.characteristic_attributes
-            if attr.name not in ('load_balancer_pool', 'cloud_server')])
+        response = {aa.name: getattr(self, aa.name)
+                    for aa in attr.fields(LoadBalancerPoolNode)
+                    if aa.name not in ('load_balancer_pool', 'cloud_server')}
         response['load_balancer_pool'] = {'id': self.load_balancer_pool.id}
         response['cloud_server'] = {'id': self.cloud_server}
         return response
@@ -200,12 +201,17 @@ class LoadBalancerPoolNode(object):
         self.status_detail = status_detail
 
 
-@attributes(["iapi", "uri_prefix", "session_store", "region_name",
-             "default_pools"])
+@attr.s
 class RackConnectV3Region(object):
     """
     A set of ``klein`` routes representing a RackConnect V3 endpoint.
     """
+    iapi = attr.ib()
+    uri_prefix = attr.ib()
+    session_store = attr.ib()
+    region_name = attr.ib()
+    default_pools = attr.ib()
+
     app = MimicApp()
 
     @app.route("/v3/<string:tenant_id>/load_balancer_pools", branch=True)
@@ -230,12 +236,15 @@ class RackConnectV3Region(object):
 # exclude all the attributes from comparison so that equality has to be
 # determined by identity, since lbpools is mutable and we don't want to
 # compare clocks
-@attributes(["lbpools", "clock"], apply_with_cmp=False)
+@attr.s(hash=False)
 class LoadBalancerPoolsInRegion(object):
     """
     A set of ``klein`` routes handling RackConnect V3 Load Balancer Pools
     collections.
     """
+    lbpools = attr.ib()
+    clock = attr.ib()
+
     app = MimicApp()
 
     def _pool_by_id(self, id):
@@ -267,7 +276,7 @@ class LoadBalancerPoolsInRegion(object):
 
         TODO: blow up with a 500 and verify if the given server exists in nova.
         """
-        body = json.loads(request.content.read())
+        body = json_from_request(request)
         added_nodes = []
         error_response = {"errors": []}
 
@@ -322,7 +331,7 @@ class LoadBalancerPoolsInRegion(object):
 
         TODO: For now, blow up with a 500 and verify if the given server exists in nova.
         """
-        body = json.loads(request.content.read())
+        body = json_from_request(request)
         error_response = {"errors": []}
 
         for each in body:
@@ -387,12 +396,14 @@ class LoadBalancerPoolsInRegion(object):
         return "Load Balancer Pool {0} does not exist".format(id)
 
 
-@attributes(["pool"])
+@attr.s
 class OneLoadBalancerPool(object):
     """
     A set of ``klein`` routes handling the RackConnect V3 API for a single
     load balancer pool
     """
+    pool = attr.ib()
+
     app = MimicApp()
 
     @app.route("/", methods=["GET"])

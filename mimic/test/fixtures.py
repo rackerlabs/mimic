@@ -1,6 +1,9 @@
 """
 Define fixtures to provide common functionality for Mimic testing
 """
+
+from __future__ import absolute_import, division, unicode_literals
+
 from mimic.test.helpers import json_request
 from mimic.core import MimicCore
 from mimic.resource import MimicRoot
@@ -23,7 +26,7 @@ class TenantAuthentication(object):
         :param password: the password with which to use to authenticate
         """
         _, self.service_catalog_json = test_case.successResultOf(json_request(
-            test_case, root, "POST", "/identity/v2.0/tokens",
+            test_case, root, b"POST", b"/identity/v2.0/tokens",
             {
                 "auth": {
                     "passwordCredentials": {
@@ -33,16 +36,6 @@ class TenantAuthentication(object):
                 }
             }
         ))
-
-    def nth_endpoint_public(self, n):
-        """
-        Return the publicURL for the ``n``th endpoint.
-        :param int n: The index of the endpoint in the first catalog entry to return
-        """
-        return (
-            self.service_catalog_json
-            ['access']['serviceCatalog'][0]['endpoints'][n]['publicURL']
-        )
 
     def get_service_endpoint(self, service_name, region=''):
         """
@@ -58,6 +51,7 @@ class TenantAuthentication(object):
                 for item in service['endpoints']:
                     if (item['region'] == region) or (region == ''):
                         return item['publicURL']
+        raise KeyError("No such service {}".format(service_name))
 
 
 class APIMockHelper(object):
@@ -70,6 +64,7 @@ class APIMockHelper(object):
         Initialize a mimic core and the specified :obj:`mimic.imimic.IAPIMock`s
         :param apis: A list of :obj:`mimic.imimic.IAPIMock` objects to be initialized
         """
+        self.test_case = test_case
         self.clock = Clock()
         self.core = MimicCore(self.clock, apis)
         self.root = MimicRoot(self.core).app.resource()
@@ -80,7 +75,6 @@ class APIMockHelper(object):
 
         # map some attributes and methods
         self.service_catalog_json = self.auth.service_catalog_json
-        self.nth_endpoint_public = self.auth.nth_endpoint_public
         self.get_service_endpoint = self.auth.get_service_endpoint
 
         try:
@@ -90,3 +84,21 @@ class APIMockHelper(object):
             self.uri = self.get_service_endpoint(service_name)
         except IndexError:
             self.uri = None
+
+
+class APIDomainMockHelper(object):
+    """
+    Provides common functionality for testing API domain mocks
+    """
+
+    def __init__(self, test_case, domains):
+        """
+        Initialize a mimic core and the specified :obj:`mimic.imimic.IAPIMock`s
+        :param domains: A list of :obj:`mimic.imimic.IAPIDomainMock` objects to be initialized
+        """
+        self.test_case = test_case
+        self.clock = Clock()
+        self.core = MimicCore(self.clock, [], domains=domains)
+        self.root = MimicRoot(self.core).app.resource()
+
+        self.uri = '/domain/{0}'.format(domains[0].domain())

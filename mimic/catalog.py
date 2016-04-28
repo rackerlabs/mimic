@@ -2,6 +2,8 @@
 Classes which represent the objects within the service catalog.
 """
 
+from __future__ import absolute_import, division, unicode_literals
+
 __all__ = ("Endpoint", "Entry")
 
 
@@ -9,11 +11,12 @@ class Endpoint(object):
     """
     An endpoint represents a portion of a service catalog.
 
-    :ivar str tenant_id: A tenant ID for this endpoint.
-    :ivar str region: The region name for this endpoint.
-    :ivar str endpoint_id: The endpoint ID; used only in some auth responses,
-        not the basic service catalog.
-    :ivar str prefix: A prefix, usually a version number, for this endpoint.
+    :ivar unicode tenant_id: A tenant ID for this endpoint.
+    :ivar unicode region: The region name for this endpoint.
+    :ivar unicode endpoint_id: The endpoint ID; used only in some auth
+        responses, not the basic service catalog.
+    :ivar unicode prefix: A prefix, usually a version number, for this
+        endpoint.
     """
     def __init__(self, tenant_id, region, endpoint_id, prefix=None):
         """
@@ -27,13 +30,15 @@ class Endpoint(object):
     def url_with_prefix(self, uri_prefix):
         """
         Generate a URL to this endpoint, given the URI prefix for the service.
+
+        :rtype: unicode
         """
         postfix = self.tenant_id
-        segments = [uri_prefix.rstrip("/")]
+        segments = [uri_prefix.rstrip(u"/")]
         if self.prefix is not None:
             segments.append(self.prefix)
         segments.append(postfix)
-        return "/".join(segments)
+        return u"/".join(segments)
 
 
 class Entry(object):

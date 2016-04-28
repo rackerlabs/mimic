@@ -2,11 +2,11 @@
 Helper objects for tests, mostly to allow testing HTTP routes.
 """
 
-from __future__ import print_function
+from __future__ import print_function, unicode_literals
 
 import json
 
-from six import string_types
+from six import text_type
 
 from zope.interface import implementer
 
@@ -17,7 +17,6 @@ from twisted.internet.error import ConnectionDone
 from twisted.internet.defer import succeed
 
 from twisted.web.client import Agent
-from twisted.web.server import Site
 from twisted.web.http_headers import Headers
 from twisted.web.iweb import IBodyProducer
 from twisted.python.urlpath import URLPath
@@ -25,6 +24,8 @@ from twisted.python.urlpath import URLPath
 from twisted.python.failure import Failure
 
 import treq
+
+from mimic.resource import get_site
 
 
 class AbortableStringTransport(StringTransport):
@@ -90,7 +91,7 @@ class RequestTraversalAgent(object):
 
         # Now time for the server to do its job.  Ask it to build an HTTP
         # channel.
-        channel = Site(self._rootResource).buildProtocol(None)
+        channel = get_site(self._rootResource).buildProtocol(None)
 
         # Connect the channel to another in-memory transport so we can collect
         # the response.
@@ -142,8 +143,18 @@ class SynchronousProducer(object):
         """
 
 
+def makeURLPath(s):
+    """
+    Create a URLPath with the given text or bytes.
+    """
+    if hasattr(URLPath, 'fromBytes') and isinstance(s, bytes):
+        return URLPath.fromBytes(s)
+    else:
+        return URLPath.fromString(s)
+
+
 def request(testCase, rootResource, method, uri, body=b"",
-            baseURI='http://localhost:8900/',
+            baseURI=b'http://localhost:8900/',
             headers=None):
     """
     Issue a request and return a synchronous response.
@@ -156,10 +167,14 @@ def request(testCase, rootResource, method, uri, body=b"",
             headers_object.setRawHeaders(key, value)
     else:
         headers_object = None
+    base = makeURLPath(baseURI)
+    if isinstance(uri, text_type):
+        uri = uri.encode("ascii")
+    relative = base.click(uri)
+    bytesURI = text_type(relative).encode("utf-8")
     return (
         RequestTraversalAgent(testCase, rootResource)
-        .request(method, str(URLPath.fromString(baseURI).click(uri)),
-                 bodyProducer=SynchronousProducer(body),
+        .request(method, bytesURI, bodyProducer=SynchronousProducer(body),
                  headers=headers_object)
     )
 
@@ -186,8 +201,8 @@ def json_request(testCase, rootResource, method, uri, body=b"",
     Issue a request with a JSON body (if there's a body at all) and return
     synchronously with a tuple of ``(response, JSON response body)``
     """
-    if not isinstance(body, string_types):
-        body = json.dumps(body)
+    if not isinstance(body, bytes):
+        body = json.dumps(body).encode("utf-8")
 
     d = request(testCase, rootResource, method, uri, body, baseURI, headers)
 
@@ -225,7 +240,7 @@ def validate_link_json(testCase, json_containing_links):
                           'Link does not contain "href": {0}'.format(link))
         testCase.assertIn('rel', link,
                           'Link does not contain "rel": {0}'.format(link))
-        testCase.assertIsInstance(link['href'], basestring,
+        testCase.assertIsInstance(link['href'], text_type,
                                   '"href" is not a string: {0}'.format(link))
-        testCase.assertIsInstance(link['rel'], basestring,
+        testCase.assertIsInstance(link['rel'], text_type,
                                   '"rel" is not a string: {0}'.format(link))

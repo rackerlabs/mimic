@@ -1,6 +1,9 @@
 """
 API mock for Rackspace Queues.
 """
+
+from __future__ import absolute_import, division, unicode_literals
+
 import json
 import collections
 from uuid import uuid4
@@ -8,17 +11,23 @@ from six import text_type
 
 from mimic.imimic import IAPIMock
 from twisted.plugin import IPlugin
-from mimic.canned_responses.queue import(add_queue, list_queues,
-                                         delete_queue)
 
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
+from mimic.model.queue_objects import QueueCollection
 from mimic.rest.mimicapp import MimicApp
 from zope.interface import implementer
-from twisted.web.server import Request
-from random import randrange
 
-Request.defaultContentType = 'application/json'
+
+def _client_id(request):
+    """
+    Gets the value of the Client-ID header from the request.
+
+    We know the Client-ID must be decodable as ASCII because
+    Cloud Queues requires it to be submitted as a UUID. Mimic
+    is not so strict, but requiring ASCII is ok.
+    """
+    return request.requestHeaders.getRawHeaders(b'client-id')[0].decode("ascii")
 
 
 @implementer(IAPIMock, IPlugin)
@@ -55,16 +64,6 @@ class QueueApi(object):
         ]
 
 
-class Q_Cache(dict):
-    """
-    Sketch: A replacement for queue_cache-as-dictionary,
-    queue_cache-as-object-with-methods-and-attributes.  It's still a dictionary so
-    that we can continue to treat it as one in the slightly crufty
-    canned_responses module that expects dumb data structures rather than a
-    structured object.
-    """
-
-
 class QueueApiRoutes(object):
     """
     Klein routes for queue API methods.
@@ -82,14 +81,15 @@ class QueueApiRoutes(object):
         self._session_store = session_store
         self._queue_name = queue_name
 
-    def _queue_cache(self, tenant_id):
+    def _queue_collection(self, tenant_id):
         """
         Get the given queue-cache object for the given tenant, creating one if
         there isn't one.
         """
         return (self._session_store.session_for_tenant_id(tenant_id)
                 .data_for_api(self._api_mock,
-                              lambda: collections.defaultdict(Q_Cache))
+                              lambda: collections.defaultdict(
+                                  lambda: QueueCollection(clock=self._session_store.clock)))
                 [self._queue_name])
 
     @app.route("/v1/<string:tenant_id>/queues/<string:queue_name>", methods=['PUT'])
@@ -97,30 +97,51 @@ class QueueApiRoutes(object):
         """
         Api call to create and save queue. HTTP status code of 201.
         """
-        queue_id = randrange(99999)
-        q_cache = self._queue_cache(tenant_id)
-        response_data = add_queue(
-            queue_id, queue_name,
-            tenant_id, q_cache)
-        request.setResponseCode(response_data[1])
-        return json.dumps(response_data[0])
+        q_collection = self._queue_collection(tenant_id)
+        (response_body, response_code) = q_collection.add_queue(queue_name)
+        request.setResponseCode(response_code)
+        return json.dumps(response_body)
 
     @app.route("/v1/<string:tenant_id>/queues", methods=['GET'])
     def list_queues(self, request, tenant_id):
         """
         Api call to get a list of queues. HTTP status code of 200
         """
-        q_cache = self._queue_cache(tenant_id)
-        response_data = list_queues(tenant_id, q_cache)
-        request.setResponseCode(response_data[1])
-        return json.dumps(response_data[0])
+        q_collection = self._queue_collection(tenant_id)
+        (response_body, response_code) = q_collection.list_queues()
+        request.setResponseCode(response_code)
+        return json.dumps(response_body)
 
     @app.route("/v1/<string:tenant_id>/queues/<string:queue_name>", methods=['DELETE'])
     def del_queue(self, request, tenant_id, queue_name):
         """
         Api call to delete a queue. HTTP status code of 201
         """
-        q_cache = self._queue_cache(tenant_id)
-        response_data = delete_queue(queue_name, q_cache)
-        request.setResponseCode(response_data[1])
-        return json.dumps(response_data[0])
+        q_collection = self._queue_collection(tenant_id)
+        (response_body, response_code) = q_collection.delete_queue(queue_name)
+        request.setResponseCode(response_code)
+        return json.dumps(response_body)
+
+    @app.route("/v1/<string:tenant_id>/queues/<string:queue_name>/messages", methods=['GET'])
+    def list_messages_for_queue(self, request, tenant_id, queue_name):
+        """
+        Lists messages from the queue.
+        """
+        q_collection = self._queue_collection(tenant_id)
+        echo = request.args.get(b'echo', [b'false'])[0] == b'true'
+        (response_body, response_code) = q_collection.list_messages_for_queue(
+            queue_name, _client_id(request), echo)
+        request.setResponseCode(response_code)
+        return json.dumps(response_body)
+
+    @app.route("/v1/<string:tenant_id>/queues/<string:queue_name>/messages", methods=['POST'])
+    def post_messages_to_queue(self, request, tenant_id, queue_name):
+        """
+        Posts messages to the queue.
+        """
+        q_collection = self._queue_collection(tenant_id)
+        messages = json.loads(request.content.read().decode("utf-8"))
+        (response_body, response_code) = q_collection.post_messages_to_queue(
+            queue_name, messages, _client_id(request))
+        request.setResponseCode(response_code)
+        return json.dumps(response_body)
