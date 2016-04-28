@@ -2,6 +2,9 @@
 Defines the preset values in the mimic api.
 """
 
+from __future__ import absolute_import, division, unicode_literals
+
+
 get_presets = {"loadbalancers": {"lb_building": "On create load balancer, keeps the load balancer in "
                                                 "building state for given seconds",
                                  "lb_error_state": "Puts the LB in error state, and such an LB can only"
@@ -19,5 +22,38 @@ get_presets = {"loadbalancers": {"lb_building": "On create load balancer, keeps 
                            "invalid_flavor_ref": ["INVALID-FLAVOR-ID", "8888", "-4", "1"],
                            "server_error": "sets server state to error on create",
                            "server_building": "sets the server to be in building state for given time"
-                                              " in seconds"}
-               }
+                                              " in seconds"},
+               "identity": {
+                   # On ``validate_token`` the tokens listed below
+                   # result in 'monitoring-service-admin' impersonator role.
+                   "maas_admin_roles": [
+                       "this_is_an_impersonator_token",
+                       "this_is_an_impersonator_token_also",
+                       "impersonate_watson",
+                       "impersonate_creator",
+                       "this_is_an_impersonator_token_also_2",
+                       "impersonate_foo_token"],
+                   # On ``validate_token`` the tokens listed below
+                   # result in 'racker' impersonator role.
+                   "racker_token": ["this_is_a_racker_token"],
+                   # Tenants with user observer role
+                   "observer_role": ["09876"],
+                   # Tenants with user creator role
+                   "creator_role": ["09090"],
+                   # Tenants with user admin role
+                   "admin_role": ["9999"],
+                   # Tenants with this token result in a 401 when validating the token
+                   "token_fail_to_auth": ["never-cache-this-and-fail-to-auth"],
+                   # Users presenting these tokens have contact IDs that correspond
+                   # to presets in the Valkyrie plugin...
+                   "non_dedicated_observer": ["OneTwo"],
+                   "non_dedicated_admin": ["ThreeFour"],
+                   "non_dedicated_impersonator": ["ThreeFourImpersonator"],
+                   "non_dedicated_racker": ["ThreeFourRacker"],
+                   "dedicated_full_device_permission_holder": ["HybridOneTwo"],
+                   "dedicated_account_permission_holder": ["HybridThreeFour"],
+                   "dedicated_impersonator": ["HybridThreeFourImpersonator"],
+                   "dedicated_racker": ["HybridOneTwoRacker"],
+                   "dedicated_limited_device_permission_holder": ["HybridFiveSix"],
+                   "dedicated_non_permission_holder": ["HybridSevenEight"],
+                   "dedicated_quasi_user_impersonator": ["HybridNineZero"]}}

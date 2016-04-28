@@ -4,16 +4,15 @@ Mocks for the identity admin API.
 """
 from json import dumps, loads
 
-from jsonschema import validate
-
 from zope.interface import implementer
+from twisted.plugin import IPlugin
 
 from mimic.imimic import IAPIMock
 from mimic.rest.mimicapp import MimicApp
-from mimic.util.helper import bad_request
+from mimic.model.identity_admin_objects import bad_request
 
 
-@implementer(IAPIMock)
+@implementer(IAPIMock, IPlugin)
 class IdentityAdminAPI(object):
     """
     A mock of the OpenStack Identity Admin API.
@@ -50,7 +49,6 @@ class _IdentityAdminImpl(object):
         except (ValueError, KeyError):
             request.setResponseCode(400)
             return dumps(bad_request("Invalid JSON request body"))
-
 
 
 create_endpoint_template_schema = {

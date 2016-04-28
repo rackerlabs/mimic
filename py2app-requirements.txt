@@ -1,6 +1,0 @@
-# py2app has had a few bugs that need to be resolved
-# this combination of dependencies seem to work.
-py2app==0.9
-pyobjc-framework-Cocoa>=2.3.2a0
-pyobjc-framework-CFNetwork>=2.3.2.a0
-

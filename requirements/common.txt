@@ -1,0 +1,2 @@
+# Common requirements. Wheel is reqd by doc and lint
+wheel==0.29.0

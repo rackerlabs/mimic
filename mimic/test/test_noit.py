@@ -1,3 +1,5 @@
+from __future__ import absolute_import, division, unicode_literals
+
 import uuid
 import xmltodict
 from twisted.trial.unittest import SynchronousTestCase
@@ -38,7 +40,7 @@ class NoitAPITests(SynchronousTestCase):
         url = "noit/checks/set/{0}".format(self.check_id)
 
         (self.response, response_body) = self.successResultOf(
-            request_with_content(self, self.root, "PUT", url,
+            request_with_content(self, self.root, b"PUT", url,
                                  body=self.create_check_xml_payload))
         self.create_json_response = xmltodict.parse(response_body)
 
@@ -47,7 +49,7 @@ class NoitAPITests(SynchronousTestCase):
         Test to verify :func:`get_all_checks` on ``GET /config/checks``
         """
         (response, body) = self.successResultOf(
-            request_with_content(self, self.root, "GET", "noit/config/checks"))
+            request_with_content(self, self.root, b"GET", "noit/config/checks"))
         self.assertEqual(response.code, 200)
         json_response = xmltodict.parse(body)
         self.assertTrue(len(json_response["checks"]["check"]) > 0)
@@ -57,7 +59,7 @@ class NoitAPITests(SynchronousTestCase):
         Test to verify :func:`test_check` on ``POST /checks/test``
         """
         (response, body) = self.successResultOf(
-            request_with_content(self, self.root, "POST", "noit/checks/test",
+            request_with_content(self, self.root, b"POST", "noit/checks/test",
                                  body=self.create_check_xml_payload))
         json_response = xmltodict.parse(body)
         self.assertEqual(response.code, 200)
@@ -71,7 +73,7 @@ class NoitAPITests(SynchronousTestCase):
         """
         self.create_check["check"]["attributes"]["module"] = 'selfcheck'
         (response, body) = self.successResultOf(
-            request_with_content(self, self.root, "POST", "noit/checks/test",
+            request_with_content(self, self.root, b"POST", "noit/checks/test",
                                  body=xmltodict.unparse(self.create_check).encode('utf-8')))
         json_response = xmltodict.parse(body)
         self.assertEqual(response.code, 200)
@@ -93,7 +95,7 @@ class NoitAPITests(SynchronousTestCase):
         """
         self.create_check["check"]["attributes"]["name"] = "rename"
         (response, body) = self.successResultOf(
-            request_with_content(self, self.root, "PUT",
+            request_with_content(self, self.root, b"PUT",
                                  "noit/checks/set/{0}".format(self.check_id),
                                  body=xmltodict.unparse(self.create_check
                                                         ).encode("utf-8")))
@@ -107,7 +109,7 @@ class NoitAPITests(SynchronousTestCase):
         Test to verify :func:`get_checks` on ``GET /checks/show/<check_id>``
         """
         (get_response, body) = self.successResultOf(
-            request_with_content(self, self.root, "GET",
+            request_with_content(self, self.root, b"GET",
                                  "noit/checks/show/{0}".format(self.check_id)))
         json_response = xmltodict.parse(body)
         self.assertEqual(get_response.code, 200)
@@ -120,7 +122,7 @@ class NoitAPITests(SynchronousTestCase):
         ``DELETE /checks/delete/<check_id>``
         """
         (del_response, body) = self.successResultOf(
-            request_with_content(self, self.root, "DELETE",
+            request_with_content(self, self.root, b"DELETE",
                                  "noit/checks/delete/{0}".format(self.check_id)))
         self.assertEqual(del_response.code, 200)
 
@@ -130,7 +132,7 @@ class NoitAPITests(SynchronousTestCase):
         when the check_id was never created.
         """
         (del_response, body) = self.successResultOf(
-            request_with_content(self, self.root, "DELETE",
+            request_with_content(self, self.root, b"DELETE",
                                  "noit/checks/delete/1234556"))
         self.assertEqual(del_response.code, 404)
 
@@ -140,10 +142,10 @@ class NoitAPITests(SynchronousTestCase):
         when the xml cannot be parsed.
         """
         (response, body) = self.successResultOf(
-            request_with_content(self, self.root, "PUT",
+            request_with_content(self, self.root, b"PUT",
                                  "noit/checks/set/{0}".format(self.check_id),
                                  body=self.create_check_xml_payload.replace(
-                                     '</check>', ' abc')))
+                                     b'</check>', b' abc')))
         self.assertEqual(response.code, 500)
 
     def test_create_check_fails_with_500_for_invalid_check_id(self):
@@ -152,7 +154,7 @@ class NoitAPITests(SynchronousTestCase):
         when the xml cannot be parsed.
         """
         (response, body) = self.successResultOf(
-            request_with_content(self, self.root, "PUT",
+            request_with_content(self, self.root, b"PUT",
                                  "noit/checks/set/123444",
                                  body=self.create_check_xml_payload))
         self.assertEqual(response.code, 500)
@@ -166,7 +168,7 @@ class NoitAPITests(SynchronousTestCase):
         invalid_check_xml_payload = xmltodict.unparse(self.create_check
                                                       ).encode("utf-8")
         (response, body) = self.successResultOf(
-            request_with_content(self, self.root, "PUT",
+            request_with_content(self, self.root, b"PUT",
                                  "noit/checks/set/{0}".format(self.check_id),
                                  body=invalid_check_xml_payload))
         self.assertEqual(response.code, 404)
@@ -180,7 +182,7 @@ class NoitAPITests(SynchronousTestCase):
         invalid_check_xml_payload = xmltodict.unparse(self.create_check
                                                       ).encode("utf-8")
         (response, body) = self.successResultOf(
-            request_with_content(self, self.root, "POST",
+            request_with_content(self, self.root, b"POST",
                                  "noit/checks/test".format(self.check_id),
                                  body=invalid_check_xml_payload))
         self.assertEqual(response.code, 404)
@@ -194,7 +196,7 @@ class NoitAPITests(SynchronousTestCase):
         check_xml_payload = xmltodict.unparse(self.create_check
                                               ).encode("utf-8")
         (response, body) = self.successResultOf(
-            request_with_content(self, self.root, "POST",
+            request_with_content(self, self.root, b"POST",
                                  "noit/checks/test".format(self.check_id),
                                  body=check_xml_payload))
         json_response = xmltodict.parse(body)

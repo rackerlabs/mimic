@@ -1,11 +1,16 @@
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, unicode_literals
+
+import sys
 
 from twisted.internet.task import Clock
 from twisted.trial.unittest import SynchronousTestCase
+from twisted.python.filepath import FilePath
 
 from mimic.core import MimicCore
 from mimic.plugins import (nova_plugin, loadbalancer_plugin, swift_plugin,
-                           queue_plugin, maas_plugin, rackconnect_v3_plugin)
+                           queue_plugin, maas_plugin, rackconnect_v3_plugin,
+                           glance_plugin, cloudfeeds_plugin, heat_plugin,
+                           neutron_plugin, dns_plugin, cinder_plugin)
 
 
 class CoreBuildingTests(SynchronousTestCase):
@@ -28,9 +33,24 @@ class CoreBuildingTests(SynchronousTestCase):
         :class:`MimicCore`, the nova and loadbalancer plugins are included.
         """
         core = MimicCore.fromPlugins(Clock())
-        plugin_apis = set((nova_plugin.nova, loadbalancer_plugin.loadbalancer,
-                           swift_plugin.swift, queue_plugin.queue,
-                           maas_plugin.maas, rackconnect_v3_plugin.rackconnect))
+        plugin_apis = set((
+            glance_plugin.glance,
+            heat_plugin.heat,
+            loadbalancer_plugin.loadbalancer,
+            loadbalancer_plugin.loadbalancer_control,
+            maas_plugin.maas,
+            maas_plugin.maas_control,
+            nova_plugin.nova,
+            nova_plugin.nova_control_api,
+            queue_plugin.queue,
+            rackconnect_v3_plugin.rackconnect,
+            swift_plugin.swift,
+            cloudfeeds_plugin.cloudfeeds,
+            cloudfeeds_plugin.cloudfeeds_control,
+            neutron_plugin.neutron,
+            dns_plugin.dns,
+            cinder_plugin.cinder
+        ))
         self.assertEqual(
             plugin_apis,
             set(core._uuid_to_api.values()))
@@ -38,3 +58,31 @@ class CoreBuildingTests(SynchronousTestCase):
             len(plugin_apis),
             len(list(core.entries_for_tenant('any_tenant', {},
                                              'http://mimic'))))
+
+    def test_load_domain_plugin_includes_all_domain_plugins(self):
+        """
+        Using the :func:`MimicRoot.fromPlugin` creator for a
+        :class:`MimicCore`, domain mocks implementing `class`:`IAPIDomainMock`
+        are included.
+        """
+        self.root = FilePath(self.mktemp())
+        self.root.createDirectory()
+        plugin = b"""from mimic.test.dummy import ExampleDomainAPI
+dummy_domain_plugin = ExampleDomainAPI()
+"""
+        self.root.child('fake_plugin.py').setContent(plugin)
+
+        import mimic.plugins
+        mimic.plugins.__path__.append(self.root.path)
+        from mimic.plugins import fake_plugin
+
+        def cleanup():
+            sys.modules.pop("mimic.plugins.fake_plugin")
+            del mimic.plugins.fake_plugin
+        self.addCleanup(cleanup)
+
+        core = MimicCore.fromPlugins(Clock())
+        self.assertIn(
+            fake_plugin.dummy_domain_plugin,
+            core.domains
+        )

@@ -1,43 +1,9 @@
 # -*- test-case-name: mimic.test.test_nova -*-
 """
-Canned responses for nova.
-
-This is a *bad* example of how you might implement generating a response to a
-request.  The better example is split between :obj:`mimic.rest.nova_api` for
-routing and HTTP protocol logic and :obj:`mimic.model.nova_objects` for
-application-domain objects describing servers.  At this point this module
-contains only those responses for which no live / dynamic / stateful responses
-can be generated, and are therefore not really fully implemented.
+Canned responses for nova's GET limits API
 """
 
-from mimic.canned_responses.mimic_presets import get_presets
-from mimic.util.helper import not_found_response
-
-
-def get_image(image_id):
-    """
-    Canned response for get image.  The image id provided is substituted in the
-    response, if not one of the invalid image ids specified in mimic_presets.
-    """
-    if (
-            image_id in get_presets['servers']['invalid_image_ref'] or
-            image_id.endswith('Z')
-    ):
-        return not_found_response('images'), 404
-    return {'image': {'status': 'ACTIVE', 'id': image_id, 'name': 'mimic-test-image'}}, 200
-
-
-def get_flavor(flavor_id):
-    """
-    Canned response for get flavor.
-    The flavor id provided is substituted in the response
-    """
-    if flavor_id in get_presets['servers']['invalid_flavor_ref']:
-        return not_found_response('flavors'), 404
-    return ({'flavor': {'name': '512MB Standard Instance',
-                        'id': flavor_id,
-                        'name': 'mimic-test-flavor'}},
-            200)
+from __future__ import absolute_import, division, unicode_literals
 
 
 def get_limit():

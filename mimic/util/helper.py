@@ -5,11 +5,18 @@ Helper methods
 
 :var fmt: strftime format for datetimes used in JSON.
 """
+
+from __future__ import absolute_import, division, unicode_literals
+
+import binascii
 import os
 import string
+import calendar
 from datetime import datetime, timedelta
 import json
 from random import choice, randint
+
+import iso8601
 
 from six import text_type
 
@@ -18,6 +25,13 @@ fmt = '%Y-%m-%dT%H:%M:%S.%fZ'
 
 
 EMPTY_RESPONSE = object()
+
+
+def json_from_request(request):
+    """
+    Load JSON input from the given Twisted Web Request object.
+    """
+    return json.loads(request.content.read().decode("utf-8"))
 
 
 def json_dump(o):
@@ -43,9 +57,31 @@ def random_string(length, selectable=None):
     :returns: A string of length `length`.
     """
     selectable = (
-        selectable or (string.letters + string.digits + string.punctuation)
+        selectable or (string.ascii_letters + string.digits
+                       + string.punctuation)
     )
-    return ''.join([choice(selectable) for _ in xrange(length)])
+    return ''.join([choice(selectable) for _ in range(length)])
+
+
+def random_hipsum(length):
+    """
+    Generates a random sentence using Hipsum ( http://hipsum.co/ ).
+
+    :param length The number of words in the desired sentence.
+    :returns: A Unicode string containing `length` words.
+    """
+    hipsum = ''.join([
+        "Retro squid Portland raw denim Austin, normcore slow-carb Brooklyn. ",
+        "Deep v organic VHS drinking vinegar. Fingerstache locavore kogi Tumblr ",
+        "cred. Vice typewriter retro iPhone pour-over cred XOXO church-key, ",
+        "post-ironic kogi. Selvage polaroid retro, cold-pressed meh craft beer ",
+        "artisan pour-over taxidermy sartorial art party. Food truck church-key ",
+        "four loko wayfarers craft beer dreamcatcher normcore yr, jean shorts ",
+        "bespoke migas art party crucifix next level. Street art chia bitters, ",
+        "gastropub mixtape flexitarian Godard occupy lumbersexual."]).split(' ')
+    offset = randint(1, len(hipsum))
+    rotated = hipsum[offset:] + hipsum[:offset]
+    return ' '.join(rotated[:length])
 
 
 def random_ipv4(*numbers):
@@ -63,7 +99,14 @@ def random_hex_generator(num):
     """
     Returns randomly generated n bytes of encoded hex data for the given `num`
     """
-    return os.urandom(num).encode("hex")
+    return binascii.hexlify(os.urandom(num)).decode('utf-8')
+
+
+def random_port():
+    """
+    Returns a random number in the range of registered non-system ports.
+    """
+    return randint(1024, 49151)
 
 
 def seconds_to_timestamp(seconds, format=fmt):
@@ -73,16 +116,27 @@ def seconds_to_timestamp(seconds, format=fmt):
     return datetime.utcfromtimestamp(seconds).strftime(format)
 
 
+def timestamp_to_seconds(timestamp):
+    """
+    Return epoch from an ISO8601 Zulu timestamp
+
+    :param str timestamp: ISO8601 formatted time
+    :return: EPOCH seconds
+    :rtype: float
+    """
+    dt = iso8601.parse_date(timestamp)
+    return calendar.timegm(dt.utctimetuple()) + dt.microsecond / 1000000.
+
+
 def not_found_response(resource='servers'):
     """
-    Return a 404 response body for Nova, depending on the resource.  Expects
-    resource to be one of "servers", "images", or "flavors".
+    Return a 404 response body, depending on the resource.  Expects
+    resource to be one of "images", "flavors", "loadbalancer", or "node".
 
     If the resource is unrecognized, defaults to
     "The resource culd not be found."
     """
     message = {
-        'servers': "Instance could not be found",
         'images': "Image not found.",
         'flavors': "The resource could not be found.",
         'loadbalancer': "Load balancer not found",
@@ -105,15 +159,6 @@ def invalid_resource(message, response_code=400):
     code.  Defaults response code to 400, if not provided.
     """
     return {"message": message, "code": response_code}
-
-
-def bad_request(message, response_code=400):
-    """
-    Returns the given message within in bad request body, and sets the response
-    code to given response code.  Defaults response code to 400, if not
-    provided.
-    """
-    return {"badRequest": invalid_resource(message, response_code)}
 
 
 def set_resource_status(updated_time, time_delta, status='ACTIVE',
@@ -141,3 +186,35 @@ def set_resource_status(updated_time, time_delta, status='ACTIVE',
 
     if current_datetime >= expiration_datetime:
         return status
+
+
+class Matcher(object):
+    """
+    Class for implementing custom matching.
+    """
+    def __init__(self, match_fn):
+        """
+        Set a matcher function on self so that objects can be tested against it.
+        """
+        self._match_fn = match_fn
+
+    def __eq__(self, other):
+        """
+        Implements the == comparison based on the custom matcher.
+        """
+        return self._match_fn(other)
+
+
+def one_of_validator(*items):
+    """
+    Return an :mod:`attr` validator which raises a :class:`TypeError`
+    if the value is not equivalent to one of the provided items.
+
+    :param items: Items to compare against
+    :return: a callable that returns with None or raises :class:`TypeError`
+    """
+    def validate(inst, attribute, value):
+        if value not in items:
+            raise TypeError("{0} must be one of {1}".format(
+                attribute.name, items))
+    return validate

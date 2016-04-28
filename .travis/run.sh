@@ -8,8 +8,11 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
 fi
 
 if [[ "${MACAPP_ENV}" == "system" ]]; then
-    ./build-app.sh
-else
-    source ~/.venv/bin/activate
-    tox --develop -e $TOX_ENV -- $TOX_FLAGS
-fi
+    ./build-app.sh;
+    exit "$?";
+fi;
+
+source ~/.venv/bin/activate;
+
+ls .wheels;
+PIP_FIND_LINKS="$(pwd)/.wheels" PIP_NO_INDEX=yes tox --recreate --develop -- $TOX_FLAGS;
