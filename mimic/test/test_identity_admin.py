@@ -1,7 +1,6 @@
 """
 Tests for the identity admin API.
 """
-from twisted.plugin import IPlugin
 from twisted.trial.unittest import SynchronousTestCase
 from twisted.web.resource import IResource
 
@@ -9,8 +8,7 @@ from zope.interface.verify import verifyObject
 
 from mimic.imimic import IAPIMock
 from mimic.rest import identity_admin_api as api
-from mimic.test.fixtures import APIMockHelper, TenantAuthentication
-from mimic.test.helpers import json_request
+from mimic.test.fixtures import APIMockHelper
 
 
 class IdentityAdminAPITests(SynchronousTestCase):
