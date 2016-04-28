@@ -1,0 +1,10 @@
+# This requirements file specifies development tools used to work on mimic,
+# _not_ mimic itself.  In fact, since we depend on 'tox' to install and run
+# mimic, we explicitly do not include the installation of mimic itself in this
+# set of requirements.
+
+--requirement=documentation-only.txt
+--requirement=lint-only.txt
+--requirement=spellcheck.txt
+--requirement=toolchain.txt
+--requirement=common.txt

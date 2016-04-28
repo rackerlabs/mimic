@@ -4,13 +4,29 @@ Mocks for the identity admin API.
 """
 from json import dumps, loads
 
-from jsonschema import validate
-
 from zope.interface import implementer
 
 from mimic.imimic import IAPIMock
 from mimic.rest.mimicapp import MimicApp
-from mimic.util.helper import bad_request
+from twisted.web.http import ACCEPTED, BAD_REQUEST, FORBIDDEN, NOT_FOUND, CONFLICT
+
+
+def _identity_admin_error_message(msg_type, message, status_code, request):
+    """
+    """
+    request.setResponseCode(status_code)
+    return {
+        msg_type: {
+            "message": message,
+            "code": status_code
+        }
+    }
+
+
+def bad_request(message, request):
+    """
+    """
+    return _identity_admin_error_message("badRequest", message, BAD_REQUEST, request)
 
 
 @implementer(IAPIMock)

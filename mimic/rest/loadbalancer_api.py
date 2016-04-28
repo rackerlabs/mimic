@@ -2,33 +2,34 @@
 """
 Defines add node and delete node from load balancers
 """
-from collections import defaultdict
+
+from __future__ import absolute_import, division, unicode_literals
+
 import json
 from uuid import uuid4
-from six import text_type
+from six import string_types, text_type
 from zope.interface import implementer
-from twisted.web.server import Request
 from twisted.plugin import IPlugin
-from mimic.canned_responses.loadbalancer import (
-    Region_Tenant_CLBs,
-    add_load_balancer, del_load_balancer, list_load_balancers,
-    add_node, delete_node, delete_nodes, list_nodes, get_load_balancers,
-    get_nodes)
 from mimic.rest.mimicapp import MimicApp
 from mimic.imimic import IAPIMock
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
+
+from mimic.model.clb_errors import invalid_json_schema
+from mimic.model.clb_objects import (
+    GlobalCLBCollections, BadKeysError, BadValueError
+)
 from random import randrange
+
 from mimic.util.helper import invalid_resource, json_dump
-
-
-Request.defaultContentType = 'application/json'
+from mimic.util.helper import json_from_request
+import attr
 
 
 @implementer(IAPIMock, IPlugin)
 class LoadBalancerApi(object):
     """
-    Rest endpoints for mocked Load balancer api.
+    This class registers the load balancer API in the service catalog.
     """
     def __init__(self, regions=["ORD"]):
         """
@@ -40,8 +41,6 @@ class LoadBalancerApi(object):
         """
         Cloud load balancer entries.
         """
-        # TODO: actually add some entries so load balancers show up in the
-        # service catalog.
         return [
             Entry(tenant_id, "rax:load-balancer", "cloudLoadBalancers",
                   [
@@ -59,6 +58,111 @@ class LoadBalancerApi(object):
         lb_region = LoadBalancerRegion(self, uri_prefix, session_store,
                                        region)
         return lb_region.app.resource()
+
+    def _get_session(self, session_store, tenant_id):
+        """
+        Retrieve or create a new LoadBalancer session from a given tenant identifier
+        and :obj:`SessionStore`.
+
+        For use with ``data_for_api``.
+
+        Temporary hack; see this issue
+        https://github.com/rackerlabs/mimic/issues/158
+        """
+        return (
+            session_store.session_for_tenant_id(tenant_id)
+            .data_for_api(self, lambda: GlobalCLBCollections(
+                clock=session_store.clock
+            ))
+        )
+
+
+@implementer(IAPIMock, IPlugin)
+@attr.s
+class LoadBalancerControlApi(object):
+    """
+    This class registers the load balancer controller API in the service
+    catalog.
+    """
+    lb_api = attr.ib()
+
+    def catalog_entries(self, tenant_id):
+        """
+        Cloud load balancer controller endpoints.
+        """
+        return [
+            Entry(
+                tenant_id, "rax:load-balancer", "cloudLoadBalancerControl",
+                [
+                    Endpoint(tenant_id, region, text_type(uuid4()), prefix="v2")
+                    for region in self.lb_api._regions
+                ]
+            )
+        ]
+
+    def resource_for_region(self, region, uri_prefix, session_store):
+        """
+        Get an :obj:`twisted.web.iweb.IResource` for the given URI prefix;
+        implement :obj:`IAPIMock`.
+        """
+        lbc_region = LoadBalancerControlRegion(api_mock=self, uri_prefix=uri_prefix,
+                                               session_store=session_store, region=region)
+        return lbc_region.app.resource()
+
+
+@attr.s
+class LoadBalancerControlRegion(object):
+    """
+    Klein routes for load balancer's control API within a particular region.
+    """
+    api_mock = attr.ib()
+    uri_prefix = attr.ib()
+    session_store = attr.ib()
+    region = attr.ib()
+
+    app = MimicApp()
+
+    def _collection_from_tenant(self, tenant_id):
+        """
+        Retrieve the server collection for this region for the given tenant.
+        """
+        return (self.api_mock.lb_api._get_session(self.session_store, tenant_id)
+                .collection_for_region(self.region))
+
+    @app.route(
+        '/v2/<string:tenant_id>/loadbalancer/<int:clb_id>/attributes',
+        methods=['PATCH']
+    )
+    def set_attributes(self, request, tenant_id, clb_id):
+        """
+        Alters the supported attributes of the CLB to supported values.  To
+        return things back to normal, you'll first need to list the CLB to get
+        any original values yourself.
+        """
+        regional_lbs = self._collection_from_tenant(tenant_id)
+        if not regional_lbs.lb_in_region(clb_id):
+            request.setResponseCode(404)
+            return json.dumps({
+                "message": "Tenant {0} doesn't own load balancer {1}".format(
+                    tenant_id, clb_id
+                ),
+                "code": 404,
+            })
+
+        try:
+            content = json_from_request(request)
+        except ValueError:
+            request.setResponseCode(400)
+            return json.dumps(invalid_resource("Invalid JSON request body"))
+
+        try:
+            regional_lbs.set_attributes(clb_id, content)
+        except (BadKeysError, BadValueError) as err:
+            request.setResponseCode(err.code)
+            return json.dumps(err.to_json())
+        else:
+            request.setResponseCode(204)
+            return b''
 
 
 class LoadBalancerRegion(object):
@@ -83,10 +187,14 @@ class LoadBalancerRegion(object):
         Gets a session for a particular tenant, creating one if there isn't
         one.
         """
-        return (self._session_store.session_for_tenant_id(tenant_id)
-                .data_for_api(self._api_mock,
-                              lambda: defaultdict(Region_Tenant_CLBs))
-                [self.region_name])
+        tenant_session = self._session_store.session_for_tenant_id(tenant_id)
+        clb_global_collection = tenant_session.data_for_api(
+            self._api_mock,
+            lambda: GlobalCLBCollections(
+                clock=self._session_store.clock))
+        clb_region_collection = clb_global_collection.collection_for_region(
+            self.region_name)
+        return clb_region_collection
 
     @app.route('/v2/<string:tenant_id>/loadbalancers', methods=['POST'])
     def add_load_balancer(self, request, tenant_id):
@@ -95,15 +203,15 @@ class LoadBalancerRegion(object):
         Returns the newly created load balancer with response code 202
         """
         try:
-            content = json.loads(request.content.read())
+            content = json_from_request(request)
         except ValueError:
             request.setResponseCode(400)
             return json.dumps(invalid_resource("Invalid JSON request body"))
 
         lb_id = randrange(99999)
-        response_data = add_load_balancer(tenant_id, self.session(tenant_id),
-                                          content['loadBalancer'], lb_id,
-                                          self._session_store.clock.seconds())
+        response_data = self.session(tenant_id).add_load_balancer(
+            content['loadBalancer'], lb_id
+        )
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
@@ -112,10 +220,7 @@ class LoadBalancerRegion(object):
         """
         Returns a list of all load balancers created using mimic with response code 200
         """
-        response_data = get_load_balancers(
-            self.session(tenant_id), lb_id,
-            self._session_store.clock.seconds()
-        )
+        response_data = self.session(tenant_id).get_load_balancers(lb_id)
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
@@ -124,10 +229,7 @@ class LoadBalancerRegion(object):
         """
         Returns a list of all load balancers created using mimic with response code 200
         """
-        response_data = list_load_balancers(
-            tenant_id, self.session(tenant_id),
-            self._session_store.clock.seconds()
-        )
+        response_data = self.session(tenant_id).list_load_balancers()
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
@@ -137,10 +239,7 @@ class LoadBalancerRegion(object):
         Creates a load balancer and adds it to the load balancer store.
         Returns the newly created load balancer with response code 200
         """
-        response_data = del_load_balancer(
-            self.session(tenant_id),
-            lb_id, self._session_store.clock.seconds()
-        )
+        response_data = self.session(tenant_id).del_load_balancer(lb_id)
         request.setResponseCode(response_data[1])
         return json_dump(response_data[0])
 
@@ -150,31 +249,60 @@ class LoadBalancerRegion(object):
         Return a successful add node response with code 200
         """
         try:
-            content = json.loads(request.content.read())
+            content = json_from_request(request)
         except ValueError:
             request.setResponseCode(400)
             return json.dumps(invalid_resource("Invalid JSON request body"))
 
         node_list = content['nodes']
-        response_data = add_node(
-            self.session(tenant_id), node_list, lb_id,
-            self._session_store.clock.seconds()
-        )
+        response_data = self.session(tenant_id).add_node(node_list, lb_id)
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
     @app.route('/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/nodes/<int:node_id>',
                methods=['GET'])
-    def get_nodes(self, request, tenant_id, lb_id, node_id):
+    def get_node(self, request, tenant_id, lb_id, node_id):
         """
-        Returns a 200 response code and list of nodes on the load balancer
+        Returns a 200 response code and a particular node on the load balancer
         """
-        response_data = get_nodes(
-            self.session(tenant_id), lb_id, node_id,
-            self._session_store.clock.seconds()
-        )
-        request.setResponseCode(response_data[1])
-        return json.dumps(response_data[0])
+        body, code = self.session(tenant_id).get_node(lb_id, node_id)
+        request.setResponseCode(code)
+        return json.dumps(body)
+
+    @app.route('/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/nodes/<int:node_id>.atom',
+               methods=['GET'])
+    def get_node_feed(self, request, tenant_id, lb_id, node_id):
+        """
+        Returns a 200 response code and node's feed on the load balancer
+        """
+        body, code = self.session(tenant_id).get_node_feed(lb_id, node_id)
+        request.setResponseCode(code)
+        request.setHeader(b"Content-Type", b"application/atom+xml")
+        return body
+
+    @app.route(
+        '/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/nodes/<int:node_id>',
+        methods=['PUT'])
+    def update_node(self, request, tenant_id, lb_id, node_id):
+        """
+        Return a 202 response code to updating a node, if successful.
+        """
+        try:
+            content = json_from_request(request)
+            assert (isinstance(content, dict) and
+                    list(content.keys()) == ["node"])
+            content = content["node"]
+            assert isinstance(content, dict)
+        except (ValueError, AssertionError):
+            resp_body, resp_code = invalid_json_schema()
+        else:
+            resp_body, resp_code = self.session(tenant_id).update_node(
+                lb_id, node_id, content
+            )
+        request.setResponseCode(resp_code)
+        if isinstance(resp_body, string_types):
+            return resp_body
+        return json.dumps(resp_body)
 
     @app.route('/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/nodes/<int:node_id>',
                methods=['DELETE'])
@@ -182,10 +310,7 @@ class LoadBalancerRegion(object):
         """
         Returns a 204 response code, for any load balancer created using the mocks
         """
-        response_data = delete_node(
-            self.session(tenant_id), lb_id, node_id,
-            self._session_store.clock.seconds()
-        )
+        response_data = self.session(tenant_id).delete_node(lb_id, node_id)
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])
 
@@ -195,10 +320,8 @@ class LoadBalancerRegion(object):
         """
         Deletes multiple nodes from a LB.
         """
-        node_ids = map(int, request.args.get('id', []))
-        response_data = delete_nodes(
-            self.session(tenant_id), lb_id, node_ids,
-            self._session_store.clock.seconds())
+        node_ids = [int(node_id) for node_id in request.args.get(b'id', [])]
+        response_data = self.session(tenant_id).delete_nodes(lb_id, node_ids)
         request.setResponseCode(response_data[1])
         return json_dump(response_data[0])
 
@@ -208,7 +331,6 @@ class LoadBalancerRegion(object):
         """
         Returns a 200 response code and list of nodes on the load balancer
         """
-        response_data = list_nodes(self.session(tenant_id), lb_id,
-                                   self._session_store.clock.seconds())
+        response_data = self.session(tenant_id).list_nodes(lb_id)
         request.setResponseCode(response_data[1])
         return json.dumps(response_data[0])

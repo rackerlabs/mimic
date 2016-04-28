@@ -1,35 +1,47 @@
-language: c
-
-os:
-  - osx
-  - linux
-
-compiler:
-  - clang
-  - gcc
+sudo: false
+language: python
+cache:
+    directories:
+      - $HOME/.cache/pip
 
 env:
-  matrix:
-     - TOX_ENV=lint
-     - TOX_ENV=py26
-     - TOX_ENV=py27
-     - TOX_ENV=pypy
-     - TOX_ENV=docs
-     - TOX_ENV=docs-spellcheck
-     - TOX_ENV=docs-linkcheck
-     - MACAPP_ENV=system
+    global:
+        - PIP_WHEEL_DIR=$HOME/.cache/pip/wheels
+        - PIP_FIND_LINKS=file://$HOME/.cache/pip/wheels
 
 matrix:
-  allow_failures:
-    - env: TOX_ENV=docs-linkcheck
-  exclude:
-    - os: osx
-      compiler: gcc
-    - os: linux
-      compiler: clang
-    # don't build mac app on linux
-    - os: linux
-      env: MACAPP_ENV=system
+    include:
+        - python: 2.7
+          env: TOXENV=py27
+        - python: 3.4
+          env: TOXENV=py34
+        - python: 3.5
+          env: TOXENV=py35
+        - python: pypy
+          env: TOXENV=pypy
+        - python: 2.7
+          env: TOXENV=docs
+        - python: 2.7
+          env: TOXENV=docs-spellcheck
+          addons:
+              apt:
+                  packages:
+                      - libenchant-dev
+        - python: 2.7
+          env: TOXENV=docs-linkcheck
+        - python: 2.7
+          env: TOXENV=lint
+        - language: generic
+          os: osx
+          env: TOXENV=py27
+        - language: generic
+          os: osx
+          env: TOXENV=pypy
+        - language: c
+          os: osx
+          env: MACAPP_ENV=system
+    allow_failures:
+      - env: TOXENV=docs-linkcheck
 
 install:
   - travis_retry ./.travis/install.sh
@@ -38,7 +50,7 @@ script:
   - ./.travis/run.sh
 
 after_success:
-  - source ~/.venv/bin/activate && coveralls
+  - "source ~/.venv/bin/activate && coverage combine && codecov"
 
 notifications:
   irc:
@@ -46,3 +58,8 @@ notifications:
      template:
        - "%{repository}@%{branch} - %{author}: %{message} (%{build_url})"
      use_notice: true
+
+branches:
+  only:
+    - master
+    - gh-pages

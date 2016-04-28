@@ -1,4 +1,4 @@
-# MIMIC #
+<img alt="MIMIC" src="https://i.imgur.com/eodn4M4.png" height="75">
 
 Mimic is an API-compatible mock service for  __Openstack Compute__ and __Rackspace's implementation of Identity and Cloud Load balancers__. It is backed by in-memory data structure rather than a potentially expensive database.
 
@@ -37,7 +37,7 @@ In order to use Mimic with most other projects you just need to override the Aut
 #### Build status: ####
 [![Build Status](https://travis-ci.org/rackerlabs/mimic.svg?branch=master)](https://travis-ci.org/rackerlabs/mimic)
 
-[![Coverage Status](https://coveralls.io/repos/rackerlabs/mimic/badge.png)](https://coveralls.io/r/rackerlabs/mimic)
+[![codecov.io](https://codecov.io/github/rackerlabs/mimic/coverage.svg?branch=master)](https://codecov.io/github/rackerlabs/mimic?branch=master)
 
 ## Compute ##
 
@@ -163,10 +163,13 @@ If you would prefer to advance Mimic to something resembling the present day ins
 * validate the auth token
 
 ## Running Mimic on a cloud server ##
-1. create a cloud server with an image that by default comes with python 2.7 (eg: ubuntu 12.04) and ssh into it
-2. `git clone https://github.com/rackerlabs/mimic.git`
-3. `pip install -r requirements.txt` from within the mimic folder (if there is a gcc error, `apt-get install python-dev`)
-4. cd into mimic or add the mimic to the PYTHONPATH and run `twistd -n mimic`
+1. create a cloud server with an image that by default comes with python 2.7
+   (eg: ubuntu 14.04) and ssh into it
+2. install virtualenv; for ubuntu, `sudo apt-get install python-virtualenv`
+3. `virtualenv my-mimic-install`
+4. `. my-mimic-install/bin/activate`
+5. `pip install mimic`
+6. `twistd -n mimic`
 
 ## Running Mimic on Docker ##
 

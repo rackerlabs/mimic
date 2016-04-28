@@ -1,6 +1,9 @@
 """
 Unit tests for :mod:`mimic.util`
 """
+
+from __future__ import absolute_import, division, unicode_literals
+
 from twisted.trial.unittest import SynchronousTestCase
 from twisted.web.resource import Resource
 
@@ -12,6 +15,11 @@ class HelperTests(SynchronousTestCase):
     """
     Tests for :mod:`mimic.util.helper`
     """
+
+    matches = [(0, "1970-01-01T00:00:00.000000Z"),
+               (1.5, "1970-01-01T00:00:01.500000Z"),
+               (121.4, "1970-01-01T00:02:01.400000Z")]
+
     def _validate_ipv4_address(self, address, *prefixes):
         nums = [int(x) for x in address.split('.')]
         self.assertEqual(4, len(nums))
@@ -50,23 +58,31 @@ class HelperTests(SynchronousTestCase):
         default format string of ``%Y-%m-%dT%H:%M:%S.%fZ`` if no format
         string is provided.
         """
-        matches = [(0, "1970-01-01T00:00:00.000000Z"),
-                   (1.5, "1970-01-01T00:00:01.500000Z"),
-                   (121.4005, "1970-01-01T00:02:01.400500Z")]
-        for match in matches:
-            self.assertEqual(match[1], helper.seconds_to_timestamp(match[0]))
+        for seconds, timestamp in self.matches:
+            self.assertEqual(timestamp, helper.seconds_to_timestamp(seconds))
 
     def test_seconds_to_timestamp_provided_timestamp(self):
         """
         :func:`helper.seconds_to_timestamp` uses the provided timestamp format
         to format the seconds.
         """
-        matches = [("%m-%d-%Y %H:%M:%S", "01-01-1970 00:00:00"),
+        formats = [("%m-%d-%Y %H:%M:%S", "01-01-1970 00:00:00"),
                    ("%Y-%m-%d", "1970-01-01"),
                    ("%H %M %S (%f)", "00 00 00 (000000)")]
-        for match in matches:
-            self.assertEqual(match[1],
-                             helper.seconds_to_timestamp(0, match[0]))
+        for fmt, timestamp in formats:
+            self.assertEqual(timestamp,
+                             helper.seconds_to_timestamp(0, fmt))
+
+    def test_timestamp_to_seconds(self):
+        """
+        :func:`helper.timestamp_to_seconds` returns a seconds since EPOCH
+        matching the corresponding timestamp given in ISO8601 format
+        """
+
+        local_matches = [(0, "1970-01-01"), (0, "1970-01-01T00"),
+                         (0, "1970-01-01T00:00"), (1800, "1970-01-01T00-00:30")]
+        for seconds, timestamp in self.matches + local_matches:
+            self.assertEqual(seconds, helper.timestamp_to_seconds(timestamp))
 
 
 class TestHelperTests(SynchronousTestCase):
@@ -83,20 +99,6 @@ class TestHelperTests(SynchronousTestCase):
         self.failureResultOf(
             request(self, Resource(), b"POST", b"", u"not bytes")
         )
-
-    def test_bad_request(self):
-        """
-        ``bad_request`` provides a well-formed error body for HTTP errors.
-
-        The ``illegal_response`` function constructs a hash with a message and
-        HTTP response code, for the convenience of expressing error details in
-        JSON format.  However, it doesn't provide the full envelop expected by
-        Nova clients.
-        """
-        d = helper.bad_request("The cake is a lie.", 404)
-        self.assertTrue(d.get("badRequest", None))
-        self.assertEqual(d["badRequest"]["code"], 404)
-        self.assertEqual(d["badRequest"]["message"], "The cake is a lie.")
 
 
 class TestRandomString(SynchronousTestCase):
@@ -117,7 +119,7 @@ class TestRandomString(SynchronousTestCase):
         the characters you provide.
         """
         desired_chars = "02468"
-        for iteration in xrange(100):
+        for iteration in range(100):
             a_string = helper.random_string(1024, selectable=desired_chars)
             for char in a_string:
                 self.assertTrue(char in desired_chars)

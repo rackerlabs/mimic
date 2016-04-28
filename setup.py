@@ -13,7 +13,7 @@ except ImportError:
 
 
 _NAME = "mimic"
-_VERSION = "1.3.0"
+_VERSION = "2.0.0"
 
 
 def setup_options(name, version):
@@ -26,13 +26,14 @@ def setup_options(name, version):
     """
     info = dict(
         install_requires=[
-            "characteristic>=14.2.0",
-            "klein>=0.2.1",
-            "twisted>=14.0.2",
-            "jsonschema>=2.0",
-            "treq>=0.2.1",
+            "klein>=15.3.1",
+            "twisted>=15.5.0",
+            "treq>=15.1.0",
             "six>=1.6.0",
-            "xmltodict>=0.9.1"
+            "xmltodict>=0.9.1",
+            "attrs>=15.1.0",
+            "testtools>=1.7.1,<1.8.0",
+            "iso8601>=0.1.10",
         ],
         package_dir={"mimic": "mimic"},
         packages=find_packages(exclude=[]) + ["twisted.plugins"],
@@ -118,10 +119,24 @@ def setup_options(name, version):
     )
 
 setup(
+    classifiers=[
+        'Environment :: Web Environment',
+        'Intended Audience :: Developers',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: Implementation :: CPython',
+        'Programming Language :: Python :: Implementation :: PyPy',
+        'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
+        'Topic :: Software Development :: Libraries :: Python Modules'
+    ],
     name=_NAME,
     version=_VERSION,
     description="An API-compatible mock service",
     license="Apache License, Version 2.0",
+    url="https://github.com/rackerlabs/mimic",
     include_package_data=True,
     **setup_options(_NAME, _VERSION)
 )

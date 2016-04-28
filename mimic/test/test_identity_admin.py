@@ -1,10 +1,6 @@
 """
 Tests for the identity admin API.
 """
-from jsonschema import validate
-
-from pyrsistent import freeze
-
 from twisted.plugin import IPlugin
 from twisted.trial.unittest import SynchronousTestCase
 from twisted.web.resource import IResource
@@ -33,7 +29,6 @@ class IdentityAdminAPITests(SynchronousTestCase):
         faithfully.
         """
         verifyObject(IAPIMock, self.mock)
-        verifyObject(IPlugin, self.mock)
 
     def _get_resource(self):
         """
@@ -74,40 +69,3 @@ class EndpointTemplateCreationTests(SynchronousTestCase):
         self.assertEqual(len(entries), 0)
 
         # TODO: figure out how to get the admin URI here, which means solving
-
-
-create_endpoint_template_example = freeze({
-    "OS-KSCATALOG:endpointTemplate": {
-        "region": "MIMIC",
-        "name": "A thing added by the admin API",
-        "type": "mimic:added-by-admin-api",
-        "publicURL": "https://added-by-admin.mimic.public.com/v1",
-        "internalURL": "https://added-by-admin.mimic.internal.com/v1",
-        "adminURL": "https://added-by-admin.mimic.admin.com/v1",
-        "RAX-AUTH:tenantAlias": "{tenant}"
-    }
-})
-
-version_info_example = freeze({
-    "versionId": "1",
-    "versionInfo": "https://compute.north.public.com/v1/",
-    "versionList": "https://compute.north.public.com/"
-})
-
-create_endpoint_template_example_with_version_info = (
-    create_endpoint_template_example.transform(
-        ["OS-KSCATALOG:endpointTemplate"],
-        version_info_example.update))
-
-class CreateEndpointTemplateSchemaTests(SynchronousTestCase):
-    """
-    Tests for the schema for endpoint template creation.
-    """
-    def test_validates(self):
-        """
-        Test simple schema validation.
-        """
-        validate(create_endpoint_template_example,
-                 api.create_endpoint_template_schema)
-        validate(create_endpoint_template_example_with_version_info,
-                 api.create_endpoint_template_schema)
