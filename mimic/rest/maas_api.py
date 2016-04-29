@@ -20,7 +20,7 @@ from twisted.plugin import IPlugin
 
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
-from mimic.rest.auth_api import base_uri_from_request
+from mimic.rest.identity_api import base_uri_from_request
 from mimic.rest.mimicapp import MimicApp
 from mimic.imimic import IAPIMock
 from mimic.canned_responses.maas_json_home import json_home

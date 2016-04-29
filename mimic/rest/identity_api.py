@@ -179,7 +179,7 @@ def authenticate_failure_behavior(parameters):
 
 
 @attr.s(hash=False)
-class AuthApi(object):
+class IdentityApi(object):
     """
     Rest endpoints for mocked Auth api.
 

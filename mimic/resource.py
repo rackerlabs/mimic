@@ -15,8 +15,8 @@ from twisted.logger import Logger
 from mimic.canned_responses.mimic_presets import get_presets
 from mimic.model.behaviors import BehaviorRegistryCollection
 from mimic.rest.mimicapp import MimicApp
-from mimic.rest.auth_api import (
-    AuthApi,
+from mimic.rest.identity_api import (
+    IdentityApi,
     AuthControlApiBehaviors,
     base_uri_from_request
 )
@@ -61,8 +61,8 @@ class MimicRoot(object):
         """
         Get the identity ...
         """
-        return AuthApi(self.core,
-                       self.identity_behavior_registry).app.resource()
+        return IdentityApi(self.core,
+                           self.identity_behavior_registry).app.resource()
 
     @app.route("/noit", branch=True)
     def get_noit_api(self, request):
