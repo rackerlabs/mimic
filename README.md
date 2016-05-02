@@ -79,7 +79,7 @@ Request for create server that remains in building for 120 seconds:
 ## Rackspace Auth ##
 
 #### Calls supported: ####
-https://github.com/rackerlabs/mimic/blob/master/mimic/rest/auth_api.py
+https://github.com/rackerlabs/mimic/blob/master/mimic/rest/identity_api.py
 
 1. Authenticate - Given a tenant id, username and password, returns the service catalog with links to compute and load balancer links within mimic, and a test token.
 2. Impersonate user (Admin call) - Given a token created by mimic in the header, returns a test token for the username.

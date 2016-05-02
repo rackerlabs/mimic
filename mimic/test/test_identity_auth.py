@@ -1,6 +1,6 @@
 """
 Tests for mimic identity (:mod:`mimic.model.identity` and
-:mod:`mimic.rest.auth_api`)
+:mod:`mimic.rest.identity_api`)
 """
 
 from __future__ import absolute_import, division, unicode_literals
@@ -351,7 +351,7 @@ class GetAuthTokenAPITests(SynchronousTestCase):
 
     """
     Tests for ``/identity/v2.0/tokens``, provided by
-    :obj:`mimic.rest.auth_api.AuthApi.get_token_and_service_catalog`
+    :obj:`mimic.rest.identity_api.IdentityApi.get_token_and_service_catalog`
     """
 
     def test_response_has_auth_token(self):
@@ -486,7 +486,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
 
     """
     Tests for ``/identity/v2.0/tokens/<token>/endpoints``, provided by
-    `:obj:`mimic.rest.auth_api.AuthApi.get_endpoints_for_token`
+    `:obj:`mimic.rest.identity_api.IdentityApi.get_endpoints_for_token`
     """
 
     def test_session_created_for_token(self):
