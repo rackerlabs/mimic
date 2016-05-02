@@ -38,7 +38,7 @@ def one_api(testCase, core):
     :return: 2-tuple of ``region`` and ``service_id``
     """
     service_id, api = next(iter(core._uuid_to_api.items()))
-    region = api.catalog_entries(tenant_id=None)[0].endpoints[0].region
+    region = api.api.catalog_entries(tenant_id=None)[0].endpoints[0].region
     return (region, service_id)
 
 

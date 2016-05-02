@@ -53,7 +53,7 @@ class CoreBuildingTests(SynchronousTestCase):
         ))
         self.assertEqual(
             plugin_apis,
-            set(core._uuid_to_api.values()))
+            set(core._uuid_to_api.values_unwrapped()))
         self.assertEqual(
             len(plugin_apis),
             len(list(core.entries_for_tenant('any_tenant', {},
