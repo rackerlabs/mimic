@@ -11,7 +11,7 @@ from twisted.web.resource import Resource
 
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
-from mimic.imimic import IAPIMock, IAPIDomainMock
+from mimic.imimic import IAPIMock, IAPIDomainMock, IExternalAPIMock
 
 
 class ExampleResource(Resource):
@@ -91,3 +91,38 @@ class ExampleDomainAPI(object):
         """
         example_resource = ExampleResource(self._response)
         return example_resource
+
+
+@implementer(IExternalAPIMock, IPlugin)
+class ExampleExternalAPI(object):
+    """
+    Example external API the return nothing
+    """
+
+    def __init__(self, name=u"example",
+                 regions_and_versions=[
+                     ('ORD', 'v1',
+                      'https://ord.ext.example.com:8080')]):
+        """
+        Create an :obj:`ExampleExternalAPI`.
+
+        :param text_type name: name of the external API
+        """
+        self.name_key = name
+        self.regions_and_versions = regions_and_versions
+
+    def catalog_entries(self, tenant_id):
+        """
+        List catalog entries for the Example API.
+        """
+        endpoints = [Endpoint(tenant_id, each[0], 'uuid', each[1]) for each in self.regions_and_versions]
+        return [Entry(tenant_id, "externalServiceType", "externalServiceName", endpoints)]
+
+    def uri_for_service(self, region, service_id):
+        """
+        Return the URI for the service in the given region.
+        """
+        for r, u in [(each[0], each[2]) for each in self.regions_and_versions]:
+            if r == region:
+                return u
+        return u""

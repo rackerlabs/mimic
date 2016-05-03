@@ -6,11 +6,12 @@ Service catalog hub and integration for Mimic application objects.
 
 from __future__ import absolute_import, division, unicode_literals
 
+import zope.interface
 from twisted.python.urlpath import URLPath
 from twisted.plugin import getPlugins
 from mimic import plugins
 
-from mimic.imimic import IAPIMock, IAPIDomainMock
+from mimic.imimic import IAPIMock, IExternalAPIMock, IAPIDomainMock
 from mimic.session import SessionStore
 from mimic.util.helper import random_hex_generator
 from mimic.model.mailgun_objects import MessageStore
@@ -35,8 +36,8 @@ class MimicCore(object):
             and determining timestamps.
         :type clock: :obj:`twisted.internet.interfaces.IReactorTime`
 
-        :param apis: an iterable of all :obj:`IAPIMock`s that this MimicCore
-            will expose.
+        :param apis: an iterable of all :obj:`IAPIMock` and
+            :obj:`IAPIExternalAPI` mocks that this MimicCore will expose.
 
         :param domains: an iterable of all :obj:`IAPIDomainMock`s that this
             MimicCore will expose.
@@ -51,9 +52,25 @@ class MimicCore(object):
         self.domains = list(domains)
 
         for api in apis:
-            this_api_id = ((api.__class__.__name__) + '-' +
-                           random_hex_generator(3))
-            self._uuid_to_api[this_api_id] = api
+            # Gate check the API to make sure it implements one of the
+            # supported interfaces
+            required_interfaces = (IAPIMock, IExternalAPIMock)
+            provided_interfaces = list(zope.interface.providedBy(api))
+            if True in [i in provided_interfaces
+                        for i in required_interfaces]:
+                if IExternalAPIMock.providedBy(api):
+                    this_api_id = ((api.name_key) + '-' +
+                                   random_hex_generator(3))
+                else:
+                    this_api_id = ((api.__class__.__name__) + '-' +
+                                   random_hex_generator(3))
+                self._uuid_to_api[this_api_id] = api
+            else:
+                raise TypeError(
+                    api.__class__.__module__ + '/' +
+                    api.__class__.__name__ +
+                    " does not implement IAPIMock or IExternalAPIMock"
+                )
 
     @classmethod
     def fromPlugins(cls, clock):
@@ -82,11 +99,19 @@ class MimicCore(object):
         """
         if service_id in self._uuid_to_api:
             api = self._uuid_to_api[service_id]
-            return api.resource_for_region(
-                region_name,
-                self.uri_for_service(region_name, service_id, base_uri),
-                self.sessions,
-            )
+            if IExternalAPIMock.providedBy(api):
+                # External APIs only provide a catalog entry, nothing more
+                raise RuntimeError(
+                    api.__class__.__module__ + '/' +
+                    api.__class__.__name__ +
+                    " is an external service to Mimic."
+                )
+            else:  # IAPIMock.providedBy(api)
+                return api.resource_for_region(
+                    region_name,
+                    self.uri_for_service(region_name, service_id, base_uri),
+                    self.sessions,
+                )
 
     def uri_for_service(self, region, service_id, base_uri):
         """
@@ -128,9 +153,17 @@ class MimicCore(object):
         :return: The full URI locating the service for that region
         """
         for service_id, api in self._uuid_to_api.items():
-            for entry in api.catalog_entries(tenant_id):
-                for endpoint in entry.endpoints:
-                    prefix_map[endpoint] = self.uri_for_service(
-                        endpoint.region, service_id, base_uri
-                    )
-                yield entry
+            if IExternalAPIMock.providedBy(api):
+                for entry in api.catalog_entries(tenant_id):
+                    for endpoint in entry.endpoints:
+                        prefix_map[endpoint] = api.uri_for_service(
+                            endpoint.region, service_id
+                        )
+                    yield entry
+            else:  # IAPIMock.providedBy(api)
+                for entry in api.catalog_entries(tenant_id):
+                    for endpoint in entry.endpoints:
+                        prefix_map[endpoint] = self.uri_for_service(
+                            endpoint.region, service_id, base_uri
+                        )
+                    yield entry
