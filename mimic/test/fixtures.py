@@ -77,9 +77,13 @@ class APIMockHelper(object):
         self.service_catalog_json = self.auth.service_catalog_json
         self.get_service_endpoint = self.auth.get_service_endpoint
 
-        tenant_id = self.auth.service_catalog_json["access"]["token"]["tenant"]["id"]
-        service_name = apis[0].catalog_entries(tenant_id)[0].name
-        self.uri = self.get_service_endpoint(service_name)
+        try:
+            tenant_id = (self.auth.service_catalog_json
+                         ["access"]["token"]["tenant"]["id"])
+            service_name = apis[0].catalog_entries(tenant_id)[0].name
+            self.uri = self.get_service_endpoint(service_name)
+        except IndexError:
+            self.uri = None
 
 
 class APIDomainMockHelper(object):

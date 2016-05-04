@@ -1,6 +1,7 @@
 *.project
 *.pydev*
 .coverage
+.coverage.*
 .DS_Store
 *.pyc
 dropin.cache
@@ -10,3 +11,4 @@ _tmp
 _trial_temp
 .tox
 *.egg-info
+*.sw?
