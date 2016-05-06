@@ -23,7 +23,9 @@ class CoreBuildingTests(SynchronousTestCase):
         uri prefixes or entries for the tenant.
         """
         core = MimicCore(Clock(), [])
-        self.assertEqual(0, len(core._uuid_to_api))
+        self.assertEqual(2, len(core._uuid_to_api))
+        self.assertEqual(0, len(core._uuid_to_api['internal']))
+        self.assertEqual(0, len(core._uuid_to_api['external']))
         self.assertEqual([], list(core.entries_for_tenant('any_tenant', {},
                                                           'http://mimic')))
 
@@ -51,9 +53,14 @@ class CoreBuildingTests(SynchronousTestCase):
             dns_plugin.dns,
             cinder_plugin.cinder
         ))
+        # all plugsin should be on the internal listing
         self.assertEqual(
             plugin_apis,
-            set(core._uuid_to_api.values()))
+            set(core._uuid_to_api['internal'].values()))
+        # the external listing should still be empty
+        self.assertEqual(
+            set([]),
+            set(core._uuid_to_api['external'].values()))
         self.assertEqual(
             len(plugin_apis),
             len(list(core.entries_for_tenant('any_tenant', {},

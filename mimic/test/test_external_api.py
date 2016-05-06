@@ -31,16 +31,15 @@ class TestValidationPoints(SynchronousTestCase):
 
         # Find the UUID of the registered External API
         eeapi_id = None
-        for uuid, api in self.core._uuid_to_api.items():
-            if IExternalAPIMock.providedBy(api):
-                eeapi_id = uuid
-                break
+        for uuid, api in self.core._uuid_to_api['external'].items():
+            eeapi_id = uuid
 
         self.assertIsNotNone(eeapi_id)
 
-        with self.assertRaises(RuntimeError):
+        self.assertIsNone(
             self.core.service_with_region(
                 "ORD", eeapi_id, "fakebaseuri")
+        )
 
 
 class TestExternalApiMock(SynchronousTestCase):

@@ -6,7 +6,6 @@ Service catalog hub and integration for Mimic application objects.
 
 from __future__ import absolute_import, division, unicode_literals
 
-import zope.interface
 from twisted.python.urlpath import URLPath
 from twisted.plugin import getPlugins
 from mimic import plugins
@@ -42,7 +41,10 @@ class MimicCore(object):
         :param domains: an iterable of all :obj:`IAPIDomainMock`s that this
             MimicCore will expose.
         """
-        self._uuid_to_api = {}
+        self._uuid_to_api = {
+            'internal': {},
+            'external': {}
+        }
         self.sessions = SessionStore(clock)
         self.message_store = MessageStore()
         self.contacts_store = ContactsStore()
@@ -52,25 +54,7 @@ class MimicCore(object):
         self.domains = list(domains)
 
         for api in apis:
-            # Gate check the API to make sure it implements one of the
-            # supported interfaces
-            required_interfaces = (IAPIMock, IExternalAPIMock)
-            provided_interfaces = list(zope.interface.providedBy(api))
-            if True in [i in provided_interfaces
-                        for i in required_interfaces]:
-                if IExternalAPIMock.providedBy(api):
-                    this_api_id = ((api.name_key) + '-' +
-                                   random_hex_generator(3))
-                else:
-                    this_api_id = ((api.__class__.__name__) + '-' +
-                                   random_hex_generator(3))
-                self._uuid_to_api[this_api_id] = api
-            else:
-                raise TypeError(
-                    api.__class__.__module__ + '/' +
-                    api.__class__.__name__ +
-                    " does not implement IAPIMock or IExternalAPIMock"
-                )
+            self.add_api(api)
 
     @classmethod
     def fromPlugins(cls, clock):
@@ -81,6 +65,32 @@ class MimicCore(object):
         service_catalog_plugins = getPlugins(IAPIMock, plugins)
         domain_plugins = getPlugins(IAPIDomainMock, plugins)
         return cls(clock, service_catalog_plugins, domain_plugins)
+
+    def add_api(self, api):
+        """
+        Add a new API to the listing.
+
+        :param object api: An object implementing either the
+            :obj:`IAPIMock` or :obj:`IExternalAPIMock` interfaces.
+        :raises: TypeError if the object does not implement the
+            correct interfaces.
+        """
+        # Gate check the API to make sure it implements one of the
+        # supported interfaces
+        if IExternalAPIMock.providedBy(api):
+            this_api_id = ((api.name_key) + '-' +
+                           random_hex_generator(3))
+            self._uuid_to_api['external'][this_api_id] = api
+        elif IAPIMock.providedBy(api):
+            this_api_id = ((api.__class__.__name__) + '-' +
+                           random_hex_generator(3))
+            self._uuid_to_api['internal'][this_api_id] = api
+        else:
+            raise TypeError(
+                api.__class__.__module__ + '/' +
+                api.__class__.__name__ +
+                " does not implement IAPIMock or IExternalAPIMock"
+            )
 
     def service_with_region(self, region_name, service_id, base_uri):
         """
@@ -97,21 +107,13 @@ class MimicCore(object):
         :return: A resource.
         :rtype: :obj:`twisted.web.iweb.IResource`
         """
-        if service_id in self._uuid_to_api:
-            api = self._uuid_to_api[service_id]
-            if IExternalAPIMock.providedBy(api):
-                # External APIs only provide a catalog entry, nothing more
-                raise RuntimeError(
-                    api.__class__.__module__ + '/' +
-                    api.__class__.__name__ +
-                    " is an external service to Mimic."
-                )
-            else:  # IAPIMock.providedBy(api)
-                return api.resource_for_region(
-                    region_name,
-                    self.uri_for_service(region_name, service_id, base_uri),
-                    self.sessions,
-                )
+        if service_id in self._uuid_to_api['internal']:
+            api = self._uuid_to_api['internal'][service_id]
+            return api.resource_for_region(
+                region_name,
+                self.uri_for_service(region_name, service_id, base_uri),
+                self.sessions,
+            )
 
     def uri_for_service(self, region, service_id, base_uri):
         """
@@ -152,18 +154,21 @@ class MimicCore(object):
 
         :return: The full URI locating the service for that region
         """
-        for service_id, api in self._uuid_to_api.items():
-            if IExternalAPIMock.providedBy(api):
-                for entry in api.catalog_entries(tenant_id):
-                    for endpoint in entry.endpoints:
-                        prefix_map[endpoint] = api.uri_for_service(
-                            endpoint.region, service_id
-                        )
-                    yield entry
-            else:  # IAPIMock.providedBy(api)
-                for entry in api.catalog_entries(tenant_id):
-                    for endpoint in entry.endpoints:
-                        prefix_map[endpoint] = self.uri_for_service(
-                            endpoint.region, service_id, base_uri
-                        )
-                    yield entry
+
+        # Return all the external APIs
+        for service_id, api in self._uuid_to_api['external'].items():
+            for entry in api.catalog_entries(tenant_id):
+                for endpoint in entry.endpoints:
+                    prefix_map[endpoint] = api.uri_for_service(
+                        endpoint.region, service_id
+                    )
+                yield entry
+
+        # Return all the internal APIs
+        for service_id, api in self._uuid_to_api['internal'].items():
+            for entry in api.catalog_entries(tenant_id):
+                for endpoint in entry.endpoints:
+                    prefix_map[endpoint] = self.uri_for_service(
+                        endpoint.region, service_id, base_uri
+                    )
+                yield entry
