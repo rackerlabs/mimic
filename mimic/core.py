@@ -154,7 +154,6 @@ class MimicCore(object):
 
         :return: The full URI locating the service for that region
         """
-
         # Return all the external APIs
         for service_id, api in self._uuid_to_api['external'].items():
             for entry in api.catalog_entries(tenant_id):
