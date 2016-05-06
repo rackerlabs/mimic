@@ -10,7 +10,12 @@ from twisted.python.urlpath import URLPath
 from twisted.plugin import getPlugins
 from mimic import plugins
 
-from mimic.imimic import IAPIMock, IExternalAPIMock, IAPIDomainMock
+from mimic.imimic import (
+    IAPIMock,
+    IAPIDomainMock,
+    IExternalAPIMock,
+    IEndPointTemplate
+)
 from mimic.session import SessionStore
 from mimic.util.helper import random_hex_generator
 from mimic.model.mailgun_objects import MessageStore
@@ -19,14 +24,13 @@ from mimic.model.ironic_objects import IronicNodeStore
 from mimic.model.glance_objects import GlanceAdminImageStore
 from mimic.model.valkyrie_objects import ValkyrieStore
 
-
 class MimicCore(object):
     """
     A MimicCore contains a mapping from URI prefixes to particular service
     mocks.
     """
 
-    def __init__(self, clock, apis, domains=()):
+    def __init__(self, clock, apis, domains=(), external_apis=()):
         """
         Create a MimicCore with an IReactorTime to do any time-based scheduling
         against.
@@ -45,6 +49,7 @@ class MimicCore(object):
             'internal': {},
             'external': {}
         }
+        self._uuid_to_api_templates = {}
         self.sessions = SessionStore(clock)
         self.message_store = MessageStore()
         self.contacts_store = ContactsStore()
@@ -55,6 +60,34 @@ class MimicCore(object):
 
         for api in apis:
             self.add_api(api)
+
+        for api_template in api_templates:
+            required_interfaces = (IExternalTemplatedAPIMock)
+            provided_interfaces = list(zope.interface.providedBy(api_template)
+            if True in [i in provided_interfaces
+                        for i in required_interfaces]:
+                this_api_id = api_template.name_key
+                self._uuid_to_api_templates[this_api_id] = api_template
+            else:
+                raise TypeError(
+                    api_template.__class__.__module__ + '/' +
+                    api_template.__class__.__name__ +
+                    " does not implement IExternalTemplatedAPIMock"
+                )
+
+    def add_endpoint_template(self, endpoint_template):
+        required_interfaces = (IEndPointTemplate)
+        provided_interfaces = list(zope.interface.providedBy(api_template)
+        if True in [i in provided_interfaces
+                    for i in required_interfaces]:
+            this_api_id = api_template.name_key
+            self._uuid_to_api_templates[this_api_id] = api_template
+        else:
+            raise TypeError(
+                api_template.__class__.__module__ + '/' +
+                api_template.__class__.__name__ +
+                " does not implement IEndPointTemplate"
+            )
 
     @classmethod
     def fromPlugins(cls, clock):
@@ -169,5 +202,14 @@ class MimicCore(object):
                 for endpoint in entry.endpoints:
                     prefix_map[endpoint] = self.uri_for_service(
                         endpoint.region, service_id, base_uri
+                    )
+                yield entry
+
+        # TODO: Rethink the below - it probably needs to change
+        for service_id, api in self._uuid_to_api_templates:
+            for entry in api.catalog_entries(tenant_id):
+                for endpoint in entry.endpoints:
+                    prefix_map[endpoint] = api.uri_for_service(
+                        endpoint.region, service_id, tenant_id
                     )
                 yield entry
