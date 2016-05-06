@@ -38,7 +38,7 @@ class TestValidationPoints(SynchronousTestCase):
 
         self.assertIsNone(
             self.core.service_with_region(
-                "ORD", eeapi_id, "fakebaseuri")
+                "EXTERNAL", eeapi_id, "fakebaseuri")
         )
 
 
@@ -66,10 +66,10 @@ class TestExternalApiMock(SynchronousTestCase):
         """
         tenant_data = TenantAuthentication(self, self.root, "other", "other")
         service_endpoint = tenant_data.get_service_endpoint(
-            "externalServiceName", "ORD")
+            "externalServiceName", "EXTERNAL")
         self.assertTrue(
             service_endpoint.startswith(
-                'https://ord.ext.example.com:8080'))
+                'https://api.external.example.com:8080'))
 
 
 class TestDualModeApiMock(SynchronousTestCase):
@@ -90,8 +90,15 @@ class TestDualModeApiMock(SynchronousTestCase):
         exist in the same service catalog.
         """
         tenant_data = TenantAuthentication(self, self.root, "other", "other")
+
+        # there shouldn't an internal entry in the external region
+        with self.assertRaises(KeyError):
+            tenant_data.get_service_endpoint(
+                "serviceName", "EXTERNAL")
+
+        # pull both regions and verify they don't match
         externalService_endpoint = tenant_data.get_service_endpoint(
-            "externalServiceName", "ORD")
+            "externalServiceName", "EXTERNAL")
         internalService_endpoint = tenant_data.get_service_endpoint(
             "serviceName", "ORD")
         self.assertNotEqual(externalService_endpoint, internalService_endpoint)

@@ -101,8 +101,8 @@ class ExampleExternalAPI(object):
 
     def __init__(self, name=u"example",
                  regions_and_versions=[
-                     ('ORD', 'v1',
-                      'https://ord.ext.example.com:8080')]):
+                     ('EXTERNAL', 'v1',
+                      'https://api.external.example.com:8080')]):
         """
         Create an :obj:`ExampleExternalAPI`.
 
