@@ -24,6 +24,11 @@ class MimicCore(object):
     """
     A MimicCore contains a mapping from URI prefixes to particular service
     mocks.
+
+    :attr _uuid_to_api_internal: dictionary of the internally mocked APIs
+        that will show up in the Service Catalog
+    :attr _uuid_to_api_external: dictionary of the hosted external APIs
+        that will show up in the Service Catalog
     """
 
     def __init__(self, clock, apis, domains=()):
@@ -41,10 +46,8 @@ class MimicCore(object):
         :param domains: an iterable of all :obj:`IAPIDomainMock`s that this
             MimicCore will expose.
         """
-        self._uuid_to_api = {
-            'internal': {},
-            'external': {}
-        }
+        self._uuid_to_api_internal = {}
+        self._uuid_to_api_external = {}
         self.sessions = SessionStore(clock)
         self.message_store = MessageStore()
         self.contacts_store = ContactsStore()
@@ -80,11 +83,11 @@ class MimicCore(object):
         if IExternalAPIMock.providedBy(api):
             this_api_id = ((api.name_key) + '-' +
                            random_hex_generator(3))
-            self._uuid_to_api['external'][this_api_id] = api
+            self._uuid_to_api_external[this_api_id] = api
         elif IAPIMock.providedBy(api):
             this_api_id = ((api.__class__.__name__) + '-' +
                            random_hex_generator(3))
-            self._uuid_to_api['internal'][this_api_id] = api
+            self._uuid_to_api_internal[this_api_id] = api
         else:
             raise TypeError(
                 api.__class__.__module__ + '/' +
@@ -107,8 +110,8 @@ class MimicCore(object):
         :return: A resource.
         :rtype: :obj:`twisted.web.iweb.IResource`
         """
-        if service_id in self._uuid_to_api['internal']:
-            api = self._uuid_to_api['internal'][service_id]
+        if service_id in self._uuid_to_api_internal:
+            api = self._uuid_to_api_internal[service_id]
             return api.resource_for_region(
                 region_name,
                 self.uri_for_service(region_name, service_id, base_uri),
@@ -155,7 +158,7 @@ class MimicCore(object):
         :return: The full URI locating the service for that region
         """
         # Return all the external APIs
-        for service_id, api in self._uuid_to_api['external'].items():
+        for service_id, api in self._uuid_to_api_external.items():
             for entry in api.catalog_entries(tenant_id):
                 for endpoint in entry.endpoints:
                     prefix_map[endpoint] = api.uri_for_service(
@@ -164,7 +167,7 @@ class MimicCore(object):
                 yield entry
 
         # Return all the internal APIs
-        for service_id, api in self._uuid_to_api['internal'].items():
+        for service_id, api in self._uuid_to_api_internal.items():
             for entry in api.catalog_entries(tenant_id):
                 for endpoint in entry.endpoints:
                     prefix_map[endpoint] = self.uri_for_service(
