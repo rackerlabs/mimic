@@ -4,6 +4,8 @@ Dummy classes that can be shared across test cases
 
 from __future__ import absolute_import, division, unicode_literals
 
+import uuid
+
 from zope.interface import implementer
 
 from twisted.plugin import IPlugin
@@ -11,7 +13,8 @@ from twisted.web.resource import Resource
 
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
-from mimic.imimic import IAPIMock, IAPIDomainMock, IExternalAPIMock
+from mimic.imimic import IAPIMock, IAPIDomainMock, IEndPointTemplate
+from mimic.model.identity_objects import ExternalApiStore
 
 
 class ExampleResource(Resource):
@@ -93,36 +96,103 @@ class ExampleDomainAPI(object):
         return example_resource
 
 
-@implementer(IExternalAPIMock, IPlugin)
-class ExampleExternalAPI(object):
+@implementer(IEndPointTemplate)
+class ExampleEndPointTemplate(object):
     """
-    Example external API the return nothing
+    Example End-Point Template
     """
 
-    def __init__(self, name=u"example",
-                 regions_and_versions=[
-                     ('EXTERNAL', 'v1',
-                      'https://api.external.example.com:8080')]):
+    def __init__(self, name=u"example", region="EXTERNAL", version="v1",
+                 url="https://api.external.example.com:8080",
+                 publicURL=None, internalURL=None, adminURL=None,
+                 versionInfoURL=None, versionListURL=None,
+                 type_id=u"example", enabled=False, uuid=uuid.uuid4(),
+                 tenantid_alias="%tenant_id%"
+                 ):
         """
-        Create an :obj:`ExampleExternalAPI`.
+        Create an :obj:`ExampleEndPoindTemplate`.
 
-        :param text_type name: name of the external API
+        :param text_type name: name of the service provided, e.g Cloud Files.
+        :param text_type region: region the service is provided in, e.g ORD.
+        :param text_type version: version of the service, e.g v1.
+        :param text_type url: basic URL of the service in the region.
+        :param text_type publicURL: public URL of the service in the region.
+        :param text_type internalURL: internal URL of the service in
+            the region.
+        :param text_type adminURL: administrative URL for the service in
+            the region.
+        :param text_type versionInfoURL: URL to get the version information
+            of the service.
+        :param text_type versionListURL: URL to get the list of supported
+            versions by the service.
+        :param text_type type_id: service type, e.g object-store
+        :param boolean enabled: whether or not the service is enabled
+            for all users. Services can be disabled for all tenants but still
+            be enabled on a per-tenant basis.
+        :param text_type uuid: unique ID for the end-point within the service.
+        :param text_type tenantid_alias: by default the system uses the text
+            '%tenant_id%' for what to replace in the URLs with the tenantid.
+            This value allows the service adminstrator to use a different
+            textual value. Note: This is not presently used by Mimic which
+            just appends the tenant-id for internally hosted services, and
+            simply uses the URLs as is for externally hosted services.
         """
+        self.id_key = uuid
+        self.region_key = region
+        self.type_key = type_id
         self.name_key = name
-        self.regions_and_versions = regions_and_versions
+        self.enabled_key = enabled
+        self.publicURL = publicURL if publicURL is not None else url
+        self.internalURL = internalURL if internalURL is not None else url
+        self.adminURL = adminURL if adminURL is not None else url
+        self.tenantAlias = tenantid_alias
+        self.versionId = version
+        self.versionInfo = (versionInfoURL
+                            if versionInfoURL is not None
+                            else url + '/versionInfo')
+        self.versionList = (versionListURL
+                            if versionListURL is not None
+                            else url + '/versions')
 
-    def catalog_entries(self, tenant_id):
-        """
-        List catalog entries for the Example API.
-        """
-        endpoints = [Endpoint(tenant_id, each[0], 'uuid', each[1]) for each in self.regions_and_versions]
-        return [Entry(tenant_id, "externalServiceType", "externalServiceName", endpoints)]
 
-    def uri_for_service(self, region, service_id):
-        """
-        Return the URI for the service in the given region.
-        """
-        for r, u in [(each[0], each[2]) for each in self.regions_and_versions]:
-            if r == region:
-                return u
-        return u""
+def make_example_external_api(name=u"example",
+                              endpoint_templates=[ExampleEndPointTemplate()],
+                              set_enabled=None):
+    """
+    Initialize an :obj:`ExternalApiStore` for a given name.
+
+    :param text_type name: user-visible name of the service.
+    :param list endpoint_templates: list of end-point templates to
+        initialize the API store with.
+    :param boolean or None set_enabled: If none, the endpoint templates
+        are used AS-IS. If a boolean type, then it sets all the templates
+        to have the same default accessibility for all tenants.
+
+    Note: The service-type of the first end-point template is used as the
+        service type for the entire Api Store, and is enforced that all
+        end-point templates have the same service-type.
+
+    :returns: an instance of :obj:`ExternalApiStore`.
+    :raises: ValueError if the service-type does not match between all the
+        end-point templates.
+    """
+    service_type = endpoint_templates[0].type_key
+    for ept in endpoint_templates:
+        ept.name_key = name
+        if ept.type_key != service_type:
+            raise ValueError(
+                'Service Types do not match. {0} != {1}'.format(
+                    ept.type_key,
+                    service_type
+                )
+            )
+
+        if set_enabled is not None and isinstance(set_enabled, bool):
+            ept.enabled_key = set_enabled
+
+    return ExternalApiStore(
+        "uuid-" + name,
+        name,
+        service_type,
+        endpoint_templates
+    )

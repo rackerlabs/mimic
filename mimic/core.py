@@ -13,8 +13,7 @@ from mimic import plugins
 from mimic.imimic import (
     IAPIMock,
     IAPIDomainMock,
-    IExternalAPIMock,
-    IEndPointTemplate
+    IExternalAPIMock
 )
 from mimic.session import SessionStore
 from mimic.util.helper import random_hex_generator
@@ -23,6 +22,7 @@ from mimic.model.customer_objects import ContactsStore
 from mimic.model.ironic_objects import IronicNodeStore
 from mimic.model.glance_objects import GlanceAdminImageStore
 from mimic.model.valkyrie_objects import ValkyrieStore
+
 
 class MimicCore(object):
     """
@@ -49,7 +49,6 @@ class MimicCore(object):
             'internal': {},
             'external': {}
         }
-        self._uuid_to_api_templates = {}
         self.sessions = SessionStore(clock)
         self.message_store = MessageStore()
         self.contacts_store = ContactsStore()
@@ -60,34 +59,6 @@ class MimicCore(object):
 
         for api in apis:
             self.add_api(api)
-
-        for api_template in api_templates:
-            required_interfaces = (IExternalTemplatedAPIMock)
-            provided_interfaces = list(zope.interface.providedBy(api_template)
-            if True in [i in provided_interfaces
-                        for i in required_interfaces]:
-                this_api_id = api_template.name_key
-                self._uuid_to_api_templates[this_api_id] = api_template
-            else:
-                raise TypeError(
-                    api_template.__class__.__module__ + '/' +
-                    api_template.__class__.__name__ +
-                    " does not implement IExternalTemplatedAPIMock"
-                )
-
-    def add_endpoint_template(self, endpoint_template):
-        required_interfaces = (IEndPointTemplate)
-        provided_interfaces = list(zope.interface.providedBy(api_template)
-        if True in [i in provided_interfaces
-                    for i in required_interfaces]:
-            this_api_id = api_template.name_key
-            self._uuid_to_api_templates[this_api_id] = api_template
-        else:
-            raise TypeError(
-                api_template.__class__.__module__ + '/' +
-                api_template.__class__.__name__ +
-                " does not implement IEndPointTemplate"
-            )
 
     @classmethod
     def fromPlugins(cls, clock):
@@ -111,10 +82,13 @@ class MimicCore(object):
         # Gate check the API to make sure it implements one of the
         # supported interfaces
         if IExternalAPIMock.providedBy(api):
-            this_api_id = ((api.name_key) + '-' +
-                           random_hex_generator(3))
+            # External APIs need to be able to be easily managed by
+            # the same object so long as they have the same name
+            this_api_id = api.name_key
             self._uuid_to_api['external'][this_api_id] = api
         elif IAPIMock.providedBy(api):
+            # Internal APIs can be added easily on the fly since
+            # they also provide the resource for implementing the API
             this_api_id = ((api.__class__.__name__) + '-' +
                            random_hex_generator(3))
             self._uuid_to_api['internal'][this_api_id] = api
@@ -123,6 +97,27 @@ class MimicCore(object):
                 api.__class__.__module__ + '/' +
                 api.__class__.__name__ +
                 " does not implement IAPIMock or IExternalAPIMock"
+            )
+
+    def get_external_api(self, api_name):
+        """
+        Access an API instance for an external API.
+
+        Note: Internally hosted APIs are not modifiable at run-time
+            so this only returns access to the Externally hosted API.
+
+        :param text_type api_name: the name of the API instance
+            e.g Cloud Files
+        :returns: The :obj:`IExternaAPIMock` instance supporting the
+            externally hosted API.
+        :raises: IndexError if it is unable to find an API by the given
+            name.
+        """
+        if api_name in self._uuid_to_api['external']:
+            return self._uuid_to_api['external'][api_name]
+        else:
+            raise IndexError(
+                "Unable to locate an API named " + api_name
             )
 
     def service_with_region(self, region_name, service_id, base_uri):
@@ -191,9 +186,14 @@ class MimicCore(object):
         for service_id, api in self._uuid_to_api['external'].items():
             for entry in api.catalog_entries(tenant_id):
                 for endpoint in entry.endpoints:
-                    prefix_map[endpoint] = api.uri_for_service(
-                        endpoint.region, service_id
-                    )
+                    try:
+                        prefix_map[endpoint] = api.uri_for_service(
+                            endpoint.region, service_id
+                        )
+                    except IndexError:
+                        # ignore APIs that don't support the given region
+                        pass
+
                 yield entry
 
         # Return all the internal APIs
@@ -202,14 +202,5 @@ class MimicCore(object):
                 for endpoint in entry.endpoints:
                     prefix_map[endpoint] = self.uri_for_service(
                         endpoint.region, service_id, base_uri
-                    )
-                yield entry
-
-        # TODO: Rethink the below - it probably needs to change
-        for service_id, api in self._uuid_to_api_templates:
-            for entry in api.catalog_entries(tenant_id):
-                for endpoint in entry.endpoints:
-                    prefix_map[endpoint] = api.uri_for_service(
-                        endpoint.region, service_id, tenant_id
                     )
                 yield entry

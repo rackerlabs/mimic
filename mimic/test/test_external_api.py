@@ -5,7 +5,10 @@ from six import text_type
 from twisted.trial.unittest import SynchronousTestCase
 
 from mimic.imimic import IExternalAPIMock
-from mimic.test.dummy import ExampleAPI, ExampleExternalAPI
+from mimic.test.dummy import (
+    ExampleAPI,
+    make_example_external_api
+)
 from mimic.test.fixtures import APIMockHelper, TenantAuthentication
 
 
@@ -24,8 +27,12 @@ class TestValidationPoints(SynchronousTestCase):
             APIMockHelper(self, [InvalidApiMock()])
 
     def test_external_api_no_service_resource(self):
-        self.eeapi_name = u"example-api"
-        self.eeapi = ExampleExternalAPI(name=self.eeapi_name)
+        self.eeapi_name = u"externalServiceName"
+        self.eeapi = make_example_external_api(
+            name=self.eeapi_name,
+            set_enabled=True
+        )
+        self.assertIsNotNone(self.eeapi)
         self.helper = APIMockHelper(self, [self.eeapi])
         self.core = self.helper.core
 
@@ -47,8 +54,12 @@ class TestExternalApiMock(SynchronousTestCase):
     Test cases to verify the :obj:`IExternalAPIMock`.
     """
     def setUp(self):
-        self.eeapi_name = u"example-api"
-        self.eeapi = ExampleExternalAPI(name=self.eeapi_name)
+        self.eeapi_name = u"externalServiceName"
+        self.eeapi = make_example_external_api(
+            name=self.eeapi_name,
+            set_enabled=True
+        )
+        assert(self.eeapi is not None)
         self.helper = APIMockHelper(self, [self.eeapi])
         self.root = self.helper.root
         self.uri = self.helper.uri
@@ -77,9 +88,13 @@ class TestDualModeApiMock(SynchronousTestCase):
     Test cases to verify the :obj:`IExternalAPIMock`.
     """
     def setUp(self):
-        self.eeapi_name = u"example-api"
+        self.eeapi_name = u"externalServiceName"
         self.ieapi = ExampleAPI()
-        self.eeapi = ExampleExternalAPI(name=self.eeapi_name)
+        self.eeapi = make_example_external_api(
+            name=self.eeapi_name,
+            set_enabled=True
+        )
+        assert(self.eeapi is not None)
         self.helper = APIMockHelper(self, [self.ieapi, self.eeapi])
         self.root = self.helper.root
         self.uri = self.helper.uri

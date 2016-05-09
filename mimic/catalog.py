@@ -17,8 +17,13 @@ class Endpoint(object):
         responses, not the basic service catalog.
     :ivar unicode prefix: A prefix, usually a version number, for this
         endpoint.
+    :ivar boolean external: whether or not the Endpoint is external
+        to Mimic.
+    :ivar unicode complete_url: the full URL for the Endpoint if it
+        is external to Mimic.
     """
-    def __init__(self, tenant_id, region, endpoint_id, prefix=None):
+    def __init__(self, tenant_id, region, endpoint_id, prefix=None,
+                 external=False, complete_url=None):
         """
         Create an endpoint for a service catalog entry.
         """
@@ -26,6 +31,14 @@ class Endpoint(object):
         self.region = region
         self.endpoint_id = endpoint_id
         self.prefix = prefix
+        self.external = external
+        self.complete_url = complete_url
+
+        # Gate Check complete_url
+        if self.external and self.complete_url is None:
+            raise ValueError(
+                'complete_url must be specified when API is external'
+            )
 
     def url_with_prefix(self, uri_prefix):
         """
@@ -33,12 +46,15 @@ class Endpoint(object):
 
         :rtype: unicode
         """
-        postfix = self.tenant_id
-        segments = [uri_prefix.rstrip(u"/")]
-        if self.prefix is not None:
-            segments.append(self.prefix)
-        segments.append(postfix)
-        return u"/".join(segments)
+        if self.external and self.complete_url is not None:
+            return self.complete_url
+        else:
+            postfix = self.tenant_id
+            segments = [uri_prefix.rstrip(u"/")]
+            if self.prefix is not None:
+                segments.append(self.prefix)
+            segments.append(postfix)
+            return u"/".join(segments)
 
 
 class Entry(object):
