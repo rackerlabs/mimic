@@ -38,7 +38,7 @@ class TestValidationPoints(SynchronousTestCase):
 
         # Find the UUID of the registered External API
         eeapi_id = None
-        for uuid, api in self.core._uuid_to_api['external'].items():
+        for uuid, api in self.core._uuid_to_api_external.items():
             eeapi_id = uuid
 
         self.assertIsNotNone(eeapi_id)
