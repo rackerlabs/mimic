@@ -122,8 +122,8 @@ class ExternalApiStore(object):
         # regardless of the enabled/disabled status of the template itself
         tenant_specific_templates = []
         if tenant_id in self.endpoints_for_tenants:
-            (tenant_specific_templates.append(template_id)
-                for template_id in self.endpoints_for_tenants[tenant_id])
+            for template_id in self.endpoints_for_tenants[tenant_id]:
+                tenant_specific_templates.append(template_id)
 
         # provide an End-point Entry for every template that is either
         # (a) enabled or (b) in the list of end-points specifically
@@ -168,16 +168,16 @@ class ExternalApiStore(object):
 
         :param text_type tenant_id: tenant id to operate on
         :param text_type template_id: end-point template id to disable
-        :raises: IndexError if template is not enabled for the tenant
+        :raises: ValueError if template is not enabled for the tenant
         """
         if tenant_id in self.endpoints_for_tenants:
             if template_id in self.endpoints_for_tenants[tenant_id]:
-                del self.endpoints_for_tenants[tenant_id][template_id]
+                self.endpoints_for_tenants[tenant_id].remove(template_id)
                 return
 
         # Tell the caller if the template did not exist in case the caller
         # needs to generate error messages
-        raise IndexError(
+        raise ValueError(
             "template (" + template_id + ") not enabled for tenant id ("
             + tenant_id + ")"
         )
@@ -188,8 +188,7 @@ class ExternalApiStore(object):
 
         :returns: an iterable of the end-point templates
         """
-        for _, endpoint_template in self.endpoint_templates.items():
-            yield endpoint_template
+        return self.endpoint_templates.values()
 
     def add_template(self, endpoint_template):
         """
@@ -254,8 +253,8 @@ class ExternalApiStore(object):
         # Disable (remove) the templates for all tenants
         for tenant_id in self.endpoints_for_tenants.keys():
             try:
-                self.disable_endpoint_for_tenant(template_id)
-            except IndexError:
+                self.disable_endpoint_for_tenant(tenant_id, template_id)
+            except ValueError:
                 # Ignore if the template is not available for the tenant
                 pass
 
@@ -267,8 +266,7 @@ class ExternalApiStore(object):
         # Tell the caller if the template did not exist in case the caller
         # needs to generate error messages
         raise IndexError(
-            "template (" + template_id + ") not enabled for tenant id ("
-            + tenant_id + ")"
+            "template (" + template_id + ") does not exist"
         )
 
     def catalog_entries(self, tenant_id):

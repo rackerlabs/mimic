@@ -116,8 +116,8 @@ class MimicCore(object):
         :raises: IndexError if it is unable to find an API by the given
             name.
         """
-        if api_name in self._uuid_to_api['external']:
-            return self._uuid_to_api['external'][api_name]
+        if api_name in self._uuid_to_api_external:
+            return self._uuid_to_api_external[api_name]
         else:
             raise IndexError(
                 "Unable to locate an API named " + api_name
@@ -193,7 +193,7 @@ class MimicCore(object):
                         prefix_map[endpoint] = api.uri_for_service(
                             endpoint.region, service_id
                         )
-                    except IndexError:
+                    except IndexError:  # pragma:nocover
                         # ignore APIs that don't support the given region
                         pass
 

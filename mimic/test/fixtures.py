@@ -37,6 +37,12 @@ class TenantAuthentication(object):
             }
         ))
 
+    def get_tenant_id(self):
+        """
+        Return the tenant id from the service catalog
+        """
+        return self.service_catalog_json['access']['token']['tenant']['id']
+
     def get_service_endpoint(self, service_name, region=''):
         """
         Return the publicURL for the given service and region. Note that if
