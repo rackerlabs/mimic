@@ -141,6 +141,75 @@ class CoreApiBuildingTests(SynchronousTestCase):
         with self.assertRaises(TypeError):
             MimicCore(Clock(), [brokenApiMock()])
 
+    def test_remove_api(self):
+        """
+        Validate that an API can be removed
+        """
+        eeapi = make_example_external_api(
+            name=self.eeapi_name,
+            set_enabled=True
+        )
+        self.assertIsNotNone(eeapi)
+
+        template_ids = [ept.id_key for ept in eeapi.list_templates()]
+        for template_id in template_ids:
+            eeapi.remove_template(template_id)
+
+        core = MimicCore(Clock(), [eeapi])
+        core.remove_external_api(
+            eeapi.uuid_key,
+            eeapi.type_key,
+            eeapi.name_key
+        )
+
+    def test_remove_api_invalid(self):
+        """
+        Validate API removal fails when it does not find the
+        api name in the listing
+        """
+        core = MimicCore(Clock(), [])
+        with self.assertRaises(IndexError):
+            core.remove_external_api(
+                'some-id',
+                'some-type',
+                self.eeapi_name
+            )
+
+    def test_remove_api_with_endpoints(self):
+        """
+        Validate an API cannot be removed if it still has
+        endpoints assigned to it
+        """
+        eeapi = make_example_external_api(
+            name=self.eeapi_name,
+            set_enabled=True
+        )
+        self.assertIsNotNone(eeapi)
+        core = MimicCore(Clock(), [eeapi])
+        with self.assertRaises(ValueError):
+            core.remove_external_api(
+                eeapi.uuid_key,
+                eeapi.type_key,
+                eeapi.name_key
+            )
+
+    def test_get_external_apis(self):
+        """
+        Validate retrieving the list of external APIs
+        """
+        eeapi = make_example_external_api(
+            name=self.eeapi_name,
+            set_enabled=True
+        )
+
+        core = MimicCore(Clock(), [])
+        self.assertEqual(len(core.get_external_apis()), 0)
+
+        core.add_api(eeapi)
+        api_list = core.get_external_apis()
+        self.assertEqual(len(api_list), 1)
+        self.assertEqual(list(api_list), [self.eeapi_name])
+
     def test_get_external_api(self):
         """
         Validate retrieving an external API

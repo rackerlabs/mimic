@@ -7,8 +7,10 @@ from __future__ import absolute_import, division, unicode_literals
 
 import json
 import time
+import uuid
 
 import attr
+from six import text_type
 
 from twisted.python.urlpath import URLPath
 
@@ -25,6 +27,13 @@ from mimic.model.identity import (
     ImpersonationCredentials,
     PasswordCredentials,
     TokenCredentials)
+from mimic.model.identity_objects import (
+    bad_request,
+    conflict,
+    not_found,
+    unauthorized,
+    ExternalApiStore
+)
 from mimic.rest.mimicapp import MimicApp
 from mimic.session import NonMatchingTenantError
 from mimic.util.helper import (
@@ -262,9 +271,9 @@ class IdentityApi(object):
             return json.dumps({'RAX-KSKEY:apiKeyCredentials': {'username': username,
                                                                'apiKey': apikey}})
         else:
-            request.setResponseCode(404)
-            return json.dumps({'itemNotFound':
-                              {'code': 404, 'message': 'User ' + user_id + ' not found'}})
+            return json.dumps(not_found(
+                              'User ' + user_id + ' not found',
+                              request))
 
     @app.route('/v2.0/RAX-AUTH/impersonation-tokens', methods=['POST'])
     def get_impersonation_token(self, request):
@@ -314,6 +323,7 @@ class IdentityApi(object):
                 impersonator_session.username)
 
         if token_id in get_presets["identity"]["token_fail_to_auth"]:
+            # weird mix between an unauthorized (401) and not_found (404)
             request.setResponseCode(401)
             return json.dumps({'itemNotFound':
                               {'code': 401, 'message': 'Invalid auth token'}})
@@ -595,6 +605,231 @@ class IdentityApi(object):
                 'code': 401,
                 'message': ("No valid token provided. Please use the 'X-Auth-Token'"
                             " header with a valid token.")}})
+
+    @app.route('/v2.0/MIMIC-OSKSCATALOG/services', methods=['GET'])
+    def list_external_api_services(self, request):
+        """
+        List the available external services that end-point templates
+        may be added to.
+
+        Note: MIMIC-OSKSCATALOG is a Mimic specific administrative extension
+            for managing services in the Service Catalog that are not
+            hosted by Mimic internally. These services are manageable
+            via the Keystone OS-KSCATALOG administrative extension.
+        """
+        x_auth_token = request.getHeader(b"x-auth-token")
+        if x_auth_token is None:
+            return json.dumps(unauthorized("Authentication required", request))
+
+        request.setResponseCode(200)
+        return json.dumps({
+            "MIMIC-OS-KSCATALOG": [
+                {
+                    "name": api.name_key,
+                    "type": api.type_key,
+                    "id": api.uuid_key
+                }
+                for api in [
+                    self.core.get_external_api(api_name)
+                    for api_name in self.core.get_external_apis()]]})
+
+    @app.route('/v2.0/MIMIC-OSKSCATALOG/services', methods=['POST'])
+    def create_external_api_service(self, request):
+        """
+        Create a new external api service that end-point templates
+        may be added to.
+
+        Note: MIMIC-OSKSCATALOG is a Mimic specific administrative extension
+            for managing services in the Service Catalog that are not
+            hosted by Mimic internally. These services are manageable
+            via the Keystone OS-KSCATALOG administrative extension.
+
+        Note: Only requires 'name' and 'type' fields in the JSON. If the 'id'
+            field is present, it will use it; otherwise a UUID4 will be
+            assigned.
+        """
+        x_auth_token = request.getHeader(b"x-auth-token")
+        if x_auth_token is None:
+            return json.dumps(unauthorized("Authentication required", request))
+
+        try:
+            content = json_from_request(request)
+        except ValueError:
+            return json.dumps(bad_request("Invalid JSON request body", request))
+
+        try:
+            service_name = content['name']
+            service_type = content['type']
+        except KeyError:
+            return json.dumps(
+                bad_request(
+                    "Invalid Content. 'name' and 'type' fields are required.",
+                    request))
+
+        try:
+            service_id = content['id']
+        except KeyError:
+            service_id = text_type(uuid.uuid4())
+
+        if service_name in self.core.get_external_apis():
+            return json.dumps(
+                conflict(
+                    "Conflict: Service with the same name already exists.",
+                    request))
+
+        self.core.add_api(ExternalApiStore(
+            service_id,
+            service_name,
+            service_type))
+        request.setResponseCode(201)
+        return b''
+
+    @app.route('/v2.0/MIMIC-OSKSCATALOG/services', methods=['DELETE'])
+    def delete_external_api_service(self, request):
+        """
+        Delete/Remove an existing  external service api. It must not have
+        any end-point templates assigned to it for success.
+
+        Note: MIMIC-OSKSCATALOG is a Mimic specific administrative extension
+            for managing services in the Service Catalog that are not
+            hosted by Mimic internally. These services are manageable
+            via the Keystone OS-KSCATALOG administrative extension.
+
+        Note: Requires 'name', 'id', and 'type' fields in the JSON.
+        """
+        x_auth_token = request.getHeader(b"x-auth-token")
+        if x_auth_token is None:
+            return json.dumps(unauthorized("Authentication required", request))
+
+        try:
+            content = json_from_request(request)
+        except ValueError:
+            return json.dumps(bad_request("Invalid JSON request body", request))
+
+        try:
+            service_name = content['name']
+            service_type = content['type']
+            service_id = content['id']
+        except KeyError:
+            return json.dumps(
+                bad_request(
+                    "Invalid Content. 'id', 'name', and 'type' fields are required.",
+                    request))
+
+        try:
+            self.core.remove_external_api(
+                service_id,
+                service_type,
+                service_name
+            )
+        except IndexError:
+            return json.dumps(
+                not_found(
+                    "Service not found. Unable to remove.",
+                    request))
+        except ValueError:
+            return json.dumps(
+                conflict(
+                    "Service still has end-point templates.",
+                    request))
+        else:
+            request.setResponseCode(204)
+            return b''
+
+    @app.route('/v2.0/OS-KSCATALOG/endpointTemplates', methods=['GET'])
+    def list_endpoint_templates(self, request):
+        """
+        List the available end-point templates.
+
+        Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
+
+        Note: Marker/Limit capability not implemented here.
+        """
+        x_auth_token = request.getHeader(b"x-auth-token")
+        if x_auth_token is None:
+            return json.dumps(unauthorized("Authentication required", request))
+
+        # caller may provide a specific API to list by setting the
+        # serviceid header
+        external_apis_to_list = []
+        service_id = request.getHeader(b'serviceid')
+        if service_id is not None:
+            external_apis_to_list = [service_id.decode('utf-8')]
+        else:
+            external_apis_to_list = [
+                api_name
+                for api_name in self.core.get_external_apis()
+            ]
+
+        try:
+            data = []
+            request.setResponseCode(200)
+            for api_name in external_apis_to_list:
+                api = self.core.get_external_api(api_name)
+                for endpoint_template in api.list_templates():
+                    data.append(endpoint_template.serialize())
+            request.setHeader('X-Service-Count', len(data))
+            request.setHeader('X-API-Count', len(external_apis_to_list))
+            request.setHeader('X-Core-API-Count',
+                              len(self.core._uuid_to_api_external))
+            return json.dumps(
+                {
+                    "OS-KSCATALOG": data
+                }
+            )
+        except IndexError:
+            request.setResponseCode(404)
+            return json.dumps(not_found(
+                "Unable to find the requested API",
+                request))
+
+    @app.route('/v2.0/OS-KSCATALOG/endpointTemplates', methods=['POST'])
+    def add_endpoint_templates(self, request):
+        """
+        Add an API end-point template to the system. By default the API
+        described by the template will disabled for all users.
+
+        Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
+
+        Note: Either the service-id must be specified in the header or
+            a Service Name by the same name must already exist. Otherwise
+            a Not Found (404) will be returned.
+        """
+        x_auth_token = request.getHeader(b"x-auth-token")
+        if x_auth_token is None:
+            return json.dumps(unauthorized("Authentication required", request))
+
+    @app.route('/v2.0/OS-KSCATALOG/endpointTemplates', methods=['PUT'])
+    def update_endpoint_templates(self, request):
+        """
+        Update an API end-point template already in the system.
+
+        Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
+
+        Note: A template by the same id must already exist in the system.
+
+        Note: Either the service-id must be specified in the header or
+            a Service Name by the same name must already exist. Otherwise
+            a Not Found (404) will be returned.
+        """
+        x_auth_token = request.getHeader(b"x-auth-token")
+        if x_auth_token is None:
+            return json.dumps(unauthorized("Authentication required", request))
+
+    @app.route('/v2.0/OS-KSCATALOG/endpointTemplates', methods=['DELETE'])
+    def delete_endpoint_templates(self, request):
+        """
+        Delete an end-point API template from the system.
+
+        Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
+
+        Note: Either the service-id must be specified in the header or
+            a Service Name by the same name must already exist. Otherwise
+            a Not Found (404) will be returned.
+        """
+        x_auth_token = request.getHeader(b"x-auth-token")
+        if x_auth_token is None:
+            return json.dumps(unauthorized("Authentication required", request))
 
 
 def base_uri_from_request(request):

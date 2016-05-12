@@ -3,9 +3,8 @@ from __future__ import absolute_import, division, unicode_literals
 from twisted.trial.unittest import SynchronousTestCase
 
 from mimic.model.identity_objects import (
-    bad_request,
-    not_found,
-    forbidden
+    forbidden,
+    EndpointTemplateStore
 )
 from mimic.test.dummy import (
     ExampleEndPointTemplate,
@@ -28,9 +27,143 @@ class YetToBeDone(SynchronousTestCase):
             def setResponseCode(self, code):
                 pass
 
-        bad_request("testing bad request", reqMock())
-        not_found("testing not found", reqMock())
         forbidden("testing forbidden", reqMock())
+
+
+class ValidateEndPointTemplateInstance(SynchronousTestCase):
+    """
+    Validate the :obj:`EndpointTemplateStore`
+    """
+    @staticmethod
+    def get_optional_mapping_value(epts, attribute_name):
+        for tname, name, value in epts.optional_mapping:
+            if name == attribute_name:
+                return (value, tname)
+
+    def validate_mapping(self, epts, data, use_defaults):
+        self.assertEqual(data, epts._template_data)
+        self.assertEqual(data['id'], epts.id_key)
+        self.assertEqual(data['region'], epts.region_key)
+        self.assertEqual(data['type'], epts.type_key)
+        self.assertEqual(data['name'], epts.name_key)
+
+        validate_attributes = [
+            'enabled_key',
+            'publicURL',
+            'internalURL',
+            'adminURL',
+            'tenantAlias',
+            'versionId',
+            'versionInfo',
+            'versionList'
+        ]
+        for epts_attribute in validate_attributes:
+            actual_value = getattr(epts, epts_attribute)
+            default_value, data_name = self.get_optional_mapping_value(
+                epts,
+                epts_attribute
+            )
+            if use_defaults:
+                self.assertEqual(
+                    actual_value,
+                    default_value
+                )
+            else:
+                self.assertEqual(
+                    actual_value,
+                    data[data_name]
+                )
+
+    def test_basic_no_dict(self):
+        epts = EndpointTemplateStore()
+        self.assertIsNone(epts._template_data)
+        self.assertIsNone(epts.id_key)
+        self.assertIsNone(epts.region_key)
+        self.assertIsNone(epts.type_key)
+        self.assertIsNone(epts.name_key)
+        self.assertIsNone(epts.enabled_key)
+        self.assertIsNone(epts.publicURL)
+        self.assertIsNone(epts.internalURL)
+        self.assertIsNone(epts.adminURL)
+        self.assertIsNone(epts.tenantAlias)
+        self.assertIsNone(epts.versionId)
+        self.assertIsNone(epts.versionInfo)
+        self.assertIsNone(epts.versionList)
+
+    def test_basic_with_minimal_dict(self):
+        data = {
+            "id": "some-id",
+            "region": "some-region",
+            "type": "some-type",
+            "name": "some-name"
+        }
+        epts = EndpointTemplateStore(data)
+        self.validate_mapping(epts, data, True)
+
+    def test_deserialize_minimal_invalid(self):
+        data = {
+            "id": "some-id",
+            "type": "some-type",
+            "name": "some-name"
+        }
+        with self.assertRaises(KeyError):
+            EndpointTemplateStore(data)
+
+    def test_deserialization(self):
+        data = {
+            "id": "some-id",
+            "region": "some-region",
+            "type": "some-type",
+            "name": "some-name",
+            "enabled": True,
+            "publicURL": "http://public.url",
+            "internalURL": "http://internal.url",
+            "adminURL": "http://admin.internal.url",
+            "RAX-AUTH:tenantAlias": "{{tenant_id}}",
+            "versionId": "http://some.url/version",
+            "versionInfo": "http://some.url/version/info",
+            "versionList": "http://some.url/version/list"
+        }
+        epts = EndpointTemplateStore(data)
+        self.validate_mapping(epts, data, False)
+
+    def test_serialize_basic(self):
+        data = {
+            "id": "some-id",
+            "region": "some-region",
+            "type": "some-type",
+            "name": "some-name"
+        }
+        epts = EndpointTemplateStore()
+        epts.id_key = data['id']
+        epts.region_key = data['region']
+        epts.type_key = data['type']
+        epts.name_key = data['name']
+        serialized_data = epts.serialize()
+        for k, v in serialized_data.items():
+            if k not in data:
+                self.assertIsNone(v)
+            else:
+                self.assertEqual(v, data[k])
+
+    def test_serialize_complete(self):
+        data = {
+            "id": "some-id",
+            "region": "some-region",
+            "type": "some-type",
+            "name": "some-name",
+            "enabled": True,
+            "publicURL": "http://public.url",
+            "internalURL": "http://internal.url",
+            "adminURL": "http://admin.internal.url",
+            "RAX-AUTH:tenantAlias": "{{tenant_id}}",
+            "versionId": "http://some.url/version",
+            "versionInfo": "http://some.url/version/info",
+            "versionList": "http://some.url/version/list"
+        }
+        epts = EndpointTemplateStore(data)
+        serialized_data = epts.serialize()
+        self.assertEqual(data, serialized_data)
 
 
 class ValidateEndPointTemplates(SynchronousTestCase):

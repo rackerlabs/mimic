@@ -48,6 +48,16 @@ class IEndPointTemplate(Interface):
     versionList = Attribute("URL to determine which version is hosted "
                             "by the end-point")
 
+    def serialize():  # pragma:nocover
+        """
+        Serialize the end-point template to a dictionary.
+        """
+
+    def deserialize(data):  # pragma:nocover
+        """
+        Deserialize the end-point template from a dictionary.
+        """
+
 
 class IExternalAPIMock(Interface):
     """

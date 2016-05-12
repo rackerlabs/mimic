@@ -7,7 +7,13 @@ from __future__ import absolute_import, division, unicode_literals
 from zope.interface import implementer
 
 from twisted.plugin import IPlugin
-from twisted.web.http import BAD_REQUEST, FORBIDDEN, NOT_FOUND
+from twisted.web.http import (
+    BAD_REQUEST,
+    CONFLICT,
+    FORBIDDEN,
+    NOT_FOUND,
+    UNAUTHORIZED,
+)
 
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
@@ -49,6 +55,19 @@ def bad_request(message, request):
     return _identity_error_message("badRequest", message, BAD_REQUEST, request)
 
 
+def conflict(message, request):
+    """
+    Return a 409 error body associated with a Identity bad request error.
+    Also sets the response code on the request.
+
+    :param str message: The message to include in the bad request body.
+    :param request: The request on which to set the response code.
+
+    :return: dictionary representing the error body.
+    """
+    return _identity_error_message("conflict", message, CONFLICT, request)
+
+
 def not_found(message, request):
     """
     Return a 404 error body associated with a Identity not found error.
@@ -62,6 +81,19 @@ def not_found(message, request):
     return _identity_error_message("itemNotFound", message, NOT_FOUND, request)
 
 
+def unauthorized(message, request):
+    """
+    Return a 401 error body associated with a Identity unauthoriazed error.
+    Also sets the response code on the request.
+
+    :param str message: The message to include in the bad request body.
+    :param request: The request on which to set the response code.
+
+    :return: dictionary representing the error body.
+    """
+    return _identity_error_message("unauthorized", message, UNAUTHORIZED, request)
+
+
 def forbidden(message, request):
     """
     Return a 403 error body associated with a Identity forbidden error.
@@ -73,6 +105,104 @@ def forbidden(message, request):
     :return: dictionary representing the error body.
     """
     return _identity_error_message("forbidden", message, FORBIDDEN, request)
+
+
+@implementer(IEndPointTemplate, IPlugin)
+class EndpointTemplateStore(object):
+    """
+    A :obj"`EndpointTemplateStore` is an object whiich provides the
+    functionality to integrate an Endpoint Template instance. It is only
+    meant to work with a single Endpoint Template. Use :obj:`ExternalApiStore`
+    to manage multiple Endpoint Templates.
+
+    :ivar list required_mapping: list of entries in the template that are
+        required to be present for a valid template
+    :ivar list optional_mapping: list of entries in the template that are
+        optionally present in a valid template, along with a default value.
+
+
+    Note: The OpenStack documentation[0] does not specify any required
+        parameters. For this implementation, the `id`, `region`, `type`,
+        and `name` fields are required. The `name` and `type` fields
+        are used for creating an instance of the :obj:`ExternalApiStore`
+        that will enable the listing to be put into the Service Catalog;
+        the `id` and `region` fields are used by the :obj:`ExternalApiStore`
+        for managing the templates.
+
+    [0] http://developer.openstack.org/api-ref-identity-v2-ext.html
+    """
+    required_mapping = [
+        ('id', 'id_key'),
+        ('region', 'region_key'),
+        ('type', 'type_key'),
+        ('name', 'name_key'),
+    ]
+
+    optional_mapping = [
+        ('enabled', 'enabled_key', False),
+        ('publicURL', 'publicURL', u""),
+        ('internalURL', 'internalURL', u""),
+        ('adminURL', 'adminURL', u""),
+        ('RAX-AUTH:tenantAlias', 'tenantAlias', "%tenant_id%"),
+        ('versionId', 'versionId', u""),
+        ('versionInfo', 'versionInfo', u""),
+        ('versionList', 'versionList', u"")
+    ]
+
+    def __init__(self, template_dict=None):
+        """
+        Create an :obj:`EndpointTemplateStore`
+
+        :param dict template_dict (optional): optional dictionary to load the
+            Endpoint Template data from. The dictionary is simply passed to the
+            deserializer.
+        """
+        self._template_data = template_dict
+        self.id_key = None
+        self.region_key = None
+        self.type_key = None
+        self.name_key = None
+        self.enabled_key = None
+        self.publicURL = None
+        self.internalURL = None
+        self.adminURL = None
+        self.tenantAlias = None
+        self.versionId = None
+        self.versionInfo = None
+        self.versionList = None
+
+        if self._template_data is not None:
+            self.deserialize(self._template_data)
+
+    def serialize(self):
+        """
+        Serialize the end-point template to a dictionary.
+        """
+        data = {}
+        for template_key, local_attribute in self.required_mapping:
+            data[template_key] = getattr(self, local_attribute)
+
+        for template_key, local_attribute, _ in self.optional_mapping:
+            value = getattr(self, local_attribute)
+            if value is not None:
+                data[template_key] = value
+        return data
+
+    def deserialize(self, data):
+        """
+        Deserialize the end-point template from a dictionary.
+        """
+        for template_key, local_attribute in self.required_mapping:
+            if template_key not in data:
+                raise KeyError('Missing required value ' + template_key)
+
+            setattr(self, local_attribute, data[template_key])
+
+        for template_key, local_attribute, default in self.optional_mapping:
+            value = default
+            if template_key in data:
+                value = data[template_key]
+            setattr(self, local_attribute, value)
 
 
 @implementer(IExternalAPIMock, IPlugin)

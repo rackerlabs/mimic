@@ -6,6 +6,8 @@ from __future__ import absolute_import, division, unicode_literals
 
 import uuid
 
+from six import text_type
+
 from zope.interface import implementer
 
 from twisted.plugin import IPlugin
@@ -14,7 +16,10 @@ from twisted.web.resource import Resource
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.imimic import IAPIMock, IAPIDomainMock, IEndPointTemplate
-from mimic.model.identity_objects import ExternalApiStore
+from mimic.model.identity_objects import (
+    ExternalApiStore,
+    EndpointTemplateStore
+)
 
 
 class ExampleResource(Resource):
@@ -97,7 +102,7 @@ class ExampleDomainAPI(object):
 
 
 @implementer(IEndPointTemplate)
-class ExampleEndPointTemplate(object):
+class ExampleEndPointTemplate(EndpointTemplateStore):
     """
     Example End-Point Template
     """
@@ -106,8 +111,8 @@ class ExampleEndPointTemplate(object):
                  url="https://api.external.example.com:8080",
                  publicURL=None, internalURL=None, adminURL=None,
                  versionInfoURL=None, versionListURL=None,
-                 type_id=u"example", enabled=False, uuid=uuid.uuid4(),
-                 tenantid_alias="%tenant_id%"
+                 type_id=u"example", enabled=False,
+                 uuid=text_type(uuid.uuid4()), tenantid_alias="%tenant_id%"
                  ):
         """
         Create an :obj:`ExampleEndPoindTemplate`.
@@ -157,7 +162,8 @@ class ExampleEndPointTemplate(object):
 
 def make_example_external_api(name=u"example",
                               endpoint_templates=[ExampleEndPointTemplate()],
-                              set_enabled=None):
+                              set_enabled=None,
+                              service_type=None):
     """
     Initialize an :obj:`ExternalApiStore` for a given name.
 
@@ -167,6 +173,8 @@ def make_example_external_api(name=u"example",
     :param boolean or None set_enabled: If none, the endpoint templates
         are used AS-IS. If a boolean type, then it sets all the templates
         to have the same default accessibility for all tenants.
+    :param text_type service_type: type of the service. If noe, the type
+        is extracted from the first entry in the endpoint_template list.
 
     Note: The service-type of the first end-point template is used as the
         service type for the entire Api Store, and is enforced that all
@@ -176,7 +184,17 @@ def make_example_external_api(name=u"example",
     :raises: ValueError if the service-type does not match between all the
         end-point templates.
     """
-    service_type = endpoint_templates[0].type_key
+    if service_type is None:
+        # default parameter value, take the template type from the first
+        # endpoint template in the list
+        service_type = endpoint_templates[0].type_key
+
+    elif len(endpoint_templates) == 1:
+        # service_type was specified and most likely endpoint_templates
+        # was left to its default value thereby creating an example
+        # template that must now be updated.
+        endpoint_templates[0].type_key = service_type
+
     for ept in endpoint_templates:
         ept.name_key = name
         if ept.type_key != service_type:

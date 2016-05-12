@@ -102,6 +102,37 @@ class MimicCore(object):
                 " does not implement IAPIMock or IExternalAPIMock"
             )
 
+    def remove_external_api(self, api_id, api_type, api_name):
+        """
+        Remove an External API from the listing.
+
+        :param text_type api_name: the name of the API instance
+            e.g Cloud Files
+        :param text_type api_type: the type of the API instance
+            e.g object-store
+        :param text_type api_id: the id of the API instance
+            e.g 3845-39583, cloudfiles-mimic
+        """
+        if api_name in self._uuid_to_api_external:
+            api = self._uuid_to_api_external[api_name]
+
+            if len(api.list_templates()) == 0:
+                del self._uuid_to_api_external[api_name]
+
+            else:
+                raise ValueError("API still has end-point templates")
+
+        else:
+            raise IndexError(api_name + " is not a valid external API")
+
+    def get_external_apis(self):
+        """
+        Return the list of external API names
+
+        :returns: iterable of service ids for the external APIs
+        """
+        return self._uuid_to_api_external.keys()
+
     def get_external_api(self, api_name):
         """
         Access an API instance for an external API.
