@@ -336,6 +336,9 @@ class ExternalApiStore(object):
             if key in self.endpoint_templates:
                 raise ValueError(key + " already exists. Please call update.")
 
+            if endpoint_template.type_key != self.type_key:
+                raise ValueError("template does not match the service type.")
+
             self.endpoint_templates[key] = endpoint_template
         else:
             raise TypeError(

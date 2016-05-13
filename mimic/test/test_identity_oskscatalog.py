@@ -4,6 +4,7 @@ Tests for mimic identity :mod:`mimic.rest.identity_api`
 
 from __future__ import absolute_import, division, unicode_literals
 
+import json
 import uuid
 
 from six import text_type
@@ -17,7 +18,7 @@ from mimic.test.dummy import (
     make_example_external_api,
     ExampleAPI,
 )
-from mimic.test.helpers import json_request
+from mimic.test.helpers import json_request, request
 
 
 class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase):
@@ -165,7 +166,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
 
     def test_auth_fail(self):
         """
-        Validate X-Auth-Token required to access endpoint
+        Validate X-Auth-Token required to access endpoint.
         """
         (response, json_body) = self.successResultOf(
             json_request(self, self.root, b"POST",
@@ -173,6 +174,206 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
 
         self.assertEqual(response.code, 401)
         self.assertEqual(json_body['unauthorized']['code'], 401)
+
+    def test_invalid_json_body(self):
+        """
+        Validate that a JSON message body is required.
+        """
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, b"POST",
+                         self.uri,
+                         body=b'<xml>ensure json failure',
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 400)
+        self.assertEqual(json_body['badRequest']['code'], 400)
+        self.assertEqual(json_body['badRequest']['message'],
+                         'Invalid JSON request body')
+
+    def test_json_body_missing_required_field_name(self):
+        """
+        Validate that the name field in the JSON body is required.
+        """
+        data = {
+            'id': text_type(uuid.uuid4()),
+            'type': 'some-type',
+            'region': 'some-region'
+        }
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, b"POST",
+                         self.uri,
+                         body=data,
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 400)
+        self.assertEqual(json_body['badRequest']['code'], 400)
+        self.assertTrue(
+            json_body['badRequest']['message'].startswith(
+                "JSON body does not contain the required parameters:"
+            )
+        )
+
+    def test_json_body_missing_required_field_id(self):
+        """
+        Validate that the id field in the JSON body is required.
+        """
+        data = {
+            'name': 'some-name',
+            'type': 'some-type',
+            'region': 'some-region'
+        }
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, b"POST",
+                         self.uri,
+                         body=data,
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 400)
+        self.assertEqual(json_body['badRequest']['code'], 400)
+        self.assertTrue(
+            json_body['badRequest']['message'].startswith(
+                "JSON body does not contain the required parameters:"
+            )
+        )
+
+    def test_json_body_missing_required_field_type(self):
+        """
+        Validate that the type field in the JSON body is required.
+        """
+        data = {
+            'id': text_type(uuid.uuid4()),
+            'name': 'some-name',
+            'region': 'some-region'
+        }
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, b"POST",
+                         self.uri,
+                         body=data,
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 400)
+        self.assertEqual(json_body['badRequest']['code'], 400)
+        self.assertTrue(
+            json_body['badRequest']['message'].startswith(
+                "JSON body does not contain the required parameters:"
+            )
+        )
+
+    def test_json_body_missing_required_field_region(self):
+        """
+        Validate that the region field in the JSON body is required.
+        """
+        data = {
+            'id': text_type(uuid.uuid4()),
+            'name': 'some-name',
+            'type': 'some-type'
+        }
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, b"POST",
+                         self.uri,
+                         body=data,
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 400)
+        self.assertEqual(json_body['badRequest']['code'], 400)
+        self.assertTrue(
+            json_body['badRequest']['message'].startswith(
+                "JSON body does not contain the required parameters:"
+            )
+        )
+
+    def test_invalid_service_name(self):
+        """
+        Validate a service-id that does not map to an actual service
+        generates a 404 failure.
+        """
+        data = {
+            'id': text_type(uuid.uuid4()),
+            'name': 'some-name',
+            'type': 'some-type',
+            'region': 'some-region'
+        }
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, b"POST",
+                         self.uri,
+                         body=data,
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 404)
+        self.assertEqual(json_body['itemNotFound']['code'], 404)
+
+    def test_existing_endpoint_template(self):
+        """
+        Validate adding an endpoint template that matches an existing
+        endpoint template generates a 409 failure.
+        """
+        self.core.add_api(self.eeapi)
+        id_key = None
+        for k, v in self.eeapi.endpoint_templates.items():
+            id_key = k
+
+        data = {
+            'id': id_key,
+            'name': self.eeapi_name,
+            'type': 'some-type',
+            'region': 'some-region'
+        }
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, b"POST",
+                         self.uri,
+                         body=data,
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 409)
+        self.assertEqual(json_body['conflict']['code'], 409)
+
+    def test_new_endpoint_template_wrong_service_type(self):
+        """
+        Validate that the service type must match between
+        the service and the endpoint template.
+        """
+        self.core.add_api(self.eeapi)
+        id_key = None
+        for k, v in self.eeapi.endpoint_templates.items():
+            id_key = k
+
+        data = {
+            'id': text_type(uuid.uuid4()),
+            'name': self.eeapi_name,
+            'type': 'some-type',
+            'region': 'some-region'
+        }
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, b"POST",
+                         self.uri,
+                         body=data,
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 409)
+        self.assertEqual(json_body['conflict']['code'], 409)
+
+    def test_new_endpoint_template(self):
+        """
+        Validate that a new endpoint template can be added.
+        """
+        self.core.add_api(self.eeapi)
+        id_key = None
+        for k, v in self.eeapi.endpoint_templates.items():
+            id_key = k
+
+        data = {
+            'id': text_type(uuid.uuid4()),
+            'name': self.eeapi_name,
+            'type': self.eeapi.type_key,
+            'region': 'some-region'
+        }
+        req = request(self, self.root, b"POST",
+                      self.uri,
+                      body=json.dumps(data).encode("utf-8"),
+                      headers=self.headers)
+
+        response = self.successResultOf(req)
+        self.assertEqual(response.code, 201)
 
 
 class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
