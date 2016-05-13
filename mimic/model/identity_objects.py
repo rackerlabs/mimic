@@ -11,7 +11,7 @@ from twisted.web.http import BAD_REQUEST, FORBIDDEN, NOT_FOUND
 
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
-from mimic.imimic import IExternalAPIMock, IEndPointTemplate
+from mimic.imimic import IExternalAPIMock, IEndpointTemplate
 
 
 def _identity_error_message(msg_type, message, status_code, request):
@@ -91,14 +91,14 @@ class ExternalApiStore(object):
             f.e Cloud Files, Identity
         :param text_type service_type: type of the service being provided,
             f.e object-store, auth
-        :param iterable api_templates: iterable of templates to during
+        :param iterable api_templates: iterable of templates to add during
             initialization
         """
         self.name_key = service_name
         self.type_key = service_type
         self.uuid_key = service_uuid
 
-        # Listing of tenant-specific end-points
+        # Listing of tenant-specific endpoints
         # tenant-id is the key
         self.endpoints_for_tenants = {}
 
@@ -112,10 +112,10 @@ class ExternalApiStore(object):
 
     def list_tenant_endpoints(self, tenant_id):
         """
-        List the tenant specific end-points.
+        List the tenant specific endpoints.
 
         :param text_type tenant_id: tenant id to operate on
-        :returns: an iterable of the end points available for the specified
+        :returns: an iterable of the endpoints available for the specified
             tenant id
         """
         # List of template IDs that should be provided for a template
@@ -126,7 +126,7 @@ class ExternalApiStore(object):
                 tenant_specific_templates.append(template_id)
 
         # provide an End-point Entry for every template that is either
-        # (a) enabled or (b) in the list of end-points specifically
+        # (a) enabled or (b) in the list of endpoints specifically
         # enabled for the tenant
         endpoints = []
         for _, endpoint_template in self.endpoint_templates.items():
@@ -146,10 +146,10 @@ class ExternalApiStore(object):
 
     def enable_endpoint_for_tenant(self, tenant_id, template_id):
         """
-        Enable an end-point for a specific tenant.
+        Enable an endpoint for a specific tenant.
 
         :param text_type tenant_id: tenant id to operate on
-        :param text_type template_id: end-point template id to enable
+        :param text_type template_id: endpoint template id to enable
         :raises: ValueError if the template id is not found
         """
         if tenant_id not in self.endpoints_for_tenants:
@@ -164,10 +164,10 @@ class ExternalApiStore(object):
 
     def disable_endpoint_for_tenant(self, tenant_id, template_id):
         """
-        Disable an end-point for a specific tenant.
+        Disable an endpoint for a specific tenant.
 
         :param text_type tenant_id: tenant id to operate on
-        :param text_type template_id: end-point template id to disable
+        :param text_type template_id: endpoint template id to disable
         :raises: ValueError if template is not enabled for the tenant
         """
         if tenant_id in self.endpoints_for_tenants:
@@ -186,7 +186,7 @@ class ExternalApiStore(object):
         """
         List the available templates.
 
-        :returns: an iterable of the end-point templates
+        :returns: an iterable of the endpoint templates
         """
         return self.endpoint_templates.values()
 
@@ -194,13 +194,13 @@ class ExternalApiStore(object):
         """
         Add a new template for the external API.
 
-        :param unicode templates: a :obj:`IEndPointTemplate` to add to the
+        :param unicode templates: a :obj:`IEndpointTemplate` to add to the
             :obj:`IExternalAPIMock` instance
-        :raises: ValueError if the end-point template has already been added
-        :raises: TypeError if the end-point template does not implement
-            the expected interface (IEndPointTempalte)
+        :raises: ValueError if the endpoint template has already been added
+        :raises: TypeError if the endpoint template does not implement
+            the expected interface (IEndpointTempalte)
         """
-        if IEndPointTemplate.providedBy(endpoint_template):
+        if IEndpointTemplate.providedBy(endpoint_template):
             key = endpoint_template.id_key
 
             if key in self.endpoint_templates:
@@ -211,20 +211,20 @@ class ExternalApiStore(object):
             raise TypeError(
                 endpoint_template.__class__.__module__ + "/" +
                 endpoint_template.__class__.__name__ +
-                " does not implement IEndPointTemplate"
+                " does not implement IEndpointTemplate"
             )
 
     def update_template(self, endpoint_template):
         """
         Update an existing template for the external API.
 
-        :param unicode templates: a :obj:`IEndPointTemplate` to add to the
+        :param unicode templates: a :obj:`IEndpointTemplate` to add to the
             :obj:`IExternalAPIMock` instance
-        :raises: IndexError if the end-point template does not already exist
-        :raises: TypeError if the end-point template does not implement
-            the expected interface (IEndPointTempalte)
+        :raises: IndexError if the endpoint template does not already exist
+        :raises: TypeError if the endpoint template does not implement
+            the expected interface (IEndpointTempalte)
         """
-        if IEndPointTemplate.providedBy(endpoint_template):
+        if IEndpointTemplate.providedBy(endpoint_template):
             key = endpoint_template.id_key
 
             if key not in self.endpoint_templates:
@@ -239,14 +239,14 @@ class ExternalApiStore(object):
             raise TypeError(
                 endpoint_template.__class__.__module__ + "/" +
                 endpoint_template.__class__.__name__ +
-                " does not implement IEndPointTemplate"
+                " does not implement IEndpointTemplate"
             )
 
     def remove_template(self, template_id):
         """
-        Add a new template for the external API.
+        Remove the template for the external API.
 
-        :param unicode template_id: the unique id of the end-point template
+        :param unicode template_id: the unique id of the endpoint template
             to be removed.
         :raises: IndexError if the template does not exist
         """

@@ -189,13 +189,9 @@ class MimicCore(object):
         for service_id, api in self._uuid_to_api_external.items():
             for entry in api.catalog_entries(tenant_id):
                 for endpoint in entry.endpoints:
-                    try:
-                        prefix_map[endpoint] = api.uri_for_service(
-                            endpoint.region, service_id
-                        )
-                    except IndexError:  # pragma:nocover
-                        # ignore APIs that don't support the given region
-                        pass
+                    prefix_map[endpoint] = api.uri_for_service(
+                        endpoint.region, service_id
+                    )
 
                 yield entry
 

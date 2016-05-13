@@ -28,10 +28,10 @@ class IAPIMock(Interface):
         """
 
 
-class IEndPointTemplate(Interface):
+class IEndpointTemplate(Interface):
     """
-    AN :obj:`IEndPointTemplate` provides an interface for the OS-KSCATALOG
-    Admin end-point templates, defining the fields.
+    AN :obj:`IEndpointTemplate` provides an interface for the OS-KSCATALOG
+    Admin endpoint templates, defining the fields.
     """
     id_key = Attribute("Unique Service ID")
     region_key = Attribute("Region the End-Point services")
@@ -42,11 +42,11 @@ class IEndPointTemplate(Interface):
     internalURL = Attribute("Intranet Facing URL")
     adminURL = Attribute("Service Adminsitration URL")
     tenantAlias = Attribute("Tenant Alias to be appended to the "
-                            "end-point URI")
+                            "endpoint URI")
     versionId = Attribute("Version Details")
     versionInfo = Attribute("URL to get the version information")
     versionList = Attribute("URL to determine which version is hosted "
-                            "by the end-point")
+                            "by the endpoint")
 
 
 class IExternalAPIMock(Interface):
@@ -75,17 +75,17 @@ class IExternalAPIMock(Interface):
 
     def list_tenant_endpoints(tenant_id):  # pragma:nocover
         """
-        List the tenant specific end-points.
+        List the tenant specific endpoints.
         """
 
     def enable_endpoint_for_tenant(tenant_id, template_id):  # pragma:nocover
         """
-        Enable an end-point for a specific tenant.
+        Enable an endpoint for a specific tenant.
         """
 
     def disable_endpoint_for_tenant(tenant_id, template_id):  # pragma:nocover
         """
-        Disable an end-point for a specific tenant.
+        Disable an endpoint for a specific tenant.
         """
 
     def list_templates():  # pragma:nocover
@@ -97,7 +97,7 @@ class IExternalAPIMock(Interface):
         """
         Add a new template for the external API.
 
-        :param unicode templates: a :obj:`IEndPointTemplate` to add to the
+        :param unicode templates: a :obj:`IEndpointTemplate` to add to the
             :obj:`IExternalAPIMock` instance
         """
 
@@ -105,7 +105,7 @@ class IExternalAPIMock(Interface):
         """
         Update an existing template for the external API.
 
-        :param unicode templates: a :obj:`IEndPointTemplate` to add to the
+        :param unicode templates: a :obj:`IEndpointTemplate` to add to the
             :obj:`IExternalAPIMock` instance
         """
 
@@ -113,7 +113,7 @@ class IExternalAPIMock(Interface):
         """
         Add a new template for the external API.
 
-        :param unicode template_id: the unique id of the end-point template
+        :param unicode template_id: the unique id of the endpoint template
             to be removed.
         """
 

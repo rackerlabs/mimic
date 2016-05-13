@@ -17,7 +17,7 @@ from mimic.plugins import (nova_plugin, loadbalancer_plugin, swift_plugin,
                            neutron_plugin, dns_plugin, cinder_plugin)
 from mimic.test.dummy import (
     ExampleAPI,
-    ExampleEndPointTemplate,
+    ExampleEndpointTemplate,
     make_example_external_api
 )
 from mimic.test.fixtures import APIMockHelper
@@ -238,6 +238,8 @@ class CoreApiBuildingTests(SynchronousTestCase):
 
     def test_entries_for_tenant_external(self):
         """
+        Validate that the external API shows up in the service catalog for
+        a given tenant.
         """
         eeapi = make_example_external_api(
             name=self.eeapi_name,
@@ -261,6 +263,8 @@ class CoreApiBuildingTests(SynchronousTestCase):
 
     def test_entries_for_tenant_internal(self):
         """
+        Validate that the internal API shows up in the service catalog for
+        a given tenant.
         """
         core = MimicCore(Clock(), [ExampleAPI()])
 
@@ -279,6 +283,8 @@ class CoreApiBuildingTests(SynchronousTestCase):
 
     def test_entries_for_tenant_combined(self):
         """
+        Validate that both internal and external APIs show up in the service
+        catalog for a given tenant.
         """
         eeapi = make_example_external_api(
             name=self.eeapi_name,
@@ -300,8 +306,9 @@ class CoreApiBuildingTests(SynchronousTestCase):
 
         self.assertEqual(len(catalog_entries), 2)
 
-    def test_entries_for_tenant_external_invalid(self):
+    def test_entries_for_tenant_external_multiple_regions(self):
         """
+        Test with multiple regions for the External APIs.
         """
         eeapi = make_example_external_api(
             name=self.eeapi_name,
@@ -309,7 +316,7 @@ class CoreApiBuildingTests(SynchronousTestCase):
         )
         eeapi2_name = "alternate-external-api"
         eeapi2_template_id = u"uuid-alternate-endpoint-template"
-        eeapi2_template = ExampleEndPointTemplate(
+        eeapi2_template = ExampleEndpointTemplate(
             name=eeapi2_name,
             uuid=eeapi2_template_id,
             region=u"NEW_REGION",
