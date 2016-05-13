@@ -609,7 +609,7 @@ class IdentityApi(object):
     @app.route('/v2.0/MIMIC-OSKSCATALOG/services', methods=['GET'])
     def list_external_api_services(self, request):
         """
-        List the available external services that end-point templates
+        List the available external services that endpoint templates
         may be added to.
 
         Note: MIMIC-OSKSCATALOG is a Mimic specific administrative extension
@@ -636,7 +636,7 @@ class IdentityApi(object):
     @app.route('/v2.0/MIMIC-OSKSCATALOG/services', methods=['POST'])
     def create_external_api_service(self, request):
         """
-        Create a new external api service that end-point templates
+        Create a new external api service that endpoint templates
         may be added to.
 
         Note: MIMIC-OSKSCATALOG is a Mimic specific administrative extension
@@ -688,7 +688,7 @@ class IdentityApi(object):
     def delete_external_api_service(self, request):
         """
         Delete/Remove an existing  external service api. It must not have
-        any end-point templates assigned to it for success.
+        any endpoint templates assigned to it for success.
 
         Note: MIMIC-OSKSCATALOG is a Mimic specific administrative extension
             for managing services in the Service Catalog that are not
@@ -730,7 +730,7 @@ class IdentityApi(object):
         except ValueError:
             return json.dumps(
                 conflict(
-                    "Service still has end-point templates.",
+                    "Service still has endpoint templates.",
                     request))
         else:
             request.setResponseCode(204)
@@ -739,7 +739,7 @@ class IdentityApi(object):
     @app.route('/v2.0/OS-KSCATALOG/endpointTemplates', methods=['GET'])
     def list_endpoint_templates(self, request):
         """
-        List the available end-point templates.
+        List the available endpoint templates.
 
         Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
 
@@ -786,7 +786,7 @@ class IdentityApi(object):
     @app.route('/v2.0/OS-KSCATALOG/endpointTemplates', methods=['POST'])
     def add_endpoint_templates(self, request):
         """
-        Add an API end-point template to the system. By default the API
+        Add an API endpoint template to the system. By default the API
         described by the template will disabled for all users.
 
         Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
@@ -802,7 +802,7 @@ class IdentityApi(object):
     @app.route('/v2.0/OS-KSCATALOG/endpointTemplates', methods=['PUT'])
     def update_endpoint_templates(self, request):
         """
-        Update an API end-point template already in the system.
+        Update an API endpoint template already in the system.
 
         Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
 
@@ -819,7 +819,7 @@ class IdentityApi(object):
     @app.route('/v2.0/OS-KSCATALOG/endpointTemplates', methods=['DELETE'])
     def delete_endpoint_templates(self, request):
         """
-        Delete an end-point API template from the system.
+        Delete an endpoint API template from the system.
 
         Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
 

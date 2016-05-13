@@ -7,7 +7,7 @@ from twisted.trial.unittest import SynchronousTestCase
 from mimic.imimic import IExternalAPIMock
 from mimic.test.dummy import (
     ExampleAPI,
-    ExampleEndPointTemplate,
+    ExampleEndpointTemplate,
     make_example_external_api
 )
 from mimic.test.fixtures import APIMockHelper, TenantAuthentication
@@ -88,7 +88,7 @@ class TestTenantSpecificAPIs(SynchronousTestCase):
     def setUp(self):
         self.eeapi_name = u"externalServiceName"
         self.eeapi_template_id = u"uuid-endpoint-template"
-        self.eeapi_template = ExampleEndPointTemplate(
+        self.eeapi_template = ExampleEndpointTemplate(
             name=self.eeapi_name,
             uuid=self.eeapi_template_id
         )
@@ -119,7 +119,7 @@ class TestTenantSpecificAPIs(SynchronousTestCase):
 
     def test_single_endpoint_enabled_for_tenant(self):
         """
-        Validate an end-point can be enabled for a single tenant
+        Validate an endpoint can be enabled for a single tenant
         while being disabled globally for all tenants.
         """
         tenant_data = TenantAuthentication(
@@ -136,7 +136,7 @@ class TestTenantSpecificAPIs(SynchronousTestCase):
 
     def test_disabled_globally_disabled(self):
         """
-        Validate that even though an end-point is enabled for one
+        Validate that even though an endpoint is enabled for one
         tenant that it remains globally disabled for all other tenants.
         """
         tenant_data = TenantAuthentication(self, self.root, "other", "other")
@@ -146,13 +146,13 @@ class TestTenantSpecificAPIs(SynchronousTestCase):
 
     def test_multiple_endpoints_enabled_for_tenant(self):
         """
-        Validate when there are multiple end-points enabled for a single
+        Validate when there are multiple endpoints enabled for a single
         tenant.
         """
         new_url = "https://api.new_region.example.com:9090"
         new_region = "NEW_REGION"
         new_eeapi_template_id = u"uuid-alternate-endpoint-template"
-        new_eeapi_template = ExampleEndPointTemplate(
+        new_eeapi_template = ExampleEndpointTemplate(
             name=self.eeapi_name,
             uuid=new_eeapi_template_id,
             region=new_region,
@@ -185,7 +185,7 @@ class TestTenantSpecificAPIs(SynchronousTestCase):
         new_url = "https://api.new_region.example.com:9090"
         new_region = "NEW_REGION"
         new_eeapi_template_id = u"uuid-alternate-endpoint-template"
-        new_eeapi_template = ExampleEndPointTemplate(
+        new_eeapi_template = ExampleEndpointTemplate(
             name=self.eeapi_name,
             uuid=new_eeapi_template_id,
             region=new_region,

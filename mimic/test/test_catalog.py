@@ -32,7 +32,7 @@ class CatalogEntry(SynchronousTestCase):
         self.assertEqual(entry.endpoints, empty_iterable)
 
 
-class CatalogEndPoint(SynchronousTestCase):
+class CatalogEndpoint(SynchronousTestCase):
     """
     Tests for creating a :class:`Endpoint` object
     """
@@ -62,7 +62,7 @@ class CatalogEndPoint(SynchronousTestCase):
 
     def test_internal_endpoint(self):
         """
-        Typical creationg of :obj:`Endpoint` for an internal API
+        Typical creation of :obj:`Endpoint` for an internal API
         """
         endpoint = Endpoint(
             self.tenant,
