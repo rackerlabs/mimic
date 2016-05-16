@@ -111,7 +111,7 @@ class MimicCore(object):
 
         :param text_type api_name: the name of the API instance
             e.g Cloud Files
-        :returns: The :obj:`IExternaAPIMock` instance supporting the
+        :returns: The :obj:`IExternalAPIMock` instance supporting the
             externally hosted API.
         :raises: IndexError if it is unable to find an API by the given
             name.
@@ -192,7 +192,6 @@ class MimicCore(object):
                     prefix_map[endpoint] = api.uri_for_service(
                         endpoint.region, service_id
                     )
-
                 yield entry
 
         # Return all the internal APIs

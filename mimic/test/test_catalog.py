@@ -7,7 +7,7 @@ from mimic.catalog import Endpoint, Entry
 
 class CatalogEntry(SynchronousTestCase):
     """
-    Tests for creating a :class:`Entry` object
+    Testing of the :class:`Entry` object
     """
     def setUp(self):
         self.tenant = u"some-tenant"
@@ -16,7 +16,9 @@ class CatalogEntry(SynchronousTestCase):
 
     def test_basic(self):
         """
-        Absolute minimal creation of :obj:`Entry`
+        Validate the requirements for creating an :obj:`Entry` object.
+        At minimum the tenant, service type, and service name are
+        defined, and no endpoints (regions) are available.
         """
         empty_iterable = []
         entry = Entry(
@@ -34,7 +36,7 @@ class CatalogEntry(SynchronousTestCase):
 
 class CatalogEndpoint(SynchronousTestCase):
     """
-    Tests for creating a :class:`Endpoint` object
+    Testing of the :class:`Endpoint` object
     """
     def setUp(self):
         self.tenant = u"some-tenant"
@@ -46,7 +48,9 @@ class CatalogEndpoint(SynchronousTestCase):
 
     def test_basic(self):
         """
-        Absolute minimal creation of :obj:`Endpoint`
+        Validate the requirements for creating an :obj`Endpoint` object.
+        At minimum, the tenant, region, and endpoint id are defined;
+        default parameters must also be checked.
         """
         endpoint = Endpoint(
             self.tenant,
@@ -62,7 +66,9 @@ class CatalogEndpoint(SynchronousTestCase):
 
     def test_internal_endpoint(self):
         """
-        Typical creation of :obj:`Endpoint` for an internal API
+        Validate creating an :obj:`Endpoint` for an internal API. In addition
+        to the tenant, region, and endpoint id the prefix must also be
+        specified.
         """
         endpoint = Endpoint(
             self.tenant,
@@ -82,7 +88,9 @@ class CatalogEndpoint(SynchronousTestCase):
 
     def test_external_endpoint(self):
         """
-        Typical creation of :obj:`Endpoint` for an external API
+        Validate creating an :obj:`Endpoint` for an external API. In addition
+        to the tenant, region, and endpoint id both `external` must be set to
+        `True` and the `complete_url` must be set.
         """
         endpoint = Endpoint(
             self.tenant,
@@ -104,7 +112,9 @@ class CatalogEndpoint(SynchronousTestCase):
 
     def test_external_endpoint_invalid(self):
         """
-        Invalid creation of :obj:`Endpoint` for an external API
+        Validate that trying to creating an :obj:`Endpoint` for an external API
+        (setting `external` to `True` while *not* setting the `complete_url`
+        will raise a `ValueError` exception.
         """
         with self.assertRaises(ValueError):
             Endpoint(

@@ -99,7 +99,7 @@ class ExampleDomainAPI(object):
 @implementer(IEndpointTemplate)
 class ExampleEndpointTemplate(object):
     """
-    Example End-Point Template
+    Example External Endpoint Template
     """
 
     def __init__(self, name=u"example", region="EXTERNAL", version="v1",
@@ -110,7 +110,7 @@ class ExampleEndpointTemplate(object):
                  tenantid_alias="%tenant_id%"
                  ):
         """
-        Create an :obj:`ExampleEndPoindTemplate`.
+        Create an :obj:`ExampleEndpointTemplate`.
 
         :param text_type name: name of the service provided, e.g Cloud Files.
         :param text_type region: region the service is provided in, e.g ORD.
@@ -169,8 +169,8 @@ def make_example_external_api(name=u"example",
         to have the same default accessibility for all tenants.
 
     Note: The service-type of the first endpoint template is used as the
-        service type for the entire Api Store, and is enforced that all
-        endpoint templates have the same service-type.
+        service type for the entire :obj:`ExternalApiStore`, and is enforced
+        that all endpoint templates have the same service-type.
 
     :returns: an instance of :obj:`ExternalApiStore`.
     :raises: ValueError if the service-type does not match between all the

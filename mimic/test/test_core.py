@@ -25,7 +25,7 @@ from mimic.test.fixtures import APIMockHelper
 
 class CoreBuildingPluginsTests(SynchronousTestCase):
     """
-    Tests for creating a :class:`MimicCore` object with plugins
+    Tests for creating a :class:`MimicCore` object with plugins.
     """
     def test_no_uuids_if_no_plugins(self):
         """
@@ -106,14 +106,14 @@ dummy_domain_plugin = ExampleDomainAPI()
 
 class CoreApiBuildingTests(SynchronousTestCase):
     """
-    Tests for creating a :class:`MimicCore` object with apis
+    Tests for creating a :class:`MimicCore` object with apis.
     """
     def setUp(self):
         self.eeapi_name = u"externalServiceName"
 
     def test_load_external_api(self):
         """
-        Validate loading a valid external API object
+        Validate loading a valid external API object.
         """
         eeapi = make_example_external_api(
             name=self.eeapi_name,
@@ -124,15 +124,15 @@ class CoreApiBuildingTests(SynchronousTestCase):
 
     def test_load_internal_api(self):
         """
-        Validate loading a valid internal API object
+        Validate loading a valid internal API object.
         """
         APIMockHelper(self, [ExampleAPI()])
 
     def test_load_invalid_api(self):
         """
-        Using a dummy interface that implements :obj:`IPlugin`,
-        try to add an object that does not implement either
-        :obj:`IAPIMock` or :obj:`IExternalAPIMock`.
+        Using a dummy interface that implements :obj:`IPlugin`, try to add an
+        object that does not implement either :obj:`IAPIMock` or
+        :obj:`IExternalAPIMock`.
         """
         @implementer(IPlugin)
         class brokenApiMock(object):
@@ -143,7 +143,7 @@ class CoreApiBuildingTests(SynchronousTestCase):
 
     def test_get_external_api(self):
         """
-        Validate retrieving an external API
+        Validate retrieving an external API.
         """
         eeapi = make_example_external_api(
             name=self.eeapi_name,
@@ -158,8 +158,8 @@ class CoreApiBuildingTests(SynchronousTestCase):
 
     def test_get_external_api_invalid(self):
         """
-        Validate retrieving a non-existent external API
-        which should raise an IndexError exception
+        Validate retrieving a non-existent external API which should raise an
+        `IndexError` exception.
         """
         core = MimicCore(Clock(), [])
         with self.assertRaises(IndexError):
@@ -167,8 +167,8 @@ class CoreApiBuildingTests(SynchronousTestCase):
 
     def test_service_with_region_external(self):
         """
-        Validate that an external service does not
-        provide an internal service resource
+        Validate that an external service does not provide an internal
+        service resource.
         """
         eeapi = make_example_external_api(
             name=self.eeapi_name,
@@ -188,8 +188,8 @@ class CoreApiBuildingTests(SynchronousTestCase):
 
     def test_service_with_region_internal(self):
         """
-        Validate that an external service does not
-        provide an internal service resource
+        Validate that an external service does not provide an internal service
+        resource.
         """
         iapi = ExampleAPI()
         self.assertIsNotNone(iapi)
@@ -212,8 +212,8 @@ class CoreApiBuildingTests(SynchronousTestCase):
 
     def test_uri_for_service(self):
         """
-        Validate that the URI returned by uri_for_service
-        returns the appropriate base URI
+        Validate that the URI returned by uri_for_service returns the
+        appropriate base URI.
         """
         iapi = ExampleAPI()
         self.assertIsNotNone(iapi)
@@ -238,8 +238,8 @@ class CoreApiBuildingTests(SynchronousTestCase):
 
     def test_entries_for_tenant_external(self):
         """
-        Validate that the external API shows up in the service catalog for
-        a given tenant.
+        Validate that the external API shows up in the service catalog for a
+        given tenant.
         """
         eeapi = make_example_external_api(
             name=self.eeapi_name,
@@ -259,14 +259,21 @@ class CoreApiBuildingTests(SynchronousTestCase):
             )
         ]
 
+        self.assertEqual(len(core._uuid_to_api_internal), 0)
+        self.assertEqual(len(core._uuid_to_api_external), 1)
         self.assertEqual(len(catalog_entries), 1)
+        self.assertEqual(catalog_entries[0].type, eeapi.type_key)
+        self.assertEqual(catalog_entries[0].name, eeapi.name_key)
+        self.assertEqual(catalog_entries[0].tenant_id, "some-tenant")
+        self.assertEqual(len(catalog_entries[0].endpoints), 1)
 
     def test_entries_for_tenant_internal(self):
         """
-        Validate that the internal API shows up in the service catalog for
-        a given tenant.
+        Validate that the internal API shows up in the service catalog for a
+        given tenant.
         """
-        core = MimicCore(Clock(), [ExampleAPI()])
+        iapi = ExampleAPI()
+        core = MimicCore(Clock(), [iapi])
 
         prefix_map = {}
         base_uri = "http://some/random/prefix"
@@ -279,7 +286,13 @@ class CoreApiBuildingTests(SynchronousTestCase):
             )
         ]
 
+        self.assertEqual(len(core._uuid_to_api_internal), 1)
+        self.assertEqual(len(core._uuid_to_api_external), 0)
         self.assertEqual(len(catalog_entries), 1)
+        self.assertEqual(catalog_entries[0].type, "serviceType")
+        self.assertEqual(catalog_entries[0].name, "serviceName")
+        self.assertEqual(catalog_entries[0].tenant_id, "some-tenant")
+        self.assertEqual(len(catalog_entries[0].endpoints), 1)
 
     def test_entries_for_tenant_combined(self):
         """
@@ -304,12 +317,36 @@ class CoreApiBuildingTests(SynchronousTestCase):
             )
         ]
 
+        self.assertEqual(len(core._uuid_to_api_internal), 1)
+        self.assertEqual(len(core._uuid_to_api_external), 1)
         self.assertEqual(len(catalog_entries), 2)
+
+        found_internal = False
+        found_external = False
+
+        for catalog_entry in catalog_entries:
+            if catalog_entry.name == eeapi.name_key:
+                found_external = True
+                self.assertEqual(catalog_entry.type, eeapi.type_key)
+                self.assertEqual(catalog_entry.name, eeapi.name_key)
+                self.assertEqual(catalog_entry.tenant_id, "some-tenant")
+                self.assertEqual(len(catalog_entry.endpoints), 1)
+
+            elif catalog_entry.name == "serviceName":
+                found_internal = True
+                self.assertEqual(catalog_entry.type, "serviceType")
+                self.assertEqual(catalog_entry.name, "serviceName")
+                self.assertEqual(catalog_entry.tenant_id, "some-tenant")
+                self.assertEqual(len(catalog_entry.endpoints), 1)
+
+        self.assertTrue(found_internal)
+        self.assertTrue(found_external)
 
     def test_entries_for_tenant_external_multiple_regions(self):
         """
         Test with multiple regions for the External APIs.
         """
+        iapi = ExampleAPI()
         eeapi = make_example_external_api(
             name=self.eeapi_name,
             set_enabled=True
@@ -328,7 +365,7 @@ class CoreApiBuildingTests(SynchronousTestCase):
             set_enabled=True
         )
 
-        core = MimicCore(Clock(), [eeapi, eeapi2, ExampleAPI()])
+        core = MimicCore(Clock(), [eeapi, eeapi2, iapi])
 
         prefix_map = {}
         base_uri = "http://some/random/prefix"
@@ -341,4 +378,36 @@ class CoreApiBuildingTests(SynchronousTestCase):
             )
         ]
 
+        self.assertEqual(len(core._uuid_to_api_internal), 1)
+        self.assertEqual(len(core._uuid_to_api_external), 2)
         self.assertEqual(len(catalog_entries), 3)
+
+        found_internal = False
+        found_first_external = False
+        found_second_external = False
+
+        for catalog_entry in catalog_entries:
+            if catalog_entry.name == eeapi.name_key:
+                found_first_external = True
+                self.assertEqual(catalog_entry.type, eeapi.type_key)
+                self.assertEqual(catalog_entry.name, eeapi.name_key)
+                self.assertEqual(catalog_entry.tenant_id, "some-tenant")
+                self.assertEqual(len(catalog_entry.endpoints), 1)
+
+            elif catalog_entry.name == eeapi2.name_key:
+                found_second_external = True
+                self.assertEqual(catalog_entry.type, eeapi2.type_key)
+                self.assertEqual(catalog_entry.name, eeapi2.name_key)
+                self.assertEqual(catalog_entry.tenant_id, "some-tenant")
+                self.assertEqual(len(catalog_entry.endpoints), 1)
+
+            elif catalog_entry.name == "serviceName":
+                found_internal = True
+                self.assertEqual(catalog_entry.type, "serviceType")
+                self.assertEqual(catalog_entry.name, "serviceName")
+                self.assertEqual(catalog_entry.tenant_id, "some-tenant")
+                self.assertEqual(len(catalog_entry.endpoints), 1)
+
+        self.assertTrue(found_internal)
+        self.assertTrue(found_first_external)
+        self.assertTrue(found_second_external)
