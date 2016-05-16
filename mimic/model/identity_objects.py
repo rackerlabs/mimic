@@ -375,6 +375,15 @@ class ExternalApiStore(object):
                     "template must first be added before it can be updated"
                 )
 
+            if endpoint_template.type_key != self.type_key:
+                raise ValueError("template does not match the service type.")
+
+            if self.endpoint_templates[key].id_key != endpoint_template.id_key:
+                raise ValueError(
+                    "template id must match the id of the template it is "
+                    "updating"
+                )
+
             self.endpoint_templates[key] = endpoint_template
 
         else:

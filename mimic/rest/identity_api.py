@@ -820,8 +820,10 @@ class IdentityApi(object):
             return json.dumps(
                 bad_request(
                     "JSON body does not contain the required parameters: "
-                    + text_type([key
-                       for key, _ in EndpointTemplateStore.required_mapping]),
+                    + text_type(
+                        [key
+                         for key, _ in EndpointTemplateStore.required_mapping]
+                    ),
                     request
                 )
             )
@@ -850,7 +852,6 @@ class IdentityApi(object):
         else:
             request.setResponseCode(201)
             return b''
-
 
     @app.route('/v2.0/OS-KSCATALOG/endpointTemplates', methods=['PUT'])
     def update_endpoint_templates(self, request):

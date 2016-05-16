@@ -343,6 +343,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
             'type': 'some-type',
             'region': 'some-region'
         }
+        self.assertNotEqual(id_key, data['id'])
         (response, json_body) = self.successResultOf(
             json_request(self, self.root, b"POST",
                          self.uri,
@@ -367,6 +368,8 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
             'type': self.eeapi.type_key,
             'region': 'some-region'
         }
+        self.assertNotEqual(id_key, data['id'])
+
         req = request(self, self.root, b"POST",
                       self.uri,
                       body=json.dumps(data).encode("utf-8"),
