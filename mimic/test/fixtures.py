@@ -50,9 +50,11 @@ class TenantAuthentication(object):
         returned, and if no region is specified, the first endpoint will be
         returned.
         :param unicode service_name: The name of the service for which to get
-            an endpoint as listed in the service catalog
+            an endpoint as listed in the service catalog.
         :param unicode region: The service catalog region of the desired
-            endpoint
+            endpoint.
+        :raises: KeyError when unable to locate the service in the service
+            catalog.
         """
         for service in self.service_catalog_json['access']['serviceCatalog']:
             if service['name'] == service_name:

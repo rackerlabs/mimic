@@ -208,8 +208,17 @@ class EndpointTemplateStore(object):
 @implementer(IExternalAPIMock, IPlugin)
 class ExternalApiStore(object):
     """
-    A :obj:`ExternalApiStore` is an object which provides the functionality to list
-    an API that is external to Mimic in the service catalog provided by Mimic.
+    A :obj:`ExternalApiStore` provides management of APIs External to Mimic
+    through the use of endpoint templates per the Identity v2 OS-KSCATALOG
+    extension. Each template can be enabled globally or per tenant. Enabled
+    templates show up in the Service Catalog; disabled Templates only show
+    up in the OS-KSCATALOG administrative functionality and do not otherwise
+    impact users. Each :obj:`ExternalApiStore` instance manages a specific
+    service (e.g Cloud Files, Cloud Servers, etc); there may be several
+    services of the same service type (e.g object-store) but with different
+    service names (e.g Cloud Files, OpenStack Swift).
+
+    Note: An endpoint template typically maps to a region.
     """
 
     def __init__(self, service_uuid, service_name, service_type, api_templates=[]):
@@ -255,7 +264,7 @@ class ExternalApiStore(object):
             for template_id in self.endpoints_for_tenants[tenant_id]:
                 tenant_specific_templates.append(template_id)
 
-        # provide an End-point Entry for every template that is either
+        # provide an Endpoint Entry for every template that is either
         # (a) enabled or (b) in the list of endpoints specifically
         # enabled for the tenant
         endpoints = []
@@ -362,7 +371,7 @@ class ExternalApiStore(object):
 
             if key not in self.endpoint_templates:
                 raise IndexError(
-                    "End-point template does not exist. Unable to update. The "
+                    "Endpoint template does not exist. Unable to update. The "
                     "template must first be added before it can be updated"
                 )
 

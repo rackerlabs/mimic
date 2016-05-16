@@ -34,10 +34,10 @@ class IEndpointTemplate(Interface):
     Admin endpoint templates, defining the fields.
     """
     id_key = Attribute("Unique Service ID")
-    region_key = Attribute("Region the End-Point services")
+    region_key = Attribute("Region the Endpoint services")
     type_key = Attribute("Service type, example: object-store")
     name_key = Attribute("Service Name, example: Cloud Files")
-    enabled_key = Attribute("Whether the End-Point is globally available")
+    enabled_key = Attribute("Whether the Endpoint is globally available")
     publicURL = Attribute("Internet Facing URL")
     internalURL = Attribute("Intranet Facing URL")
     adminURL = Attribute("Service Adminsitration URL")
@@ -121,7 +121,7 @@ class IExternalAPIMock(Interface):
 
     def remove_template(template_id):  # pragma:nocover
         """
-        Add a new template for the external API.
+        Remove the template for the external API.
 
         :param unicode template_id: the unique id of the endpoint template
             to be removed.
