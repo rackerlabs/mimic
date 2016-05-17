@@ -607,16 +607,14 @@ class IdentityApi(object):
                 'message': ("No valid token provided. Please use the 'X-Auth-Token'"
                             " header with a valid token.")}})
 
-    @app.route('/v2.0/MIMIC-OSKSCATALOG/services', methods=['GET'])
+    @app.route('/v2.0/services', methods=['GET'])
     def list_external_api_services(self, request):
         """
         List the available external services that endpoint templates
         may be added to.
 
-        Note: MIMIC-OSKSCATALOG is a Mimic specific administrative extension
-            for managing services in the Service Catalog that are not
-            hosted by Mimic internally. These services are manageable
-            via the Keystone OS-KSCATALOG administrative extension.
+        Note: Part of the OS-KSADM extension.
+        Note: Does not implement the limits or markers.
         """
         x_auth_token = request.getHeader(b"x-auth-token")
         if x_auth_token is None:
@@ -624,30 +622,28 @@ class IdentityApi(object):
 
         request.setResponseCode(200)
         return json.dumps({
-            "MIMIC-OS-KSCATALOG": [
+            "OS-KSADM:services": [
                 {
                     "name": api.name_key,
                     "type": api.type_key,
-                    "id": api.uuid_key
+                    "id": api.uuid_key,
+                    "description": api.description
                 }
                 for api in [
                     self.core.get_external_api(api_name)
                     for api_name in self.core.get_external_apis()]]})
 
-    @app.route('/v2.0/MIMIC-OSKSCATALOG/services', methods=['POST'])
+    @app.route('/v2.0/services', methods=['POST'])
     def create_external_api_service(self, request):
         """
         Create a new external api service that endpoint templates
         may be added to.
 
-        Note: MIMIC-OSKSCATALOG is a Mimic specific administrative extension
-            for managing services in the Service Catalog that are not
-            hosted by Mimic internally. These services are manageable
-            via the Keystone OS-KSCATALOG administrative extension.
-
+        Note: Part of the OS-KSADM extensions.
         Note: Only requires 'name' and 'type' fields in the JSON. If the 'id'
-            field is present, it will use it; otherwise a UUID4 will be
-            assigned.
+            or 'description' fields are present, then they will be used;
+            otherwise a UUID4 will be assigned to the 'id' field and the
+            'description' will be given a generic value.
         """
         x_auth_token = request.getHeader(b"x-auth-token")
         if x_auth_token is None:
@@ -672,6 +668,11 @@ class IdentityApi(object):
         except KeyError:
             service_id = text_type(uuid.uuid4())
 
+        try:
+            service_description = content['description']
+        except KeyError:
+            service_description = u"External API referenced by Mimic"
+
         if service_name in self.core.get_external_apis():
             return json.dumps(
                 conflict(
@@ -681,40 +682,35 @@ class IdentityApi(object):
         self.core.add_api(ExternalApiStore(
             service_id,
             service_name,
-            service_type))
+            service_type,
+            description=service_description))
         request.setResponseCode(201)
         return b''
 
-    @app.route('/v2.0/MIMIC-OSKSCATALOG/services', methods=['DELETE'])
-    def delete_external_api_service(self, request):
+    @app.route('/v2.0/services/<string:service_id>', methods=['DELETE'])
+    def delete_external_api_service(self, request, service_id):
         """
         Delete/Remove an existing  external service api. It must not have
         any endpoint templates assigned to it for success.
 
-        Note: MIMIC-OSKSCATALOG is a Mimic specific administrative extension
-            for managing services in the Service Catalog that are not
-            hosted by Mimic internally. These services are manageable
-            via the Keystone OS-KSCATALOG administrative extension.
-
-        Note: Requires 'name', 'id', and 'type' fields in the JSON.
+        Note: Part of the OS-KSADM extension.
         """
         x_auth_token = request.getHeader(b"x-auth-token")
         if x_auth_token is None:
             return json.dumps(unauthorized("Authentication required", request))
 
-        try:
-            content = json_from_request(request)
-        except ValueError:
-            return json.dumps(bad_request("Invalid JSON request body", request))
+        service_name = None
+        service_type = None
+        for a_service_name in self.core.get_external_apis():
+            api = self.core.get_external_api(a_service_name)
+            if service_id == api.uuid_key:
+                service_name = api.name_key
+                service_type = api.type_key
 
-        try:
-            service_name = content['name']
-            service_type = content['type']
-            service_id = content['id']
-        except KeyError:
+        if service_name is None or service_type is None:
             return json.dumps(
-                bad_request(
-                    "Invalid Content. 'id', 'name', and 'type' fields are required.",
+                not_found(
+                    "Service not found. Unable to remove.",
                     request))
 
         try:
@@ -723,11 +719,6 @@ class IdentityApi(object):
                 service_type,
                 service_name
             )
-        except IndexError:
-            return json.dumps(
-                not_found(
-                    "Service not found. Unable to remove.",
-                    request))
         except ValueError:
             return json.dumps(
                 conflict(

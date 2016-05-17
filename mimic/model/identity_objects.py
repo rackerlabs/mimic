@@ -221,7 +221,8 @@ class ExternalApiStore(object):
     Note: An endpoint template typically maps to a region.
     """
 
-    def __init__(self, service_uuid, service_name, service_type, api_templates=[]):
+    def __init__(self, service_uuid, service_name, service_type,
+                 api_templates=[], description="External API"):
         """
         Initialize an :obj:`ExternalApiStore` for a given service.
 
@@ -236,6 +237,7 @@ class ExternalApiStore(object):
         self.name_key = service_name
         self.type_key = service_type
         self.uuid_key = service_uuid
+        self.description = description
 
         # Listing of tenant-specific endpoints
         # tenant-id is the key

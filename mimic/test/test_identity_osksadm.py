@@ -20,13 +20,13 @@ from mimic.test.helpers import json_request, request
 
 class TestIdentityMimicOSKSCatalogAdminListExternalServices(SynchronousTestCase):
     """
-    Tests for ``/identity/v2.0/MIMIC-OSKSCATALOG/services``, provided by
+    Tests for ``/identity/v2.0/services``, provided by
     :obj:`mimic.rest.idenity_api.IdentityApi`
     """
     def setUp(self):
         self.core = MimicCore(Clock(), [])
         self.root = MimicRoot(self.core).app.resource()
-        self.uri = "/identity/v2.0/MIMIC-OSKSCATALOG/services"
+        self.uri = "/identity/v2.0/services"
         self.eeapi_name = u"externalServiceName"
         self.eeapi = make_example_external_api(
             name=self.eeapi_name,
@@ -52,7 +52,7 @@ class TestIdentityMimicOSKSCatalogAdminListExternalServices(SynchronousTestCase)
                          headers=self.headers))
 
         self.assertEqual(response.code, 200)
-        self.assertEqual(len(json_body["MIMIC-OS-KSCATALOG"]), 0)
+        self.assertEqual(len(json_body["OS-KSADM:services"]), 0)
 
     def test_list_single(self):
         self.core.add_api(self.eeapi)
@@ -62,12 +62,12 @@ class TestIdentityMimicOSKSCatalogAdminListExternalServices(SynchronousTestCase)
                          headers=self.headers))
 
         self.assertEqual(response.code, 200)
-        self.assertEqual(len(json_body["MIMIC-OS-KSCATALOG"]), 1)
-        self.assertEqual(json_body["MIMIC-OS-KSCATALOG"][0]['id'],
+        self.assertEqual(len(json_body["OS-KSADM:services"]), 1)
+        self.assertEqual(json_body["OS-KSADM:services"][0]['id'],
                          self.eeapi.uuid_key)
-        self.assertEqual(json_body["MIMIC-OS-KSCATALOG"][0]['type'],
+        self.assertEqual(json_body["OS-KSADM:services"][0]['type'],
                          self.eeapi.type_key)
-        self.assertEqual(json_body["MIMIC-OS-KSCATALOG"][0]['name'],
+        self.assertEqual(json_body["OS-KSADM:services"][0]['name'],
                          self.eeapi.name_key)
 
     def test_list_multiple(self):
@@ -95,20 +95,20 @@ class TestIdentityMimicOSKSCatalogAdminListExternalServices(SynchronousTestCase)
                     self.assertEqual(api_name, api.name_key)
 
         self.assertEqual(response.code, 200)
-        self.assertEqual(len(json_body["MIMIC-OS-KSCATALOG"]), len(api_list))
-        for entry in json_body["MIMIC-OS-KSCATALOG"]:
+        self.assertEqual(len(json_body["OS-KSADM:services"]), len(api_list))
+        for entry in json_body["OS-KSADM:services"]:
             validate_api(entry['id'], entry['type'], entry['name'])
 
 
 class TestIdentityMimicOSKSCatalogAdminCreateExternalService(SynchronousTestCase):
     """
-    Tests for ``/identity/v2.0/MIMIC-OSKSCATALOG/services``, provided by
+    Tests for ``/identity/v2.0/services``, provided by
     :obj:`mimic.rest.idenity_api.IdentityApi`
     """
     def setUp(self):
         self.core = MimicCore(Clock(), [])
         self.root = MimicRoot(self.core).app.resource()
-        self.uri = "/identity/v2.0/MIMIC-OSKSCATALOG/services"
+        self.uri = "/identity/v2.0/services"
         self.eeapi_name = u"externalServiceName"
         self.eeapi = make_example_external_api(
             name=self.eeapi_name,
@@ -195,7 +195,7 @@ class TestIdentityMimicOSKSCatalogAdminCreateExternalService(SynchronousTestCase
             'type': self.eeapi.type_key
         }
         req = request(self, self.root, self.verb,
-                      "/identity/v2.0/MIMIC-OSKSCATALOG/services",
+                      "/identity/v2.0/services",
                       body=json.dumps(data).encode("utf-8"),
                       headers=self.headers)
 
@@ -216,21 +216,40 @@ class TestIdentityMimicOSKSCatalogAdminCreateExternalService(SynchronousTestCase
         response = self.successResultOf(req)
         self.assertEqual(response.code, 201)
 
+    def test_successfully_add_service_with_description(self):
+        data = {
+            'name': self.eeapi.name_key,
+            'type': self.eeapi.type_key,
+            'description': 'testing external API'
+        }
+        req = request(self, self.root, self.verb,
+                      self.uri,
+                      body=json.dumps(data).encode("utf-8"),
+                      headers=self.headers)
+
+        response = self.successResultOf(req)
+        self.assertEqual(response.code, 201)
+
 
 class TestIdentityMimicOSKSCatalogAdminDeleteExternalService(SynchronousTestCase):
     """
-    Tests for ``/identity/v2.0/MIMIC-OSKSCATALOG/services``, provided by
+    Tests for ``/identity/v2.0/services/<service-id>``, provided by
     :obj:`mimic.rest.idenity_api.IdentityApi`
     """
     def setUp(self):
         self.core = MimicCore(Clock(), [])
         self.root = MimicRoot(self.core).app.resource()
-        self.uri = "/identity/v2.0/MIMIC-OSKSCATALOG/services"
+        self.eeapi_id = u"some-id"
+        self.uri = "/identity/v2.0/services/" + self.eeapi_id
         self.eeapi_name = u"externalServiceName"
         self.eeapi = make_example_external_api(
             name=self.eeapi_name,
             set_enabled=True
         )
+        self.eeapi2 = make_example_external_api(
+            name=self.eeapi_name + " alternate"
+        )
+        self.eeapi.uuid_key = self.eeapi_id
         self.headers = {
             b'X-Auth-Token': [b'ABCDEF987654321']
         }
@@ -243,69 +262,6 @@ class TestIdentityMimicOSKSCatalogAdminDeleteExternalService(SynchronousTestCase
 
         self.assertEqual(response.code, 401)
         self.assertEqual(json_body['unauthorized']['code'], 401)
-
-    def test_invalid_json_body(self):
-        (response, json_body) = self.successResultOf(
-            json_request(self, self.root, self.verb,
-                         self.uri,
-                         body=b'<xml>ensure json failure',
-                         headers=self.headers))
-
-        self.assertEqual(response.code, 400)
-        self.assertEqual(json_body['badRequest']['code'], 400)
-        self.assertEqual(json_body['badRequest']['message'],
-                         'Invalid JSON request body')
-
-    def test_json_body_missing_required_field_name(self):
-        data = {
-            'type': 'some-type',
-            'id': 'some-id'
-        }
-        (response, json_body) = self.successResultOf(
-            json_request(self, self.root, self.verb,
-                         self.uri,
-                         body=data,
-                         headers=self.headers))
-
-        self.assertEqual(response.code, 400)
-        self.assertEqual(json_body['badRequest']['code'], 400)
-        self.assertEqual(json_body['badRequest']['message'],
-                         "Invalid Content. 'id', 'name', and 'type' fields "
-                         "are required.")
-
-    def test_json_body_missing_required_field_type(self):
-        data = {
-            'name': 'some-name',
-            'id': 'some-id'
-        }
-        (response, json_body) = self.successResultOf(
-            json_request(self, self.root, self.verb,
-                         self.uri,
-                         body=data,
-                         headers=self.headers))
-
-        self.assertEqual(response.code, 400)
-        self.assertEqual(json_body['badRequest']['code'], 400)
-        self.assertEqual(json_body['badRequest']['message'],
-                         "Invalid Content. 'id', 'name', and 'type' fields "
-                         "are required.")
-
-    def test_json_body_missing_required_field_id(self):
-        data = {
-            'name': 'some-name',
-            'type': 'some-type'
-        }
-        (response, json_body) = self.successResultOf(
-            json_request(self, self.root, self.verb,
-                         self.uri,
-                         body=data,
-                         headers=self.headers))
-
-        self.assertEqual(response.code, 400)
-        self.assertEqual(json_body['badRequest']['code'], 400)
-        self.assertEqual(json_body['badRequest']['message'],
-                         "Invalid Content. 'id', 'name', and 'type' fields "
-                         "are required.")
 
     def test_invalid_service(self):
         data = {
@@ -348,6 +304,7 @@ class TestIdentityMimicOSKSCatalogAdminDeleteExternalService(SynchronousTestCase
             self.eeapi.remove_template(template_id)
 
         self.core.add_api(self.eeapi)
+        self.core.add_api(self.eeapi2)
         data = {
             'name': self.eeapi.name_key,
             'type': self.eeapi.type_key,
