@@ -844,8 +844,9 @@ class IdentityApi(object):
             request.setResponseCode(201)
             return b''
 
-    @app.route('/v2.0/OS-KSCATALOG/endpointTemplates', methods=['PUT'])
-    def update_endpoint_templates(self, request):
+    @app.route('/v2.0/OS-KSCATALOG/endpointTemplates/<string:template_id>',
+               methods=['PUT'])
+    def update_endpoint_templates(self, request, template_id):
         """
         Update an API endpoint template already in the system.
 
@@ -869,6 +870,14 @@ class IdentityApi(object):
             )
 
         try:
+            if content['id'] != template_id:
+                return json.dumps(
+                    conflict(
+                        "Template ID in URL does not match that of the JSON body",
+                        request
+                    )
+                )
+
             endpoint_template_instance = EndpointTemplateStore(
                 template_dict=content
             )
@@ -918,8 +927,9 @@ class IdentityApi(object):
             request.setResponseCode(201)
             return b''
 
-    @app.route('/v2.0/OS-KSCATALOG/endpointTemplates', methods=['DELETE'])
-    def delete_endpoint_templates(self, request):
+    @app.route('/v2.0/OS-KSCATALOG/endpointTemplates/<string:template_id>',
+               methods=['DELETE'])
+    def delete_endpoint_templates(self, request, template_id):
         """
         Delete an endpoint API template from the system.
 

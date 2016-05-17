@@ -21,6 +21,17 @@ from mimic.test.dummy import (
 from mimic.test.helpers import json_request, request
 
 
+def get_template_id(case, eeapi):
+    """
+    Retrieve the template id.
+    """
+    id_key = None
+    for k in eeapi.endpoint_templates.keys():
+        id_key = k
+    case.assertIsNotNone(id_key)
+    return id_key
+
+
 class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase):
     """
     Tests for ``/identity/v2.0/OS-KSCATALOG/endpointTemplates``, provided by
@@ -317,9 +328,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
         endpoint template generates a 409 failure.
         """
         self.core.add_api(self.eeapi)
-        id_key = None
-        for k, v in self.eeapi.endpoint_templates.items():
-            id_key = k
+        id_key = get_template_id(self, self.eeapi)
 
         data = {
             'id': id_key,
@@ -346,9 +355,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
         the service and the endpoint template.
         """
         self.core.add_api(self.eeapi)
-        id_key = None
-        for k, v in self.eeapi.endpoint_templates.items():
-            id_key = k
+        id_key = get_template_id(self, self.eeapi)
 
         data = {
             'id': text_type(uuid.uuid4()),
@@ -375,9 +382,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
         Validate that a new endpoint template can be added.
         """
         self.core.add_api(self.eeapi)
-        id_key = None
-        for k, v in self.eeapi.endpoint_templates.items():
-            id_key = k
+        id_key = get_template_id(self, self.eeapi)
 
         data = {
             'id': text_type(uuid.uuid4()),
@@ -404,7 +409,6 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
     def setUp(self):
         self.core = MimicCore(Clock(), [])
         self.root = MimicRoot(self.core).app.resource()
-        self.uri = "/identity/v2.0/OS-KSCATALOG/endpointTemplates"
         self.eeapi_name = u"externalServiceName"
         self.eeapi = make_example_external_api(
             self,
@@ -415,13 +419,18 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
             b'X-Auth-Token': [b'ABCDEF987654321']
         }
         self.verb = b"PUT"
+        self.ept_template_id = get_template_id(self, self.eeapi)
+        self.uri = (
+            "/identity/v2.0/OS-KSCATALOG/endpointTemplates/" +
+            self.ept_template_id
+        )
 
     def test_auth_fail(self):
         """
         Validate X-Auth-Token required to access endpoint
         """
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"PUT",
+            json_request(self, self.root, self.verb,
                          self.uri))
 
         self.assertEqual(response.code, 401)
@@ -447,7 +456,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
         Validate that the name field in the JSON body is required.
         """
         data = {
-            'id': text_type(uuid.uuid4()),
+            'id': self.ept_template_id,
             'type': 'some-type',
             'region': 'some-region'
         }
@@ -493,7 +502,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
         Validate that the type field in the JSON body is required.
         """
         data = {
-            'id': text_type(uuid.uuid4()),
+            'id': self.ept_template_id,
             'name': 'some-name',
             'region': 'some-region'
         }
@@ -516,7 +525,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
         Validate that the region field in the JSON body is required.
         """
         data = {
-            'id': text_type(uuid.uuid4()),
+            'id': self.ept_template_id,
             'name': 'some-name',
             'type': 'some-type'
         }
@@ -540,7 +549,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
         generates a 404 failure.
         """
         data = {
-            'id': text_type(uuid.uuid4()),
+            'id': self.ept_template_id,
             'name': 'some-name',
             'type': 'some-type',
             'region': 'some-region'
@@ -564,12 +573,9 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
         the service and the endpoint template.
         """
         self.core.add_api(self.eeapi)
-        id_key = None
-        for k, v in self.eeapi.endpoint_templates.items():
-            id_key = k
 
         data = {
-            'id': id_key,
+            'id': self.ept_template_id,
             'name': self.eeapi_name,
             'type': 'some-type',
             'region': 'some-region'
@@ -593,9 +599,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
         Validate that a new endpoint template can be updated.
         """
         self.core.add_api(self.eeapi)
-        id_key = None
-        for k, v in self.eeapi.endpoint_templates.items():
-            id_key = k
+        id_key = get_template_id(self, self.eeapi)
 
         data = {
             'id': id_key,
@@ -621,7 +625,6 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesDelete(SynchronousTestCase):
     def setUp(self):
         self.core = MimicCore(Clock(), [])
         self.root = MimicRoot(self.core).app.resource()
-        self.uri = "/identity/v2.0/OS-KSCATALOG/endpointTemplates"
         self.eeapi_name = u"externalServiceName"
         self.eeapi = make_example_external_api(
             self,
@@ -632,6 +635,11 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesDelete(SynchronousTestCase):
             b'X-Auth-Token': [b'ABCDEF987654321']
         }
         self.verb = b"DELETE"
+        self.ept_template_id = get_template_id(self, self.eeapi)
+        self.uri = (
+            "/identity/v2.0/OS-KSCATALOG/endpointTemplates/" +
+            self.ept_template_id
+        )
 
     def test_auth_fail(self):
         """
