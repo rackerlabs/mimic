@@ -16,8 +16,8 @@ from mimic.plugins import (nova_plugin, loadbalancer_plugin, swift_plugin,
                            glance_plugin, cloudfeeds_plugin, heat_plugin,
                            neutron_plugin, dns_plugin, cinder_plugin)
 from mimic.test.dummy import (
-    ExampleAPI,
     ExampleEndpointTemplate,
+    make_example_internal_api,
     make_example_external_api
 )
 from mimic.test.fixtures import APIMockHelper
@@ -116,17 +116,17 @@ class CoreApiBuildingTests(SynchronousTestCase):
         Validate loading a valid external API object.
         """
         eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=True
         )
-        self.assertIsNotNone(eeapi)
         APIMockHelper(self, [eeapi])
 
     def test_load_internal_api(self):
         """
         Validate loading a valid internal API object.
         """
-        APIMockHelper(self, [ExampleAPI()])
+        APIMockHelper(self, [make_example_internal_api(self)])
 
     def test_load_invalid_api(self):
         """
@@ -146,6 +146,7 @@ class CoreApiBuildingTests(SynchronousTestCase):
         Validate retrieving an external API.
         """
         eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=True
         )
@@ -171,10 +172,10 @@ class CoreApiBuildingTests(SynchronousTestCase):
         service resource.
         """
         eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=True
         )
-        self.assertIsNotNone(eeapi)
         helper = APIMockHelper(self, [eeapi])
         core = helper.core
 
@@ -191,8 +192,7 @@ class CoreApiBuildingTests(SynchronousTestCase):
         Validate that an external service does not provide an internal service
         resource.
         """
-        iapi = ExampleAPI()
-        self.assertIsNotNone(iapi)
+        iapi = make_example_internal_api(self)
         helper = APIMockHelper(self, [iapi])
         core = helper.core
 
@@ -215,8 +215,7 @@ class CoreApiBuildingTests(SynchronousTestCase):
         Validate that the URI returned by uri_for_service returns the
         appropriate base URI.
         """
-        iapi = ExampleAPI()
-        self.assertIsNotNone(iapi)
+        iapi = make_example_internal_api(self)
         helper = APIMockHelper(self, [iapi])
         core = helper.core
 
@@ -242,6 +241,7 @@ class CoreApiBuildingTests(SynchronousTestCase):
         given tenant.
         """
         eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=True
         )
@@ -272,7 +272,7 @@ class CoreApiBuildingTests(SynchronousTestCase):
         Validate that the internal API shows up in the service catalog for a
         given tenant.
         """
-        iapi = ExampleAPI()
+        iapi = make_example_internal_api(self)
         core = MimicCore(Clock(), [iapi])
 
         prefix_map = {}
@@ -300,11 +300,12 @@ class CoreApiBuildingTests(SynchronousTestCase):
         catalog for a given tenant.
         """
         eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=True
         )
 
-        core = MimicCore(Clock(), [eeapi, ExampleAPI()])
+        core = MimicCore(Clock(), [eeapi, make_example_internal_api(self)])
 
         prefix_map = {}
         base_uri = "http://some/random/prefix"
@@ -346,8 +347,9 @@ class CoreApiBuildingTests(SynchronousTestCase):
         """
         Test with multiple regions for the External APIs.
         """
-        iapi = ExampleAPI()
+        iapi = make_example_internal_api(self)
         eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=True
         )
@@ -360,6 +362,7 @@ class CoreApiBuildingTests(SynchronousTestCase):
             url=u"https://api.new_region.example.com:9090"
         )
         eeapi2 = make_example_external_api(
+            self,
             name=eeapi2_name,
             endpoint_templates=[eeapi2_template],
             set_enabled=True

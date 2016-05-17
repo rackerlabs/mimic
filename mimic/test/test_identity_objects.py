@@ -47,6 +47,7 @@ class EndpointTemplatesTests(SynchronousTestCase):
             uuid=eeapi_template_id,
         )
         eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             endpoint_templates=[eeapi_template]
         )
@@ -60,6 +61,7 @@ class EndpointTemplatesTests(SynchronousTestCase):
         Validate the endpoint template interface gate check
         """
         eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=True
         )
@@ -76,6 +78,7 @@ class EndpointTemplatesTests(SynchronousTestCase):
         time.
         """
         eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=True
         )
@@ -105,6 +108,7 @@ class EndpointTemplatesTests(SynchronousTestCase):
             pass
 
         eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=True,
         )
@@ -133,6 +137,7 @@ class EndpointTemplatesTests(SynchronousTestCase):
             url=new_url
         )
         eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=True,
             endpoint_templates=[old_eeapi_template]
@@ -160,6 +165,7 @@ class EndpointTemplatesTests(SynchronousTestCase):
             url=new_url
         )
         eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=True,
         )
@@ -174,6 +180,7 @@ class EndpointTemplatesTests(SynchronousTestCase):
         template id that does not exist.
         """
         eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=True,
         )
@@ -192,6 +199,7 @@ class EndpointTemplatesTests(SynchronousTestCase):
             uuid=eeapi_template_id
         )
         eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=True,
             endpoint_templates=[eeapi_template]
@@ -212,6 +220,7 @@ class EndpointTemplatesTests(SynchronousTestCase):
             uuid=eeapi_template_id
         )
         eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=True,
             endpoint_templates=[eeapi_template]
@@ -241,6 +250,7 @@ class EndpointTemplatesTests(SynchronousTestCase):
             uuid=alternate_eeapi_template_id
         )
         eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=True,
             endpoint_templates=[
@@ -277,6 +287,7 @@ class EndpointsForTenantsTests(SynchronousTestCase):
         `ValueError`.
         """
         eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=True
         )
@@ -293,6 +304,7 @@ class EndpointsForTenantsTests(SynchronousTestCase):
         `ValueError`.
         """
         eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=True
         )
@@ -318,6 +330,7 @@ class EndpointsForTenantsTests(SynchronousTestCase):
             url=new_url
         )
         eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=False,
             endpoint_templates=[new_eeapi_template]
@@ -362,6 +375,7 @@ class EndpointTemplateOperationsTests(SynchronousTestCase):
         find a matching region.
         """
         eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=True
         )

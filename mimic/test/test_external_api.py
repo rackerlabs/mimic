@@ -6,8 +6,8 @@ from twisted.trial.unittest import SynchronousTestCase
 
 from mimic.imimic import IExternalAPIMock
 from mimic.test.dummy import (
-    ExampleAPI,
     ExampleEndpointTemplate,
+    make_example_internal_api,
     make_example_external_api
 )
 from mimic.test.fixtures import APIMockHelper, TenantAuthentication
@@ -24,10 +24,10 @@ class TestValidationPoints(SynchronousTestCase):
         for Mimic to support that API within itself.
         """
         eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=True
         )
-        self.assertIsNotNone(eeapi)
         self.helper = APIMockHelper(self, [eeapi])
         self.core = self.helper.core
 
@@ -51,10 +51,10 @@ class TestExternalApiMock(SynchronousTestCase):
     def setUp(self):
         self.eeapi_name = u"externalServiceName"
         self.eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=True
         )
-        assert(self.eeapi is not None)
         self.helper = APIMockHelper(self, [self.eeapi])
         self.root = self.helper.root
         self.uri = self.helper.uri
@@ -93,12 +93,12 @@ class TestTenantSpecificAPIs(SynchronousTestCase):
             uuid=self.eeapi_template_id
         )
         self.eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             endpoint_templates=[self.eeapi_template],
             set_enabled=False
         )
-        assert(self.eeapi is not None)
-        self.helper = APIMockHelper(self, [ExampleAPI()])
+        self.helper = APIMockHelper(self, [make_example_internal_api(self)])
         self.core = self.helper.core
         self.root = self.helper.root
         self.uri = self.helper.uri
@@ -209,12 +209,12 @@ class TestDualModeApiMock(SynchronousTestCase):
     """
     def setUp(self):
         self.eeapi_name = u"externalServiceName"
-        self.ieapi = ExampleAPI()
+        self.ieapi = make_example_internal_api(self)
         self.eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=True
         )
-        assert(self.eeapi is not None)
         self.helper = APIMockHelper(self, [self.ieapi, self.eeapi])
         self.root = self.helper.root
         self.uri = self.helper.uri
