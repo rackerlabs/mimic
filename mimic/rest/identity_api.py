@@ -870,6 +870,63 @@ class IdentityApi(object):
         if x_auth_token is None:
             return json.dumps(unauthorized("Authentication required", request))
 
+        try:
+            content = json_from_request(request)
+        except ValueError:
+            return json.dumps(
+                bad_request("Invalid JSON request body", request)
+            )
+
+        try:
+            endpoint_template_instance = EndpointTemplateStore(
+                template_dict=content
+            )
+        except KeyError:
+            return json.dumps(
+                bad_request(
+                    "JSON body does not contain the required parameters: "
+                    + text_type(
+                        [key
+                         for key, _ in EndpointTemplateStore.required_mapping]
+                    ),
+                    request
+                )
+            )
+
+        service_name = endpoint_template_instance.name_key
+
+        try:
+            service = self.core.get_external_api(service_name)
+        except IndexError:
+            return json.dumps(
+                not_found(
+                    "Service API for endoint template not found",
+                    request
+                )
+            )
+
+        try:
+            service.update_template(endpoint_template_instance)
+        except ValueError:
+            return json.dumps(
+                conflict(
+                    "Endpoint already exists and service id or service type "
+                    "does not match.",
+                    request
+                )
+            )
+        except IndexError:
+            return json.dumps(
+                not_found(
+                    "Unable to update non-existent template. Template must "
+                    "first be added before it can be updated.",
+                    request
+                )
+            )
+        else:
+            request.setResponseCode(201)
+            return b''
+
     @app.route('/v2.0/OS-KSCATALOG/endpointTemplates', methods=['DELETE'])
     def delete_endpoint_templates(self, request):
         """

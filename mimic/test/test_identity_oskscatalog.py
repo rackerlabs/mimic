@@ -38,13 +38,14 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase):
         self.headers = {
             b'X-Auth-Token': [b'ABCDEF987654321']
         }
+        self.verb = b"GET"
 
     def test_auth_fail(self):
         """
         Validate X-Auth-Token required to access endpoint.
         """
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"GET",
+            json_request(self, self.root, self.verb,
                          self.uri))
 
         self.assertEqual(response.code, 401)
@@ -59,7 +60,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase):
             'serviceid': [b'some-id']
         })
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"GET",
+            json_request(self, self.root, self.verb,
                          self.uri,
                          headers=self.headers))
 
@@ -73,7 +74,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase):
         """
         self.core.add_api(ExampleAPI())
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"GET",
+            json_request(self, self.root, self.verb,
                          self.uri,
                          headers=self.headers))
 
@@ -88,7 +89,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase):
         self.core.add_api(self.eeapi)
 
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"GET",
+            json_request(self, self.root, self.verb,
                          self.uri,
                          headers=self.headers))
 
@@ -105,7 +106,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase):
         self.core.add_api(ExampleAPI())
 
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"GET",
+            json_request(self, self.root, self.verb,
                          self.uri,
                          headers=self.headers))
 
@@ -130,7 +131,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase):
                          len(api_list))
 
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"GET",
+            json_request(self, self.root, self.verb,
                          self.uri,
                          headers=self.headers))
 
@@ -163,13 +164,14 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
         self.headers = {
             b'X-Auth-Token': [b'ABCDEF987654321']
         }
+        self.verb = b"POST"
 
     def test_auth_fail(self):
         """
         Validate X-Auth-Token required to access endpoint.
         """
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"POST",
+            json_request(self, self.root, self.verb,
                          self.uri))
 
         self.assertEqual(response.code, 401)
@@ -180,7 +182,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
         Validate that a JSON message body is required.
         """
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"POST",
+            json_request(self, self.root, self.verb,
                          self.uri,
                          body=b'<xml>ensure json failure',
                          headers=self.headers))
@@ -200,7 +202,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
             'region': 'some-region'
         }
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"POST",
+            json_request(self, self.root, self.verb,
                          self.uri,
                          body=data,
                          headers=self.headers))
@@ -223,7 +225,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
             'region': 'some-region'
         }
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"POST",
+            json_request(self, self.root, self.verb,
                          self.uri,
                          body=data,
                          headers=self.headers))
@@ -246,7 +248,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
             'region': 'some-region'
         }
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"POST",
+            json_request(self, self.root, self.verb,
                          self.uri,
                          body=data,
                          headers=self.headers))
@@ -269,7 +271,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
             'type': 'some-type'
         }
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"POST",
+            json_request(self, self.root, self.verb,
                          self.uri,
                          body=data,
                          headers=self.headers))
@@ -294,13 +296,17 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
             'region': 'some-region'
         }
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"POST",
+            json_request(self, self.root, self.verb,
                          self.uri,
                          body=data,
                          headers=self.headers))
 
         self.assertEqual(response.code, 404)
         self.assertEqual(json_body['itemNotFound']['code'], 404)
+        self.assertEqual(
+            json_body['itemNotFound']['message'],
+            "Service API for endoint template not found"
+        )
 
     def test_existing_endpoint_template(self):
         """
@@ -319,13 +325,17 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
             'region': 'some-region'
         }
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"POST",
+            json_request(self, self.root, self.verb,
                          self.uri,
                          body=data,
                          headers=self.headers))
 
         self.assertEqual(response.code, 409)
         self.assertEqual(json_body['conflict']['code'], 409)
+        self.assertEqual(
+            json_body['conflict']['message'],
+            "Endpoint already exists or service type does not match."
+        )
 
     def test_new_endpoint_template_wrong_service_type(self):
         """
@@ -345,13 +355,17 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
         }
         self.assertNotEqual(id_key, data['id'])
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"POST",
+            json_request(self, self.root, self.verb,
                          self.uri,
                          body=data,
                          headers=self.headers))
 
         self.assertEqual(response.code, 409)
         self.assertEqual(json_body['conflict']['code'], 409)
+        self.assertEqual(
+            json_body['conflict']['message'],
+            "Endpoint already exists or service type does not match."
+        )
 
     def test_new_endpoint_template(self):
         """
@@ -370,7 +384,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
         }
         self.assertNotEqual(id_key, data['id'])
 
-        req = request(self, self.root, b"POST",
+        req = request(self, self.root, self.verb,
                       self.uri,
                       body=json.dumps(data).encode("utf-8"),
                       headers=self.headers)
@@ -396,6 +410,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
         self.headers = {
             b'X-Auth-Token': [b'ABCDEF987654321']
         }
+        self.verb = b"PUT"
 
     def test_auth_fail(self):
         """
@@ -407,6 +422,191 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
 
         self.assertEqual(response.code, 401)
         self.assertEqual(json_body['unauthorized']['code'], 401)
+
+    def test_invalid_json_body(self):
+        """
+        Validate that a JSON message body is required.
+        """
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, self.verb,
+                         self.uri,
+                         body=b'<xml>ensure json failure',
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 400)
+        self.assertEqual(json_body['badRequest']['code'], 400)
+        self.assertEqual(json_body['badRequest']['message'],
+                         'Invalid JSON request body')
+
+    def test_json_body_missing_required_field_name(self):
+        """
+        Validate that the name field in the JSON body is required.
+        """
+        data = {
+            'id': text_type(uuid.uuid4()),
+            'type': 'some-type',
+            'region': 'some-region'
+        }
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, self.verb,
+                         self.uri,
+                         body=data,
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 400)
+        self.assertEqual(json_body['badRequest']['code'], 400)
+        self.assertTrue(
+            json_body['badRequest']['message'].startswith(
+                "JSON body does not contain the required parameters:"
+            )
+        )
+
+    def test_json_body_missing_required_field_id(self):
+        """
+        Validate that the id field in the JSON body is required.
+        """
+        data = {
+            'name': 'some-name',
+            'type': 'some-type',
+            'region': 'some-region'
+        }
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, self.verb,
+                         self.uri,
+                         body=data,
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 400)
+        self.assertEqual(json_body['badRequest']['code'], 400)
+        self.assertTrue(
+            json_body['badRequest']['message'].startswith(
+                "JSON body does not contain the required parameters:"
+            )
+        )
+
+    def test_json_body_missing_required_field_type(self):
+        """
+        Validate that the type field in the JSON body is required.
+        """
+        data = {
+            'id': text_type(uuid.uuid4()),
+            'name': 'some-name',
+            'region': 'some-region'
+        }
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, self.verb,
+                         self.uri,
+                         body=data,
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 400)
+        self.assertEqual(json_body['badRequest']['code'], 400)
+        self.assertTrue(
+            json_body['badRequest']['message'].startswith(
+                "JSON body does not contain the required parameters:"
+            )
+        )
+
+    def test_json_body_missing_required_field_region(self):
+        """
+        Validate that the region field in the JSON body is required.
+        """
+        data = {
+            'id': text_type(uuid.uuid4()),
+            'name': 'some-name',
+            'type': 'some-type'
+        }
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, self.verb,
+                         self.uri,
+                         body=data,
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 400)
+        self.assertEqual(json_body['badRequest']['code'], 400)
+        self.assertTrue(
+            json_body['badRequest']['message'].startswith(
+                "JSON body does not contain the required parameters:"
+            )
+        )
+
+    def test_invalid_service_name(self):
+        """
+        Validate a service-id that does not map to an actual service
+        generates a 404 failure.
+        """
+        data = {
+            'id': text_type(uuid.uuid4()),
+            'name': 'some-name',
+            'type': 'some-type',
+            'region': 'some-region'
+        }
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, self.verb,
+                         self.uri,
+                         body=data,
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 404)
+        self.assertEqual(json_body['itemNotFound']['code'], 404)
+        self.assertEqual(
+            json_body['itemNotFound']['message'],
+            "Service API for endoint template not found"
+        )
+
+    def test_new_endpoint_template_wrong_service_type(self):
+        """
+        Validate that the service type must match between
+        the service and the endpoint template.
+        """
+        self.core.add_api(self.eeapi)
+        id_key = None
+        for k, v in self.eeapi.endpoint_templates.items():
+            id_key = k
+
+        data = {
+            'id': id_key,
+            'name': self.eeapi_name,
+            'type': 'some-type',
+            'region': 'some-region'
+        }
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, self.verb,
+                         self.uri,
+                         body=data,
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 409)
+        self.assertEqual(json_body['conflict']['code'], 409)
+        self.assertEqual(
+            json_body['conflict']['message'],
+            "Endpoint already exists and service id or service type does not "
+            "match."
+        )
+
+    def test_update_endpoint_template(self):
+        """
+        Validate that a new endpoint template can be updated.
+        """
+        self.core.add_api(self.eeapi)
+        id_key = None
+        for k, v in self.eeapi.endpoint_templates.items():
+            id_key = k
+
+        data = {
+            'id': id_key,
+            'name': self.eeapi_name,
+            'type': self.eeapi.type_key,
+            'region': 'some-region'
+        }
+
+        req = request(self, self.root, self.verb,
+                      self.uri,
+                      body=json.dumps(data).encode("utf-8"),
+                      headers=self.headers)
+
+        response = self.successResultOf(req)
+        self.assertEqual(response.code, 201)
 
 
 class TestIdentityOSKSCatalogAdminEndpointTemplatesDelete(SynchronousTestCase):
@@ -426,13 +626,14 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesDelete(SynchronousTestCase):
         self.headers = {
             b'X-Auth-Token': [b'ABCDEF987654321']
         }
+        self.verb = b"DELETE"
 
     def test_auth_fail(self):
         """
         Validate X-Auth-Token required to access endpoint
         """
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"DELETE",
+            json_request(self, self.root, self.verb,
                          self.uri))
 
         self.assertEqual(response.code, 401)

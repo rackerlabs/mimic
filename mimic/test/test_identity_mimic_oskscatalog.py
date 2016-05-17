@@ -35,10 +35,11 @@ class TestIdentityMimicOSKSCatalogAdminListExternalServices(SynchronousTestCase)
         self.headers = {
             b'X-Auth-Token': [b'ABCDEF987654321']
         }
+        self.verb = b"GET"
 
     def test_auth_fail(self):
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"GET",
+            json_request(self, self.root, self.verb,
                          self.uri))
 
         self.assertEqual(response.code, 401)
@@ -46,7 +47,7 @@ class TestIdentityMimicOSKSCatalogAdminListExternalServices(SynchronousTestCase)
 
     def test_list_empty(self):
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"GET",
+            json_request(self, self.root, self.verb,
                          self.uri,
                          headers=self.headers))
 
@@ -56,7 +57,7 @@ class TestIdentityMimicOSKSCatalogAdminListExternalServices(SynchronousTestCase)
     def test_list_single(self):
         self.core.add_api(self.eeapi)
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"GET",
+            json_request(self, self.root, self.verb,
                          self.uri,
                          headers=self.headers))
 
@@ -82,7 +83,7 @@ class TestIdentityMimicOSKSCatalogAdminListExternalServices(SynchronousTestCase)
         for api in api_list:
             self.core.add_api(api)
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"GET",
+            json_request(self, self.root, self.verb,
                          self.uri,
                          headers=self.headers))
 
@@ -116,10 +117,11 @@ class TestIdentityMimicOSKSCatalogAdminCreateExternalService(SynchronousTestCase
         self.headers = {
             b'X-Auth-Token': [b'ABCDEF987654321']
         }
+        self.verb = b"POST"
 
     def test_auth_fail(self):
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"POST",
+            json_request(self, self.root, self.verb,
                          self.uri))
 
         self.assertEqual(response.code, 401)
@@ -127,7 +129,7 @@ class TestIdentityMimicOSKSCatalogAdminCreateExternalService(SynchronousTestCase
 
     def test_invalid_json_body(self):
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"POST",
+            json_request(self, self.root, self.verb,
                          self.uri,
                          body=b'<xml>ensure json failure',
                          headers=self.headers))
@@ -142,7 +144,7 @@ class TestIdentityMimicOSKSCatalogAdminCreateExternalService(SynchronousTestCase
             'type': 'some-type'
         }
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"POST",
+            json_request(self, self.root, self.verb,
                          self.uri,
                          body=data,
                          headers=self.headers))
@@ -158,7 +160,7 @@ class TestIdentityMimicOSKSCatalogAdminCreateExternalService(SynchronousTestCase
             'name': 'some-name'
         }
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"POST",
+            json_request(self, self.root, self.verb,
                          self.uri,
                          body=data,
                          headers=self.headers))
@@ -176,7 +178,7 @@ class TestIdentityMimicOSKSCatalogAdminCreateExternalService(SynchronousTestCase
             'type': self.eeapi.type_key
         }
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"POST",
+            json_request(self, self.root, self.verb,
                          self.uri,
                          body=data,
                          headers=self.headers))
@@ -192,7 +194,7 @@ class TestIdentityMimicOSKSCatalogAdminCreateExternalService(SynchronousTestCase
             'name': self.eeapi.name_key,
             'type': self.eeapi.type_key
         }
-        req = request(self, self.root, b"POST",
+        req = request(self, self.root, self.verb,
                       "/identity/v2.0/MIMIC-OSKSCATALOG/services",
                       body=json.dumps(data).encode("utf-8"),
                       headers=self.headers)
@@ -206,7 +208,7 @@ class TestIdentityMimicOSKSCatalogAdminCreateExternalService(SynchronousTestCase
             'type': self.eeapi.type_key,
             'id': text_type(uuid.uuid4())
         }
-        req = request(self, self.root, b"POST",
+        req = request(self, self.root, self.verb,
                       self.uri,
                       body=json.dumps(data).encode("utf-8"),
                       headers=self.headers)
@@ -232,10 +234,11 @@ class TestIdentityMimicOSKSCatalogAdminDeleteExternalService(SynchronousTestCase
         self.headers = {
             b'X-Auth-Token': [b'ABCDEF987654321']
         }
+        self.verb = b"DELETE"
 
     def test_auth_fail(self):
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"DELETE",
+            json_request(self, self.root, self.verb,
                          self.uri))
 
         self.assertEqual(response.code, 401)
@@ -243,7 +246,7 @@ class TestIdentityMimicOSKSCatalogAdminDeleteExternalService(SynchronousTestCase
 
     def test_invalid_json_body(self):
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"DELETE",
+            json_request(self, self.root, self.verb,
                          self.uri,
                          body=b'<xml>ensure json failure',
                          headers=self.headers))
@@ -259,7 +262,7 @@ class TestIdentityMimicOSKSCatalogAdminDeleteExternalService(SynchronousTestCase
             'id': 'some-id'
         }
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"DELETE",
+            json_request(self, self.root, self.verb,
                          self.uri,
                          body=data,
                          headers=self.headers))
@@ -276,7 +279,7 @@ class TestIdentityMimicOSKSCatalogAdminDeleteExternalService(SynchronousTestCase
             'id': 'some-id'
         }
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"DELETE",
+            json_request(self, self.root, self.verb,
                          self.uri,
                          body=data,
                          headers=self.headers))
@@ -293,7 +296,7 @@ class TestIdentityMimicOSKSCatalogAdminDeleteExternalService(SynchronousTestCase
             'type': 'some-type'
         }
         (response, json_body) = self.successResultOf(
-            json_request(self, self.root, b"DELETE",
+            json_request(self, self.root, self.verb,
                          self.uri,
                          body=data,
                          headers=self.headers))
@@ -303,3 +306,58 @@ class TestIdentityMimicOSKSCatalogAdminDeleteExternalService(SynchronousTestCase
         self.assertEqual(json_body['badRequest']['message'],
                          "Invalid Content. 'id', 'name', and 'type' fields "
                          "are required.")
+
+    def test_invalid_service(self):
+        data = {
+            'name': 'some-name',
+            'type': 'some-type',
+            'id': 'some-id'
+        }
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, self.verb,
+                         self.uri,
+                         body=data,
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 404)
+        self.assertEqual(json_body['itemNotFound']['code'], 404)
+        self.assertEqual(json_body['itemNotFound']['message'],
+                         "Service not found. Unable to remove.")
+
+    def test_service_has_template(self):
+        self.core.add_api(self.eeapi)
+        data = {
+            'name': self.eeapi.name_key,
+            'type': self.eeapi.type_key,
+            'id': self.eeapi.uuid_key
+        }
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, self.verb,
+                         self.uri,
+                         body=data,
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 409)
+        self.assertEqual(json_body['conflict']['code'], 409)
+        self.assertEqual(json_body['conflict']['message'],
+                         "Service still has endpoint templates.")
+
+    def test_remove_service(self):
+        templates_to_remove = list(self.eeapi.endpoint_templates.keys())
+        for template_id in templates_to_remove:
+            self.eeapi.remove_template(template_id)
+
+        self.core.add_api(self.eeapi)
+        data = {
+            'name': self.eeapi.name_key,
+            'type': self.eeapi.type_key,
+            'id': self.eeapi.uuid_key
+        }
+
+        req = request(self, self.root, self.verb,
+                      self.uri,
+                      body=json.dumps(data).encode("utf-8"),
+                      headers=self.headers)
+
+        response = self.successResultOf(req)
+        self.assertEqual(response.code, 204)
