@@ -23,7 +23,7 @@ from mimic.test.behavior_tests import (
     behavior_tests_helper_class,
     register_behavior
 )
-from mimic.test.dummy import ExampleAPI
+from mimic.test.dummy import make_example_internal_api
 from mimic.test.helpers import json_request, request, request_with_content
 
 
@@ -465,7 +465,7 @@ class GetAuthTokenAPITests(SynchronousTestCase):
         The JSON response's service catalog whose endpoints all begin with
         the same base URI as the request.
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
         (response, json_body) = authenticate_with_username_password(
             self,
             root, uri='http://mybase/identity/v2.0/tokens')
@@ -510,7 +510,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         The JSON response's service catalog whose endpoints all begin with
         the same base URI as the request.
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
 
         (response, json_body) = self.successResultOf(json_request(
             self, root, b"GET",
@@ -531,8 +531,14 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         """
         regions_and_versions_list = [
             ("ORD", "v1"), ("DFW", "v1"), ("DFW", "v2"), ("IAD", "v3")]
-        core, root = core_and_root([ExampleAPI(
-            regions_and_versions=regions_and_versions_list)])
+        core, root = core_and_root(
+            [
+                make_example_internal_api(
+                    self,
+                    regions_and_versions=regions_and_versions_list
+                )
+            ]
+        )
 
         (response, json_body) = authenticate_with_username_password(self, root)
         self.assertEqual(response.code, 200)
@@ -546,7 +552,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         The response returned should include the password credentials that were supplied
         during authentication
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
         (response, json_body) = authenticate_with_username_password(self, root,
                                                                     tenant_id='12345')
         self.assertEqual(response.code, 200)
@@ -562,7 +568,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         The response returned should include the credentials that were supplied
         during authentication
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
         (response, json_body) = authenticate_with_api_key(self, root,
                                                           tenant_name='12345')
         self.assertEqual(response.code, 200)
@@ -578,7 +584,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         The response returned should include the credentials that were supplied
         during authentication
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
         (response, json_body) = authenticate_with_token(
             self, root, tenant_id='12345')
         self.assertEqual(response.code, 200)
@@ -596,7 +602,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         If authed once as one tenant ID, and a second time with a different
         tenant ID, then the second auth will return with a 401 Unauthorized.
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
         (response, json_body) = authenticate_with_username_password(
             self, root, tenant_id="12345")
         self.assertEqual(response.code, 200)
@@ -620,7 +626,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         Since Mimic sessions associate a single tenant with each token,
         a list of 1 tenant will be returned.
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
         (response, _) = authenticate_with_token(
             self, root, tenant_id='turtlepower', token_id='ABCDEF987654321')
         self.assertEqual(response.code, 200)
@@ -639,7 +645,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         """
         Listing tenants for an unknown token causes a 401 Unauthorized.
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
         (response, json_body) = self.successResultOf(
             json_request(self, root, b"GET",
                          "/identity/v2.0/tenants",
@@ -651,7 +657,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         """
         Test apiKeyCredentials
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
         (response, json_body) = self.successResultOf(json_request(
             self, root, b"GET",
             "/identity/v2.0/users/1/OS-KSADM/credentials/RAX-KSKEY:apiKeyCredentials"
@@ -691,7 +697,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         If authed once as one tenant ID, and a second time with a different
         tenant ID, then the second auth will return with a 401 Unauthorized.
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
         (response, json_body) = authenticate_with_api_key(
             self, root, tenant_id="12345")
         self.assertEqual(response.code, 200)
@@ -715,7 +721,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         If authed once as one tenant ID, and a second time with a different
         tenant ID, then the second auth will return with a 401 Unauthorized.
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
         (response, json_body) = authenticate_with_token(
             self, root, tenant_id="12345")
         self.assertEqual(response.code, 200)
@@ -736,7 +742,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         :func: `get_token_and_service_catalog` returns response code 400, when
         an invalid json request body is used to authenticate.
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
 
         (response, json_body) = self.successResultOf(json_request(
             self, root, b"POST", "/identity/v2.0/tokens",
@@ -755,7 +761,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         """
         Test to verify :func: `get_username`.
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
 
         (response, json_body) = self.successResultOf(json_request(
             self, root, b"GET",
@@ -768,7 +774,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         """
         Test to verify :func: `get_impersonation_token`.
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
 
         (response, json_body) = impersonate_user(self, root)
         self.assertEqual(200, response.code)
@@ -779,7 +785,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         Test to verify :func: `get_impersonation_token` when the `expire-in-seconds`
         is not provided.
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
 
         (response, json_body) = self.successResultOf(json_request(
             self, root, b"POST", "http://mybase/identity/v2.0/RAX-AUTH/impersonation-tokens",
@@ -814,7 +820,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         """
         Test to verify :func: `validate_token`.
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
 
         (response, json_body) = self.successResultOf(json_request(
             self, root, b"GET",
@@ -831,7 +837,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         Test to verify :func: `validate_token` when tenant_id is not
         provided using the argument `belongsTo`
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
 
         (response, json_body) = self.successResultOf(json_request(
             self, root, b"GET",
@@ -845,7 +851,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         """
         Test to verify :func: `validate_token` and then authenticate
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
 
         (response1, json_body1) = self.successResultOf(json_request(
             self, root, b"GET",
@@ -867,7 +873,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         """
         Test to verify :func: `validate_token` and then authenticate
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
 
         # Authenticate the impersonator (admin user)
         (response0, json_body0) = authenticate_with_token(
@@ -905,7 +911,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         """
         Test to verify :func: `validate_token` and then authenticate
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
 
         # Authenticate the impersonator (admin user 1)
         (response0, json_body0) = authenticate_with_token(
@@ -975,7 +981,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         Test to verify :func: `validate_token` when the token_id provided
         is of an maas admin user specified in `mimic_presets`.
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
 
         (response, json_body) = self.successResultOf(json_request(
             self, root, b"GET",
@@ -990,7 +996,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         Test to verify :func: `validate_token` when the token_id provided
         is of a racker specified in `mimic_presets`.
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
 
         (response, json_body) = self.successResultOf(json_request(
             self, root, b"GET",
@@ -1005,7 +1011,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         Test to verify :func: `validate_token` when the token_id provided
         is invalid, as specified in `mimic_presets`.
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
         token = get_presets["identity"]["token_fail_to_auth"][0]
 
         (response, json_body) = self.successResultOf(json_request(
@@ -1019,7 +1025,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         Test to verify :func: `validate_token` when the tenant_id provided
         is of an observer role, as specified in `mimic_presets`.
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
         token = get_presets["identity"]["observer_role"][0]
 
         (response, json_body) = self.successResultOf(json_request(
@@ -1037,7 +1043,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         Test to verify :func: `validate_token` when the tenant_id provided
         is of an creator role, as specified in `mimic_presets`.
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
         token = get_presets["identity"]["creator_role"][0]
 
         (response, json_body) = self.successResultOf(json_request(
@@ -1055,7 +1061,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         Test to verify :func: `validate_token` when the tenant_id provided
         is of an admin role, as specified in `mimic_presets`.
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
         token = get_presets["identity"]["admin_role"][0]
 
         (response, json_body) = self.successResultOf(json_request(
@@ -1076,7 +1082,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         """
         Test to verify :func: `get_users_details`.
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
 
         (response, json_body) = self.successResultOf(json_request(
             self, root, b"GET",
@@ -1089,7 +1095,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         """
         Test to verify :func: `get_users_details`.
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
         (response, json_body) = authenticate_with_token(
             self, root, tenant_id="12345")
         self.assertEqual(response.code, 200)
@@ -1118,7 +1124,7 @@ class AuthIntegrationTests(SynchronousTestCase):
         tenant, then attempt to impersonate that user.  The tenant IDs should
         be the same.  This is an autoscale regression test.
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
         tenant_id = "111111"
 
         # authenticate as that user - this is not strictly necessary, since
@@ -1164,7 +1170,7 @@ class AuthIntegrationTests(SynchronousTestCase):
         from the one returned by the API key response. Both tokens
         should be accessing the same session.
         """
-        core, root = core_and_root([ExampleAPI()])
+        core, root = core_and_root([make_example_internal_api(self)])
         tenant_id = "123456"
 
         response, json_body = authenticate_with_api_key(

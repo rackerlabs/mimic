@@ -160,7 +160,20 @@ class ExampleEndpointTemplate(EndpointTemplateStore):
                             else url + '/versions')
 
 
-def make_example_external_api(name=u"example",
+def make_example_internal_api(case, response_message="default message",
+                              regions_and_versions=[('ORD', 'v1')]):
+    """
+    Intialize an :obj:`ExampleAPI`.
+    """
+    iapi = ExampleAPI(
+        response_message=response_message,
+        regions_and_versions=regions_and_versions
+    )
+    case.assertIsNotNone(iapi)
+    return iapi
+
+
+def make_example_external_api(case, name=u"example",
                               endpoint_templates=[ExampleEndpointTemplate()],
                               set_enabled=None,
                               service_type=None):
@@ -208,9 +221,11 @@ def make_example_external_api(name=u"example",
         if set_enabled is not None and isinstance(set_enabled, bool):
             ept.enabled_key = set_enabled
 
-    return ExternalApiStore(
+    eeapi = ExternalApiStore(
         "uuid-" + name,
         name,
         service_type,
         endpoint_templates
     )
+    case.assertIsNotNone(eeapi)
+    return eeapi

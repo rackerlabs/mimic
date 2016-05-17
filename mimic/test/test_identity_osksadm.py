@@ -29,6 +29,7 @@ class TestIdentityMimicOSKSCatalogAdminListExternalServices(SynchronousTestCase)
         self.uri = "/identity/v2.0/services"
         self.eeapi_name = u"externalServiceName"
         self.eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=True
         )
@@ -111,6 +112,7 @@ class TestIdentityMimicOSKSCatalogAdminCreateExternalService(SynchronousTestCase
         self.uri = "/identity/v2.0/services"
         self.eeapi_name = u"externalServiceName"
         self.eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=True
         )
@@ -243,10 +245,12 @@ class TestIdentityMimicOSKSCatalogAdminDeleteExternalService(SynchronousTestCase
         self.uri = "/identity/v2.0/services/" + self.eeapi_id
         self.eeapi_name = u"externalServiceName"
         self.eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=True
         )
         self.eeapi2 = make_example_external_api(
+            self,
             name=self.eeapi_name + " alternate"
         )
         self.eeapi.uuid_key = self.eeapi_id

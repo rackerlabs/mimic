@@ -15,8 +15,8 @@ from twisted.internet.task import Clock
 from mimic.core import MimicCore
 from mimic.resource import MimicRoot
 from mimic.test.dummy import (
-    make_example_external_api,
-    ExampleAPI,
+    make_example_internal_api,
+    make_example_external_api
 )
 from mimic.test.helpers import json_request, request
 
@@ -32,6 +32,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase):
         self.uri = "/identity/v2.0/OS-KSCATALOG/endpointTemplates"
         self.eeapi_name = u"externalServiceName"
         self.eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=True
         )
@@ -72,7 +73,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase):
         Validate that if only Internal APIs are available that no
         templates are listed; only an empty list is returned.
         """
-        self.core.add_api(ExampleAPI())
+        self.core.add_api(make_example_internal_api(self))
         (response, json_body) = self.successResultOf(
             json_request(self, self.root, self.verb,
                          self.uri,
@@ -103,7 +104,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase):
         listing.
         """
         self.core.add_api(self.eeapi)
-        self.core.add_api(ExampleAPI())
+        self.core.add_api(make_example_internal_api(self))
 
         (response, json_body) = self.successResultOf(
             json_request(self, self.root, self.verb,
@@ -120,6 +121,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase):
         for _ in range(10):
             api_list.append(
                 make_example_external_api(
+                    self,
                     name=self.eeapi_name + text_type(uuid.uuid4()),
                     service_type='service-' + text_type(uuid.uuid4())
                 )
@@ -158,6 +160,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
         self.uri = "/identity/v2.0/OS-KSCATALOG/endpointTemplates"
         self.eeapi_name = u"externalServiceName"
         self.eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=True
         )
@@ -404,6 +407,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
         self.uri = "/identity/v2.0/OS-KSCATALOG/endpointTemplates"
         self.eeapi_name = u"externalServiceName"
         self.eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=True
         )
@@ -620,6 +624,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesDelete(SynchronousTestCase):
         self.uri = "/identity/v2.0/OS-KSCATALOG/endpointTemplates"
         self.eeapi_name = u"externalServiceName"
         self.eeapi = make_example_external_api(
+            self,
             name=self.eeapi_name,
             set_enabled=True
         )
