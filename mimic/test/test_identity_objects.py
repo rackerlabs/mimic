@@ -10,6 +10,7 @@ from mimic.test.dummy import (
     ExampleEndpointTemplate,
     make_example_external_api
 )
+from mimic.test.helpers import get_template_id
 
 
 class YetToBeDone(SynchronousTestCase):
@@ -168,7 +169,7 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
 
 class EndpointTemplatesTests(SynchronousTestCase):
     """
-    Test Endpoint Template Functionality: list, add, update, remove.
+    Test Endpoint Template Functionality: list, add, has, update, remove.
     """
     def setUp(self):
         self.eeapi_name = u"externalServiceName"
@@ -305,6 +306,31 @@ class EndpointTemplatesTests(SynchronousTestCase):
 
         with self.assertRaises(IndexError):
             eeapi.update_template(new_eeapi_template)
+
+    def test_has_endpoint_template_invalid(self):
+        """
+        Validate taht :obj:`ExternalApiStore` will return False if it
+        does not have the template id
+        """
+        eeapi = make_example_external_api(
+            self
+        )
+        self.assertFalse(
+            eeapi.has_template('some-template-id')
+        )
+
+    def test_has_endpoint_template(self):
+        """
+        Validate taht :obj:`ExternalApiStore` will return True if it
+        does have the template id
+        """
+        eeapi = make_example_external_api(
+            self
+        )
+        ept_template_id = get_template_id(self, eeapi)
+        self.assertTrue(
+            eeapi.has_template(ept_template_id)
+        )
 
     def test_remove_endpoint_template_invalid(self):
         """

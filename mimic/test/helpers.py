@@ -244,3 +244,14 @@ def validate_link_json(testCase, json_containing_links):
                                   '"href" is not a string: {0}'.format(link))
         testCase.assertIsInstance(link['rel'], text_type,
                                   '"rel" is not a string: {0}'.format(link))
+
+
+def get_template_id(case, eeapi):
+    """
+    Retrieve the template id.
+    """
+    id_key = None
+    for k in eeapi.endpoint_templates.keys():
+        id_key = k
+    case.assertIsNotNone(id_key)
+    return id_key

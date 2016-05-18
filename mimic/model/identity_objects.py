@@ -395,6 +395,16 @@ class ExternalApiStore(object):
                 " does not implement IEndpointTemplate"
             )
 
+    def has_template(self, template_id):
+        """
+        Determine whether or not this :obj:`ExternalApiStore` instance owns a
+        template with the id `template_id`.
+        """
+        if template_id in self.endpoint_templates:
+            return True
+
+        return False
+
     def remove_template(self, template_id):
         """
         Remove the template for the external API.

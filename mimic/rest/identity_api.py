@@ -760,10 +760,7 @@ class IdentityApi(object):
                 api = self.core.get_external_api(api_name)
                 for endpoint_template in api.list_templates():
                     data.append(endpoint_template.serialize())
-            request.setHeader('X-Service-Count', len(data))
-            request.setHeader('X-API-Count', len(external_apis_to_list))
-            request.setHeader('X-Core-API-Count',
-                              len(self.core._uuid_to_api_external))
+
             return json.dumps(
                 {
                     "OS-KSCATALOG": data
@@ -942,6 +939,20 @@ class IdentityApi(object):
         x_auth_token = request.getHeader(b"x-auth-token")
         if x_auth_token is None:
             return json.dumps(unauthorized("Authentication required", request))
+
+        for api_name in self.core.get_external_apis():
+            api = self.core.get_external_api(api_name)
+            if api.has_template(template_id):
+                api.remove_template(template_id)
+                request.setResponseCode(204)
+                return b''
+
+        return json.dumps(
+            not_found(
+                "Unable to locate an External API with the given Template ID.",
+                request
+            )
+        )
 
 
 def base_uri_from_request(request):
