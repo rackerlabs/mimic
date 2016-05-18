@@ -7,7 +7,7 @@ cffi==1.6.0
 coverage==4.0.3
 cryptography==1.3.2
 enum34==1.1.6
-extras==0.0.3
+extras==1.0.0
 idna==2.1
 ipaddress==1.0.16
 iso8601==0.1.11
