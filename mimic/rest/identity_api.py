@@ -1061,6 +1061,46 @@ class IdentityApi(object):
             )
         )
 
+    @app.route('/v2.0/tenants/<string:tenant_id>/OS-KSCATALOG/endpoints/'
+               '<string:template_id>', methods=['DELETE'])
+    def remove_endpoint_for_tenant(self, request, tenant_id, template_id):
+        """
+        Disable a given endpoint template for a given tenantid if it's been
+        enabled. This does not affect an endpoint template that has been
+        globally enabled.
+
+        Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
+        """
+        x_auth_token = request.getHeader(b"x-auth-token")
+        if x_auth_token is None:
+            return json.dumps(unauthorized("Authentication required", request))
+
+        for api_name in self.core.get_external_apis():
+            api = self.core.get_external_api(api_name)
+            if api.has_template(template_id):
+                try:
+                    api.disable_endpoint_for_tenant(
+                        tenant_id,
+                        template_id
+                    )
+                except ValueError:
+                    return json.dumps(
+                        not_found(
+                            "Template not enabled for tenant",
+                            request
+                        )
+                    )
+                else:
+                    request.setResponseCode(204)
+                    return b''
+
+        return json.dumps(
+            not_found(
+                "Unable to locate an External API with the given Template ID.",
+                request
+            )
+        )
+
 
 def base_uri_from_request(request):
     """

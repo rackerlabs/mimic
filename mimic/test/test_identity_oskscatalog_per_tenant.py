@@ -291,3 +291,98 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesCreate(SynchronousTestC
 
         response = self.successResultOf(req)
         self.assertEqual(response.code, 201)
+
+
+class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesDelete(SynchronousTestCase):
+    """
+    Tests for ``/identity/v2.0/<tenant-id>/OS-KSCATALOG/endpointTemplates``,
+    provided by :obj:`mimic.rest.idenity_api.IdentityApi`
+    """
+    def setUp(self):
+        self.tenant_id = 'some_tenant'
+        self.core = MimicCore(Clock(), [])
+        self.root = MimicRoot(self.core).app.resource()
+        self.eeapi_name = u"externalServiceName"
+        self.eeapi = make_example_external_api(
+            self,
+            name=self.eeapi_name
+        )
+        self.template_id = get_template_id(self, self.eeapi)
+        self.assertIsNotNone(self.template_id)
+        self.uri = (
+            "/identity/v2.0/tenants/" + self.tenant_id +
+            "/OS-KSCATALOG/endpoints/" + self.template_id
+        )
+        self.headers = {
+            b'X-Auth-Token': [b'ABCDEF987654321']
+        }
+        self.verb = b"DELETE"
+
+    def test_auth_fail(self):
+        """
+        Validate X-Auth-Token required to access endpoint.
+        """
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, self.verb,
+                         self.uri))
+
+        self.assertEqual(response.code, 401)
+        self.assertEqual(json_body['unauthorized']['code'], 401)
+
+    def test_invalid_template_id(self):
+        """
+        Validate that the name field in the JSON body is required.
+        """
+        self.eeapi.remove_template(self.template_id)
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, self.verb,
+                         self.uri,
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 404)
+        self.assertEqual(json_body['itemNotFound']['code'], 404)
+        self.assertTrue(
+            json_body['itemNotFound']['message'].startswith(
+                "Unable to locate an External API with the given Template ID."
+            )
+        )
+
+    def test_template_id_not_enabled_for_tenant(self):
+        """
+        Validate that the name field in the JSON body is required.
+        """
+        self.core.add_api(self.eeapi)
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, self.verb,
+                         self.uri,
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 404)
+        self.assertEqual(json_body['itemNotFound']['code'], 404)
+        self.assertEqual(
+            json_body['itemNotFound']['message'],
+            "Template not enabled for tenant"
+        )
+
+    def test_disable_template(self):
+        """
+        Validate that a new endpoint template can be updated.
+        """
+        self.core.add_api(self.eeapi)
+        self.eeapi.enable_endpoint_for_tenant(
+            self.tenant_id,
+            self.template_id
+        )
+        eeapi2 = make_example_external_api(
+            self,
+            name="alternate " + self.eeapi_name
+        )
+        ept_id2 = get_template_id(self, eeapi2)
+        eeapi2.remove_template(ept_id2)
+        self.core.add_api(eeapi2)
+        req = request(self, self.root, self.verb,
+                      self.uri,
+                      headers=self.headers)
+
+        response = self.successResultOf(req)
+        self.assertEqual(response.code, 204)
