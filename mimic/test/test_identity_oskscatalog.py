@@ -81,6 +81,9 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase):
 
         self.assertEqual(response.code, 200)
         self.assertEqual(len(json_body['OS-KSCATALOG']), 0)
+        self.assertEqual(
+            len(json_body['OS-KSCATALOG:endpointsTemplates_links']),
+            0)
 
     def test_list_single_template(self):
         """
@@ -96,6 +99,9 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase):
 
         self.assertEqual(response.code, 200)
         self.assertEqual(len(json_body['OS-KSCATALOG']), 1)
+        self.assertEqual(
+            len(json_body['OS-KSCATALOG:endpointsTemplates_links']),
+            0)
 
     def test_list_single_template_external_and_internal_apis(self):
         """
@@ -112,6 +118,9 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase):
 
         self.assertEqual(response.code, 200)
         self.assertEqual(len(json_body['OS-KSCATALOG']), 1)
+        self.assertEqual(
+            len(json_body['OS-KSCATALOG:endpointsTemplates_links']),
+            0)
 
     def test_multiple_external_apis(self):
         """
@@ -143,6 +152,9 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase):
 
         self.assertEqual(len(json_body['OS-KSCATALOG']),
                          len(api_list))
+        self.assertEqual(
+            len(json_body['OS-KSCATALOG:endpointsTemplates_links']),
+            0)
 
 
 class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):

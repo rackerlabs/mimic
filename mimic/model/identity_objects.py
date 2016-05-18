@@ -149,6 +149,15 @@ class EndpointTemplateStore(object):
         ('versionList', 'versionList', u"")
     ]
 
+    tenant_mapping = [
+        ('id', 'id_key'),
+        ('region', 'region_key'),
+        ('type', 'type_key'),
+        ('publicURL', 'publicURL'),
+        ('internalURL', 'internalURL'),
+        ('adminURL', 'adminURL'),
+    ]
+
     def __init__(self, template_dict=None):
         """
         Create an :obj:`EndpointTemplateStore`
@@ -174,23 +183,38 @@ class EndpointTemplateStore(object):
         if self._template_data is not None:
             self.deserialize(self._template_data)
 
-    def serialize(self):
+    def serialize(self, tenant_id=None):
         """
         Serialize the endpoint template to a dictionary.
+
+        :param text_type tenant_id: an optional parameter to limit the
+            serialization to only values to a subset for tenant-specific
+            template information.
         """
         data = {}
-        for template_key, local_attribute in self.required_mapping:
-            data[template_key] = getattr(self, local_attribute)
+        if tenant_id is None:
+            for template_key, local_attribute in self.required_mapping:
+                data[template_key] = getattr(self, local_attribute)
 
-        for template_key, local_attribute, _ in self.optional_mapping:
-            value = getattr(self, local_attribute)
-            if value is not None:
-                data[template_key] = value
-        return data
+            for template_key, local_attribute, _ in self.optional_mapping:
+                value = getattr(self, local_attribute)
+                if value is not None:
+                    data[template_key] = value
+            return data
+        else:
+            data['tenantId'] = tenant_id
+            for template_key, local_attribute in self.tenant_mapping:
+                value = getattr(self, local_attribute)
+                if value is not None:
+                    data[template_key] = value
+            return data
 
     def deserialize(self, data):
         """
         Deserialize the endpoint template from a dictionary.
+
+        :param dict data: a dictionary of values to import the template data
+            from.
         """
         for template_key, local_attribute in self.required_mapping:
             if template_key not in data:

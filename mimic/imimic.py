@@ -48,14 +48,21 @@ class IEndpointTemplate(Interface):
     versionList = Attribute("URL to determine which version is hosted "
                             "by the endpoint")
 
-    def serialize():  # pragma:nocover
+    def serialize(tenant_id=None):  # pragma:nocover
         """
         Serialize the endpoint template to a dictionary.
+
+        :param text_type tenant_id: an optional parameter to limit the
+            serialization to only values to a subset for tenant-specific
+            template information.
         """
 
     def deserialize(data):  # pragma:nocover
         """
         Deserialize the endpoint template from a dictionary.
+
+        :param dict data: a dictionary of values to import the template data
+            from.
         """
 
 

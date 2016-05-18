@@ -763,7 +763,8 @@ class IdentityApi(object):
 
             return json.dumps(
                 {
-                    "OS-KSCATALOG": data
+                    "OS-KSCATALOG": data,
+                    "OS-KSCATALOG:endpointsTemplates_links": []
                 }
             )
         except IndexError:
@@ -953,6 +954,56 @@ class IdentityApi(object):
                 request
             )
         )
+
+    @app.route('/v2.0/tenants/<string:tenant_id>/OS-KSCATALOG/endpoints',
+               methods=['GET'])
+    def list_endpoints_for_tenant(self, request, tenant_id):
+        """
+        List the available endpoints for a given tenant-id.
+
+        Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
+
+        Note: Marker/Limit capability not implemented here.
+        """
+        x_auth_token = request.getHeader(b"x-auth-token")
+        if x_auth_token is None:
+            return json.dumps(unauthorized("Authentication required", request))
+
+        # caller may provide a specific API to list by setting the
+        # serviceid header
+        external_apis_to_list = []
+        service_id = request.getHeader(b'serviceid')
+        if service_id is not None:
+            external_apis_to_list = [service_id.decode('utf-8')]
+        else:
+            external_apis_to_list = [
+                api_name
+                for api_name in self.core.get_external_apis()
+            ]
+
+        try:
+            data = []
+            request.setResponseCode(200)
+            for api_name in external_apis_to_list:
+                api = self.core.get_external_api(api_name)
+                for endpoint_template in api.list_templates():
+                    data.append(
+                        endpoint_template.serialize(
+                            tenant_id
+                        )
+                    )
+
+            return json.dumps(
+                {
+                    "endpoints": data,
+                    "endpoints_links": []
+                }
+            )
+        except IndexError:
+            request.setResponseCode(404)
+            return json.dumps(not_found(
+                "Unable to find the requested API",
+                request))
 
 
 def base_uri_from_request(request):

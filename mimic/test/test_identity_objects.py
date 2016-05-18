@@ -166,6 +166,35 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
         serialized_data = epts.serialize()
         self.assertEqual(data, serialized_data)
 
+    def test_serialize_tenant(self):
+        tenant_id = "some-tenant"
+        data = {
+            "id": "some-id",
+            "region": "some-region",
+            "type": "some-type",
+            "name": "some-name",
+            "enabled": True,
+            "publicURL": "http://public.url",
+            "internalURL": "http://internal.url",
+            "adminURL": None,
+            "RAX-AUTH:tenantAlias": "{{tenant_id}}",
+            "versionId": "http://some.url/version",
+            "versionInfo": "http://some.url/version/info",
+            "versionList": "http://some.url/version/list"
+        }
+        expected_result = {
+            "id": data['id'],
+            "tenantId": tenant_id,
+            "region": data['region'],
+            "type": data['type'],
+            "publicURL": data['publicURL'],
+            "internalURL": data['internalURL'],
+        }
+
+        epts = EndpointTemplateStore(data)
+        serialized_data = epts.serialize(tenant_id=tenant_id)
+        self.assertEqual(expected_result, serialized_data)
+
 
 class EndpointTemplatesTests(SynchronousTestCase):
     """
@@ -305,6 +334,57 @@ class EndpointTemplatesTests(SynchronousTestCase):
         )
 
         with self.assertRaises(IndexError):
+            eeapi.update_template(new_eeapi_template)
+
+    def test_update_endpoint_template_invalid_type_value(self):
+        """
+        Validate that the :obj:`ExternalApiStore` will raise the `IndexError`
+        exception if the template id is not found when doing an update; in
+        otherwords, update != (update or add).
+        """
+        new_url = "https://api.new_region.example.com:9090"
+        new_region = "NEW_REGION"
+        eeapi = make_example_external_api(
+            self,
+            name=self.eeapi_name,
+            set_enabled=True,
+        )
+        new_eeapi_template = ExampleEndpointTemplate(
+            name=self.eeapi_name,
+            uuid=get_template_id(self, eeapi),
+            region=new_region,
+            url=new_url
+        )
+        new_eeapi_template.type_key = "some-other-type"
+
+        with self.assertRaises(ValueError):
+            eeapi.update_template(new_eeapi_template)
+
+    def test_update_endpoint_template_invalid_id_value(self):
+        """
+        Validate that the :obj:`ExternalApiStore` will raise the `IndexError`
+        exception if the template id is not found when doing an update; in
+        otherwords, update != (update or add).
+        """
+        new_url = "https://api.new_region.example.com:9090"
+        new_region = "NEW_REGION"
+        eeapi = make_example_external_api(
+            self,
+            name=self.eeapi_name,
+            set_enabled=True,
+        )
+        old_eeapi_template_id = get_template_id(self, eeapi)
+        new_eeapi_template_id = u"uuid-alternate-endpoint-template"
+        new_eeapi_template = ExampleEndpointTemplate(
+            name=self.eeapi_name,
+            uuid=old_eeapi_template_id,
+            region=new_region,
+            url=new_url
+        )
+        eeapi.endpoint_templates[old_eeapi_template_id].id_key = \
+            new_eeapi_template_id
+
+        with self.assertRaises(ValueError):
             eeapi.update_template(new_eeapi_template)
 
     def test_has_endpoint_template_invalid(self):
