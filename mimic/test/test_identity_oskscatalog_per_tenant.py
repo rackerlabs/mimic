@@ -30,7 +30,8 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesList(SynchronousTestCas
         self.tenant_id = 'some_tenant'
         self.core = MimicCore(Clock(), [])
         self.root = MimicRoot(self.core).app.resource()
-        self.uri = ("/identity/v2.0/tenants/" + self.tenant_id +
+        self.uri = (
+            "/identity/v2.0/tenants/" + self.tenant_id +
             "/OS-KSCATALOG/endpoints"
         )
         self.eeapi_name = u"externalServiceName"
@@ -150,3 +151,143 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesList(SynchronousTestCas
         self.assertEqual(len(json_body['endpoints']),
                          len(api_list))
         self.assertEqual(len(json_body['endpoints_links']), 0)
+
+
+class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesCreate(SynchronousTestCase):
+    """
+    Tests for ``/identity/v2.0/<tenant-id>/OS-KSCATALOG/endpointTemplates``,
+    provided by :obj:`mimic.rest.idenity_api.IdentityApi`
+    """
+    def setUp(self):
+        self.tenant_id = 'some_tenant'
+        self.core = MimicCore(Clock(), [])
+        self.root = MimicRoot(self.core).app.resource()
+        self.uri = (
+            "/identity/v2.0/tenants/" + self.tenant_id +
+            "/OS-KSCATALOG/endpoints"
+        )
+        self.eeapi_name = u"externalServiceName"
+        self.eeapi = make_example_external_api(
+            self,
+            name=self.eeapi_name,
+            set_enabled=False
+        )
+        self.headers = {
+            b'X-Auth-Token': [b'ABCDEF987654321']
+        }
+        self.verb = b"POST"
+
+    def test_auth_fail(self):
+        """
+        Validate X-Auth-Token required to access endpoint.
+        """
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, self.verb,
+                         self.uri))
+
+        self.assertEqual(response.code, 401)
+        self.assertEqual(json_body['unauthorized']['code'], 401)
+
+    def test_invalid_json_body(self):
+        """
+        Validate that a JSON message body is required.
+        """
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, self.verb,
+                         self.uri,
+                         body=b'<xml>ensure json failure',
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 400)
+        self.assertEqual(json_body['badRequest']['code'], 400)
+        self.assertEqual(json_body['badRequest']['message'],
+                         'Invalid JSON request body')
+
+    def test_json_body_missing_required_field_oskscatalog(self):
+        """
+        Validate that the name field in the JSON body is required.
+        """
+        data = {
+            'id': text_type(uuid.uuid4()),
+        }
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, self.verb,
+                         self.uri,
+                         body=data,
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 400)
+        self.assertEqual(json_body['badRequest']['code'], 400)
+        self.assertTrue(
+            json_body['badRequest']['message'].startswith(
+                "Invalid Content. OS-KSCATALOG:endpointTemplate:id is "
+                "required."
+            )
+        )
+
+    def test_json_body_missing_required_field_template_id(self):
+        """
+        Validate that the name field in the JSON body is required.
+        """
+        data = {
+            "OS-KSCATALOG:endpointTemplate": {
+            }
+        }
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, self.verb,
+                         self.uri,
+                         body=data,
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 400)
+        self.assertEqual(json_body['badRequest']['code'], 400)
+        self.assertTrue(
+            json_body['badRequest']['message'].startswith(
+                "Invalid Content. OS-KSCATALOG:endpointTemplate:id is "
+                "required."
+            )
+        )
+
+    def test_invalid_template_id(self):
+        """
+        Validate that the name field in the JSON body is required.
+        """
+        self.core.add_api(self.eeapi)
+        data = {
+            "OS-KSCATALOG:endpointTemplate": {
+                "id": "some-id"
+            }
+        }
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, self.verb,
+                         self.uri,
+                         body=data,
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 404)
+        self.assertEqual(json_body['itemNotFound']['code'], 404)
+        self.assertTrue(
+            json_body['itemNotFound']['message'].startswith(
+                "Unable to locate an External API with the given Template ID."
+            )
+        )
+
+    def test_enable_template(self):
+        """
+        Validate that a new endpoint template can be updated.
+        """
+        self.core.add_api(self.eeapi)
+        id_key = get_template_id(self, self.eeapi)
+        data = {
+            "OS-KSCATALOG:endpointTemplate": {
+                "id": id_key
+            }
+        }
+
+        req = request(self, self.root, self.verb,
+                      self.uri,
+                      body=json.dumps(data).encode("utf-8"),
+                      headers=self.headers)
+
+        response = self.successResultOf(req)
+        self.assertEqual(response.code, 201)

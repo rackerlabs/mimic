@@ -343,7 +343,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
         self.assertEqual(json_body['conflict']['code'], 409)
         self.assertEqual(
             json_body['conflict']['message'],
-            "Endpoint already exists or service type does not match."
+            "ID value is already assigned to an existing template"
         )
 
     def test_new_endpoint_template_wrong_service_type(self):

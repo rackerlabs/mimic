@@ -817,6 +817,17 @@ class IdentityApi(object):
                 )
             )
 
+        # ensure that the ID cannot exist in any existing APIs
+        for api_name in self.core.get_external_apis():
+            api = self.core.get_external_api(api_name)
+            if api.has_template(endpoint_template_instance.id_key):
+                return json.dumps(
+                    conflict(
+                        "ID value is already assigned to an existing template",
+                        request
+                    )
+                )
+
         service_name = endpoint_template_instance.name_key
 
         try:
@@ -1004,6 +1015,51 @@ class IdentityApi(object):
             return json.dumps(not_found(
                 "Unable to find the requested API",
                 request))
+
+    @app.route('/v2.0/tenants/<string:tenant_id>/OS-KSCATALOG/endpoints',
+               methods=['POST'])
+    def create_endpoint_for_tenant(self, request, tenant_id):
+        """
+        Enable a given endpoint template for a given tenantid.
+
+        Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
+        """
+        x_auth_token = request.getHeader(b"x-auth-token")
+        if x_auth_token is None:
+            return json.dumps(unauthorized("Authentication required", request))
+
+        try:
+            content = json_from_request(request)
+        except ValueError:
+            return json.dumps(
+                bad_request("Invalid JSON request body", request)
+            )
+
+        try:
+            template_id = content['OS-KSCATALOG:endpointTemplate']['id']
+        except KeyError:
+            return json.dumps(
+                bad_request(
+                    "Invalid Content. OS-KSCATALOG:endpointTemplate:id is "
+                    "required.",
+                    request))
+
+        for api_name in self.core.get_external_apis():
+            api = self.core.get_external_api(api_name)
+            if api.has_template(template_id):
+                api.enable_endpoint_for_tenant(
+                    tenant_id,
+                    template_id
+                )
+                request.setResponseCode(201)
+                return b''
+
+        return json.dumps(
+            not_found(
+                "Unable to locate an External API with the given Template ID.",
+                request
+            )
+        )
 
 
 def base_uri_from_request(request):
