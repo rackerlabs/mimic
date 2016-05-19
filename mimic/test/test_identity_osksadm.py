@@ -176,6 +176,7 @@ class TestIdentityMimicOSKSCatalogAdminCreateExternalService(SynchronousTestCase
     def test_service_name_already_exists(self):
         self.core.add_api(self.eeapi)
         data = {
+            'id': self.eeapi.uuid_key,
             'name': self.eeapi.name_key,
             'type': self.eeapi.type_key
         }

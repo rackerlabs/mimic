@@ -158,9 +158,7 @@ class CoreApiBuildingTests(SynchronousTestCase):
 
         core = MimicCore(Clock(), [eeapi])
         core.remove_external_api(
-            eeapi.uuid_key,
-            eeapi.type_key,
-            eeapi.name_key
+            eeapi.uuid_key
         )
 
     def test_remove_api_invalid(self):
@@ -171,9 +169,7 @@ class CoreApiBuildingTests(SynchronousTestCase):
         core = MimicCore(Clock(), [])
         with self.assertRaises(IndexError):
             core.remove_external_api(
-                'some-id',
-                'some-type',
-                self.eeapi_name
+                'some-id'
             )
 
     def test_remove_api_with_endpoints(self):
@@ -190,9 +186,7 @@ class CoreApiBuildingTests(SynchronousTestCase):
         core = MimicCore(Clock(), [eeapi])
         with self.assertRaises(ValueError):
             core.remove_external_api(
-                eeapi.uuid_key,
-                eeapi.type_key,
-                eeapi.name_key
+                eeapi.uuid_key
             )
 
     def test_get_external_apis(self):
@@ -211,7 +205,7 @@ class CoreApiBuildingTests(SynchronousTestCase):
         core.add_api(eeapi)
         api_list = core.get_external_apis()
         self.assertEqual(len(api_list), 1)
-        self.assertEqual(list(api_list), [self.eeapi_name])
+        self.assertEqual(list(api_list), [eeapi.uuid_key])
 
     def test_get_external_api(self):
         """
@@ -225,7 +219,7 @@ class CoreApiBuildingTests(SynchronousTestCase):
 
         core = MimicCore(Clock(), [eeapi])
         api_from_core = core.get_external_api(
-            self.eeapi_name
+            eeapi.uuid_key
         )
         self.assertEqual(eeapi, api_from_core)
 

@@ -233,10 +233,10 @@ class EndpointTemplatesTests(SynchronousTestCase):
             set_enabled=True
         )
 
-        listing = [ ept for ept in eeapi.list_tenant_templates(tenant_id)]
+        listing = [ept for ept in eeapi.list_tenant_templates(tenant_id)]
         self.assertEqual(len(listing), 1)
         eeapi.remove_template(eeapi_template_id)
-        new_listing = [ ept for ept in eeapi.list_tenant_templates(tenant_id)]
+        new_listing = [ept for ept in eeapi.list_tenant_templates(tenant_id)]
         self.assertEqual(len(new_listing), 0)
 
     def test_listing_templates_tenant_with_specific_enabled(self):
@@ -253,10 +253,10 @@ class EndpointTemplatesTests(SynchronousTestCase):
         )
         eeapi.enable_endpoint_for_tenant(tenant_id, eeapi_template_id)
 
-        listing = [ ept for ept in eeapi.list_tenant_templates(tenant_id)]
+        listing = [ept for ept in eeapi.list_tenant_templates(tenant_id)]
         self.assertEqual(len(listing), 1)
         eeapi.disable_endpoint_for_tenant(tenant_id, eeapi_template_id)
-        new_listing = [ ept for ept in eeapi.list_tenant_templates(tenant_id)]
+        new_listing = [ept for ept in eeapi.list_tenant_templates(tenant_id)]
         self.assertEqual(len(new_listing), 0)
 
     def test_invalid_endpoint_template(self):

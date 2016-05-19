@@ -630,8 +630,8 @@ class IdentityApi(object):
                     "description": api.description
                 }
                 for api in [
-                    self.core.get_external_api(api_name)
-                    for api_name in self.core.get_external_apis()]]})
+                    self.core.get_external_api(api_id)
+                    for api_id in self.core.get_external_apis()]]})
 
     @app.route('/v2.0/services', methods=['POST'])
     def create_external_api_service(self, request):
@@ -673,7 +673,7 @@ class IdentityApi(object):
         except KeyError:
             service_description = u"External API referenced by Mimic"
 
-        if service_name in self.core.get_external_apis():
+        if service_id in self.core.get_external_apis():
             return json.dumps(
                 conflict(
                     "Conflict: Service with the same name already exists.",
@@ -699,26 +699,15 @@ class IdentityApi(object):
         if x_auth_token is None:
             return json.dumps(unauthorized("Authentication required", request))
 
-        service_name = None
-        service_type = None
-        for a_service_name in self.core.get_external_apis():
-            api = self.core.get_external_api(a_service_name)
-            if service_id == api.uuid_key:
-                service_name = api.name_key
-                service_type = api.type_key
-
-        if service_name is None or service_type is None:
+        try:
+            self.core.remove_external_api(
+                service_id
+            )
+        except IndexError:
             return json.dumps(
                 not_found(
                     "Service not found. Unable to remove.",
                     request))
-
-        try:
-            self.core.remove_external_api(
-                service_id,
-                service_type,
-                service_name
-            )
         except ValueError:
             return json.dumps(
                 conflict(
@@ -749,15 +738,15 @@ class IdentityApi(object):
             external_apis_to_list = [service_id.decode('utf-8')]
         else:
             external_apis_to_list = [
-                api_name
-                for api_name in self.core.get_external_apis()
+                api_id
+                for api_id in self.core.get_external_apis()
             ]
 
         try:
             data = []
             request.setResponseCode(200)
-            for api_name in external_apis_to_list:
-                api = self.core.get_external_api(api_name)
+            for api_id in external_apis_to_list:
+                api = self.core.get_external_api(api_id)
                 for endpoint_template in api.list_templates():
                     data.append(endpoint_template.serialize())
 
@@ -818,8 +807,13 @@ class IdentityApi(object):
             )
 
         # ensure that the ID cannot exist in any existing APIs
-        for api_name in self.core.get_external_apis():
-            api = self.core.get_external_api(api_name)
+        # and lookup the service id in the process if necessary
+        service_id = request.getHeader(b'serviceid')
+        if service_id is not None:
+            service_id = service_id.decode('utf-8')
+
+        for api_id in self.core.get_external_apis():
+            api = self.core.get_external_api(api_id)
             if api.has_template(endpoint_template_instance.id_key):
                 return json.dumps(
                     conflict(
@@ -827,11 +821,12 @@ class IdentityApi(object):
                         request
                     )
                 )
-
-        service_name = endpoint_template_instance.name_key
+            if service_id is None:
+                if api.name_key == endpoint_template_instance.name_key:
+                    service_id = api.uuid_key
 
         try:
-            service = self.core.get_external_api(service_name)
+            service = self.core.get_external_api(service_id)
         except IndexError:
             return json.dumps(
                 not_found(
@@ -902,10 +897,17 @@ class IdentityApi(object):
                 )
             )
 
-        service_name = endpoint_template_instance.name_key
+        service_id = request.getHeader(b'serviceid')
+        if service_id is not None:
+            service_id = service_id.decode('utf-8')
+        else:
+            for api_id in self.core.get_external_apis():
+                api = self.core.get_external_api(api_id)
+                if api.has_template(template_id):
+                    service_id = api.uuid_key
 
         try:
-            service = self.core.get_external_api(service_name)
+            service = self.core.get_external_api(service_id)
         except IndexError:
             return json.dumps(
                 not_found(
@@ -952,12 +954,20 @@ class IdentityApi(object):
         if x_auth_token is None:
             return json.dumps(unauthorized("Authentication required", request))
 
-        for api_name in self.core.get_external_apis():
-            api = self.core.get_external_api(api_name)
+        service_id = request.getHeader(b'serviceid')
+        if service_id is not None:
+            api = self.core.get_external_api(service_id.decode('utf-8'))
             if api.has_template(template_id):
                 api.remove_template(template_id)
                 request.setResponseCode(204)
                 return b''
+        else:
+            for api_id in self.core.get_external_apis():
+                api = self.core.get_external_api(api_id)
+                if api.has_template(template_id):
+                    api.remove_template(template_id)
+                    request.setResponseCode(204)
+                    return b''
 
         return json.dumps(
             not_found(
@@ -988,15 +998,15 @@ class IdentityApi(object):
             external_apis_to_list = [service_id.decode('utf-8')]
         else:
             external_apis_to_list = [
-                api_name
-                for api_name in self.core.get_external_apis()
+                api_id
+                for api_id in self.core.get_external_apis()
             ]
 
         try:
             data = []
             request.setResponseCode(200)
-            for api_name in external_apis_to_list:
-                api = self.core.get_external_api(api_name)
+            for api_id in external_apis_to_list:
+                api = self.core.get_external_api(api_id)
                 for endpoint_template in api.list_tenant_templates(tenant_id):
                     data.append(
                         endpoint_template.serialize(
@@ -1044,8 +1054,8 @@ class IdentityApi(object):
                     "required.",
                     request))
 
-        for api_name in self.core.get_external_apis():
-            api = self.core.get_external_api(api_name)
+        for api_id in self.core.get_external_apis():
+            api = self.core.get_external_api(api_id)
             if api.has_template(template_id):
                 api.enable_endpoint_for_tenant(
                     tenant_id,
@@ -1075,8 +1085,8 @@ class IdentityApi(object):
         if x_auth_token is None:
             return json.dumps(unauthorized("Authentication required", request))
 
-        for api_name in self.core.get_external_apis():
-            api = self.core.get_external_api(api_name)
+        for api_id in self.core.get_external_apis():
+            api = self.core.get_external_api(api_id)
             if api.has_template(template_id):
                 try:
                     api.disable_endpoint_for_tenant(

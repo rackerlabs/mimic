@@ -381,6 +381,14 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
         self.core.add_api(self.eeapi)
         id_key = get_template_id(self, self.eeapi)
 
+        eeapi2 = make_example_external_api(
+            self,
+            name=self.eeapi_name + text_type(uuid.uuid4()),
+            service_type='service-' + text_type(uuid.uuid4())
+        )
+        eeapi2.remove_template(id_key)
+        self.core.add_api(eeapi2)
+
         data = {
             'id': text_type(uuid.uuid4()),
             'name': self.eeapi_name,
@@ -598,6 +606,14 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
         self.core.add_api(self.eeapi)
         id_key = get_template_id(self, self.eeapi)
 
+        eeapi2 = make_example_external_api(
+            self,
+            name=self.eeapi_name + text_type(uuid.uuid4()),
+            service_type='service-' + text_type(uuid.uuid4())
+        )
+        eeapi2.remove_template(id_key)
+        self.core.add_api(eeapi2)
+
         data = {
             'id': id_key,
             'name': self.eeapi_name,
@@ -668,11 +684,43 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesDelete(SynchronousTestCase):
             "Unable to locate an External API with the given Template ID."
         )
 
+    def test_invalid_template_id_with_service_header(self):
+        """
+        Validate that removing a non-existent template will
+        return a 404.
+        """
+        self.eeapi.remove_template(self.ept_template_id)
+        self.core.add_api(self.eeapi)
+        self.headers[b'serviceid'] = [self.eeapi.uuid_key.encode('utf8')]
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, self.verb,
+                         self.uri,
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 404)
+        self.assertEqual(json_body['itemNotFound']['code'], 404)
+        self.assertEqual(
+            json_body['itemNotFound']['message'],
+            "Unable to locate an External API with the given Template ID."
+        )
+
     def test_remove_template_id(self):
         """
         Validate removing an existing template will return a 204.
         """
         self.core.add_api(self.eeapi)
+        req = request(self, self.root, self.verb,
+                      self.uri,
+                      headers=self.headers)
+        response = self.successResultOf(req)
+        self.assertEqual(response.code, 204)
+
+    def test_remove_template_id_with_service_header(self):
+        """
+        Validate removing an existing template will return a 204.
+        """
+        self.core.add_api(self.eeapi)
+        self.headers[b'serviceid'] = [self.eeapi.uuid_key.encode('utf8')]
         req = request(self, self.root, self.verb,
                       self.uri,
                       headers=self.headers)
