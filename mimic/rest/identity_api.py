@@ -997,7 +997,7 @@ class IdentityApi(object):
             request.setResponseCode(200)
             for api_name in external_apis_to_list:
                 api = self.core.get_external_api(api_name)
-                for endpoint_template in api.list_templates():
+                for endpoint_template in api.list_tenant_templates(tenant_id):
                     data.append(
                         endpoint_template.serialize(
                             tenant_id

@@ -309,6 +309,29 @@ class ExternalApiStore(object):
                 )
         return endpoints
 
+    def list_tenant_templates(self, tenant_id):
+        """
+        List the tenant specific endpoints.
+
+        :param text_type tenant_id: tenant id to operate on
+        :returns: an iterable of the endpoints available for the specified
+            tenant id
+        """
+        # List of template IDs that should be provided for a template
+        # regardless of the enabled/disabled status of the template itself
+        tenant_specific_templates = []
+        if tenant_id in self.endpoints_for_tenants:
+            for template_id in self.endpoints_for_tenants[tenant_id]:
+                tenant_specific_templates.append(template_id)
+
+        # provide an Endpoint Entry for every template that is either
+        # (a) enabled or (b) in the list of endpoints specifically
+        # enabled for the tenant
+        for _, endpoint_template in self.endpoint_templates.items():
+            if (endpoint_template.enabled_key or
+                    endpoint_template.id_key in tenant_specific_templates):
+                yield endpoint_template
+
     def enable_endpoint_for_tenant(self, tenant_id, template_id):
         """
         Enable an endpoint for a specific tenant.

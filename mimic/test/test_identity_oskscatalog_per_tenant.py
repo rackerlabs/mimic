@@ -103,6 +103,24 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesList(SynchronousTestCas
         self.assertEqual(len(json_body['endpoints']), 1)
         self.assertEqual(len(json_body['endpoints_links']), 0)
 
+    def test_list_template_all_disabled(self):
+        """
+        Validate that if an external API is present that its template will show
+        up in the listing only if it is enabled.
+        """
+        self.core.add_api(self.eeapi)
+        id_key = get_template_id(self, self.eeapi)
+        self.eeapi.endpoint_templates[id_key].enabled_key = False
+
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, self.verb,
+                         self.uri,
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 200)
+        self.assertEqual(len(json_body['endpoints']), 0)
+        self.assertEqual(len(json_body['endpoints_links']), 0)
+
     def test_list_single_template_external_and_internal_apis(self):
         """
         Validate that if both an internal and and external API are present that

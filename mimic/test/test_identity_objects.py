@@ -219,6 +219,46 @@ class EndpointTemplatesTests(SynchronousTestCase):
         eeapi.remove_template(eeapi_template_id)
         self.assertEqual(len(eeapi.list_templates()), 0)
 
+    def test_listing_templates_tenant(self):
+        tenant_id = 'some-tenant'
+        eeapi_template_id = 'some-template-id'
+        eeapi_template = ExampleEndpointTemplate(
+            name=self.eeapi_name,
+            uuid=eeapi_template_id,
+        )
+        eeapi = make_example_external_api(
+            self,
+            name=self.eeapi_name,
+            endpoint_templates=[eeapi_template],
+            set_enabled=True
+        )
+
+        listing = [ ept for ept in eeapi.list_tenant_templates(tenant_id)]
+        self.assertEqual(len(listing), 1)
+        eeapi.remove_template(eeapi_template_id)
+        new_listing = [ ept for ept in eeapi.list_tenant_templates(tenant_id)]
+        self.assertEqual(len(new_listing), 0)
+
+    def test_listing_templates_tenant_with_specific_enabled(self):
+        tenant_id = 'some-tenant'
+        eeapi_template_id = 'some-template-id'
+        eeapi_template = ExampleEndpointTemplate(
+            name=self.eeapi_name,
+            uuid=eeapi_template_id,
+        )
+        eeapi = make_example_external_api(
+            self,
+            name=self.eeapi_name,
+            endpoint_templates=[eeapi_template]
+        )
+        eeapi.enable_endpoint_for_tenant(tenant_id, eeapi_template_id)
+
+        listing = [ ept for ept in eeapi.list_tenant_templates(tenant_id)]
+        self.assertEqual(len(listing), 1)
+        eeapi.disable_endpoint_for_tenant(tenant_id, eeapi_template_id)
+        new_listing = [ ept for ept in eeapi.list_tenant_templates(tenant_id)]
+        self.assertEqual(len(new_listing), 0)
+
     def test_invalid_endpoint_template(self):
         """
         Validate the endpoint template interface gate check
