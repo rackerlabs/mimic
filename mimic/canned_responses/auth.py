@@ -55,7 +55,11 @@ def impersonator_user_role(id, name):
             {"id": "10000005",
              "serviceId": "test-d4614b87411e141fe8109099bc4f",
              "description": "Role to access Customer service as an Admin",
-             "name": "customer:admin"}],
+             "name": "customer:admin"},
+            {"id": "10000006",
+             "serviceId": "test-eabb70a0e702a4626977c331d5c4",
+             "description": "Service admin role for Cloud Backup access. Assign only to service users",
+             "name": "identity:admin"},
         "name": name
     }
 
