@@ -27,25 +27,25 @@ class IdentitySessionTests(SynchronousTestCase):
         Check generation of keystone canned response, when providing only
         base_uri.
         """
-        expected = {
-            "version": {
-                "status": "stable",
-                "updated": "2014-04-17T00:00:00Z",
-                "media-types": [{
-                    "base": "application/json",
-                    "type": "application/vnd.openstack.identity-v2.0+json"
-                }],
-                "id": "v2.0",
-                "links": [{
-                    "href": "http://ip_server:port/identity/v2.0",
-                    "rel": "self"
-                }, {
-                    "href": "http://docs.openstack.org/",
-                    "type": "text/html",
-                    "rel": "describedby"
-                }]
-            }
-         }
+        expected = {"version":
+                    {"status": "stable",
+                     "updated": "2014-04-17T00:00:00Z",
+                     "media-types":
+                     [{
+                         "base": "application/json",
+                         "type": "application/vnd.openstack.identity-v2.0+json"
+                     }],
+                     "id": "v2.0",
+                     "links":
+                     [{
+                         "href": "http://ip_server:port/identity/v2.0",
+                         "rel": "self"
+                     }, {
+                         "href": "http://docs.openstack.org/",
+                         "type": "text/html",
+                         "rel": "describedby"}]
+                     }
+                    }
         result = get_version_v2("http://ip_server:port/")
 
         self.assertEqual(json.dumps(result, sort_keys=True),

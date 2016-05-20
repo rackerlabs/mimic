@@ -149,7 +149,6 @@ def get_version_v2(base_uri):
     """
     Canned response for keystone v2 version.
     """
-
     return {
         "version": {
             "status": "stable",
