@@ -87,6 +87,10 @@ def get_token(tenant_id,
                     yield {
                         "region": endpoint.region,
                         "tenantId": endpoint.tenant_id,
+                        "internalURL": endpoint.url_with_prefix(
+                            prefix_for_endpoint(endpoint),
+                            internalURL=True
+                        ),
                         "publicURL": endpoint.url_with_prefix(
                             prefix_for_endpoint(endpoint)
                         ),
@@ -135,6 +139,10 @@ def get_endpoints(tenant_id, entry_generator, prefix_for_endpoint):
             result.append({
                 "region": endpoint.region,
                 "tenantId": endpoint.tenant_id,
+                "internalURL": endpoint.url_with_prefix(
+                    prefix_for_endpoint(endpoint),
+                    internalURL=True
+                ),
                 "publicURL": endpoint.url_with_prefix(
                     prefix_for_endpoint(endpoint)
                 ),

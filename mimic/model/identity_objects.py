@@ -304,7 +304,8 @@ class ExternalApiStore(object):
                         endpoint_template.id_key,
                         endpoint_template.versionId,
                         external=True,
-                        complete_url=endpoint_template.publicURL
+                        complete_url=endpoint_template.publicURL,
+                        internal_url=endpoint_template.internalURL
                     )
                 )
         return endpoints
