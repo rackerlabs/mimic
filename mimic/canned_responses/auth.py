@@ -60,6 +60,7 @@ def impersonator_user_role(id, name):
              "serviceId": "test-eabb70a0e702a4626977c331d5c4",
              "description": "Service admin role for Cloud Backup access. Assign only to service users",
              "name": "identity:admin"},
+        ],
         "name": name
     }
 
