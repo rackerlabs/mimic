@@ -676,16 +676,23 @@ class IdentityApi(object):
         if service_id in self.core.get_external_apis():
             return json.dumps(
                 conflict(
-                    "Conflict: Service with the same name already exists.",
+                    "Conflict: Service with the same uuid already exists.",
                     request))
 
-        self.core.add_api(ExternalApiStore(
-            service_id,
-            service_name,
-            service_type,
-            description=service_description))
-        request.setResponseCode(201)
-        return b''
+        try:
+            self.core.add_api(ExternalApiStore(
+                service_id,
+                service_name,
+                service_type,
+                description=service_description))
+        except ValueError:
+            return json.dumps(
+                conflict(
+                    "Conflict: Service with the same name already exists.",
+                    request))
+        else:
+            request.setResponseCode(201)
+            return b''
 
     @app.route('/v2.0/services/<string:service_id>', methods=['DELETE'])
     def delete_external_api_service(self, request, service_id):

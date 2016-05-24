@@ -86,8 +86,20 @@ class MimicCore(object):
         # supported interfaces
         if IExternalAPIMock.providedBy(api):
             # External APIs need to be able to be easily managed by
-            # the same object so long as they have the same name
+            # the same object so long as they have the same uuid
             this_api_id = api.uuid_key
+
+            if this_api_id in self._uuid_to_api_external:
+                raise ValueError(
+                    'An Existing API already exists with the given UUID'
+                )
+
+            for existing_api in self._uuid_to_api_external.values():
+                if existing_api.name_key == api.name_key:
+                    raise ValueError(
+                        'An Existing API with UUID ' + existing_api.uuid_key +
+                        ' is already using that name'
+                    )
             self._uuid_to_api_external[this_api_id] = api
         elif IAPIMock.providedBy(api):
             # Internal APIs can be added easily on the fly since

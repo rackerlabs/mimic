@@ -141,6 +141,33 @@ class CoreApiBuildingTests(SynchronousTestCase):
         with self.assertRaises(TypeError):
             MimicCore(Clock(), [brokenApiMock()])
 
+    def test_load_duplicate_api_uuid(self):
+        eeapi = make_example_external_api(
+            self,
+            name=self.eeapi_name,
+        )
+        eeapi2 = make_example_external_api(
+            self,
+            name="alternate " + self.eeapi_name
+        )
+        eeapi2.uuid_key = eeapi.uuid_key
+
+        with self.assertRaises(ValueError):
+            MimicCore(Clock(), [eeapi, eeapi2])
+
+    def test_load_duplicate_api_name(self):
+        eeapi = make_example_external_api(
+            self,
+            name=self.eeapi_name,
+        )
+        eeapi2 = make_example_external_api(
+            self,
+            name=self.eeapi_name
+        )
+
+        with self.assertRaises(ValueError):
+            MimicCore(Clock(), [eeapi, eeapi2])
+
     def test_remove_api(self):
         """
         Validate that an API can be removed

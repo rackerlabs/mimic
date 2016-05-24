@@ -173,10 +173,29 @@ class TestIdentityMimicOSKSCatalogAdminCreateExternalService(SynchronousTestCase
                          "Invalid Content. 'name' and 'type' fields are "
                          "required.")
 
-    def test_service_name_already_exists(self):
+    def test_service_uuid_already_exists(self):
         self.core.add_api(self.eeapi)
         data = {
             'id': self.eeapi.uuid_key,
+            'name': self.eeapi.name_key,
+            'type': self.eeapi.type_key
+        }
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, self.verb,
+                         self.uri,
+                         body=data,
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 409)
+        self.assertEqual(json_body['conflict']['code'], 409)
+        self.assertEqual(json_body['conflict']['message'],
+                         "Conflict: Service with the same uuid already "
+                         "exists.")
+
+    def test_service_name_already_exists(self):
+        self.core.add_api(self.eeapi)
+        data = {
+            'id': str(uuid.uuid4()),
             'name': self.eeapi.name_key,
             'type': self.eeapi.type_key
         }
