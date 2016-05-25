@@ -30,6 +30,7 @@ def get_limit():
                           "maxTotalInstances": 200,
                           "maxTotalRAMSize": 256000}}}
 
+
 def get_version_v2(uri):
     """
     Canned response nova v2 version.
