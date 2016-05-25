@@ -174,7 +174,7 @@ def make_example_internal_api(case, response_message="default message",
 
 
 def make_example_external_api(case, name=u"example",
-                              endpoint_templates=[ExampleEndpointTemplate()],
+                              endpoint_templates=None,
                               set_enabled=None,
                               service_type=None):
     """
@@ -197,6 +197,9 @@ def make_example_external_api(case, name=u"example",
     :raises: ValueError if the service-type does not match between all the
         endpoint templates.
     """
+    if endpoint_templates is None:
+        endpoint_templates = [ExampleEndpointTemplate()]
+
     if service_type is None:
         # default parameter value, take the template type from the first
         # endpoint template in the list

@@ -408,15 +408,6 @@ class CoreApiBuildingTests(SynchronousTestCase):
             ept_publicURL
         )
 
-        # For some reason this test causes another test to fail:
-        # test_external_api.TestExternalApiMock.
-        #   test_external_api_mock_in_service_catalog
-        # This seems to be resovled by resetting the EndpointTemplate
-        # after this test is done. Unknown why.
-        for ept in eeapi.endpoint_templates.values():
-            ept.internalURL = 'https://api.external.example.com:8080'
-            ept.publicURL = 'https://api.external.example.com:8080'
-
     def test_entries_for_tenant_internal(self):
         """
         Validate that the internal API shows up in the service catalog for a

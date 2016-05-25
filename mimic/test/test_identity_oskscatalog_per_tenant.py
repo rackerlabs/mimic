@@ -147,7 +147,8 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesList(SynchronousTestCas
                 make_example_external_api(
                     self,
                     name=self.eeapi_name + text_type(uuid.uuid4()),
-                    service_type='service-' + text_type(uuid.uuid4())
+                    service_type='service-' + text_type(uuid.uuid4()),
+                    set_enabled=True
                 )
             )
         for api in api_list:
