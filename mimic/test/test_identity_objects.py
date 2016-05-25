@@ -195,6 +195,78 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
         serialized_data = epts.serialize(tenant_id=tenant_id)
         self.assertEqual(expected_result, serialized_data)
 
+    def test_replace_tenant_id_default_replacement(self):
+        tenant_id = "some-tenant"
+        final_publicURL = "http://public.url/" + tenant_id
+        final_internalURL = "http://internal.url/" + tenant_id
+
+        data = {
+            "id": "some-id",
+            "region": "some-region",
+            "type": "some-type",
+            "name": "some-name",
+            "enabled": True,
+            "publicURL": "http://public.url/%tenant_id%",
+            "internalURL": "http://internal.url/%tenant_id%",
+            "adminURL": None,
+            "RAX-AUTH:tenantAlias": None,
+            "versionId": "http://some.url/version",
+            "versionInfo": "http://some.url/version/info",
+            "versionList": "http://some.url/version/list"
+        }
+
+        epts = EndpointTemplateStore(data)
+        self.assertEqual(
+            final_publicURL,
+            epts.get_url(
+                epts.publicURL,
+                tenant_id
+            )
+        )
+        self.assertEqual(
+            final_internalURL,
+            epts.get_url(
+                epts.internalURL,
+                tenant_id
+            )
+        )
+
+    def test_replace_tenant_id_user_replacement(self):
+        tenant_id = "some-tenant"
+        final_publicURL = "http://public.url/" + tenant_id
+        final_internalURL = "http://internal.url/" + tenant_id
+
+        data = {
+            "id": "some-id",
+            "region": "some-region",
+            "type": "some-type",
+            "name": "some-name",
+            "enabled": True,
+            "publicURL": "http://public.url/{{tenant_id}}",
+            "internalURL": "http://internal.url/{{tenant_id}}",
+            "adminURL": None,
+            "RAX-AUTH:tenantAlias": "{{tenant_id}}",
+            "versionId": "http://some.url/version",
+            "versionInfo": "http://some.url/version/info",
+            "versionList": "http://some.url/version/list"
+        }
+
+        epts = EndpointTemplateStore(data)
+        self.assertEqual(
+            final_publicURL,
+            epts.get_url(
+                epts.publicURL,
+                tenant_id
+            )
+        )
+        self.assertEqual(
+            final_internalURL,
+            epts.get_url(
+                epts.internalURL,
+                tenant_id
+            )
+        )
+
 
 class EndpointTemplatesTests(SynchronousTestCase):
     """

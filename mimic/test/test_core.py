@@ -360,6 +360,63 @@ class CoreApiBuildingTests(SynchronousTestCase):
         self.assertEqual(catalog_entries[0].tenant_id, "some-tenant")
         self.assertEqual(len(catalog_entries[0].endpoints), 1)
 
+    def test_entries_for_tenant_external_with_tenantid_replacement(self):
+        """
+        Validate that the external API shows up in the service catalog for a
+        given tenant and the tenant id is in the URL.
+        """
+        eeapi = make_example_external_api(
+            self,
+            name=self.eeapi_name,
+            set_enabled=True
+        )
+
+        tenant_id = 'some-tenant-other'
+
+        ept_internalURL = "http://internal.url/v1/" + tenant_id
+        ept_publicURL = "http://public.url/v1/" + tenant_id
+        for ept in eeapi.endpoint_templates.values():
+            ept.internalURL = "http://internal.url/v1/%tenant_id%"
+            ept.publicURL = "http://public.url/v1/%tenant_id%"
+
+        core = MimicCore(Clock(), [eeapi])
+
+        prefix_map = {}
+        base_uri = "http://some/random/prefix"
+        catalog_entries = [
+            entry
+            for entry in core.entries_for_tenant(
+                tenant_id,
+                prefix_map,
+                base_uri
+            )
+        ]
+
+        self.assertEqual(len(core._uuid_to_api_internal), 0)
+        self.assertEqual(len(core._uuid_to_api_external), 1)
+        self.assertEqual(len(catalog_entries), 1)
+        self.assertEqual(catalog_entries[0].type, eeapi.type_key)
+        self.assertEqual(catalog_entries[0].name, eeapi.name_key)
+        self.assertEqual(catalog_entries[0].tenant_id, tenant_id)
+        self.assertEqual(len(catalog_entries[0].endpoints), 1)
+        self.assertEqual(
+            catalog_entries[0].endpoints[0].internal_url,
+            ept_internalURL
+        )
+        self.assertEqual(
+            catalog_entries[0].endpoints[0].complete_url,
+            ept_publicURL
+        )
+
+        # For some reason this test causes another test to fail:
+        # test_external_api.TestExternalApiMock.
+        #   test_external_api_mock_in_service_catalog
+        # This seems to be resovled by resetting the EndpointTemplate
+        # after this test is done. Unknown why.
+        for ept in eeapi.endpoint_templates.values():
+            ept.internalURL = 'https://api.external.example.com:8080'
+            ept.publicURL = 'https://api.external.example.com:8080'
+
     def test_entries_for_tenant_internal(self):
         """
         Validate that the internal API shows up in the service catalog for a

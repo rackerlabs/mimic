@@ -183,6 +183,19 @@ class EndpointTemplateStore(object):
         if self._template_data is not None:
             self.deserialize(self._template_data)
 
+    def get_url(self, url, tenant_id):
+        """
+        Apply the tenant_id replacement to the URL.
+
+        :param text_type url: the URL to do the replacement on.
+        :param text_type tenant_id: the tenant-id to insert into the URL.
+        """
+        value_to_replace = self.tenantAlias
+        if value_to_replace is None:
+            value_to_replace = '%tenant_id%'
+
+        return url.replace(value_to_replace, tenant_id)
+
     def serialize(self, tenant_id=None):
         """
         Serialize the endpoint template to a dictionary.
@@ -304,8 +317,14 @@ class ExternalApiStore(object):
                         endpoint_template.id_key,
                         endpoint_template.versionId,
                         external=True,
-                        complete_url=endpoint_template.publicURL,
-                        internal_url=endpoint_template.internalURL
+                        complete_url=endpoint_template.get_url(
+                            endpoint_template.publicURL,
+                            tenant_id
+                        ),
+                        internal_url=endpoint_template.get_url(
+                            endpoint_template.internalURL,
+                            tenant_id
+                        )
                     )
                 )
         return endpoints

@@ -75,9 +75,32 @@ class TestExternalApiMock(SynchronousTestCase):
         tenant_data = TenantAuthentication(self, self.root, "other", "other")
         service_endpoint = tenant_data.get_service_endpoint(
             "externalServiceName", "EXTERNAL")
-        self.assertTrue(
-            service_endpoint.startswith(
-                'https://api.external.example.com:8080'))
+        self.assertEqual(
+            service_endpoint,
+            'https://api.external.example.com:8080'
+        )
+
+    def test_external_api_mock_in_service_catalog_with_tenantid(self):
+        """
+        validate that the external API shows up in the service catalog
+        when enabled globally and taht the tenantid will be properly
+        in the URL.
+        """
+        for ept in self.eeapi.endpoint_templates.values():
+            ept.internalURL = "http://internal.url/v1/%tenant_id%"
+            ept.publicURL = "http://public.url/v1/%tenant_id%"
+
+        tenant_data = TenantAuthentication(self, self.root, "other", "other")
+
+        ept_publicURL = (
+            "http://public.url/v1/" + tenant_data.get_tenant_id()
+        )
+        service_endpoint = tenant_data.get_service_endpoint(
+            "externalServiceName", "EXTERNAL")
+        self.assertEqual(
+            service_endpoint,
+            ept_publicURL
+        )
 
 
 class TestTenantSpecificAPIs(SynchronousTestCase):
