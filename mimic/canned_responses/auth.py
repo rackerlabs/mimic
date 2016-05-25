@@ -148,6 +148,8 @@ def get_endpoints(tenant_id, entry_generator, prefix_for_endpoint):
 def get_version_v2(base_uri):
     """
     Canned response for keystone v2 version.
+
+    Cf: http://developer.openstack.org/api-ref-identity-v2.html#listVersions-v2
     """
     return {
         "version": {
