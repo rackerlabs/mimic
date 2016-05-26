@@ -1797,6 +1797,40 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(resp.code, 200)
         self.assertEquals(data['values'][0]['latest_alarm_states'][0]['state'], 'CRITICAL')
 
+    def test_change_log(self):
+        # XXX FIXME: is POSTing to /states a special internal Mimic thing? If
+        # so it should probably be on a control-plane endpoint, not in-line
+        # with real monitoring APIs!
+        resp = self.successResultOf(
+            request(self, self.root, b"POST",
+                    '{0}/entities/{1}/alarms/{2}/states'.format(
+                        self.ctl_uri, self.entity_id, self.alarm_id),
+                    json.dumps({'state': 'OK',
+                                'analyzed_by_monitoring_zone_id': 'mzVegetaScouter',
+                                'status': 'It\'s OVER... NINE... THOUSAND!!1'}).encode("utf-8")))
+        self.assertEquals(resp.code, 201)
+
+        resp = self.successResultOf(
+            request(self, self.root, b"POST",
+                    '{0}/entities/{1}/alarms/{2}/states'.format(
+                        self.ctl_uri, self.entity_id, self.alarm_id),
+                    json.dumps({'state': 'CRITICAL',
+                                'analyzed_by_monitoring_zone_id': 'mzVegetaScouter',
+                                'status': 'i guess its eight thousand or so nbd'}).encode("utf-8")))
+        self.assertEquals(resp.code, 201)
+        (resp, data) = self.successResultOf(
+            json_request(self, self.root, b"GET", '{0}/changelogs/alarms'.format(self.uri)))
+        self.assertEquals(resp.code, 200)
+        all_alarms = data['values']
+        self.assertEquals(len(all_alarms), 2)
+        should_be_ok = all_alarms[0]
+        should_be_critical = all_alarms[1]
+        self.assertEquals(should_be_ok['state'], 'OK')
+        self.assertEquals(should_be_critical['state'], 'CRITICAL')
+        self.assertEquals(should_be_critical['entity_id'], self.entity_id)
+        self.assertEquals(should_be_critical['check_id'], self.check_id)
+        self.assertEquals(should_be_critical['alarm_id'], self.alarm_id)
+
     def test_alarm_states_same_alarm_gets_previous_state(self):
         """
         When setting a new alarm state on the same entity and same alarm ID,
