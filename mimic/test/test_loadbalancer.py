@@ -479,11 +479,11 @@ class LoadbalancerAPITests(SynchronousTestCase):
         """
         lb_id = self._create_loadbalancer()
         d = request_with_content(
-                self, self.root, b"GET",
-                "{}/loadbalancers/{}/healthmonitor".format(self.uri, lb_id))
+            self, self.root, b"GET",
+            "{}/loadbalancers/{}/healthmonitor".format(self.uri, lb_id))
         resp, body = self.successResultOf(d)
         self.assertEqual(resp.code, 200)
-        self.assertEqual(json.loads(body), {"healthMonitor": {}})
+        self.assertEqual(json.loads(body.decode()), {"healthMonitor": {}})
 
     def test_put_health_monitor(self):
         """
@@ -491,17 +491,20 @@ class LoadbalancerAPITests(SynchronousTestCase):
         `PUT ../healthmonitor`
         """
         lb_id = self._create_loadbalancer()
-        d = request_with_content(self, self.root, b"PUT",
-                "{}/loadbalancers/{}/healthmonitor".format(self.uri, lb_id),
-                json.dumps({"healthMonitor": {"type": "CONNECT"}}))
+        d = request_with_content(
+            self, self.root, b"PUT",
+            "{}/loadbalancers/{}/healthmonitor".format(self.uri, lb_id),
+            json.dumps({"healthMonitor": {"type": "CONNECT"}}).encode())
         resp, body = self.successResultOf(d)
         self.assertEqual(resp.code, 202)
         self.assertEqual(body, b'')
         # get and see if it is same
-        d = request_with_content(self, self.root, b"GET",
-                "{}/loadbalancers/{}/healthmonitor".format(self.uri, lb_id))
+        d = json_request(
+            self, self.root, b"GET",
+            "{}/loadbalancers/{}/healthmonitor".format(self.uri, lb_id))
         resp, body = self.successResultOf(d)
-        self.assertEqual(json.loads(body), {"healthMonitor": {"type": "CONNECT"}})
+        self.assertEqual(
+            body, {"healthMonitor": {"type": "CONNECT"}})
 
     def test_delete_health_monitor(self):
         """
@@ -509,25 +512,27 @@ class LoadbalancerAPITests(SynchronousTestCase):
         """
         lb_id = self._create_loadbalancer()
         # put new health monitor config
-        d = request_with_content(self, self.root, b"PUT",
-                "{}/loadbalancers/{}/healthmonitor".format(self.uri, lb_id),
-                json.dumps({"healthMonitor": {"type": "CONNECT"}}))
+        d = request_with_content(
+            self, self.root, b"PUT",
+            "{}/loadbalancers/{}/healthmonitor".format(self.uri, lb_id),
+            json.dumps({"healthMonitor": {"type": "CONNECT"}}).encode())
         resp, body = self.successResultOf(d)
         self.assertEqual(resp.code, 202)
         self.assertEqual(body, b'')
         # delete it
-        d = request_with_content(self, self.root, b"DELETE",
-                "{}/loadbalancers/{}/healthmonitor".format(self.uri, lb_id))
+        d = request_with_content(
+            self, self.root, b"DELETE",
+            "{}/loadbalancers/{}/healthmonitor".format(self.uri, lb_id))
         resp, body = self.successResultOf(d)
         self.assertEqual(resp.code, 202)
         self.assertEqual(body, b'')
         # and check if its empty
-        d = request_with_content(self, self.root, b"GET",
-                "{}/loadbalancers/{}/healthmonitor".format(self.uri, lb_id))
+        d = json_request(
+            self, self.root, b"GET",
+            "{}/loadbalancers/{}/healthmonitor".format(self.uri, lb_id))
         resp, body = self.successResultOf(d)
         self.assertEqual(resp.code, 200)
-        self.assertEqual(json.loads(body), {"healthMonitor": {}})
-
+        self.assertEqual(body, {"healthMonitor": {}})
 
 
 def _bulk_delete(test_case, root, uri, lb_id, node_ids):
