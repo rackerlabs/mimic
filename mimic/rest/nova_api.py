@@ -17,6 +17,7 @@ from twisted.plugin import IPlugin
 from twisted.web.http import CREATED, BAD_REQUEST
 
 from mimic.canned_responses.nova import get_limit
+from mimic.canned_responses.nova import get_version_v2
 from mimic.model.keypair_objects import GlobalKeyPairCollections, KeyPair
 from mimic.rest.mimicapp import MimicApp
 from mimic.catalog import Entry
@@ -256,6 +257,13 @@ class NovaRegion(object):
         return kp_region_collection
 
     app = MimicApp()
+
+    @app.route('/v2', methods=['GET'])
+    def get_version(self, request):
+        """
+        Returns nova version.
+        """
+        return json.dumps(get_version_v2(self.url("v2")))
 
     @app.route('/v2/<string:tenant_id>/servers', methods=['POST'])
     def create_server(self, request, tenant_id):
