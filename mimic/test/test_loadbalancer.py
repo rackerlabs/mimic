@@ -531,6 +531,20 @@ class LoadbalancerAPITests(SynchronousTestCase):
             b"PUT",
             json.dumps({"healthMonitor": {"type": "CONNECT"}}).encode())
 
+    def test_put_health_monitor_invalid_json(self):
+        """
+        `PUT ../healthmonitor` will return 400 invalid json schema
+        when body is invalid json
+        """
+        d = json_request(
+            self, self.root, b"PUT",
+            "{}/loadbalancers/{}/healthmonitor".format(self.uri, 2355),
+            b'bad json')
+        resp, body = self.successResultOf(d)
+        self.assertEqual(
+            (body, resp.code),
+            ({"message": "Invalid JSON request body", "code": 400}, 400))
+
     def test_delete_health_monitor(self):
         """
         `DELETE ../healthmonitor` will delete current health monitor config
