@@ -486,6 +486,10 @@ class LoadbalancerAPITests(SynchronousTestCase):
         self.assertEqual(json.loads(body.decode()), {"healthMonitor": {}})
 
     def _test_health_monitor_404(self, method, req_body=b""):
+        """
+        Test if given health monitor API returns 404 with "loadbalancer not found"
+        error for unknown LB ID
+        """
         not_exists = 23355
         d = request_with_content(
             self, self.root, method,
