@@ -107,6 +107,7 @@ class CLB(object):
     """
     _json = attr.ib()
     nodes = attr.ib(default=attr.Factory(list))
+    health_monitor = attr.ib(default=attr.Factory(dict))
 
     def __getitem__(self, key):
         """
@@ -336,6 +337,36 @@ class RegionalCLBCollection(object):
             log.msg(self.lbs[lb_id]["status"])
             return {'loadBalancer': self.lbs[lb_id].full_json()}, 200
         return not_found_response("loadbalancer"), 404
+
+    def get_health_monitor(self, lb_id):
+        """
+        Return LB's health monitor setting
+        """
+        if lb_id not in self.lbs:
+            return not_found_response("loadbalancer"), 404
+
+        self._verify_and_update_lb_state(lb_id, False, self.clock.seconds())
+        return {"healthMonitor": self.lbs[lb_id].health_monitor}, 200
+
+    def update_health_monitor(self, lb_id, health_monitor):
+        """
+        Update LB's health monitor setting
+        """
+        if lb_id not in self.lbs:
+            return not_found_response("loadbalancer"), 404
+
+        self.lbs[lb_id].health_monitor = health_monitor["healthMonitor"]
+        return EMPTY_RESPONSE, 202
+
+    def delete_health_monitor(self, lb_id):
+        """
+        Delete LB's health monitor configuration
+        """
+        if lb_id not in self.lbs:
+            return not_found_response("loadbalancer"), 404
+
+        self.lbs[lb_id].health_monitor = {}
+        return EMPTY_RESPONSE, 202
 
     def get_node(self, lb_id, node_id):
         """
