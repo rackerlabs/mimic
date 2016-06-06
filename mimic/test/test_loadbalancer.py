@@ -472,6 +472,117 @@ class LoadbalancerAPITests(SynchronousTestCase):
         )
         self.assertEqual(list_lb_response_body, {"loadBalancers": []})
 
+    def test_get_health_monitor(self):
+        """
+        `GET ../healthmonitor` will return empty health monitor config
+        when not already setup
+        """
+        lb_id = self._create_loadbalancer()
+        d = request_with_content(
+            self, self.root, b"GET",
+            "{}/loadbalancers/{}/healthmonitor".format(self.uri, lb_id))
+        resp, body = self.successResultOf(d)
+        self.assertEqual(resp.code, 200)
+        self.assertEqual(json.loads(body.decode()), {"healthMonitor": {}})
+
+    def _test_health_monitor_404(self, method, req_body=b""):
+        """
+        Test if given health monitor API returns 404 with "loadbalancer not found"
+        error for unknown LB ID
+        """
+        not_exists = 23355
+        d = request_with_content(
+            self, self.root, method,
+            "{}/loadbalancers/{}/healthmonitor".format(self.uri, not_exists),
+            req_body)
+        resp, body = self.successResultOf(d)
+        self.assertEqual(
+            (json.loads(body.decode()), resp.code),
+            loadbalancer_not_found())
+
+    def test_get_health_monitor_404(self):
+        """
+        `GET ../healthmonitor` will return 404 when called with unkwown LB ID
+        """
+        self._test_health_monitor_404(b"GET")
+
+    def test_put_health_monitor(self):
+        """
+        `GET ../healthmonitor` will return health monitor config setup via
+        `PUT ../healthmonitor`
+        """
+        lb_id = self._create_loadbalancer()
+        d = request_with_content(
+            self, self.root, b"PUT",
+            "{}/loadbalancers/{}/healthmonitor".format(self.uri, lb_id),
+            json.dumps({"healthMonitor": {"type": "CONNECT"}}).encode())
+        resp, body = self.successResultOf(d)
+        self.assertEqual(resp.code, 202)
+        self.assertEqual(body, b'')
+        # get and see if it is same
+        d = json_request(
+            self, self.root, b"GET",
+            "{}/loadbalancers/{}/healthmonitor".format(self.uri, lb_id))
+        resp, body = self.successResultOf(d)
+        self.assertEqual(
+            body, {"healthMonitor": {"type": "CONNECT"}})
+
+    def test_put_health_monitor_404(self):
+        """
+        `PUT ../healthmonitor` will return 404 if called with bad LB ID
+        """
+        self._test_health_monitor_404(
+            b"PUT",
+            json.dumps({"healthMonitor": {"type": "CONNECT"}}).encode())
+
+    def test_put_health_monitor_invalid_json(self):
+        """
+        `PUT ../healthmonitor` will return 400 invalid json schema
+        when body is invalid json
+        """
+        d = json_request(
+            self, self.root, b"PUT",
+            "{}/loadbalancers/{}/healthmonitor".format(self.uri, 2355),
+            b'bad json')
+        resp, body = self.successResultOf(d)
+        self.assertEqual(
+            (body, resp.code),
+            ({"message": "Invalid JSON request body", "code": 400}, 400))
+
+    def test_delete_health_monitor(self):
+        """
+        `DELETE ../healthmonitor` will delete current health monitor config
+        """
+        lb_id = self._create_loadbalancer()
+        # put new health monitor config
+        d = request_with_content(
+            self, self.root, b"PUT",
+            "{}/loadbalancers/{}/healthmonitor".format(self.uri, lb_id),
+            json.dumps({"healthMonitor": {"type": "CONNECT"}}).encode())
+        resp, body = self.successResultOf(d)
+        self.assertEqual(resp.code, 202)
+        self.assertEqual(body, b'')
+        # delete it
+        d = request_with_content(
+            self, self.root, b"DELETE",
+            "{}/loadbalancers/{}/healthmonitor".format(self.uri, lb_id))
+        resp, body = self.successResultOf(d)
+        self.assertEqual(resp.code, 202)
+        self.assertEqual(body, b'')
+        # and check if its empty
+        d = json_request(
+            self, self.root, b"GET",
+            "{}/loadbalancers/{}/healthmonitor".format(self.uri, lb_id))
+        resp, body = self.successResultOf(d)
+        self.assertEqual(resp.code, 200)
+        self.assertEqual(body, {"healthMonitor": {}})
+
+    def test_delete_health_monitor_404(self):
+        """
+        `DELETE ../healthmonitor` will return 404 if called with bad LB ID
+        """
+        self._test_health_monitor_404(b"DELETE")
+
 
 def _bulk_delete(test_case, root, uri, lb_id, node_ids):
     """Bulk delete multiple nodes."""
