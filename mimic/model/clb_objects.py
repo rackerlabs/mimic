@@ -154,6 +154,14 @@ class CLB(object):
         return result
 
 
+node_creation = EventDescription()
+
+
+@node_creation.declare_criterion("clb_id")
+def clb_id_criterion(value):
+    return Criterion(name='clb_id', predicate=lambda v: v == value)
+
+
 @attr.s
 class BadKeysError(Exception):
     """
