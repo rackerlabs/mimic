@@ -146,9 +146,9 @@ class ExternalApiStore(object):
                         tenant_id,
                         endpoint_template.region_key,
                         endpoint_template.id_key,
-                        endpoint_template.versionId,
+                        endpoint_template.version_id,
                         external=True,
-                        complete_url=endpoint_template.publicURL
+                        complete_url=endpoint_template.public_url
                     )
                 )
         return endpoints
@@ -296,7 +296,7 @@ class ExternalApiStore(object):
         """
         Return the URI for the service in the given region.
 
-        Note: This only returns the publicURL at present to match
+        Note: This only returns the public URL at present to match
             the rest of Mimic's implementation. Supporting multiple
             URL types (public vs snet vs admin) is left for another
             feature addition.
@@ -307,7 +307,7 @@ class ExternalApiStore(object):
         for _, endpoint_template in self.endpoint_templates.items():
             if endpoint_template.region_key == region or region == '':
                 # since Mimic only utilizes the public URL
-                return endpoint_template.publicURL
+                return endpoint_template.public_url
 
         raise IndexError(
             "region '" + region + "' is not supported as an external API"

@@ -38,15 +38,15 @@ class IEndpointTemplate(Interface):
     type_key = Attribute("Service type, example: object-store")
     name_key = Attribute("Service Name, example: Cloud Files")
     enabled_key = Attribute("Whether the Endpoint is globally available")
-    publicURL = Attribute("Internet Facing URL")
-    internalURL = Attribute("Intranet Facing URL")
-    adminURL = Attribute("Service Adminsitration URL")
-    tenantAlias = Attribute("Tenant Alias to be appended to the "
-                            "endpoint URI")
-    versionId = Attribute("Version Details")
-    versionInfo = Attribute("URL to get the version information")
-    versionList = Attribute("URL to determine which version is hosted "
-                            "by the endpoint")
+    public_url = Attribute("Internet Facing URL")
+    internal_url = Attribute("Intranet Facing URL")
+    admin_url = Attribute("Service Adminsitration URL")
+    tenant_alias = Attribute("Tenant Alias to be appended to the "
+                             "endpoint URI")
+    version_id = Attribute("Version Details")
+    version_info = Attribute("URL to get the version information")
+    version_list = Attribute("URL to determine which version is hosted "
+                             "by the endpoint")
 
 
 class IExternalAPIMock(Interface):
