@@ -826,6 +826,53 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         self.assertTrue(len(json_body['access']['user']['roles']) > 0)
         self.assertTrue(json_body['access'].get('serviceCatalog') is None)
 
+    def test_response_for_validate_token_from_another_account(self):
+        """
+        Test to verify :func: `validate_token` when tenant_id is not
+        provided using the argument `belongsTo` and a different token
+        is provided via the `x-auth-token` header.
+
+        Note: This is how authentication validators like Repose operate.
+        """
+        core, root = core_and_root([ExampleAPI()])
+
+        user = {
+            "username": "user123456",
+            "password": "654321resu"
+        }
+        admin = {
+            "username": "admin",
+            "password": "nimda"
+        }
+
+        (user_response, user_data) = authenticate_with_username_password(
+            self, root, username=user["username"], password=user["password"])
+
+        (admin_response, admin_data) = authenticate_with_username_password(
+            self, root, username=admin["username"], password=admin["password"])
+
+        user_token = user_data['access']['token']['id']
+        user_tenant = user_data['access']['token']['tenant']['id']
+
+        admin_token = admin_data['access']['token']['id']
+        admin_tenant = admin_data['access']['token']['tenant']['id']
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, b"GET",
+            "http://mybase/identity/v2.0/tokens/{0}".format(user_token),
+            headers={b'X-Auth-Token': [admin_token.encode("utf-8")]}
+        ))
+
+        self.assertEqual(200, response.code)
+
+        response_token = json_body['access']['token']['id']
+        self.assertEqual(response_token, user_token)
+        self.assertNotEqual(response_token, admin_token)
+
+        response_tenant = json_body['access']['token']['tenant']['id']
+        self.assertNotEqual(response_tenant, admin_tenant)
+        self.assertEqual(response_tenant, user_tenant)
+
     def test_response_for_validate_token_when_tenant_not_provided(self):
         """
         Test to verify :func: `validate_token` when tenant_id is not
