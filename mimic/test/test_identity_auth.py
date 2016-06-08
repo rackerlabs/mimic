@@ -722,6 +722,12 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         self.assertEqual(
             len(json_body['credentials']['passwordCredentials']['password']),
             32)
+        self.assertEqual(
+            json_body['credentials']['RAX-KSKEY:apiKeyCredentials']['username'],
+            username)
+        self.assertEqual(
+            len(json_body['credentials']['RAX-KSKEY:apiKeyCredentials']['apikey']),
+            32)
 
     def test_token_and_catalog_for_api_credentials_wrong_tenant(self):
         """

@@ -262,12 +262,17 @@ class IdentityApi(object):
         if user_id in self.core.sessions._userid_to_session:
             username = self.core.sessions._userid_to_session[user_id].username
             password = '9d5ed678fe57bcca610140957afab571'  # echo -n B | md5sum
+            apikey = '0d61f8370cad1d412f80b84d143e1257'  # echo -n C | md5sum
             return json.dumps(
                 {
                     'credentials': {
                         'passwordCredentials': {
                             'username': username,
                             'password': password
+                        },
+                        'RAX-KSKEY:apiKeyCredentials': {
+                            'username': username,
+                            'apikey': apikey
                         }
                     }
                 }
