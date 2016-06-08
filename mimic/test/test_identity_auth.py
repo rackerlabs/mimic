@@ -684,6 +684,45 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         self.assertTrue(
             len(json_body['RAX-KSKEY:apiKeyCredentials']['apiKey']) == 32)
 
+    def test_osksadm_credentials_list(self):
+        """
+        Test OS-KSADM Credentials Listing
+        """
+        core, root = core_and_root([ExampleAPI()])
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, b"GET",
+            "/identity/v2.0/users/1/OS-KSADM/credentials"
+        ))
+        self.assertEqual(response.code, 404)
+        self.assertEqual(
+            json_body['itemNotFound']['message'], 'User 1 not found')
+        creds = {
+            "auth": {
+                "passwordCredentials": {
+                    "username": "HedKandi",
+                    "password": "Ministry Of Sound UK"
+                },
+                "tenantId": "77777"
+            }
+        }
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, b"POST", "/identity/v2.0/tokens", creds))
+        self.assertEqual(response.code, 200)
+        user_id = json_body['access']['user']['id']
+        username = json_body['access']['user']['name']
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, b"GET",
+            "/identity/v2.0/users/" + user_id +
+            "/OS-KSADM/credentials"
+        ))
+        self.assertEqual(response.code, 200)
+        self.assertEqual(
+            json_body['credentials']['passwordCredentials']['username'],
+            username)
+        self.assertEqual(
+            len(json_body['credentials']['passwordCredentials']['password']),
+            32)
+
     def test_token_and_catalog_for_api_credentials_wrong_tenant(self):
         """
         Tenant ID is validated when provided in api-key auth.

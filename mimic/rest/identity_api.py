@@ -250,6 +250,33 @@ class IdentityApi(object):
             "updated": seconds_to_timestamp(time.time())
         }))
 
+    @app.route('/v2.0/users/<string:user_id>/OS-KSADM/credentials',
+               methods=['GET'])
+    def get_user_credentials_osksadm(self, request, user_id):
+        """
+        Support, such as it is, for the credentials call.
+
+        reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
+            #listCredentials
+        """
+        if user_id in self.core.sessions._userid_to_session:
+            username = self.core.sessions._userid_to_session[user_id].username
+            password = '9d5ed678fe57bcca610140957afab571'  # echo -n B | md5sum
+            return json.dumps(
+                {
+                    'credentials': {
+                        'passwordCredentials': {
+                            'username': username,
+                            'password': password
+                        }
+                    }
+                }
+            )
+        else:
+            request.setResponseCode(404)
+            return json.dumps({'itemNotFound':
+                              {'code': 404, 'message': 'User ' + user_id + ' not found'}})
+
     @app.route('/v2.0/users/<string:user_id>/OS-KSADM/credentials/RAX-KSKEY:apiKeyCredentials',
                methods=['GET'])
     def rax_kskey_apikeycredentials(self, request, user_id):
