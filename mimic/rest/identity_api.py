@@ -265,16 +265,21 @@ class IdentityApi(object):
             apikey = '0d61f8370cad1d412f80b84d143e1257'  # echo -n C | md5sum
             return json.dumps(
                 {
-                    'credentials': {
-                        'passwordCredentials': {
-                            'username': username,
-                            'password': password
+                    'credentials': [
+                        {
+                            'passwordCredentials': {
+                                'username': username,
+                                'password': password
+                            }
                         },
-                        'RAX-KSKEY:apiKeyCredentials': {
-                            'username': username,
-                            'apikey': apikey
+                        {
+                            'RAX-KSKEY:apiKeyCredentials': {
+                                'username': username,
+                                'apikey': apikey
+                            }
                         }
-                    }
+                    ],
+                    "credentials_links": []
                 }
             )
         else:

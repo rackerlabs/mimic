@@ -716,18 +716,25 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
             "/OS-KSADM/credentials"
         ))
         self.assertEqual(response.code, 200)
-        self.assertEqual(
-            json_body['credentials']['passwordCredentials']['username'],
-            username)
-        self.assertEqual(
-            len(json_body['credentials']['passwordCredentials']['password']),
-            32)
-        self.assertEqual(
-            json_body['credentials']['RAX-KSKEY:apiKeyCredentials']['username'],
-            username)
-        self.assertEqual(
-            len(json_body['credentials']['RAX-KSKEY:apiKeyCredentials']['apikey']),
-            32)
+
+        self.assertIn('credentials_links', json_body)
+        self.assertEqual(len(json_body['credentials_links']), 0)
+
+        self.assertIn('credentials', json_body)
+        credential_types = {
+            'passwordCredentials': 'password',
+            'RAX-KSKEY:apiKeyCredentials': 'apikey',
+        }
+        for credential in json_body['credentials']:
+            # there should only be one entry in the dict
+            # the key for that entry tells what kind of credential
+            # it is
+            self.assertEqual(len(credential), 1)
+
+            # however, it's more compact to validate it this way:
+            for k, v in credential.items():
+                self.assertEqual(v['username'], username)
+                self.assertEqual(len(v[credential_types[k]]), 32)
 
     def test_token_and_catalog_for_api_credentials_wrong_tenant(self):
         """
