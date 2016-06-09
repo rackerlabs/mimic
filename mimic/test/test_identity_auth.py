@@ -723,7 +723,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         self.assertIn('credentials', json_body)
         credential_types = {
             'passwordCredentials': 'password',
-            'RAX-KSKEY:apiKeyCredentials': 'apikey',
+            'RAX-KSKEY:apiKeyCredentials': 'apiKey',
         }
         for credential in json_body['credentials']:
             # there should only be one entry in the dict

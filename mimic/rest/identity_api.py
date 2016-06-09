@@ -275,7 +275,7 @@ class IdentityApi(object):
                         {
                             'RAX-KSKEY:apiKeyCredentials': {
                                 'username': username,
-                                'apikey': apikey
+                                'apiKey': apikey
                             }
                         }
                     ],
