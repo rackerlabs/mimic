@@ -329,6 +329,19 @@ def authenticate_with_token(test_case, root, uri='/identity/v2.0/tokens',
                                                   uri, creds))
 
 
+def tenant_and_token(test_case, root, username, password):
+    """
+    Return the tenant and token for a given username+password combo
+    """
+    response, data = authenticate_with_username_password(
+        test_case, root, username=username, password=password)
+
+    return (
+        data['access']['token']['tenant']['id'],
+        data['access']['token']['id']
+    )
+
+
 def impersonate_user(test_case, root,
                      uri="http://mybase/identity/v2.0/RAX-AUTH/impersonation-tokens",
                      username=None, impersonator_token=None):
@@ -825,6 +838,37 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         self.assertTrue(json_body['access']['user']['id'])
         self.assertTrue(len(json_body['access']['user']['roles']) > 0)
         self.assertTrue(json_body['access'].get('serviceCatalog') is None)
+
+    def test_response_for_validate_token_from_another_account(self):
+        """
+        Test to verify :func: `validate_token` when tenant_id is not
+        provided using the argument `belongsTo` and a different token
+        is provided via the `x-auth-token` header.
+
+        Note: This is how authentication validators like Repose operate.
+        """
+        core, root = core_and_root([ExampleAPI()])
+
+        user_tenant, user_token = tenant_and_token(
+            self, root, "user123456", "654321resu")
+        admin_tenant, admin_token = tenant_and_token(
+            self, root, "admin", "nimda")
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, b"GET",
+            "http://mybase/identity/v2.0/tokens/{0}".format(user_token),
+            headers={b'X-Auth-Token': [admin_token.encode("utf-8")]}
+        ))
+
+        self.assertEqual(200, response.code)
+
+        response_token = json_body['access']['token']['id']
+        self.assertEqual(response_token, user_token)
+        self.assertNotEqual(response_token, admin_token)
+
+        response_tenant = json_body['access']['token']['tenant']['id']
+        self.assertNotEqual(response_tenant, admin_tenant)
+        self.assertEqual(response_tenant, user_tenant)
 
     def test_response_for_validate_token_when_tenant_not_provided(self):
         """
