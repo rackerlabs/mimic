@@ -23,7 +23,7 @@ fi
 PYENV_PYTHON="";
 
 if [[ "${TOXENV}" == "pypy" ]]; then
-    PYENV_PYTHON="pypy-4.0.1";
+    PYENV_PYTHON="pypy-5.1";
 fi;
 
 # If we need a python not available in Travis's environment, install pyenv in a
