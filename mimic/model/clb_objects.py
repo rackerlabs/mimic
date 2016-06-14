@@ -154,14 +154,6 @@ class CLB(object):
         return result
 
 
-node_creation = EventDescription()
-
-
-@node_creation.declare_criterion("clb_id")
-def clb_id_criterion(value):
-    return Criterion(name='clb_id', predicate=lambda v: v == value)
-
-
 @attr.s
 class BadKeysError(Exception):
     """
@@ -572,6 +564,8 @@ class RegionalCLBCollection(object):
                     "Nodes must not exceed {0} "
                     "per load balancer.".format(self.node_limit), 413)
                 return (resource, 413)
+
+            # Update node status based on health monitor
 
             self._verify_and_update_lb_state(
                 lb_id, current_timestamp=current_timestamp)
