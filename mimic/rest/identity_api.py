@@ -5,10 +5,13 @@ Defines get token, impersonation
 
 from __future__ import absolute_import, division, unicode_literals
 
+import binascii
 import json
+import os
 import time
 
 import attr
+from six import text_type
 
 from twisted.python.urlpath import URLPath
 
@@ -186,11 +189,25 @@ class IdentityApi(object):
     :ivar core: an instance of :class:`mimic.core.MimicCore`
     :ivar registry_collection: an instance of
         :class:`mimic.model.behaviors.BehaviorRegistryCollection`
+    :ivar apikey_length: the string length of any generated apikeys
     """
     core = attr.ib(validator=attr.validators.instance_of(MimicCore))
     registry_collection = attr.ib(
         validator=attr.validators.instance_of(BehaviorRegistryCollection))
     app = MimicApp()
+
+    apikey_length = 32
+
+    @classmethod
+    def make_apikey(cls):
+        """
+        Generate an API key
+        """
+        # length of the final APIKey value
+        generation_length = int(cls.apikey_length / 2)
+        return text_type(
+            binascii.hexlify(os.urandom(generation_length)).decode('utf-8')
+        )
 
     @app.route('/v2.0/tokens', methods=['POST'])
     def get_token_and_service_catalog(self, request):
@@ -261,17 +278,10 @@ class IdentityApi(object):
         """
         if user_id in self.core.sessions._userid_to_session:
             username = self.core.sessions._userid_to_session[user_id].username
-            password = '9d5ed678fe57bcca610140957afab571'  # echo -n B | md5sum
-            apikey = '0d61f8370cad1d412f80b84d143e1257'  # echo -n C | md5sum
+            apikey = self.make_apikey()
             return json.dumps(
                 {
                     'credentials': [
-                        {
-                            'passwordCredentials': {
-                                'username': username,
-                                'password': password
-                            }
-                        },
                         {
                             'RAX-KSKEY:apiKeyCredentials': {
                                 'username': username,
@@ -295,7 +305,7 @@ class IdentityApi(object):
         """
         if user_id in self.core.sessions._userid_to_session:
             username = self.core.sessions._userid_to_session[user_id].username
-            apikey = '7fc56270e7a70fa81a5935b72eacbe29'  # echo -n A | md5sum
+            apikey = self.make_apikey()
             return json.dumps({'RAX-KSKEY:apiKeyCredentials': {'username': username,
                                                                'apiKey': apikey}})
         else:

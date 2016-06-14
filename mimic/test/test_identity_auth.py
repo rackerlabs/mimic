@@ -19,6 +19,7 @@ from mimic.canned_responses.mimic_presets import get_presets
 from mimic.catalog import Entry, Endpoint
 from mimic.core import MimicCore
 from mimic.resource import MimicRoot
+from mimic.rest.identity_api import IdentityApi
 from mimic.test.behavior_tests import (
     behavior_tests_helper_class,
     register_behavior
@@ -662,8 +663,8 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         creds = {
             "auth": {
                 "passwordCredentials": {
-                    "username": "HedKandi",
-                    "password": "Ministry Of Sound UK"
+                    "username": "rfc2324_2-3-2_418",
+                    "password": "iamateapot"
                 },
                 "tenantId": "77777"
             }
@@ -681,8 +682,9 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         self.assertEqual(response.code, 200)
         self.assertEqual(json_body['RAX-KSKEY:apiKeyCredentials']['username'],
                          username)
-        self.assertTrue(
-            len(json_body['RAX-KSKEY:apiKeyCredentials']['apiKey']) == 32)
+        self.assertEqual(
+            len(json_body['RAX-KSKEY:apiKeyCredentials']['apiKey']),
+            IdentityApi.apikey_length)
 
     def test_osksadm_credentials_list(self):
         """
@@ -699,8 +701,8 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         creds = {
             "auth": {
                 "passwordCredentials": {
-                    "username": "HedKandi",
-                    "password": "Ministry Of Sound UK"
+                    "username": "rfc2324_2-3-2_418",
+                    "password": "iamateapot"
                 },
                 "tenantId": "77777"
             }
@@ -722,8 +724,10 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
 
         self.assertIn('credentials', json_body)
         credential_types = {
-            'passwordCredentials': 'password',
-            'RAX-KSKEY:apiKeyCredentials': 'apiKey',
+            'RAX-KSKEY:apiKeyCredentials': {
+                'value': 'apiKey',
+                'length': IdentityApi.apikey_length
+            }
         }
         for credential in json_body['credentials']:
             # there should only be one entry in the dict
@@ -734,7 +738,9 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
             # however, it's more compact to validate it this way:
             for k, v in credential.items():
                 self.assertEqual(v['username'], username)
-                self.assertEqual(len(v[credential_types[k]]), 32)
+                self.assertEqual(
+                    len(v[credential_types[k]['value']]),
+                    credential_types[k]['length'])
 
     def test_token_and_catalog_for_api_credentials_wrong_tenant(self):
         """
