@@ -329,6 +329,19 @@ def authenticate_with_token(test_case, root, uri='/identity/v2.0/tokens',
                                                   uri, creds))
 
 
+def tenant_and_token(test_case, root, username, password):
+    """
+    Return the tenant and token for a given username+password combo
+    """
+    response, data = authenticate_with_username_password(
+        test_case, root, username=username, password=password)
+
+    return (
+        data['access']['token']['tenant']['id'],
+        data['access']['token']['id']
+    )
+
+
 def impersonate_user(test_case, root,
                      uri="http://mybase/identity/v2.0/RAX-AUTH/impersonation-tokens",
                      username=None, impersonator_token=None):
@@ -836,26 +849,10 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         """
         core, root = core_and_root([ExampleAPI()])
 
-        user = {
-            "username": "user123456",
-            "password": "654321resu"
-        }
-        admin = {
-            "username": "admin",
-            "password": "nimda"
-        }
-
-        (user_response, user_data) = authenticate_with_username_password(
-            self, root, username=user["username"], password=user["password"])
-
-        (admin_response, admin_data) = authenticate_with_username_password(
-            self, root, username=admin["username"], password=admin["password"])
-
-        user_token = user_data['access']['token']['id']
-        user_tenant = user_data['access']['token']['tenant']['id']
-
-        admin_token = admin_data['access']['token']['id']
-        admin_tenant = admin_data['access']['token']['tenant']['id']
+        user_tenant, user_token = tenant_and_token(
+            self, root, "user123456", "654321resu")
+        admin_tenant, admin_token = tenant_and_token(
+            self, root, "admin", "nimda")
 
         (response, json_body) = self.successResultOf(json_request(
             self, root, b"GET",

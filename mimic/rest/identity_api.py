@@ -294,8 +294,7 @@ class IdentityApi(object):
         """
         Creates a new session for the given tenant_id and token_id
         and always returns response code 200.
-        Docs: http://developer.openstack.org/api-ref-identity-admin-v2.html#
-              admin-validateToken
+        Docs: http://developer.openstack.org/api-ref-identity-admin-v2.html#admin-validateToken  # noqa
         """
         request.setResponseCode(200)
         session = None
