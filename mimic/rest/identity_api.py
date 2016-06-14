@@ -341,13 +341,25 @@ class IdentityApi(object):
         """
         Creates a new session for the given tenant_id and token_id
         and always returns response code 200.
-        Docs: http://developer.openstack.org/api-ref-identity-v2.html#admin-tokens
+        Docs: http://developer.openstack.org/api-ref-identity-admin-v2.html#admin-validateToken  # noqa
         """
         request.setResponseCode(200)
+        session = None
+
+        # Attempt to get the session based on tenant_id+token if the optional
+        # tenant_id is provided; if tenant_id is not provided, then just look
+        # it up based on the token.
         tenant_id = request.args.get(b'belongsTo')
         if tenant_id is not None:
             tenant_id = tenant_id[0].decode("utf-8")
-        session = self.core.sessions.session_for_tenant_id(tenant_id, token_id)
+            session = self.core.sessions.session_for_tenant_id(
+                tenant_id, token_id)
+
+        else:
+            session = self.core.sessions.session_for_token(
+                token_id
+            )
+
         response = get_token(
             session.tenant_id,
             response_token=session.token,

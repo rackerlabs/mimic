@@ -243,6 +243,46 @@ class LoadBalancerRegion(object):
         request.setResponseCode(response_data[1])
         return json_dump(response_data[0])
 
+    @app.route("/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/healthmonitor",
+               methods=["GET"])
+    def get_health_monitor(self, request, tenant_id, lb_id):
+        """
+        Return health monitor setting of given LB.
+        https://developer.rackspace.com/docs/cloud-load-balancers/v1/developer-guide/#show-health-monitor-configuration
+        """
+        body, code = self.session(tenant_id).get_health_monitor(lb_id)
+        request.setResponseCode(code)
+        return json_dump(body)
+
+    @app.route("/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/healthmonitor",
+               methods=["PUT"])
+    def update_health_monitor(self, request, tenant_id, lb_id):
+        """
+        Update health monitor setting of given LB.
+        https://developer.rackspace.com/docs/cloud-load-balancers/v1/developer-guide/#update-health-monitor
+        """
+        try:
+            content = json_from_request(request)
+        except ValueError:
+            request.setResponseCode(400)
+            return json.dumps(invalid_resource("Invalid JSON request body"))
+
+        body, code = self.session(tenant_id).update_health_monitor(
+            lb_id, content)
+        request.setResponseCode(code)
+        return json_dump(body)
+
+    @app.route("/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/healthmonitor",
+               methods=["DELETE"])
+    def delete_health_monitor(self, request, tenant_id, lb_id):
+        """
+        Delete health monitor setting of given LB.
+        https://developer.rackspace.com/docs/cloud-load-balancers/v1/developer-guide/#delete-health-monitor
+        """
+        body, code = self.session(tenant_id).delete_health_monitor(lb_id)
+        request.setResponseCode(code)
+        return json_dump(body)
+
     @app.route('/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/nodes', methods=['POST'])
     def add_node_to_load_balancer(self, request, tenant_id, lb_id):
         """
