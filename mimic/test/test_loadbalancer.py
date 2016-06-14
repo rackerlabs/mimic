@@ -820,6 +820,38 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         create_node_response = self.successResultOf(create_duplicate_nodes)
         self.assertEqual(create_node_response.code, 404)
 
+    def test_add_node_with_health_monitor_enabled(self):
+        """
+        :func:`add_node` will return nodes with OFFLINE status if corresponding
+        CLB has health monitor enabled
+        """
+        # Enable health monitor
+        update_health_monitor_d = request(
+            self, self.root, b"PUT",
+            "{}/loadbalancers/{}/healthmonitor".format(self.uri, self.lb_id),
+            json.dumps({"healthMonitor": {"type": "CONNECT"}}).encode("utf-8"))
+        resp = self.successResultOf(update_health_monitor_d)
+        self.assertEqual(resp.code, 202)
+        # Create nodes
+        create_nodes_d = request(
+            self, self.root, b"POST",
+            "{}/loadbalancers/{}/nodes".format(self.uri, self.lb_id),
+            json.dumps({"nodes": [{"address": "127.0.0.2",
+                                   "port": 80,
+                                   "condition": "ENABLED",
+                                   "type": "PRIMARY"},
+                                  {"address": "127.0.0.0",
+                                   "port": 80,
+                                   "condition": "ENABLED",
+                                   "type": "SECONDARY"}]}).encode("utf-8")
+        )
+        resp = self.successResultOf(create_nodes_d)
+        resp_body = self.successResultOf(treq.json_content(resp))
+        self.assertEqual(resp.code, 202)
+        # Ensure they are OFFLINE
+        self.assertTrue(
+            all(node["status"] == "OFFLINE" for node in resp_body["nodes"]))
+
     def test_list_nodes_on_loadbalancer(self):
         """
         Test to verify :func: `list_node` lists the nodes on the loadbalancer.
