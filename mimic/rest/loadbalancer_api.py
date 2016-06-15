@@ -124,7 +124,7 @@ class LoadBalancerControlRegion(object):
 
     def _collection_from_tenant(self, tenant_id):
         """
-        Retrieve the server collection for this region for the given tenant.
+        Retrieve the CLB collection for this region for the given tenant.
         """
         return (self.api_mock.lb_api._get_session(self.session_store, tenant_id)
                 .collection_for_region(self.region))
