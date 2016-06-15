@@ -164,6 +164,52 @@ class LoadBalancerControlRegion(object):
             request.setResponseCode(204)
             return b''
 
+    @app.route(
+        '/v2/<string:tenant_id>/loadbalancers/<int:clb_id>/nodes/<int:node_id>/status',
+        methods=['PUT']
+    )
+    def update_node_status(self, request, tenant_id, clb_id, node_id):
+        """
+        Update given node's status. The request will be like::
+
+            {"status": "ONLINE"}
+
+        """
+        regional_lbs = self._collection_from_tenant(tenant_id)
+        clb = regional_lbs.lbs.get(clb_id)
+        if clb is None:
+            request.setResponseCode(404)
+            return json.dumps({
+                "message": "Tenant {0} doesn't own load balancer {1}".format(
+                    tenant_id, clb_id
+                ),
+                "code": 404,
+            })
+
+        node = next((node for node in clb.nodes if node.id == node_id), None)
+        if node is None:
+            request.setResponseCode(404)
+            return json.dumps({
+                "message": "Load balancer {1} on tenant {0} does not have node {2}".format(
+                    tenant_id, clb_id, node_id),
+                "code": 404,
+            })
+
+        try:
+            content = json_from_request(request)
+        except ValueError:
+            request.setResponseCode(400)
+            return json.dumps(invalid_resource("Invalid JSON request body"))
+
+        if content.get("status") not in ("ONLINE", "OFFLINE"):
+            request.setResponseCode(400)
+            return json.dumps(invalid_resource(
+                "status key not found or it must have ONLINE or OFFLINE value"))
+
+        node.status = content["status"]
+        request.setResponseCode(200)
+        return b""
+
 
 class LoadBalancerRegion(object):
     """

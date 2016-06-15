@@ -112,6 +112,9 @@ class LoadbalancerAPITests(SynchronousTestCase):
         self.helper = APIMockHelper(self, [lb, LoadBalancerControlApi(lb_api=lb)])
         self.root = self.helper.root
         self.uri = self.helper.uri
+        self.ctl_uri = self.helper.auth.get_service_endpoint(
+            "cloudLoadBalancerControl", "ORD"
+        )
 
     def _create_loadbalancer(self, name=None, api_helper=None, nodes=None):
         """
@@ -165,9 +168,6 @@ class LoadbalancerAPITests(SynchronousTestCase):
             will refer to Mimic's response object; `code` will be set to the
             HTTP result code from the request.
         """
-        ctl_uri = self.helper.auth.get_service_endpoint(
-            "cloudLoadBalancerControl", "ORD"
-        )
         lb_id = self._create_loadbalancer('test_lb') + lb_id_offset
         status_key = status_key or '"status"'
         status_val = status_val or 'PENDING_DELETE'
@@ -175,7 +175,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
                    .encode("utf-8"))
         set_attributes_req = request(
             self, self.root, b"PATCH", "{0}/loadbalancer/{1}/attributes".format(
-                ctl_uri, lb_id
+                self.ctl_uri, lb_id
             ),
             payload
         )
@@ -235,6 +235,105 @@ class LoadbalancerAPITests(SynchronousTestCase):
         """
         r = self._patch_attributes_request(lb_id_offset=1000)
         self.assertEqual(r.resp.code, 404)
+
+    def test_update_node_status(self):
+        """
+        `PUT ../loadbalancers/lb_id/nodes/node_id/status` will update node's
+        status
+        """
+        # create LB with node
+        lb_id = self._create_loadbalancer(
+            nodes=[{"address": "10.2.3.5", "port": 80, "condition": "ENABLED"}])
+        nodes_resp, nodes_body = self.successResultOf(json_request(
+            self, self.root, b"GET",
+            "{}/loadbalancers/{}/nodes".format(self.uri, lb_id)))
+        node = nodes_body["nodes"][0]
+        self.assertEqual(node["status"], "ONLINE")
+        node_id = node["id"]
+        # Update node status to OFFLINE (it will be ONLINE)
+        update_d = request(
+            self, self.root, b"PUT",
+            "{}/loadbalancers/{}/nodes/{}/status".format(self.ctl_uri, lb_id, node_id),
+            json.dumps({"status": "OFFLINE"}).encode("utf-8"))
+        update_resp = self.successResultOf(update_d)
+        self.assertEqual(update_resp.code, 200)
+        # Get node and check if status is updated
+        get_resp, get_body = self.successResultOf(json_request(
+            self, self.root, b"GET",
+            "{}/loadbalancers/{}/nodes/{}".format(self.uri, lb_id, node_id)))
+        self.assertEqual(get_body["node"]["status"], "OFFLINE")
+
+    def test_update_node_status_bad_clb(self):
+        """
+        `PUT ../loadbalancers/lb_id/nodes/node_id/status` will return 404
+        for invalid CLB ID
+        """
+        resp, body = self.successResultOf(json_request(
+            self, self.root, b"PUT",
+            "{}/loadbalancers/{}/nodes/{}/status".format(self.ctl_uri, 0, 3),
+            json.dumps({"status": "OFFLINE"}).encode("utf-8")))
+        self.assertEqual(resp.code, 404)
+        self.assertEqual(
+            body["message"],
+            "Tenant {} doesn't own load balancer 0".format(self.helper.tenant_id))
+
+    def test_update_node_status_bad_node(self):
+        """
+        `PUT ../loadbalancers/lb_id/nodes/node_id/status` will return 404
+        for invalid node ID on a valid CLB
+        """
+        lb_id = self._create_loadbalancer()
+        resp, body = self.successResultOf(json_request(
+            self, self.root, b"PUT",
+            "{}/loadbalancers/{}/nodes/{}/status".format(self.ctl_uri, lb_id, 0),
+            json.dumps({"status": "OFFLINE"}).encode("utf-8")))
+        self.assertEqual(resp.code, 404)
+        self.assertEqual(
+            body["message"],
+            "Load balancer {1} on tenant {0} does not have node 0".format(
+                self.helper.tenant_id, lb_id))
+
+    def test_update_node_status_invalid_json(self):
+        """
+        `PUT ../loadbalancers/lb_id/nodes/node_id/status` will return 400
+        for invalid JSON body
+        """
+        # create LB with node
+        lb_id = self._create_loadbalancer(
+            nodes=[{"address": "10.2.3.5", "port": 80, "condition": "ENABLED"}])
+        nodes_resp, nodes_body = self.successResultOf(json_request(
+            self, self.root, b"GET",
+            "{}/loadbalancers/{}/nodes".format(self.uri, lb_id)))
+        node_id = nodes_body["nodes"][0]["id"]
+        # Update node status with bad json
+        resp, body = self.successResultOf(json_request(
+            self, self.root, b"PUT",
+            "{}/loadbalancers/{}/nodes/{}/status".format(self.ctl_uri, lb_id, node_id),
+            b"bad json"))
+        self.assertEqual(resp.code, 400)
+        self.assertEqual(body["message"], "Invalid JSON request body")
+
+    def test_update_node_status_bad_request(self):
+        """
+        `PUT ../loadbalancers/lb_id/nodes/node_id/status` will return 400
+        for JSON body that doesn't have "status"
+        """
+        # create LB with node
+        lb_id = self._create_loadbalancer(
+            nodes=[{"address": "10.2.3.5", "port": 80, "condition": "ENABLED"}])
+        nodes_resp, nodes_body = self.successResultOf(json_request(
+            self, self.root, b"GET",
+            "{}/loadbalancers/{}/nodes".format(self.uri, lb_id)))
+        node_id = nodes_body["nodes"][0]["id"]
+        # Update node status with incorrect JSON
+        resp, body = self.successResultOf(json_request(
+            self, self.root, b"PUT",
+            "{}/loadbalancers/{}/nodes/{}/status".format(self.ctl_uri, lb_id, node_id),
+            json.dumps({"bad": "value"}).encode("utf-8")))
+        self.assertEqual(resp.code, 400)
+        self.assertEqual(
+            body["message"],
+            "status key not found or it must have ONLINE or OFFLINE value")
 
     def test_multiple_regions_multiple_endpoints(self):
         """
