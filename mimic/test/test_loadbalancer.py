@@ -238,7 +238,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
 
     def test_update_node_status(self):
         """
-        `PUT ../loadbalancers/lb_id/nodes/node_id/status` will update node's
+        ``PUT .../loadbalancers/lb_id/nodes/node_id/status`` will update node's
         status
         """
         # create LB with node
@@ -265,7 +265,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
 
     def test_update_node_status_bad_clb(self):
         """
-        `PUT ../loadbalancers/lb_id/nodes/node_id/status` will return 404
+        ``PUT .../loadbalancers/lb_id/nodes/node_id/status`` will return 404
         for invalid CLB ID
         """
         resp, body = self.successResultOf(json_request(
@@ -279,7 +279,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
 
     def test_update_node_status_bad_node(self):
         """
-        `PUT ../loadbalancers/lb_id/nodes/node_id/status` will return 404
+        ``PUT .../loadbalancers/lb_id/nodes/node_id/status`` will return 404
         for invalid node ID on a valid CLB
         """
         lb_id = self._create_loadbalancer()
@@ -295,7 +295,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
 
     def test_update_node_status_invalid_json(self):
         """
-        `PUT ../loadbalancers/lb_id/nodes/node_id/status` will return 400
+        ``PUT .../loadbalancers/lb_id/nodes/node_id/status`` will return 400
         for invalid JSON body
         """
         # create LB with node
@@ -315,7 +315,7 @@ class LoadbalancerAPITests(SynchronousTestCase):
 
     def test_update_node_status_bad_request(self):
         """
-        `PUT ../loadbalancers/lb_id/nodes/node_id/status` will return 400
+        ``PUT .../loadbalancers/lb_id/nodes/node_id/status`` will return 400
         for JSON body that doesn't have "status"
         """
         # create LB with node
