@@ -19,7 +19,8 @@ from mimic.canned_responses.auth import (
     get_token,
     get_endpoints,
     format_timestamp,
-    impersonator_user_role)
+    impersonator_user_role,
+    get_version_v2)
 from mimic.canned_responses.mimic_presets import get_presets
 from mimic.core import MimicCore
 from mimic.model.behaviors import make_behavior_api
@@ -208,6 +209,14 @@ class IdentityApi(object):
         return text_type(
             binascii.hexlify(os.urandom(generation_length)).decode('utf-8')
         )
+
+    @app.route('/v2.0', methods=['GET'])
+    def get_version(self, request):
+        """
+        Returns keystone version.
+        """
+        base_uri = base_uri_from_request(request)
+        return json.dumps(get_version_v2(base_uri))
 
     @app.route('/v2.0/tokens', methods=['POST'])
     def get_token_and_service_catalog(self, request):

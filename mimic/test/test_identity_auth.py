@@ -361,6 +361,21 @@ def impersonate_user(test_case, root,
     ))
 
 
+class TestGetVersion(SynchronousTestCase):
+    def test_get_version(self):
+        """
+        Test keystone mock "get_version".
+
+        Cf: http://developer.openstack.org/api-ref-identity-v2.html
+        #listVersions-v2
+        """
+        core, root = core_and_root([])
+
+        response, json_body = self.successResultOf(json_request(
+            self, root, b"GET", "/identity/v2.0/"))
+        self.assertEqual(200, response.code)
+
+
 class GetAuthTokenAPITests(SynchronousTestCase):
 
     """
