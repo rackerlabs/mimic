@@ -1798,9 +1798,9 @@ class MaasAPITests(SynchronousTestCase):
         self.assertEquals(data['values'][0]['latest_alarm_states'][0]['state'], 'CRITICAL')
 
     def test_change_log(self):
-        # XXX FIXME: is POSTing to /states a special internal Mimic thing? If
-        # so it should probably be on a control-plane endpoint, not in-line
-        # with real monitoring APIs!
+        """
+        When setting a new alarm state, then it should appear on changelogs/alarms.
+        """
         resp = self.successResultOf(
             request(self, self.root, b"POST",
                     '{0}/entities/{1}/alarms/{2}/states'.format(
