@@ -53,6 +53,7 @@ class SwiftMock(object):
         Construct a SwiftMock, either using Rackspace's tenant-ID translation
         idiom or not.
         """
+        self._regions = ["ORD", "DFW", "IAD"]
         if rackspace_flavor:
             self.translate_tenant = normal_tenant_id_to_crazy_mosso_id
         else:
@@ -65,7 +66,8 @@ class SwiftMock(object):
         modified = self.translate_tenant(tenant_id)
         return [
             Entry(modified, "object-store", "cloudFiles", [
-                Endpoint(modified, "ORD", text_type(uuid4()), prefix="v1"),
+                Endpoint(modified, region, text_type(uuid4()), prefix="v1")
+                for region in self._regions
             ])
         ]
 

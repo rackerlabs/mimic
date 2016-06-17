@@ -19,6 +19,7 @@ from mimic.canned_responses.mimic_presets import get_presets
 from mimic.catalog import Entry, Endpoint
 from mimic.core import MimicCore
 from mimic.resource import MimicRoot
+from mimic.rest.identity_api import IdentityApi
 from mimic.test.behavior_tests import (
     behavior_tests_helper_class,
     register_behavior
@@ -329,6 +330,19 @@ def authenticate_with_token(test_case, root, uri='/identity/v2.0/tokens',
                                                   uri, creds))
 
 
+def tenant_and_token(test_case, root, username, password):
+    """
+    Return the tenant and token for a given username+password combo
+    """
+    response, data = authenticate_with_username_password(
+        test_case, root, username=username, password=password)
+
+    return (
+        data['access']['token']['tenant']['id'],
+        data['access']['token']['id']
+    )
+
+
 def impersonate_user(test_case, root,
                      uri="http://mybase/identity/v2.0/RAX-AUTH/impersonation-tokens",
                      username=None, impersonator_token=None):
@@ -345,6 +359,21 @@ def impersonate_user(test_case, root,
                                     "user": {"username": username or "test1"}}},
         headers=headers
     ))
+
+
+class TestGetVersion(SynchronousTestCase):
+    def test_get_version(self):
+        """
+        Test keystone mock "get_version".
+
+        Cf: http://developer.openstack.org/api-ref-identity-v2.html
+        #listVersions-v2
+        """
+        core, root = core_and_root([])
+
+        response, json_body = self.successResultOf(json_request(
+            self, root, b"GET", "/identity/v2.0/"))
+        self.assertEqual(200, response.code)
 
 
 class GetAuthTokenAPITests(SynchronousTestCase):
@@ -668,8 +697,8 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         creds = {
             "auth": {
                 "passwordCredentials": {
-                    "username": "HedKandi",
-                    "password": "Ministry Of Sound UK"
+                    "username": "rfc2324_2-3-2_418",
+                    "password": "iamateapot"
                 },
                 "tenantId": "77777"
             }
@@ -687,8 +716,65 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         self.assertEqual(response.code, 200)
         self.assertEqual(json_body['RAX-KSKEY:apiKeyCredentials']['username'],
                          username)
-        self.assertTrue(
-            len(json_body['RAX-KSKEY:apiKeyCredentials']['apiKey']) == 32)
+        self.assertEqual(
+            len(json_body['RAX-KSKEY:apiKeyCredentials']['apiKey']),
+            IdentityApi.apikey_length)
+
+    def test_osksadm_credentials_list(self):
+        """
+        Test OS-KSADM Credentials Listing
+        """
+        core, root = core_and_root([make_example_internal_api(self)])
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, b"GET",
+            "/identity/v2.0/users/1/OS-KSADM/credentials"
+        ))
+        self.assertEqual(response.code, 404)
+        self.assertEqual(
+            json_body['itemNotFound']['message'], 'User 1 not found')
+        creds = {
+            "auth": {
+                "passwordCredentials": {
+                    "username": "rfc2324_2-3-2_418",
+                    "password": "iamateapot"
+                },
+                "tenantId": "77777"
+            }
+        }
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, b"POST", "/identity/v2.0/tokens", creds))
+        self.assertEqual(response.code, 200)
+        user_id = json_body['access']['user']['id']
+        username = json_body['access']['user']['name']
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, b"GET",
+            "/identity/v2.0/users/" + user_id +
+            "/OS-KSADM/credentials"
+        ))
+        self.assertEqual(response.code, 200)
+
+        self.assertIn('credentials_links', json_body)
+        self.assertEqual(len(json_body['credentials_links']), 0)
+
+        self.assertIn('credentials', json_body)
+        credential_types = {
+            'RAX-KSKEY:apiKeyCredentials': {
+                'value': 'apiKey',
+                'length': IdentityApi.apikey_length
+            }
+        }
+        for credential in json_body['credentials']:
+            # there should only be one entry in the dict
+            # the key for that entry tells what kind of credential
+            # it is
+            self.assertEqual(len(credential), 1)
+
+            # however, it's more compact to validate it this way:
+            for k, v in credential.items():
+                self.assertEqual(v['username'], username)
+                self.assertEqual(
+                    len(v[credential_types[k]['value']]),
+                    credential_types[k]['length'])
 
     def test_token_and_catalog_for_api_credentials_wrong_tenant(self):
         """
@@ -831,6 +917,37 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         self.assertTrue(json_body['access']['user']['id'])
         self.assertTrue(len(json_body['access']['user']['roles']) > 0)
         self.assertTrue(json_body['access'].get('serviceCatalog') is None)
+
+    def test_response_for_validate_token_from_another_account(self):
+        """
+        Test to verify :func: `validate_token` when tenant_id is not
+        provided using the argument `belongsTo` and a different token
+        is provided via the `x-auth-token` header.
+
+        Note: This is how authentication validators like Repose operate.
+        """
+        core, root = core_and_root([make_example_internal_api(self)])
+
+        user_tenant, user_token = tenant_and_token(
+            self, root, "user123456", "654321resu")
+        admin_tenant, admin_token = tenant_and_token(
+            self, root, "admin", "nimda")
+
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, b"GET",
+            "http://mybase/identity/v2.0/tokens/{0}".format(user_token),
+            headers={b'X-Auth-Token': [admin_token.encode("utf-8")]}
+        ))
+
+        self.assertEqual(200, response.code)
+
+        response_token = json_body['access']['token']['id']
+        self.assertEqual(response_token, user_token)
+        self.assertNotEqual(response_token, admin_token)
+
+        response_tenant = json_body['access']['token']['tenant']['id']
+        self.assertNotEqual(response_tenant, admin_tenant)
+        self.assertEqual(response_tenant, user_tenant)
 
     def test_response_for_validate_token_when_tenant_not_provided(self):
         """
