@@ -61,7 +61,7 @@ class Node(object):
         default="ENABLED")
     id = attr.ib(validator=attr.validators.instance_of(int),
                  default=attr.Factory(lambda: randrange(999999)))
-    status = attr.ib(validator=attr.validators.instance_of(text_type),
+    status = attr.ib(validator=one_of_validator("ONLINE", "OFFLINE"),
                      default="ONLINE")
     feed_events = attr.ib(default=[])
 
@@ -564,6 +564,12 @@ class RegionalCLBCollection(object):
                     "Nodes must not exceed {0} "
                     "per load balancer.".format(self.node_limit), 413)
                 return (resource, 413)
+
+            # Node status will be OFFLINE if health monitor is enabled in CLB
+            # ONLINE if health monitor is disabled
+            if self.lbs[lb_id].health_monitor != {}:
+                for node in nodes:
+                    node.status = "OFFLINE"
 
             self._verify_and_update_lb_state(
                 lb_id, current_timestamp=current_timestamp)
