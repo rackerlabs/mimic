@@ -19,6 +19,7 @@ from mimic.canned_responses.mimic_presets import get_presets
 from mimic.catalog import Entry, Endpoint
 from mimic.core import MimicCore
 from mimic.resource import MimicRoot
+from mimic.rest.identity_api import IdentityApi
 from mimic.test.behavior_tests import (
     behavior_tests_helper_class,
     register_behavior
@@ -690,8 +691,8 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         creds = {
             "auth": {
                 "passwordCredentials": {
-                    "username": "HedKandi",
-                    "password": "Ministry Of Sound UK"
+                    "username": "rfc2324_2-3-2_418",
+                    "password": "iamateapot"
                 },
                 "tenantId": "77777"
             }
@@ -709,8 +710,65 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         self.assertEqual(response.code, 200)
         self.assertEqual(json_body['RAX-KSKEY:apiKeyCredentials']['username'],
                          username)
-        self.assertTrue(
-            len(json_body['RAX-KSKEY:apiKeyCredentials']['apiKey']) == 32)
+        self.assertEqual(
+            len(json_body['RAX-KSKEY:apiKeyCredentials']['apiKey']),
+            IdentityApi.apikey_length)
+
+    def test_osksadm_credentials_list(self):
+        """
+        Test OS-KSADM Credentials Listing
+        """
+        core, root = core_and_root([ExampleAPI()])
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, b"GET",
+            "/identity/v2.0/users/1/OS-KSADM/credentials"
+        ))
+        self.assertEqual(response.code, 404)
+        self.assertEqual(
+            json_body['itemNotFound']['message'], 'User 1 not found')
+        creds = {
+            "auth": {
+                "passwordCredentials": {
+                    "username": "rfc2324_2-3-2_418",
+                    "password": "iamateapot"
+                },
+                "tenantId": "77777"
+            }
+        }
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, b"POST", "/identity/v2.0/tokens", creds))
+        self.assertEqual(response.code, 200)
+        user_id = json_body['access']['user']['id']
+        username = json_body['access']['user']['name']
+        (response, json_body) = self.successResultOf(json_request(
+            self, root, b"GET",
+            "/identity/v2.0/users/" + user_id +
+            "/OS-KSADM/credentials"
+        ))
+        self.assertEqual(response.code, 200)
+
+        self.assertIn('credentials_links', json_body)
+        self.assertEqual(len(json_body['credentials_links']), 0)
+
+        self.assertIn('credentials', json_body)
+        credential_types = {
+            'RAX-KSKEY:apiKeyCredentials': {
+                'value': 'apiKey',
+                'length': IdentityApi.apikey_length
+            }
+        }
+        for credential in json_body['credentials']:
+            # there should only be one entry in the dict
+            # the key for that entry tells what kind of credential
+            # it is
+            self.assertEqual(len(credential), 1)
+
+            # however, it's more compact to validate it this way:
+            for k, v in credential.items():
+                self.assertEqual(v['username'], username)
+                self.assertEqual(
+                    len(v[credential_types[k]['value']]),
+                    credential_types[k]['length'])
 
     def test_token_and_catalog_for_api_credentials_wrong_tenant(self):
         """
