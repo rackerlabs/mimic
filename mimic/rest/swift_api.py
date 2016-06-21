@@ -183,7 +183,7 @@ class SwiftTenantInRegion(object):
         else:
             return NoResource()
 
-    @app.route("/<string:container_name>/<string:object_name>",
+    @app.route("/<string:container_name>/<path:object_name>",
                methods=["GET"])
     def get_object(self, request, container_name, object_name):
         """
@@ -191,7 +191,7 @@ class SwiftTenantInRegion(object):
         """
         return self.containers[container_name].objects[object_name].data
 
-    @app.route("/<string:container_name>/<string:object_name>",
+    @app.route("/<string:container_name>/<path:object_name>",
                methods=["PUT"])
     def put_object(self, request, container_name, object_name):
         """
@@ -205,4 +205,15 @@ class SwiftTenantInRegion(object):
             name=object_name, data=request.content.read(),
             content_type=content_type
         )
+        return b''
+
+    @app.route("/<string:container_name>/<path:object_name>",
+               methods=["DELETE"])
+    def delete_object(self, request, container_name, object_name):
+        """
+        Delete an object in a container.
+        """
+        request.setResponseCode(204)
+        container = self.containers[container_name]
+        del container.objects[object_name]
         return b''

@@ -151,14 +151,86 @@ class SwiftTests(SynchronousTestCase):
                ['publicURL'] + u'/testcontainer').encode('ascii')
         create_container = request(self, self.root, b"PUT", uri)
         self.successResultOf(create_container)
+
+        # generate some paths with depth, swift's object name field is greedy
+        # and consumes everything, including slashes, after the container name
+        object_paths = [
+            b"testobject",
+        ]
+        object_path_prefix = b""
+        for i in range(10):
+            object_path_prefix = (
+                object_path_prefix + "{0}".format(i).encode('utf-8') + b"/")
+            new_object_path = object_path_prefix + object_paths[0]
+            object_paths.append(new_object_path)
+
         BODY = b'some bytes'
-        object_uri = uri + b"/" + b"testobject"
+        for object_path in object_paths:
+
+            object_uri = uri + b"/" + object_path
+            object_response = request(self, self.root,
+                                      b"PUT", object_uri,
+                                      headers={b"content-type": [b"text/plain"]},
+                                      body=BODY)
+            self.assertEqual(self.successResultOf(object_response).code,
+                             201)
+            container_response = self.successResultOf(
+                request(self, self.root, b"GET", uri)
+            )
+            self.assertEqual(container_response.code, 200)
+            container_contents = self.successResultOf(
+                treq.json_content(container_response)
+            )
+            self.assertEqual(len(container_contents), 1)
+            self.assertEqual(container_contents[0]['name'],
+                             object_path.decode('utf-8'))
+            self.assertEqual(container_contents[0]['content_type'], "text/plain")
+            self.assertEqual(container_contents[0]['bytes'], len(BODY))
+
+            object_response = self.successResultOf(
+                request(self, self.root, b"GET", object_uri)
+            )
+            self.assertEqual(object_response.code, 200)
+            object_body = self.successResultOf(treq.content(object_response))
+            self.assertEquals(object_body, BODY)
+
+            del_object = self.successResultOf(
+                request(self, self.root, b"DELETE", object_uri)
+            )
+            self.assertEqual(del_object.code, 204)
+
+    def test_delete_object(self):
+        """
+        Deleting an object from a container.
+        """
+        self.createSwiftService()
+        # create a container
+        uri = (self.json_body['access']['serviceCatalog'][0]['endpoints'][0]
+               ['publicURL'] + u'/testcontainer').encode('ascii')
+        create_container = request(self, self.root, b"PUT", uri)
+        self.successResultOf(create_container)
+
+        # generate some paths with depth, swift's object name field is greedy
+        # and consumes everything, including slashes, after the container name
+        object_path = b"testobject"
+        BODY = b'some bytes'
+
+        # put the object
+        object_uri = uri + b"/" + object_path
         object_response = request(self, self.root,
                                   b"PUT", object_uri,
                                   headers={b"content-type": [b"text/plain"]},
                                   body=BODY)
         self.assertEqual(self.successResultOf(object_response).code,
                          201)
+
+        # then delete it
+        delete_response = request(self, self.root,
+                                  b"DELETE", object_uri)
+        self.assertEqual(self.successResultOf(delete_response).code,
+                         204)
+
+        # ensure it's no longer listed
         container_response = self.successResultOf(
             request(self, self.root, b"GET", uri)
         )
@@ -166,16 +238,7 @@ class SwiftTests(SynchronousTestCase):
         container_contents = self.successResultOf(
             treq.json_content(container_response)
         )
-        self.assertEqual(len(container_contents), 1)
-        self.assertEqual(container_contents[0]['name'], "testobject")
-        self.assertEqual(container_contents[0]['content_type'], "text/plain")
-        self.assertEqual(container_contents[0]['bytes'], len(BODY))
-        object_response = self.successResultOf(
-            request(self, self.root, b"GET", object_uri)
-        )
-        self.assertEqual(object_response.code, 200)
-        object_body = self.successResultOf(treq.content(object_response))
-        self.assertEquals(object_body, BODY)
+        self.assertEqual(len(container_contents), 0)
 
     def test_openstack_ids(self):
         """
