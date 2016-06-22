@@ -90,6 +90,63 @@ class SwiftTests(SynchronousTestCase):
         self.create_one_container(202)
         self.create_one_container(202)
 
+    def test_delete_container_non_existent(self):
+        """
+        DELETEing a non-existent container
+        """
+        self.createSwiftService()
+        # create a container
+        uri = (self.json_body['access']['serviceCatalog'][0]['endpoints'][0]
+               ['publicURL'] + '/testcontainer').encode("ascii")
+        container_response = self.successResultOf(
+            request(self, self.root, b"DELETE", uri)
+        )
+        self.assertEqual(container_response.code, 404)
+
+    def test_delete_container(self):
+        """
+        DELETEing a container
+        """
+        self.createSwiftService()
+        # create a container
+        uri = (self.json_body['access']['serviceCatalog'][0]['endpoints'][0]
+               ['publicURL'] + '/testcontainer').encode("ascii")
+        create_container = request(self, self.root, b"PUT", uri)
+        self.successResultOf(create_container)
+        container_response = self.successResultOf(
+            request(self, self.root, b"DELETE", uri)
+        )
+        self.assertEqual(container_response.code, 204)
+
+    def test_delete_container_non_empty(self):
+        """
+        """
+        self.createSwiftService()
+        # create a container
+        uri = (self.json_body['access']['serviceCatalog'][0]['endpoints'][0]
+               ['publicURL'] + '/testcontainer').encode("ascii")
+        create_container = request(self, self.root, b"PUT", uri)
+        self.successResultOf(create_container)
+
+        # generate some paths with depth, swift's object name field is greedy
+        # and consumes everything, including slashes, after the container name
+        object_path = b"testobject"
+        BODY = b'some bytes'
+
+        # put the object
+        object_uri = uri + b"/" + object_path
+        object_response = request(self, self.root,
+                                  b"PUT", object_uri,
+                                  headers={b"content-type": [b"text/plain"]},
+                                  body=BODY)
+        self.assertEqual(self.successResultOf(object_response).code,
+                         201)
+
+        container_response = self.successResultOf(
+            request(self, self.root, b"DELETE", uri)
+        )
+        self.assertEqual(container_response.code, 409)
+
     def test_get_container(self):
         """
         Creating a container and immediately retrieving it yields an empty list

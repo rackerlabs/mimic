@@ -19,8 +19,21 @@ from twisted.web.http import CREATED, ACCEPTED, OK
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.rest.mimicapp import MimicApp
-from twisted.web.resource import NoResource
+from twisted.web.http import CONFLICT
+from twisted.web.resource import ErrorPage, NoResource
 from zope.interface import implementer
+
+
+class Conlict(ErrorPage):
+    """
+    HTTP 409 Conflict
+    """
+
+    def __init__(self, message="Sorry, Conflict prevents operation"):
+        """
+        Construct an object that will return an HTTP 409 Conflict message.
+        """
+        ErrorPage.__init__(self, CONFLICT, "Conflict", message)
 
 
 def normal_tenant_id_to_crazy_mosso_id(normal_tenant_id):
@@ -207,6 +220,8 @@ class SwiftTenantInRegion(object):
             request.responseHeaders.setRawHeaders(b"x-container-bytes-used",
                                                   [byte_count])
             request.setResponseCode(204)
+            return b""
+
         else:
             return NoResource()
 
@@ -231,6 +246,24 @@ class SwiftTenantInRegion(object):
                 obj.as_json() for obj in
                 self.containers[container_name].objects.values()
             ])
+        else:
+            return NoResource()
+
+    @app.route("/<string:container_name>", methods=["DELETE"])
+    def delete_container(self, request, container_name):
+        """
+        Api call to remove a container
+        """
+        if container_name in self.containers:
+            if len(self.containers[container_name].objects) == 0:
+                del self.containers[container_name]
+
+                request.setResponseCode(204)
+                return b""
+
+            else:
+                return Conlict("Container not empty")
+
         else:
             return NoResource()
 
@@ -262,7 +295,7 @@ class SwiftTenantInRegion(object):
                 # return 200 since it actually "touches" the object
                 # while non-standard, this is how the Swift API works :(
                 request.setResponseCode(200)
-                return b''
+                return b""
             else:
                 return NoResource()
         else:
@@ -292,11 +325,11 @@ class SwiftTenantInRegion(object):
             else:
                 return None
 
-        content_type = get_header_value(b'content-type')
-        content_encoding = get_header_value(b'content-encoding')
-        etag = get_header_value(b'etag')
-        object_manifest = get_header_value(b'x-object-manifest')
-        object_meta_name = get_header_value(b'x-object-meta-name')
+        content_type = get_header_value(b"content-type")
+        content_encoding = get_header_value(b"content-encoding")
+        etag = get_header_value(b"etag")
+        object_manifest = get_header_value(b"x-object-manifest")
+        object_meta_name = get_header_value(b"x-object-meta-name")
 
         container.objects[object_name] = Object(
             name=object_name,
@@ -307,7 +340,7 @@ class SwiftTenantInRegion(object):
             object_meta_name=object_meta_name,
             data=request.content.read()
         )
-        return b''
+        return b""
 
     @app.route("/<string:container_name>/<path:object_name>",
                methods=["DELETE"])
@@ -318,4 +351,4 @@ class SwiftTenantInRegion(object):
         request.setResponseCode(204)
         container = self.containers[container_name]
         del container.objects[object_name]
-        return b''
+        return b""
