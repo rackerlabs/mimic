@@ -140,6 +140,85 @@ class SwiftTests(SynchronousTestCase):
                 "X-Container-Bytes-Used"), None
         )
 
+    def test_head_container(self):
+        """
+        Validate the HEAD operation on a container.
+        """
+        self.createSwiftService()
+        # create a container
+        uri = (self.json_body['access']['serviceCatalog'][0]['endpoints'][0]
+               ['publicURL'] + u'/testcontainer').encode('ascii')
+        create_container = request(self, self.root, b"PUT", uri)
+        self.successResultOf(create_container)
+
+        # generate some paths with depth, swift's object name field is greedy
+        # and consumes everything, including slashes, after the container name
+        object_paths = [
+            b"testobject",
+        ]
+        object_path_prefix = b""
+        for i in range(10):
+            object_path_prefix = (
+                object_path_prefix + "{0}".format(i).encode('utf-8') + b"/")
+            new_object_path = object_path_prefix + object_paths[0]
+            object_paths.append(new_object_path)
+
+        BODY = b'some bytes'
+        object_size = len(BODY)
+        object_count = 0
+        for object_path in object_paths:
+            object_count += 1
+            container_counter = "{0}".format(object_count).encode("utf-8")
+            container_size = "{0}".format(object_size * object_count).encode("utf-8")
+
+            object_uri = uri + b"/" + object_path
+            object_response = request(self, self.root,
+                                      b"PUT", object_uri,
+                                      headers={b"content-type": [b"text/plain"]},
+                                      body=BODY)
+            self.assertEqual(self.successResultOf(object_response).code,
+                             201)
+            container_response = self.successResultOf(
+                request(self, self.root, b"HEAD", uri)
+            )
+            self.assertEqual(container_response.code, 204)
+            container_contents = self.successResultOf(
+                treq.content(container_response)
+            )
+            # Validate container meta-data
+            self.assertEqual(
+                container_response.headers.getRawHeaders(
+                    b"X-Container-Object-Count")[0], container_counter
+            )
+            self.assertEqual(
+                container_response.headers.getRawHeaders(
+                    b"X-Container-Bytes-Used")[0], container_size
+            )
+            self.assertEqual(
+                container_contents, b""
+            )
+
+    def test_head_no_container(self):
+        """
+        HEADing a container that has not been created results in a 404.
+        """
+        self.createSwiftService()
+        # create a container
+        uri = (self.json_body['access']['serviceCatalog'][0]['endpoints'][0]
+               ['publicURL'] + '/testcontainer').encode("ascii")
+        container_response = self.successResultOf(
+            request(self, self.root, b"HEAD", uri)
+        )
+        self.assertEqual(container_response.code, 404)
+        self.assertEqual(
+            container_response.headers.getRawHeaders(
+                "X-Container-Object-Count"), None
+        )
+        self.assertEqual(
+            container_response.headers.getRawHeaders(
+                "X-Container-Bytes-Used"), None
+        )
+
     def test_put_object(self):
         """
         PUTting an object into a container causes the container to list that
@@ -165,6 +244,8 @@ class SwiftTests(SynchronousTestCase):
             object_paths.append(new_object_path)
 
         BODY = b'some bytes'
+        object_size = len(BODY)
+        container_size = "{0}".format(object_size).encode("utf-8")
         for object_path in object_paths:
 
             object_uri = uri + b"/" + object_path
@@ -181,11 +262,21 @@ class SwiftTests(SynchronousTestCase):
             container_contents = self.successResultOf(
                 treq.json_content(container_response)
             )
+            # Validate container meta-data
+            self.assertEqual(
+                container_response.headers.getRawHeaders(
+                    b"X-Container-Object-Count")[0], b"1"
+            )
+            self.assertEqual(
+                container_response.headers.getRawHeaders(
+                    b"X-Container-Bytes-Used")[0], container_size
+            )
+            # Validate container response
             self.assertEqual(len(container_contents), 1)
             self.assertEqual(container_contents[0]['name'],
                              object_path.decode('utf-8'))
             self.assertEqual(container_contents[0]['content_type'], "text/plain")
-            self.assertEqual(container_contents[0]['bytes'], len(BODY))
+            self.assertEqual(container_contents[0]['bytes'], object_size)
 
             object_response = self.successResultOf(
                 request(self, self.root, b"GET", object_uri)
@@ -198,6 +289,153 @@ class SwiftTests(SynchronousTestCase):
                 request(self, self.root, b"DELETE", object_uri)
             )
             self.assertEqual(del_object.code, 204)
+
+    def test_head_no_object_no_container(self):
+        """
+        HEADing a non-existing object in a non-existent container.
+        """
+        self.createSwiftService()
+        # create a container
+        uri = (self.json_body['access']['serviceCatalog'][0]['endpoints'][0]
+               ['publicURL'] + u'/testcontainer').encode('ascii')
+
+        # generate some paths with depth, swift's object name field is greedy
+        # and consumes everything, including slashes, after the container name
+        object_path = b"testobject"
+
+        # head the object
+        object_uri = uri + b"/" + object_path
+        object_response = request(self, self.root,
+                                  b"HEAD", object_uri)
+        self.assertEqual(self.successResultOf(object_response).code,
+                         404)
+
+    def test_head_no_object(self):
+        """
+        HEADing a non-existing object in a container.
+        """
+        self.createSwiftService()
+        # create a container
+        uri = (self.json_body['access']['serviceCatalog'][0]['endpoints'][0]
+               ['publicURL'] + u'/testcontainer').encode('ascii')
+        create_container = request(self, self.root, b"PUT", uri)
+        self.successResultOf(create_container)
+
+        # generate some paths with depth, swift's object name field is greedy
+        # and consumes everything, including slashes, after the container name
+        object_path = b"testobject"
+
+        # head the object
+        object_uri = uri + b"/" + object_path
+        object_response = request(self, self.root,
+                                  b"HEAD", object_uri)
+        self.assertEqual(self.successResultOf(object_response).code,
+                         404)
+
+    def test_head_object_no_extra_properties(self):
+        """
+        HEADing a object in a container but without the extra properties being
+        assigned during the PUT operation.
+        """
+        self.createSwiftService()
+        # create a container
+        uri = (self.json_body['access']['serviceCatalog'][0]['endpoints'][0]
+               ['publicURL'] + u'/testcontainer').encode('ascii')
+        create_container = request(self, self.root, b"PUT", uri)
+        self.successResultOf(create_container)
+
+        # generate some paths with depth, swift's object name field is greedy
+        # and consumes everything, including slashes, after the container name
+        object_path = b"testobject"
+        BODY = b'some bytes'
+
+        # put the object
+        object_uri = uri + b"/" + object_path
+        object_response = request(self, self.root,
+                                  b"PUT", object_uri,
+                                  body=BODY)
+        self.assertEqual(self.successResultOf(object_response).code,
+                         201)
+
+        # head the object
+        head_response = self.successResultOf(
+            request(self, self.root, b"HEAD", object_uri)
+        )
+        self.assertEqual(head_response.code,
+                         200)
+        head_contents = self.successResultOf(
+            treq.content(head_response)
+        )
+        self.assertEqual(
+            head_response.headers.getRawHeaders(b"content-type"),
+            [b"application/octet-stream"])
+        non_existent_headers = (
+            b"content-encoding",
+            b"etag",
+            b"x-object-manifest",
+            b"x-object-meta-name"
+        )
+        for header_key in non_existent_headers:
+            self.assertIsNone(head_response.headers.getRawHeaders(header_key))
+
+        self.assertEqual(head_contents, b'')
+
+    def test_head_object_with_extra_properties(self):
+        """
+        HEADing a object in a container but without the extra properties being
+        assigned during the PUT operation.
+        """
+        self.createSwiftService()
+        # create a container
+        uri = (self.json_body['access']['serviceCatalog'][0]['endpoints'][0]
+               ['publicURL'] + u'/testcontainer').encode('ascii')
+        create_container = request(self, self.root, b"PUT", uri)
+        self.successResultOf(create_container)
+
+        # generate some paths with depth, swift's object name field is greedy
+        # and consumes everything, including slashes, after the container name
+        object_path = b"testobject"
+        BODY = b'some bytes'
+
+        property_values = {
+            b"content-type": [b"application/test-value"],
+            b"content-encoding": [b"ascii"],
+            b"etag": [b"etag_in_123456"],
+            b"x-object-manifest": [b"{object/1}"],
+            b"x-object-meta-name": [b"2bd4"]
+        }
+
+        # put the object
+        object_uri = uri + b"/" + object_path
+        object_response = request(self, self.root,
+                                  b"PUT", object_uri,
+                                  headers=property_values,
+                                  body=BODY)
+        self.assertEqual(self.successResultOf(object_response).code,
+                         201)
+
+        # head the object
+        head_response = self.successResultOf(
+            request(self, self.root, b"HEAD", object_uri)
+        )
+        self.assertEqual(head_response.code,
+                         200)
+        head_contents = self.successResultOf(
+            treq.content(head_response)
+        )
+        header_keys = (
+            b"content-type",
+            b"content-encoding",
+            b"etag",
+            b"x-object-manifest",
+            b"x-object-meta-name"
+        )
+        for header_key in header_keys:
+            self.assertEqual(
+                head_response.headers.getRawHeaders(header_key),
+                property_values[header_key])
+
+        self.assertEqual(head_contents, b'')
 
     def test_delete_object(self):
         """

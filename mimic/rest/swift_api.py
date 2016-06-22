@@ -112,7 +112,19 @@ class Object(object):
     """
     name = attr.ib()
     content_type = attr.ib()
+    content_encoding = attr.ib()
+    etag = attr.ib()
+    object_manifest = attr.ib()
+    object_meta_name = attr.ib()
+
     data = attr.ib()
+
+    @property
+    def length(self):
+        """
+        Return the length of the data
+        """
+        return len(self.data)
 
     def as_json(self):
         """
@@ -122,7 +134,7 @@ class Object(object):
         return {
             "name": self.name,
             "content_type": self.content_type,
-            "bytes": len(self.data),
+            "bytes": self.length,
         }
 
 
@@ -133,6 +145,23 @@ class Container(object):
     """
     name = attr.ib()
     objects = attr.ib(default=attr.Factory(dict))
+
+    @property
+    def object_count(self):
+        """
+        Return the number of objects in the container
+        """
+        return len(self.objects)
+
+    @property
+    def byte_count(self):
+        """
+        Return the sum of data of all the objects in the container
+        """
+        byte_count = 0
+        for obj in self.objects.values():
+            byte_count += obj.length
+        return byte_count
 
 
 class SwiftTenantInRegion(object):
@@ -162,6 +191,25 @@ class SwiftTenantInRegion(object):
             request.setResponseCode(ACCEPTED)
         return b""
 
+    @app.route("/<string:container_name>", methods=["HEAD"])
+    def head_container(self, request, container_name):
+        """
+        Api call to get the meta-data regarding a container
+        """
+        if container_name in self.containers:
+            container = self.containers[container_name]
+            object_count = "{0}".format(container.object_count).encode("utf-8")
+            byte_count = "{0}".format(container.byte_count).encode("utf-8")
+            request.responseHeaders.setRawHeaders(b"content-type",
+                                                  [b"application/json"])
+            request.responseHeaders.setRawHeaders(b"x-container-object-count",
+                                                  [object_count])
+            request.responseHeaders.setRawHeaders(b"x-container-bytes-used",
+                                                  [byte_count])
+            request.setResponseCode(204)
+        else:
+            return NoResource()
+
     @app.route("/<string:container_name>", methods=["GET"])
     def get_container(self, request, container_name):
         """
@@ -169,17 +217,54 @@ class SwiftTenantInRegion(object):
         status code of 200 when such a container exists, 404 if not.
         """
         if container_name in self.containers:
+            container = self.containers[container_name]
+            object_count = "{0}".format(container.object_count).encode("utf-8")
+            byte_count = "{0}".format(container.byte_count).encode("utf-8")
             request.responseHeaders.setRawHeaders(b"content-type",
                                                   [b"application/json"])
             request.responseHeaders.setRawHeaders(b"x-container-object-count",
-                                                  [b"0"])
+                                                  [object_count])
             request.responseHeaders.setRawHeaders(b"x-container-bytes-used",
-                                                  [b"0"])
+                                                  [byte_count])
             request.setResponseCode(OK)
             return dumps([
                 obj.as_json() for obj in
                 self.containers[container_name].objects.values()
             ])
+        else:
+            return NoResource()
+
+    @app.route("/<string:container_name>/<path:object_name>",
+               methods=["HEAD"])
+    def head_object(self, request, container_name, object_name):
+        """
+        Get an object from a container.
+        """
+        if container_name in self.containers:
+            container = self.containers[container_name]
+            if object_name in container.objects:
+                obj = container.objects[object_name]
+
+                def set_header_if_not_none(header_key, obj_value):
+                    if obj_value is not None:
+                        request.responseHeaders.setRawHeaders(
+                            header_key, [obj_value.encode("ascii")])
+
+                set_header_if_not_none(
+                    b"content-type",
+                    obj.content_type if obj.content_type is not None else
+                    u"application/octet-stream")
+                set_header_if_not_none(b"content-encoding", obj.content_encoding)
+                set_header_if_not_none(b"etag", obj.etag)
+                set_header_if_not_none(b"x-object-manifest", obj.object_manifest)
+                set_header_if_not_none(b"x-object-meta-name", obj.object_meta_name)
+
+                # return 200 since it actually "touches" the object
+                # while non-standard, this is how the Swift API works :(
+                request.setResponseCode(200)
+                return b''
+            else:
+                return NoResource()
         else:
             return NoResource()
 
@@ -199,11 +284,28 @@ class SwiftTenantInRegion(object):
         """
         request.setResponseCode(201)
         container = self.containers[container_name]
-        content_type = (request.requestHeaders
-                        .getRawHeaders(b'content-type')[0].decode("ascii"))
+
+        def get_header_value(header_key):
+            value = request.requestHeaders.getRawHeaders(header_key)
+            if value is not None:
+                return value[0].decode("ascii")
+            else:
+                return None
+
+        content_type = get_header_value(b'content-type')
+        content_encoding = get_header_value(b'content-encoding')
+        etag = get_header_value(b'etag')
+        object_manifest = get_header_value(b'x-object-manifest')
+        object_meta_name = get_header_value(b'x-object-meta-name')
+
         container.objects[object_name] = Object(
-            name=object_name, data=request.content.read(),
-            content_type=content_type
+            name=object_name,
+            content_encoding=content_encoding,
+            content_type=content_type,
+            etag=etag,
+            object_manifest=object_manifest,
+            object_meta_name=object_meta_name,
+            data=request.content.read()
         )
         return b''
 
