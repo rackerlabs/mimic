@@ -223,7 +223,7 @@ class SwiftTenantInRegion(object):
             return b""
 
         else:
-            return NoResource()
+            return NoResource("No such container")
 
     @app.route("/<string:container_name>", methods=["GET"])
     def get_container(self, request, container_name):
@@ -247,7 +247,7 @@ class SwiftTenantInRegion(object):
                 self.containers[container_name].objects.values()
             ])
         else:
-            return NoResource()
+            return NoResource("No such container")
 
     @app.route("/<string:container_name>", methods=["DELETE"])
     def delete_container(self, request, container_name):
@@ -265,7 +265,7 @@ class SwiftTenantInRegion(object):
                 return Conlict("Container not empty")
 
         else:
-            return NoResource()
+            return NoResource("No such container")
 
     @app.route("/<string:container_name>/<path:object_name>",
                methods=["HEAD"])
@@ -297,9 +297,9 @@ class SwiftTenantInRegion(object):
                 request.setResponseCode(200)
                 return b""
             else:
-                return NoResource()
+                return NoResource("No such object in container")
         else:
-            return NoResource()
+            return NoResource("No such container")
 
     @app.route("/<string:container_name>/<path:object_name>",
                methods=["GET"])
@@ -307,7 +307,31 @@ class SwiftTenantInRegion(object):
         """
         Get an object from a container.
         """
-        return self.containers[container_name].objects[object_name].data
+        if container_name in self.containers:
+            container = self.containers[container_name]
+            if object_name in container.objects:
+                obj = container.objects[object_name]
+
+                def set_header_if_not_none(header_key, obj_value):
+                    if obj_value is not None:
+                        request.responseHeaders.setRawHeaders(
+                            header_key, [obj_value.encode("ascii")])
+
+                set_header_if_not_none(
+                    b"content-type",
+                    obj.content_type if obj.content_type is not None else
+                    u"application/octet-stream")
+                set_header_if_not_none(b"content-encoding", obj.content_encoding)
+                set_header_if_not_none(b"etag", obj.etag)
+                set_header_if_not_none(b"x-object-manifest", obj.object_manifest)
+                set_header_if_not_none(b"x-object-meta-name", obj.object_meta_name)
+
+                request.setResponseCode(200)
+                return container.objects[object_name].data
+            else:
+                return NoResource("No such object in container")
+        else:
+            return NoResource("No such container")
 
     @app.route("/<string:container_name>/<path:object_name>",
                methods=["PUT"])
@@ -315,32 +339,35 @@ class SwiftTenantInRegion(object):
         """
         Create or update an object in a container.
         """
-        request.setResponseCode(201)
-        container = self.containers[container_name]
+        if container_name in self.containers:
+            container = self.containers[container_name]
 
-        def get_header_value(header_key):
-            value = request.requestHeaders.getRawHeaders(header_key)
-            if value is not None:
-                return value[0].decode("ascii")
-            else:
-                return None
+            def get_header_value(header_key):
+                value = request.requestHeaders.getRawHeaders(header_key)
+                if value is not None:
+                    return value[0].decode("ascii")
+                else:
+                    return None
 
-        content_type = get_header_value(b"content-type")
-        content_encoding = get_header_value(b"content-encoding")
-        etag = get_header_value(b"etag")
-        object_manifest = get_header_value(b"x-object-manifest")
-        object_meta_name = get_header_value(b"x-object-meta-name")
+            content_type = get_header_value(b"content-type")
+            content_encoding = get_header_value(b"content-encoding")
+            etag = get_header_value(b"etag")
+            object_manifest = get_header_value(b"x-object-manifest")
+            object_meta_name = get_header_value(b"x-object-meta-name")
 
-        container.objects[object_name] = Object(
-            name=object_name,
-            content_encoding=content_encoding,
-            content_type=content_type,
-            etag=etag,
-            object_manifest=object_manifest,
-            object_meta_name=object_meta_name,
-            data=request.content.read()
-        )
-        return b""
+            container.objects[object_name] = Object(
+                name=object_name,
+                content_encoding=content_encoding,
+                content_type=content_type,
+                etag=etag,
+                object_manifest=object_manifest,
+                object_meta_name=object_meta_name,
+                data=request.content.read()
+            )
+            request.setResponseCode(201)
+            return b""
+        else:
+            return NoResource("No such container")
 
     @app.route("/<string:container_name>/<path:object_name>",
                methods=["DELETE"])
@@ -348,7 +375,13 @@ class SwiftTenantInRegion(object):
         """
         Delete an object in a container.
         """
-        request.setResponseCode(204)
-        container = self.containers[container_name]
-        del container.objects[object_name]
-        return b""
+        if container_name in self.containers:
+            container = self.containers[container_name]
+            if object_name in container.objects:
+                del container.objects[object_name]
+                request.setResponseCode(204)
+                return b""
+            else:
+                return NoResource("No such object in container")
+        else:
+            return NoResource("No such container")
