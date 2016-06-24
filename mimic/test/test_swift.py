@@ -2,7 +2,7 @@ from __future__ import absolute_import, division, unicode_literals
 
 from json import loads, dumps
 
-from twisted.trial.unittest import SynchronousTestCase, SkipTest
+from twisted.trial.unittest import SynchronousTestCase
 from twisted.internet.task import Clock
 
 import treq
@@ -23,7 +23,8 @@ class SwiftTestBase(SynchronousTestCase):
         """
         Set up to create the requests
         """
-        self.core = MimicCore(Clock(), [SwiftMock(rackspace_flavor)])
+        self.swift_mock = SwiftMock(rackspace_flavor)
+        self.core = MimicCore(Clock(), [self.swift_mock])
         self.root = MimicRoot(self.core).app.resource()
         self.response = request(
             self, self.root, b"POST", b"/identity/v2.0/tokens",
@@ -49,15 +50,21 @@ class SwiftTestBase(SynchronousTestCase):
         super(SwiftTestBase, self).setUp()
         self.createSwiftService()
 
-        # create a container
-        self.uri = (self.json_body['access']['serviceCatalog'][0]['endpoints'][0]
-                    ['publicURL'] + u'/testcontainer').encode('ascii')
+        self.tenant_id = self.json_body['access']['token']['tenant']['id']
+        self.token = self.json_body['access']['token']['id']
+        self.swift_endpoint = (
+            self.json_body['access']['serviceCatalog'][0]['endpoints'][0])
+        self.swift_uri = self.swift_endpoint['publicURL']
 
+        # container information
+        self.container_name = u"/testcontainer"
+        self.uri = (self.swift_uri + self.container_name).encode('ascii')
+
+        # object information
         self.object_path = b"testobject"
         self.object_uri = self.uri + b"/" + self.object_path
-
-        self.BODY = b'some bytes'
-        self.object_size = len(self.BODY)
+        self.object_data = b'some bytes'
+        self.object_size = len(self.object_data)
 
     def put_container(self, expected_result=201):
         """
@@ -123,12 +130,12 @@ class SwiftTestBase(SynchronousTestCase):
         :param object_path: optional object path for where to put the object.
                             if None, then the default self.object_uri is used.
         :param body: optional object data to upload, if None then the default
-                     self.BODY is used
+                     self.object_data is used
         :param headers: optional header data to pass as part of the request
         :param expected_result: expected HTTP Status Code
         """
         object_uri = object_path if object_path is not None else self.object_uri
-        object_data = body if body is not None else self.BODY
+        object_data = body if body is not None else self.object_data
         object_response = request(self, self.root,
                                   b"PUT", object_uri,
                                   headers=headers,
@@ -476,7 +483,7 @@ class SwiftObjectTests(SwiftTestBase):
         object_response, object_content = self.get_object()
 
         # validate the response
-        self.assertEquals(object_content, self.BODY)
+        self.assertEquals(object_content, self.object_data)
 
     def test_get_object_path_based_name(self):
         """
@@ -505,7 +512,7 @@ class SwiftObjectTests(SwiftTestBase):
             # Get the object
             object_response, object_body = self.get_object(
                 object_path=object_uri)
-            self.assertEquals(object_body, self.BODY)
+            self.assertEquals(object_body, self.object_data)
 
     def test_get_object_non_existent_container_non_existent_object(self):
         """
@@ -554,7 +561,7 @@ class SwiftObjectTests(SwiftTestBase):
                 object_response.headers.getRawHeaders(header_key),
                 property_values[header_key])
 
-        self.assertEqual(object_content, self.BODY)
+        self.assertEqual(object_content, self.object_data)
 
     def test_get_object_without_properties(self):
         """
@@ -581,7 +588,7 @@ class SwiftObjectTests(SwiftTestBase):
             self.assertIsNone(
                 object_response.headers.getRawHeaders(header_key))
 
-        self.assertEqual(object_content, self.BODY)
+        self.assertEqual(object_content, self.object_data)
 
     def test_put_object(self):
         """
@@ -614,7 +621,7 @@ class SwiftObjectTests(SwiftTestBase):
         # Get the object
         object_response, object_body = self.get_object(
             object_path=self.object_uri)
-        self.assertEquals(object_body, self.BODY)
+        self.assertEquals(object_body, self.object_data)
 
     def test_put_object_path_based_name(self):
         """
@@ -662,7 +669,7 @@ class SwiftObjectTests(SwiftTestBase):
             # Get the object
             object_response, object_body = self.get_object(
                 object_path=object_uri)
-            self.assertEquals(object_body, self.BODY)
+            self.assertEquals(object_body, self.object_data)
 
             # clean up the object
             self.delete_object(object_path=object_uri)
@@ -672,7 +679,14 @@ class SwiftObjectTests(SwiftTestBase):
         PUT object - put objects can update the container while leaving other
         data alone if the object already existed
         """
-        raise SkipTest("Not Yet Supported")
+        self.put_object()
+
+        new_data = b"new object"
+        self.put_object(body=new_data)
+
+        # Get the object
+        object_response, object_body = self.get_object()
+        self.assertEquals(object_body, new_data)
 
     def test_put_object_non_existent_container(self):
         """
@@ -890,7 +904,6 @@ class SwiftObjectTests(SwiftTestBase):
             )
 
             self.delete_object(object_path=object_uri)
-
 
     def test_delete_object_non_existent_container_non_existent_object(self):
         """
