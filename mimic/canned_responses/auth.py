@@ -17,6 +17,7 @@ HARD_CODED_USER_NAME = "mimictestuser"
 HARD_CODED_ROLES = [{"id": "3",
                      "description": "User Admin Role.",
                      "name": "identity:user-admin"}]
+HARD_CODED_DEFAULT_REGION = "DFW"
 
 
 def format_timestamp(dt):
@@ -72,7 +73,8 @@ def get_token(tenant_id,
               response_token=HARD_CODED_TOKEN,
               response_user_id=HARD_CODED_USER_ID,
               response_user_name=HARD_CODED_USER_NAME,
-              response_roles=HARD_CODED_ROLES):
+              response_roles=HARD_CODED_ROLES,
+              response_default_region=HARD_CODED_DEFAULT_REGION):
     """
     Canned response for authentication, with service catalog containing
     endpoints only for services implemented by Mimic.
@@ -114,6 +116,7 @@ def get_token(tenant_id,
                     "name": tenant_id},
                 "RAX-AUTH:authenticatedBy": ["PASSWORD"]},
             "user": {
+                "RAX-AUTH:defaultRegion": response_default_region,
                 "id": response_user_id,
                 "name": response_user_name,
                 "roles": response_roles,
