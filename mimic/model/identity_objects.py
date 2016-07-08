@@ -89,6 +89,8 @@ class ExternalApiStore(object):
     service names (e.g Cloud Files, OpenStack Swift).
 
     Note: An endpoint template typically maps to a region.
+
+    Work-In-Progress: Implementation is unstable and subject to change.
     """
 
     def __init__(self, service_uuid, service_name, service_type, api_templates=[]):

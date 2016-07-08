@@ -32,6 +32,8 @@ class IEndpointTemplate(Interface):
     """
     AN :obj:`IEndpointTemplate` provides an interface for the OS-KSCATALOG
     Admin endpoint templates, defining the fields.
+
+    Work-In-Progress: Implementation is unstable and subject to change.
     """
     id_key = Attribute("Unique Service ID")
     region_key = Attribute("Region the Endpoint services")
@@ -53,6 +55,8 @@ class IExternalAPIMock(Interface):
     """
     An :obj:`IExternalAPIMock` provides an API via an entry for services
     external to Mimic in a tenant's service catalog.
+
+    Work-In-Progress: Implementation is unstable and subject to change.
     """
     id_key = Attribute("Unique Service ID")
     name_key = Attribute("Name of the External API. Primarily used for "
