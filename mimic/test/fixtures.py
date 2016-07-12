@@ -37,21 +37,39 @@ class TenantAuthentication(object):
             }
         ))
 
+    def get_tenant_id(self):
+        """
+        Return the tenant id from the service catalog
+        """
+        return self.service_catalog_json['access']['token']['tenant']['id']
+
     def get_service_endpoint(self, service_name, region=''):
         """
-        Return the publicURL for the given service and region. Note that if there are multiple
-        endpoints for a given region, the first will be returned, and if no region is specified,
-        the first endpoint will be returned.
-        :param unicode service_name: The name of the service for which to get an endpoint as
-            listed in the service catalog
-        :param unicode region: The service catalog region of the desired endpoint
+        Return the publicURL for the given service and region. Note that if
+        there are multiple endpoints for a given region, the first will be
+        returned, and if no region is specified, the first endpoint will be
+        returned.
+        :param unicode service_name: The name of the service for which to get
+            an endpoint as listed in the service catalog.
+        :param unicode region: The service catalog region of the desired
+            endpoint.
+        :raises: KeyError when unable to locate the service in the service
+            catalog.
         """
         for service in self.service_catalog_json['access']['serviceCatalog']:
             if service['name'] == service_name:
                 for item in service['endpoints']:
                     if (item['region'] == region) or (region == ''):
                         return item['publicURL']
-        raise KeyError("No such service {}".format(service_name))
+
+        raise KeyError(
+            "No such service '{0}' for region '{1}' in Service Catalog "
+            "-'{2}'".format(
+                service_name,
+                region,
+                self.service_catalog_json['access']['serviceCatalog']
+            )
+        )
 
 
 class APIMockHelper(object):
@@ -62,7 +80,9 @@ class APIMockHelper(object):
     def __init__(self, test_case, apis):
         """
         Initialize a mimic core and the specified :obj:`mimic.imimic.IAPIMock`s
-        :param apis: A list of :obj:`mimic.imimic.IAPIMock` objects to be initialized
+
+        :param apis: A list of :obj:`mimic.imimic.IAPIMock` objects to be
+            initialized
         """
         self.test_case = test_case
         self.clock = Clock()
@@ -91,7 +111,9 @@ class APIDomainMockHelper(object):
     def __init__(self, test_case, domains):
         """
         Initialize a mimic core and the specified :obj:`mimic.imimic.IAPIMock`s
-        :param domains: A list of :obj:`mimic.imimic.IAPIDomainMock` objects to be initialized
+
+        :param domains: A list of :obj:`mimic.imimic.IAPIDomainMock` objects to
+            be initialized
         """
         self.test_case = test_case
         self.clock = Clock()
