@@ -376,7 +376,8 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
 
     def test_new_endpoint_template(self):
         """
-        Validate that a new endpoint template can be added.
+        Validate that a new endpoint template can be added without
+        the service-id header field specified.
         """
         self.core.add_api(self.eeapi)
         id_key = get_template_id(self, self.eeapi)
@@ -396,6 +397,40 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
             'region': 'some-region'
         }
         self.assertNotEqual(id_key, data['id'])
+
+        req = request(self, self.root, self.verb,
+                      self.uri,
+                      body=json.dumps(data).encode("utf-8"),
+                      headers=self.headers)
+
+        response = self.successResultOf(req)
+        self.assertEqual(response.code, 201)
+
+    def test_new_endpoint_template_with_service_id_header(self):
+        """
+        Validate that a new endpoint template can be added with
+        the service-id header field specified.
+        """
+        self.core.add_api(self.eeapi)
+        id_key = get_template_id(self, self.eeapi)
+
+        eeapi2 = make_example_external_api(
+            self,
+            name=self.eeapi_name + text_type(uuid.uuid4()),
+            service_type='service-' + text_type(uuid.uuid4())
+        )
+        eeapi2.remove_template(id_key)
+        self.core.add_api(eeapi2)
+
+        data = {
+            'id': text_type(uuid.uuid4()),
+            'name': self.eeapi_name,
+            'type': self.eeapi.type_key,
+            'region': 'some-region'
+        }
+        self.assertNotEqual(id_key, data['id'])
+
+        self.headers[b'serviceid'] = [self.eeapi.uuid_key.encode('utf8')]
 
         req = request(self, self.root, self.verb,
                       self.uri,
@@ -599,7 +634,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
             "match."
         )
 
-    def test_update_endpoint_template_ids_mismatch(self):
+    def test_json_body_id_value_not_matching_url(self):
         """
         Validate that the template id in the URL and the
         template ID in the JSON body must match
