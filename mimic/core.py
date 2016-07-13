@@ -35,7 +35,7 @@ class MimicCore(object):
         that will show up in the Service Catalog
     """
 
-    def __init__(self, clock, apis, domains=(), external_apis=()):
+    def __init__(self, clock, apis, domains=()):
         """
         Create a MimicCore with an IReactorTime to do any time-based scheduling
         against.

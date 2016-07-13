@@ -109,8 +109,8 @@ class ExampleEndpointTemplate(EndpointTemplateStore):
 
     def __init__(self, name=u"example", region="EXTERNAL", version="v1",
                  url="https://api.external.example.com:8080",
-                 publicURL=None, internalURL=None, adminURL=None,
-                 versionInfoURL=None, versionListURL=None,
+                 public_url=None, internal_url=None, admin_url=None,
+                 version_info_url=None, version_list_url=None,
                  type_id=u"example", enabled=False,
                  uuid=text_type(uuid.uuid4()), tenantid_alias="%tenant_id%"
                  ):
@@ -121,14 +121,14 @@ class ExampleEndpointTemplate(EndpointTemplateStore):
         :param text_type region: region the service is provided in, e.g ORD.
         :param text_type version: version of the service, e.g v1.
         :param text_type url: basic URL of the service in the region.
-        :param text_type publicURL: public URL of the service in the region.
-        :param text_type internalURL: internal URL of the service in
+        :param text_type public_url: public URL of the service in the region.
+        :param text_type internal_url: internal URL of the service in
             the region.
-        :param text_type adminURL: administrative URL for the service in
+        :param text_type admin_url: administrative URL for the service in
             the region.
-        :param text_type versionInfoURL: URL to get the version information
+        :param text_type version_info_url: URL to get the version information
             of the service.
-        :param text_type versionListURL: URL to get the list of supported
+        :param text_type version_list_url: URL to get the list of supported
             versions by the service.
         :param text_type type_id: service type, e.g object-store
         :param boolean enabled: whether or not the service is enabled
@@ -147,24 +147,27 @@ class ExampleEndpointTemplate(EndpointTemplateStore):
         self.type_key = type_id
         self.name_key = name
         self.enabled_key = enabled
-        self.publicURL = publicURL if publicURL is not None else url
-        self.internalURL = internalURL if internalURL is not None else url
-        self.adminURL = adminURL if adminURL is not None else url
-        self.tenantAlias = tenantid_alias
-        self.versionId = version
-        self.versionInfo = (versionInfoURL
-                            if versionInfoURL is not None
-                            else url + '/versionInfo')
-        self.versionList = (versionListURL
-                            if versionListURL is not None
-                            else url + '/versions')
+        self.public_url = public_url if public_url is not None else url
+        self.internal_url = internal_url if internal_url is not None else url
+        self.admin_url = admin_url if admin_url is not None else url
+        self.tenant_alias = tenantid_alias
+        self.version_id = version
+        self.version_info = (version_info_url
+                             if version_info_url is not None
+                             else url + '/versionInfo')
+        self.version_list = (version_list_url
+                             if version_list_url is not None
+                             else url + '/versions')
 
 
 def make_example_internal_api(case, response_message="default message",
-                              regions_and_versions=[('ORD', 'v1')]):
+                              regions_and_versions=None):
     """
     Intialize an :obj:`ExampleAPI`.
     """
+    if regions_and_versions is None:
+        regions_and_versions = [('ORD', 'v1')]
+
     iapi = ExampleAPI(
         response_message=response_message,
         regions_and_versions=regions_and_versions

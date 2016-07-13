@@ -50,13 +50,13 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
 
         validate_attributes = [
             'enabled_key',
-            'publicURL',
-            'internalURL',
-            'adminURL',
-            'tenantAlias',
-            'versionId',
-            'versionInfo',
-            'versionList'
+            'public_url',
+            'internal_url',
+            'admin_url',
+            'tenant_alias',
+            'version_id',
+            'version_info',
+            'version_list'
         ]
         for epts_attribute in validate_attributes:
             actual_value = getattr(epts, epts_attribute)
@@ -83,13 +83,13 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
         self.assertIsNone(epts.type_key)
         self.assertIsNone(epts.name_key)
         self.assertIsNone(epts.enabled_key)
-        self.assertIsNone(epts.publicURL)
-        self.assertIsNone(epts.internalURL)
-        self.assertIsNone(epts.adminURL)
-        self.assertIsNone(epts.tenantAlias)
-        self.assertIsNone(epts.versionId)
-        self.assertIsNone(epts.versionInfo)
-        self.assertIsNone(epts.versionList)
+        self.assertIsNone(epts.public_url)
+        self.assertIsNone(epts.internal_url)
+        self.assertIsNone(epts.admin_url)
+        self.assertIsNone(epts.tenant_alias)
+        self.assertIsNone(epts.version_id)
+        self.assertIsNone(epts.version_info)
+        self.assertIsNone(epts.version_list)
 
     def test_basic_with_minimal_dict(self):
         data = {
@@ -197,8 +197,8 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
 
     def test_replace_tenant_id_default_replacement(self):
         tenant_id = "some-tenant"
-        final_publicURL = "http://public.url/" + tenant_id
-        final_internalURL = "http://internal.url/" + tenant_id
+        final_public_url = "http://public.url/" + tenant_id
+        final_internal_url = "http://internal.url/" + tenant_id
 
         data = {
             "id": "some-id",
@@ -217,24 +217,24 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
 
         epts = EndpointTemplateStore(data)
         self.assertEqual(
-            final_publicURL,
+            final_public_url,
             epts.get_url(
-                epts.publicURL,
+                epts.public_url,
                 tenant_id
             )
         )
         self.assertEqual(
-            final_internalURL,
+            final_internal_url,
             epts.get_url(
-                epts.internalURL,
+                epts.internal_url,
                 tenant_id
             )
         )
 
     def test_replace_tenant_id_user_replacement(self):
         tenant_id = "some-tenant"
-        final_publicURL = "http://public.url/" + tenant_id
-        final_internalURL = "http://internal.url/" + tenant_id
+        final_public_url = "http://public.url/" + tenant_id
+        final_internal_url = "http://internal.url/" + tenant_id
 
         data = {
             "id": "some-id",
@@ -253,16 +253,16 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
 
         epts = EndpointTemplateStore(data)
         self.assertEqual(
-            final_publicURL,
+            final_public_url,
             epts.get_url(
-                epts.publicURL,
+                epts.public_url,
                 tenant_id
             )
         )
         self.assertEqual(
-            final_internalURL,
+            final_internal_url,
             epts.get_url(
-                epts.internalURL,
+                epts.internal_url,
                 tenant_id
             )
         )

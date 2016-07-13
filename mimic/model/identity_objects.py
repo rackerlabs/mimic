@@ -131,6 +131,18 @@ class EndpointTemplateStore(object):
 
     [0] http://developer.openstack.org/api-ref-identity-v2-ext.html
     """
+
+    """
+    The following lists of tuples are for mapping the template defined by
+    the OpenStack documentation to the internal strucutre for several uses.
+    The tuples have the following meaning:
+
+        Index   Meaning
+        -----   ------------------------------------------------
+        0       JSON Key in the OpenStack Identity Template Spec
+        1       Attribute Name of the :obj:`EndpointTemplateStore`
+        2       default value (only for optional_mapping)
+    """
     required_mapping = [
         ('id', 'id_key'),
         ('region', 'region_key'),
@@ -140,22 +152,22 @@ class EndpointTemplateStore(object):
 
     optional_mapping = [
         ('enabled', 'enabled_key', False),
-        ('publicURL', 'publicURL', u""),
-        ('internalURL', 'internalURL', u""),
-        ('adminURL', 'adminURL', u""),
-        ('RAX-AUTH:tenantAlias', 'tenantAlias', "%tenant_id%"),
-        ('versionId', 'versionId', u""),
-        ('versionInfo', 'versionInfo', u""),
-        ('versionList', 'versionList', u"")
+        ('publicURL', 'public_url', u""),
+        ('internalURL', 'internal_url', u""),
+        ('adminURL', 'admin_url', u""),
+        ('RAX-AUTH:tenantAlias', 'tenant_alias', "%tenant_id%"),
+        ('versionId', 'version_id', u""),
+        ('versionInfo', 'version_info', u""),
+        ('versionList', 'version_list', u"")
     ]
 
     tenant_mapping = [
         ('id', 'id_key'),
         ('region', 'region_key'),
         ('type', 'type_key'),
-        ('publicURL', 'publicURL'),
-        ('internalURL', 'internalURL'),
-        ('adminURL', 'adminURL'),
+        ('publicURL', 'public_url'),
+        ('internalURL', 'internal_url'),
+        ('adminURL', 'admin_url'),
     ]
 
     def __init__(self, template_dict=None):
@@ -172,13 +184,13 @@ class EndpointTemplateStore(object):
         self.type_key = None
         self.name_key = None
         self.enabled_key = None
-        self.publicURL = None
-        self.internalURL = None
-        self.adminURL = None
-        self.tenantAlias = None
-        self.versionId = None
-        self.versionInfo = None
-        self.versionList = None
+        self.public_url = None
+        self.internal_url = None
+        self.admin_url = None
+        self.tenant_alias = None
+        self.version_id = None
+        self.version_info = None
+        self.version_list = None
 
         if self._template_data is not None:
             self.deserialize(self._template_data)
@@ -190,7 +202,7 @@ class EndpointTemplateStore(object):
         :param text_type url: the URL to do the replacement on.
         :param text_type tenant_id: the tenant-id to insert into the URL.
         """
-        value_to_replace = self.tenantAlias
+        value_to_replace = self.tenant_alias
         if value_to_replace is None:
             value_to_replace = '%tenant_id%'
 
@@ -256,6 +268,8 @@ class ExternalApiStore(object):
     service names (e.g Cloud Files, OpenStack Swift).
 
     Note: An endpoint template typically maps to a region.
+
+    Work-In-Progress: Implementation is unstable and subject to change.
     """
 
     def __init__(self, service_uuid, service_name, service_type,
@@ -263,10 +277,10 @@ class ExternalApiStore(object):
         """
         Initialize an :obj:`ExternalApiStore` for a given service.
 
-        :param text_type service_uuid: unique identifier for the API
-        :param text_type service_name: name of the service being provided,
+        :param six.text_type service_uuid: unique identifier for the API
+        :param six.text_type service_name: name of the service being provided,
             f.e Cloud Files, Identity
-        :param text_type service_type: type of the service being provided,
+        :param six.text_type service_type: type of the service being provided,
             f.e object-store, auth
         :param iterable api_templates: iterable of templates to add during
             initialization
@@ -292,9 +306,10 @@ class ExternalApiStore(object):
         """
         List the tenant specific endpoints.
 
-        :param text_type tenant_id: tenant id to operate on
+        :param six.text_type tenant_id: tenant id to operate on
         :returns: an iterable of the endpoints available for the specified
             tenant id
+        :rtype: iterable
         """
         # List of template IDs that should be provided for a template
         # regardless of the enabled/disabled status of the template itself
@@ -315,14 +330,14 @@ class ExternalApiStore(object):
                         tenant_id,
                         endpoint_template.region_key,
                         endpoint_template.id_key,
-                        endpoint_template.versionId,
+                        endpoint_template.version_id,
                         external=True,
                         complete_url=endpoint_template.get_url(
-                            endpoint_template.publicURL,
+                            endpoint_template.public_url,
                             tenant_id
                         ),
                         internal_url=endpoint_template.get_url(
-                            endpoint_template.internalURL,
+                            endpoint_template.internal_url,
                             tenant_id
                         )
                     )
@@ -356,8 +371,8 @@ class ExternalApiStore(object):
         """
         Enable an endpoint for a specific tenant.
 
-        :param text_type tenant_id: tenant id to operate on
-        :param text_type template_id: endpoint template id to enable
+        :param six.text_type tenant_id: tenant id to operate on
+        :param six.text_type template_id: endpoint template id to enable
         :raises: ValueError if the template id is not found
         """
         if tenant_id not in self.endpoints_for_tenants:
@@ -374,8 +389,8 @@ class ExternalApiStore(object):
         """
         Disable an endpoint for a specific tenant.
 
-        :param text_type tenant_id: tenant id to operate on
-        :param text_type template_id: endpoint template id to disable
+        :param six.text_type tenant_id: tenant id to operate on
+        :param six.text_type template_id: endpoint template id to disable
         :raises: ValueError if template is not enabled for the tenant
         """
         if tenant_id in self.endpoints_for_tenants:
@@ -395,6 +410,7 @@ class ExternalApiStore(object):
         List the available templates.
 
         :returns: an iterable of the endpoint templates
+        :rtype: iterable
         """
         return self.endpoint_templates.values()
 
@@ -402,7 +418,7 @@ class ExternalApiStore(object):
         """
         Add a new template for the external API.
 
-        :param unicode templates: a :obj:`IEndpointTemplate` to add to the
+        :param six.text_type endpoint_template: a :obj:`IEndpointTemplate` to add to the
             :obj:`IExternalAPIMock` instance
         :raises: ValueError if the endpoint template has already been added
         :raises: TypeError if the endpoint template does not implement
@@ -429,7 +445,7 @@ class ExternalApiStore(object):
         """
         Update an existing template for the external API.
 
-        :param unicode templates: a :obj:`IEndpointTemplate` to add to the
+        :param six.text_type endpoint_template: a :obj:`IEndpointTemplate` to add to the
             :obj:`IExternalAPIMock` instance
         :raises: IndexError if the endpoint template does not already exist
         :raises: TypeError if the endpoint template does not implement
@@ -476,7 +492,7 @@ class ExternalApiStore(object):
         """
         Remove the template for the external API.
 
-        :param unicode template_id: the unique id of the endpoint template
+        :param six.text_type template_id: the unique id of the endpoint template
             to be removed.
         :raises: IndexError if the template does not exist
         """
@@ -503,7 +519,10 @@ class ExternalApiStore(object):
         """
         List catalog entries for the Example API.
 
+        :param six.text_type tenant_id: the semi-internal tenant ID generated
+            by Mimic.
         :returns: list of Service Catalog Entry objects
+        :rtype: list
         """
         return [
             Entry(
@@ -517,18 +536,20 @@ class ExternalApiStore(object):
         """
         Return the URI for the service in the given region.
 
-        Note: This only returns the publicURL at present to match
+        Note: This only returns the public URL at present to match
             the rest of Mimic's implementation. Supporting multiple
             URL types (public vs snet vs admin) is left for another
             feature addition.
 
+        :param six.text_type service_id: the ID of the service.
         :returns: URL to use if it exists, otherwise an empty string
+        :rtype: six.text_type
         """
         # key doesn't matter, region is the only interesting thing
         for _, endpoint_template in self.endpoint_templates.items():
             if endpoint_template.region_key == region or region == '':
                 # since Mimic only utilizes the public URL
-                return endpoint_template.publicURL
+                return endpoint_template.public_url
 
         raise IndexError(
             "region '" + region + "' is not supported as an external API"

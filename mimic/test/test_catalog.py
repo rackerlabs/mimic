@@ -112,9 +112,9 @@ class CatalogEndpoint(SynchronousTestCase):
 
     def test_external_endpoint_invalid(self):
         """
-        Validate that trying to creating an :obj:`Endpoint` for an external API
-        (setting `external` to `True` while *not* setting the `complete_url`
-        will raise a `ValueError` exception.
+        Validate that trying to creating an :obj:`Endpoint` to host an
+        External API (e.g settings `external` to `True`) without setting
+        `complete_url` will raise a `ValueError` exception.
         """
         with self.assertRaises(ValueError):
             Endpoint(

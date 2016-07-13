@@ -124,7 +124,7 @@ class LoadBalancerControlRegion(object):
 
     def _collection_from_tenant(self, tenant_id):
         """
-        Retrieve the server collection for this region for the given tenant.
+        Retrieve the CLB collection for this region for the given tenant.
         """
         return (self.api_mock.lb_api._get_session(self.session_store, tenant_id)
                 .collection_for_region(self.region))
@@ -163,6 +163,52 @@ class LoadBalancerControlRegion(object):
         else:
             request.setResponseCode(204)
             return b''
+
+    @app.route(
+        '/v2/<string:tenant_id>/loadbalancers/<int:clb_id>/nodes/<int:node_id>/status',
+        methods=['PUT']
+    )
+    def update_node_status(self, request, tenant_id, clb_id, node_id):
+        """
+        Update given node's status. The request will be like::
+
+            {"status": "ONLINE"}
+
+        """
+        regional_lbs = self._collection_from_tenant(tenant_id)
+        clb = regional_lbs.lbs.get(clb_id)
+        if clb is None:
+            request.setResponseCode(404)
+            return json.dumps({
+                "message": "Tenant {0} doesn't own load balancer {1}".format(
+                    tenant_id, clb_id
+                ),
+                "code": 404,
+            })
+
+        node = next((node for node in clb.nodes if node.id == node_id), None)
+        if node is None:
+            request.setResponseCode(404)
+            return json.dumps({
+                "message": "Load balancer {1} on tenant {0} does not have node {2}".format(
+                    tenant_id, clb_id, node_id),
+                "code": 404,
+            })
+
+        try:
+            content = json_from_request(request)
+        except ValueError:
+            request.setResponseCode(400)
+            return json.dumps(invalid_resource("Invalid JSON request body"))
+
+        if content.get("status") not in ("ONLINE", "OFFLINE"):
+            request.setResponseCode(400)
+            return json.dumps(invalid_resource(
+                "status key not found or it must have ONLINE or OFFLINE value"))
+
+        node.status = content["status"]
+        request.setResponseCode(200)
+        return b""
 
 
 class LoadBalancerRegion(object):
@@ -242,6 +288,46 @@ class LoadBalancerRegion(object):
         response_data = self.session(tenant_id).del_load_balancer(lb_id)
         request.setResponseCode(response_data[1])
         return json_dump(response_data[0])
+
+    @app.route("/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/healthmonitor",
+               methods=["GET"])
+    def get_health_monitor(self, request, tenant_id, lb_id):
+        """
+        Return health monitor setting of given LB.
+        https://developer.rackspace.com/docs/cloud-load-balancers/v1/developer-guide/#show-health-monitor-configuration
+        """
+        body, code = self.session(tenant_id).get_health_monitor(lb_id)
+        request.setResponseCode(code)
+        return json_dump(body)
+
+    @app.route("/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/healthmonitor",
+               methods=["PUT"])
+    def update_health_monitor(self, request, tenant_id, lb_id):
+        """
+        Update health monitor setting of given LB.
+        https://developer.rackspace.com/docs/cloud-load-balancers/v1/developer-guide/#update-health-monitor
+        """
+        try:
+            content = json_from_request(request)
+        except ValueError:
+            request.setResponseCode(400)
+            return json.dumps(invalid_resource("Invalid JSON request body"))
+
+        body, code = self.session(tenant_id).update_health_monitor(
+            lb_id, content)
+        request.setResponseCode(code)
+        return json_dump(body)
+
+    @app.route("/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/healthmonitor",
+               methods=["DELETE"])
+    def delete_health_monitor(self, request, tenant_id, lb_id):
+        """
+        Delete health monitor setting of given LB.
+        https://developer.rackspace.com/docs/cloud-load-balancers/v1/developer-guide/#delete-health-monitor
+        """
+        body, code = self.session(tenant_id).delete_health_monitor(lb_id)
+        request.setResponseCode(code)
+        return json_dump(body)
 
     @app.route('/v2/<string:tenant_id>/loadbalancers/<int:lb_id>/nodes', methods=['POST'])
     def add_node_to_load_balancer(self, request, tenant_id, lb_id):

@@ -87,19 +87,19 @@ class TestExternalApiMock(SynchronousTestCase):
         in the URL.
         """
         for ept in self.eeapi.endpoint_templates.values():
-            ept.internalURL = "http://internal.url/v1/%tenant_id%"
-            ept.publicURL = "http://public.url/v1/%tenant_id%"
+            ept.internal_url = "http://internal.url/v1/%tenant_id%"
+            ept.public_url = "http://public.url/v1/%tenant_id%"
 
         tenant_data = TenantAuthentication(self, self.root, "other", "other")
 
-        ept_publicURL = (
+        ept_public_url = (
             "http://public.url/v1/" + tenant_data.get_tenant_id()
         )
         service_endpoint = tenant_data.get_service_endpoint(
             "externalServiceName", "EXTERNAL")
         self.assertEqual(
             service_endpoint,
-            ept_publicURL
+            ept_public_url
         )
 
 

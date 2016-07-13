@@ -599,6 +599,42 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
             "match."
         )
 
+    def test_update_endpoint_template_ids_mismatch(self):
+        """
+        Validate that the template id in the URL and the
+        template ID in the JSON body must match
+        """
+        self.core.add_api(self.eeapi)
+        id_key = get_template_id(self, self.eeapi)
+
+        eeapi2 = make_example_external_api(
+            self,
+            name=self.eeapi_name + text_type(uuid.uuid4()),
+            service_type='service-' + text_type(uuid.uuid4())
+        )
+        eeapi2.remove_template(id_key)
+        self.core.add_api(eeapi2)
+
+        data = {
+            'id': 'some-random-key',
+            'name': self.eeapi_name,
+            'type': self.eeapi.type_key,
+            'region': 'some-region'
+        }
+
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, self.verb,
+                         self.uri,
+                         body=data,
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 409)
+        self.assertEqual(json_body['conflict']['code'], 409)
+        self.assertEqual(
+            json_body['conflict']['message'],
+            "Template ID in URL does not match that of the JSON body"
+        )
+
     def test_update_endpoint_template(self):
         """
         Validate that a new endpoint template can be updated.

@@ -373,11 +373,11 @@ class CoreApiBuildingTests(SynchronousTestCase):
 
         tenant_id = 'some-tenant-other'
 
-        ept_internalURL = "http://internal.url/v1/" + tenant_id
-        ept_publicURL = "http://public.url/v1/" + tenant_id
+        ept_internal_url = "http://internal.url/v1/" + tenant_id
+        ept_public_url = "http://public.url/v1/" + tenant_id
         for ept in eeapi.endpoint_templates.values():
-            ept.internalURL = "http://internal.url/v1/%tenant_id%"
-            ept.publicURL = "http://public.url/v1/%tenant_id%"
+            ept.internal_url = "http://internal.url/v1/%tenant_id%"
+            ept.public_url = "http://public.url/v1/%tenant_id%"
 
         core = MimicCore(Clock(), [eeapi])
 
@@ -401,11 +401,11 @@ class CoreApiBuildingTests(SynchronousTestCase):
         self.assertEqual(len(catalog_entries[0].endpoints), 1)
         self.assertEqual(
             catalog_entries[0].endpoints[0].internal_url,
-            ept_internalURL
+            ept_internal_url
         )
         self.assertEqual(
             catalog_entries[0].endpoints[0].complete_url,
-            ept_publicURL
+            ept_public_url
         )
 
     def test_entries_for_tenant_internal(self):

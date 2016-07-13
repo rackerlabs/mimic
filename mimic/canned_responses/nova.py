@@ -29,3 +29,29 @@ def get_limit():
                           "maxTotalFloatingIps": -1,
                           "maxTotalInstances": 200,
                           "maxTotalRAMSize": 256000}}}
+
+
+def get_version_v2(uri):
+    """
+    Canned response nova v2 version.
+
+    Cf: http://developer.openstack.org/api-ref-compute-v2.1.html
+    #listVersionsv2.1
+    """
+    return {"version":
+            {"status": "SUPPORTED",
+             "updated": "2011-01-21T11:33:21Z",
+             "links": [{"href": uri,
+                        "rel": "self"},
+                       {"href": "http://docs.openstack.org/",
+                        "type": "text/html",
+                        "rel": "describedby"}],
+             "min_version": "",
+             "version": "",
+             "media-types":
+             [{
+                 "base": "application/json",
+                 "type": "application/vnd.openstack.compute+json;version=2"
+             }],
+             }
+            }

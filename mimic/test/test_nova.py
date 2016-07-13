@@ -15,6 +15,7 @@ import treq
 
 from twisted.trial.unittest import SynchronousTestCase
 
+from mimic.canned_responses.nova import get_version_v2
 from mimic.test.helpers import json_request, request, request_with_content, validate_link_json
 from mimic.rest.nova_api import NovaApi, NovaControlApi
 from mimic.test.behavior_tests import (
@@ -160,6 +161,14 @@ def use_creation_behavior(helper, name, parameters, criteria):
         name, parameters, criteria)
 
 
+def build_version_uri(uri):
+    """
+    Build the uri to get nova versions.
+    """
+    elt_uri = uri.split("/")[:-1]
+    return (elt_uri[0] + "/") + ("/").join(elt_uri[1:])
+
+
 class NovaAPITests(SynchronousTestCase):
 
     """
@@ -183,6 +192,26 @@ class NovaAPITests(SynchronousTestCase):
         self.create_server_response, self.create_server_response_body = (
             create_server(self.helper, name=self.server_name))
         self.server_id = self.create_server_response_body['server']['id']
+
+    def test_get_version_nova(self):
+        """
+        Check response when listing available version of nova.
+
+        Cf: http://developer.openstack.org/api-ref-compute-v2.1.html
+        #listVersionsv2.1
+        """
+        version_uri = build_version_uri(self.uri)
+
+        get_version = request(self, self.root, b"GET", version_uri)
+        get_version_response = self.successResultOf(get_version)
+        response_body = self.successResultOf(
+            treq.json_content(get_version_response))
+
+        expected = get_version_v2(version_uri)
+
+        self.assertEqual(get_version_response.code, 200)
+        self.assertEqual(json.dumps(response_body, sort_keys=True),
+                         json.dumps(expected, sort_keys=True))
 
     def test_create_server_with_manual_diskConfig(self):
         """
