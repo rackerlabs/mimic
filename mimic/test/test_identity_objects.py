@@ -3,7 +3,6 @@ from __future__ import absolute_import, division, unicode_literals
 from twisted.trial.unittest import SynchronousTestCase
 
 from mimic.model.identity_objects import (
-    forbidden,
     EndpointTemplateStore
 )
 from mimic.test.dummy import (
@@ -11,24 +10,6 @@ from mimic.test.dummy import (
     make_example_external_api
 )
 from mimic.test.helpers import get_template_id
-
-
-class YetToBeDone(SynchronousTestCase):
-    """
-    Test that are a placeholder for necessary functionality that will be needed
-    when the full functionality is implemented.
-    """
-
-    def test_stuff_todo(self):
-        """
-        Temporary for code-coverage until endpoints are implemented that will
-        actually use these.
-        """
-        class reqMock(object):
-            def setResponseCode(self, code):
-                pass
-
-        forbidden("testing forbidden", reqMock())
 
 
 class EndpointTemplateInstanceTests(SynchronousTestCase):

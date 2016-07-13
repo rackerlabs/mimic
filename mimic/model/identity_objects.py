@@ -10,7 +10,6 @@ from twisted.plugin import IPlugin
 from twisted.web.http import (
     BAD_REQUEST,
     CONFLICT,
-    FORBIDDEN,
     NOT_FOUND,
     UNAUTHORIZED,
 )
@@ -92,19 +91,6 @@ def unauthorized(message, request):
     :return: dictionary representing the error body.
     """
     return _identity_error_message("unauthorized", message, UNAUTHORIZED, request)
-
-
-def forbidden(message, request):
-    """
-    Return a 403 error body associated with a Identity forbidden error.
-    Also sets the response code on the request.
-
-    :param str message: The message to include in the bad request body.
-    :param request: The request on which to set the response code.
-
-    :return: dictionary representing the error body.
-    """
-    return _identity_error_message("forbidden", message, FORBIDDEN, request)
 
 
 @implementer(IEndpointTemplate, IPlugin)
