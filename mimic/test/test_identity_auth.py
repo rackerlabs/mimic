@@ -53,8 +53,8 @@ class ExampleCatalogEndpoint(object):
         return "{tenant}_{num}".format(tenant=self._tenant,
                                        num=self._num)
 
-    def url_with_prefix(self, prefix, internalURL=False):
-        if internalURL:
+    def url_with_prefix(self, prefix, internal_url=False):
+        if internal_url:
             return "http://internal.ok_{num}".format(num=self._num)
         else:
             return "http://ok_{num}".format(num=self._num)

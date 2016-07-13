@@ -44,28 +44,28 @@ class Endpoint(object):
                 'complete_url must be specified when API is external'
             )
 
-    def url_with_prefix(self, uri_prefix, internalURL=False):
+    def url_with_prefix(self, uri_prefix, internal_url=False):
         """
         Generate a URL to this endpoint, given the URI prefix for the service.
 
         :param text_type uri_prefix: prefix to start the URL with, e.g the
             Request's Base URL
-        :param boolean internalURL: whether or not to provide the Internal or
+        :param boolean internal_url: whether or not to provide the Internal or
             Public URL. If True, provide the internal URL.
 
-        Note: internalURL is only honored by External APIs, e.g `external` is
-            set to `True`. For internally hosted APIs the internalURL and
-            publicURL should be the same.
+        Note: internal_url is only honored by External APIs, e.g `external` is
+            set to `True`. For internally hosted APIs the internal_url and
+            public_url should be the same.
 
         :rtype: unicode
         """
         if self.external and self.complete_url is not None:
-            if internalURL:
+            if internal_url:
                 return self.internal_url
             else:
                 return self.complete_url
         else:
-            # internalURL is ignored as anything hosted internally in
+            # internal_url is ignored as anything hosted internally in
             # mimic will always use the same URL.
             postfix = self.tenant_id
             segments = [uri_prefix.rstrip(u"/")]
