@@ -300,6 +300,19 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
         Validate a service-id that does not map to an actual service
         generates a 404 failure.
         """
+        # Add a second API
+        eeapi2 = make_example_external_api(
+            self,
+            name='d' + self.eeapi_name + text_type(uuid.uuid4()),
+            service_type='service-' + text_type(uuid.uuid4())
+        )
+        eeapi2.id_key = '0'
+
+        # ensure only one instance of the API has the template
+        eeapi2.remove_template(get_template_id(self, self.eeapi))
+        self.core.add_api(eeapi2)
+        self.core.add_api(self.eeapi)
+
         data = {
             'id': text_type(uuid.uuid4()),
             'name': 'some-name',
@@ -583,7 +596,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
             )
         )
 
-    def test_invalid_service_name(self):
+    def test_invalid_service_id(self):
         """
         Validate a service-id that does not map to an actual service
         generates a 404 failure.
@@ -670,6 +683,37 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
             "Template ID in URL does not match that of the JSON body"
         )
 
+    def test_invalid_template_id(self):
+        """
+        Validate that a new endpoint template can be updated.
+        """
+        self.core.add_api(self.eeapi)
+        id_key = get_template_id(self, self.eeapi)
+        self.eeapi.remove_template(id_key)
+
+        data = {
+            'id': id_key,
+            'name': self.eeapi_name,
+            'type': self.eeapi.type_key,
+            'region': 'some-region'
+        }
+
+        self.headers[b'serviceid'] = [self.eeapi.uuid_key.encode('utf8')]
+
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, self.verb,
+                         self.uri,
+                         body=data,
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 404)
+        self.assertEqual(json_body['itemNotFound']['code'], 404)
+        self.assertEqual(
+            json_body['itemNotFound']['message'],
+            "Unable to update non-existent template. Template must "
+            "first be added before it can be updated.",
+        )
+
     def test_update_endpoint_template(self):
         """
         Validate that a new endpoint template can be updated.
@@ -691,6 +735,38 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
             'type': self.eeapi.type_key,
             'region': 'some-region'
         }
+
+        req = request(self, self.root, self.verb,
+                      self.uri,
+                      body=json.dumps(data).encode("utf-8"),
+                      headers=self.headers)
+
+        response = self.successResultOf(req)
+        self.assertEqual(response.code, 201)
+
+    def test_update_endpoint_template_with_serviceid_header(self):
+        """
+        Validate that a new endpoint template can be updated.
+        """
+        self.core.add_api(self.eeapi)
+        id_key = get_template_id(self, self.eeapi)
+
+        eeapi2 = make_example_external_api(
+            self,
+            name=self.eeapi_name + text_type(uuid.uuid4()),
+            service_type='service-' + text_type(uuid.uuid4())
+        )
+        eeapi2.remove_template(id_key)
+        self.core.add_api(eeapi2)
+
+        data = {
+            'id': id_key,
+            'name': self.eeapi_name,
+            'type': self.eeapi.type_key,
+            'region': 'some-region'
+        }
+
+        self.headers[b'serviceid'] = [self.eeapi.uuid_key.encode('utf8')]
 
         req = request(self, self.root, self.verb,
                       self.uri,

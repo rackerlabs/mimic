@@ -880,12 +880,15 @@ class IdentityApi(object):
                 )
             )
 
-        # ensure that the ID cannot exist in any existing APIs
-        # and lookup the service id in the process if necessary
+        # Access the Service ID that tells which External API
+        # is to support this template.
         service_id = request.getHeader(b'serviceid')
         if service_id is not None:
             service_id = service_id.decode('utf-8')
 
+        # Check all existing External APIs for the API ID
+        # to ensure that none of them contain it already. The
+        # value must be unique.
         for api_id in self.core.get_external_apis():
             api = self.core.get_external_api(api_id)
             if api.has_template(endpoint_template_instance.id_key):
@@ -895,8 +898,12 @@ class IdentityApi(object):
                         request
                     )
                 )
-            if service_id is None:
-                if api.name_key == endpoint_template_instance.name_key:
+
+            # While we're at it, if we need to look up the service ID
+            # and find the External API that will ultimately provide it
+            # then grab that too instead of repeating the search.
+            elif api.name_key == endpoint_template_instance.name_key:
+                if service_id is None:
                     service_id = api.uuid_key
 
         try:
@@ -972,13 +979,13 @@ class IdentityApi(object):
             )
 
         service_id = request.getHeader(b'serviceid')
-        if service_id is not None:
-            service_id = service_id.decode('utf-8')
-        else:
+        if service_id is None:
             for api_id in self.core.get_external_apis():
                 api = self.core.get_external_api(api_id)
                 if api.has_template(template_id):
                     service_id = api.uuid_key
+        else:
+            service_id = service_id.decode('utf-8')
 
         try:
             service = self.core.get_external_api(service_id)
