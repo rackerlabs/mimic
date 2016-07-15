@@ -149,7 +149,8 @@ def create_entity(clock, params):
     """
     current_time_milliseconds = int(1000 * clock.seconds())
     params_copy = _only_keys(params, Entity.USER_SPECIFIABLE_KEYS)
-    params_copy['created_at'] = params_copy['updated_at'] = current_time_milliseconds
+    params_copy['created_at'] = params_copy[
+        'updated_at'] = current_time_milliseconds
     return Entity(**params_copy)
 
 
@@ -165,7 +166,8 @@ def create_check(clock, params):
     """
     current_time_milliseconds = int(1000 * clock.seconds())
     params_copy = _only_keys(params, Check.USER_SPECIFIABLE_KEYS)
-    params_copy['created_at'] = params_copy['updated_at'] = current_time_milliseconds
+    params_copy['created_at'] = params_copy[
+        'updated_at'] = current_time_milliseconds
     return Check(**params_copy)
 
 
@@ -182,7 +184,8 @@ def create_alarm(clock, entity_id, params):
     current_time_milliseconds = int(1000 * clock.seconds())
     params_copy = _only_keys(params, Alarm.USER_SPECIFIABLE_KEYS)
     params_copy['entity_id'] = entity_id
-    params_copy['created_at'] = params_copy['updated_at'] = current_time_milliseconds
+    params_copy['created_at'] = params_copy[
+        'updated_at'] = current_time_milliseconds
     return Alarm(**params_copy)
 
 
@@ -198,7 +201,8 @@ def create_notification_plan(clock, params):
     """
     current_time_milliseconds = int(1000 * clock.seconds())
     params_copy = _only_keys(params, NotificationPlan.USER_SPECIFIABLE_KEYS)
-    params_copy['created_at'] = params_copy['updated_at'] = current_time_milliseconds
+    params_copy['created_at'] = params_copy[
+        'updated_at'] = current_time_milliseconds
     return NotificationPlan(**params_copy)
 
 
@@ -214,7 +218,8 @@ def create_notification(clock, params):
     """
     current_time_milliseconds = int(1000 * clock.seconds())
     params_copy = _only_keys(params, Notification.USER_SPECIFIABLE_KEYS)
-    params_copy['created_at'] = params_copy['updated_at'] = current_time_milliseconds
+    params_copy['created_at'] = params_copy[
+        'updated_at'] = current_time_milliseconds
     return Notification(**params_copy)
 
 
@@ -228,7 +233,8 @@ def create_suppression(clock, params):
     :rtype: ``dict`` mapping ``unicode`` to ``unicode`` or ``list``.
     """
     params_copy = _only_keys(params, Suppression.USER_SPECIFIABLE_KEYS)
-    params_copy['created_at'] = params_copy['updated_at'] = int(1000 * clock.seconds())
+    params_copy['created_at'] = params_copy[
+        'updated_at'] = int(1000 * clock.seconds())
     return Suppression(**params_copy)
 
 
@@ -479,7 +485,8 @@ def _compute_multiplot(maas_store, entity_id, check, metric_name, from_date, to_
         base_metric_name = match.group(2)
 
     try:
-        metric = maas_store.check_types[check.type].get_metric_by_name(base_metric_name)
+        metric = maas_store.check_types[
+            check.type].get_metric_by_name(base_metric_name)
     except NameError:
         return fallback
 
@@ -575,7 +582,8 @@ class MaasMock(object):
         """
         Replies the entities list call
         """
-        entities = list(self._entity_cache_for_tenant(tenant_id).entities.values())
+        entities = list(self._entity_cache_for_tenant(
+            tenant_id).entities.values())
 
         limit = 100
         marker = None
@@ -612,7 +620,8 @@ class MaasMock(object):
         content = request.content.read()
         postdata = json.loads(content.decode("utf-8"))
         newentity = create_entity(self._session_store.clock, postdata)
-        self._entity_cache_for_tenant(tenant_id).entities[newentity.id] = newentity
+        self._entity_cache_for_tenant(tenant_id).entities[
+            newentity.id] = newentity
         status = 201
         request.setResponseCode(status)
         request.setHeader(b'location', base_uri_from_request(request).rstrip('/').encode('utf-8') +
@@ -713,7 +722,8 @@ class MaasMock(object):
         try:
             newcheck = create_check(self._session_store.clock, postdata)
         except TypeError:
-            missing_key = _find_missing_required_key(Check, postdata, ['created_at', 'updated_at'])
+            missing_key = _find_missing_required_key(
+                Check, postdata, ['created_at', 'updated_at'])
             status = 400
             request.setResponseCode(status)
             self._audit('checks', request, tenant_id, status, content)
@@ -837,7 +847,8 @@ class MaasMock(object):
         entities = self._entity_cache_for_tenant(tenant_id).entities
 
         try:
-            newalarm = create_alarm(self._session_store.clock, entity_id, postdata)
+            newalarm = create_alarm(
+                self._session_store.clock, entity_id, postdata)
         except TypeError:
             missing_key = _find_missing_required_key(Alarm, postdata, ['created_at',
                                                                        'updated_at',
@@ -953,12 +964,15 @@ class MaasMock(object):
         content = request.content.read()
         payload = json.loads(content.decode("utf-8"))
         n_tests = len(payload['check_data'])
-        current_time_milliseconds = int(1000 * self._session_store.clock.seconds())
+        current_time_milliseconds = int(
+            1000 * self._session_store.clock.seconds())
         status = 200
         response_payload = []
 
-        test_responses = self._entity_cache_for_tenant(tenant_id).test_alarm_responses
-        test_errors = self._entity_cache_for_tenant(tenant_id).test_alarm_errors
+        test_responses = self._entity_cache_for_tenant(
+            tenant_id).test_alarm_responses
+        test_errors = self._entity_cache_for_tenant(
+            tenant_id).test_alarm_errors
 
         if entity_id in test_errors and len(test_errors[entity_id]) > 0:
             error_response = test_errors[entity_id].popleft()
@@ -1015,7 +1029,8 @@ class MaasMock(object):
             all_entities = [entity_map[entity_id] for entity_id in entity_ids
                             if entity_id in entity_map]
             if len(all_entities) == 0:
-                err = ObjectDoesNotExist(object_type='Entity', key=','.join(entity_ids))
+                err = ObjectDoesNotExist(
+                    object_type='Entity', key=','.join(entity_ids))
                 request.setResponseCode(err.code)
                 return json.dumps(err.to_json())
         else:
@@ -1028,7 +1043,8 @@ class MaasMock(object):
         if current_marker is not None:
             current_marker = current_marker.decode("utf-8")
             try:
-                offset = all_entities.index(Matcher(lambda entity: entity.id == current_marker))
+                offset = all_entities.index(
+                    Matcher(lambda entity: entity.id == current_marker))
             except ValueError:
                 offset = 0
 
@@ -1061,14 +1077,16 @@ class MaasMock(object):
         Gets the user's audit logs.
         """
         ordering = -1 if request.args.get(b'reverse', False) else 1
-        all_audits = self._entity_cache_for_tenant(tenant_id).audits_list[::ordering]
+        all_audits = self._entity_cache_for_tenant(
+            tenant_id).audits_list[::ordering]
         page_limit = min(int(request.args.get(b'limit', [100])[0]), 1000)
         offset = 0
         current_marker = request.args.get(b'marker', [None])[0]
         if current_marker is not None:
             current_marker = current_marker.decode("utf-8")
             try:
-                offset = all_audits.index(Matcher(lambda audit: audit['id'] == current_marker))
+                offset = all_audits.index(
+                    Matcher(lambda audit: audit['id'] == current_marker))
             except ValueError:
                 offset = 0
 
@@ -1096,8 +1114,10 @@ class MaasMock(object):
         TO DO: Regionless api
         """
         request.setResponseCode(200)
-        mockapi_id = re.findall('/mimicking/(.+?)/', request.path.decode("utf-8"))[0]
-        url = base_uri_from_request(request).rstrip('/') + '/mimicking/' + mockapi_id + '/ORD/v1.0'
+        mockapi_id = re.findall('/mimicking/(.+?)/',
+                                request.path.decode("utf-8"))[0]
+        url = base_uri_from_request(request).rstrip(
+            '/') + '/mimicking/' + mockapi_id + '/ORD/v1.0'
         return json.dumps(json_home(url))
 
     @app.route('/v1.0/<string:tenant_id>/views/agent_host_info', methods=['GET'])
@@ -1189,7 +1209,8 @@ class MaasMock(object):
                                'txnId': '.fake.mimic.transaction.id.c-1111111.ts-123444444.v-12344frf'})
 
         agent_ids = request.args[b'agentId']
-        decoded_agent_ids = [agent_id.decode("utf-8") for agent_id in agent_ids]
+        decoded_agent_ids = [agent_id.decode(
+            "utf-8") for agent_id in agent_ids]
         connections = [{'agent_id': agent_id,
                         'connections': [connection.to_json()
                                         for connection in maas_store.list_connections_for_agent(
@@ -1212,7 +1233,8 @@ class MaasMock(object):
         status = 201
         request.setResponseCode(status)
         request.setHeader(b'x-shell-installer-location', xsil)
-        self._audit('agent_installers', request, tenant_id, status, request.content.read())
+        self._audit('agent_installers', request, tenant_id,
+                    status, request.content.read())
         return b''
 
     @app.route('/v1.0/<string:tenant_id>/notifications', methods=['POST'])
@@ -1221,7 +1243,8 @@ class MaasMock(object):
         Create notification target
         """
         content = request.content.read()
-        new_n = create_notification(self._session_store.clock, json.loads(content.decode("utf-8")))
+        new_n = create_notification(
+            self._session_store.clock, json.loads(content.decode("utf-8")))
         notifications = self._entity_cache_for_tenant(tenant_id).notifications
         notifications[new_n.id] = new_n
         status = 201
@@ -1260,7 +1283,8 @@ class MaasMock(object):
 
         try:
             notification = _get_notification(notifications, nt_id)
-            notification.update(clock=self._session_store.clock, **update_kwargs)
+            notification.update(
+                clock=self._session_store.clock, **update_kwargs)
         except ObjectDoesNotExist as e:
             request.setResponseCode(e.code)
             self._audit('notifications', request, tenant_id, e.code, content)
@@ -1299,7 +1323,8 @@ class MaasMock(object):
         """
         content = request.content.read()
         postdata = json.loads(content.decode("utf-8"))
-        notification_plans = self._entity_cache_for_tenant(tenant_id).notification_plans
+        notification_plans = self._entity_cache_for_tenant(
+            tenant_id).notification_plans
         newnp = create_notification_plan(self._session_store.clock, postdata)
         notification_plans[newnp.id] = newnp
         status = 201
@@ -1316,7 +1341,8 @@ class MaasMock(object):
         """
         Get all notification plans
         """
-        np_list = self._entity_cache_for_tenant(tenant_id).notification_plans.values()
+        np_list = self._entity_cache_for_tenant(
+            tenant_id).notification_plans.values()
         metadata = {'count': len(np_list),
                     'limit': 100,
                     'marker': None,
@@ -1330,7 +1356,8 @@ class MaasMock(object):
         """
         Get specific notif plan
         """
-        notification_plans = self._entity_cache_for_tenant(tenant_id).notification_plans
+        notification_plans = self._entity_cache_for_tenant(
+            tenant_id).notification_plans
         return _map_getter(notification_plans, request, 'NotificationPlan', np_id)
 
     @app.route('/v1.0/<string:tenant_id>/notification_plans/<string:np_id>', methods=['PUT'])
@@ -1341,14 +1368,18 @@ class MaasMock(object):
         content = request.content.read()
         postdata = json.loads(content.decode("utf-8"))
         update_kwargs = dict(postdata)
-        notification_plans = self._entity_cache_for_tenant(tenant_id).notification_plans
+        notification_plans = self._entity_cache_for_tenant(
+            tenant_id).notification_plans
 
         try:
-            notification_plan = _get_notification_plan(notification_plans, np_id)
-            notification_plan.update(clock=self._session_store.clock, **update_kwargs)
+            notification_plan = _get_notification_plan(
+                notification_plans, np_id)
+            notification_plan.update(
+                clock=self._session_store.clock, **update_kwargs)
         except ObjectDoesNotExist as e:
             request.setResponseCode(e.code)
-            self._audit('notification_plans', request, tenant_id, e.code, content)
+            self._audit('notification_plans', request,
+                        tenant_id, e.code, content)
             return json.dumps(e.to_json())
 
         status = 204
@@ -1362,7 +1393,8 @@ class MaasMock(object):
         """
         Remove a notification plan
         """
-        notification_plans = self._entity_cache_for_tenant(tenant_id).notification_plans
+        notification_plans = self._entity_cache_for_tenant(
+            tenant_id).notification_plans
         entities = self._entity_cache_for_tenant(tenant_id).entities
         alarmids_using_np = [alarm.id
                              for entity in entities.values()
@@ -1399,7 +1431,8 @@ class MaasMock(object):
         """
         Get the list of suppressions for this tenant.
         """
-        sp_list = self._entity_cache_for_tenant(tenant_id).suppressions.values()
+        sp_list = self._entity_cache_for_tenant(
+            tenant_id).suppressions.values()
         metadata = {
             'count': len(sp_list),
             'limit': 100,
@@ -1449,7 +1482,8 @@ class MaasMock(object):
 
         try:
             suppression = _get_suppression(suppressions, sp_id)
-            suppression.update(clock=self._session_store.clock, **update_kwargs)
+            suppression.update(
+                clock=self._session_store.clock, **update_kwargs)
         except ObjectDoesNotExist as e:
             request.setResponseCode(e.code)
             self._audit('suppressions', request, tenant_id, e.code, content)
@@ -1518,7 +1552,8 @@ class MaasMock(object):
         """
         All NotificationPlans a number of alarms pointing to them.
         """
-        notification_plans = self._entity_cache_for_tenant(tenant_id).notification_plans
+        notification_plans = self._entity_cache_for_tenant(
+            tenant_id).notification_plans
         entities = self._entity_cache_for_tenant(tenant_id).entities
 
         values = [{'notification_plan_id': np.id,
@@ -1559,7 +1594,8 @@ class MaasMock(object):
         """
         Get the types of notifications supported: pageduty,email,sms, etc
         """
-        ntlist = self._entity_cache_for_tenant(tenant_id).notificationtypes_list
+        ntlist = self._entity_cache_for_tenant(
+            tenant_id).notificationtypes_list
         metadata = {'count': len(ntlist),
                     'limit': 100,
                     'marker': None,
@@ -1598,7 +1634,8 @@ class MaasMock(object):
         content = request.content.read()
         multiplot_request = json.loads(content.decode("utf-8"))
 
-        requested_check_ids = set([metric['check_id'] for metric in multiplot_request['metrics']])
+        requested_check_ids = set([metric['check_id']
+                                   for metric in multiplot_request['metrics']])
         checks_by_id = {check.id: check
                         for entity in entities.values()
                         for check in entity.checks.values()
@@ -1619,7 +1656,8 @@ class MaasMock(object):
 
         multiplot_metrics = [_compute_multiplot(maas_store,
                                                 metric['entity_id'],
-                                                checks_by_id[metric['check_id']],
+                                                checks_by_id[
+                                                    metric['check_id']],
                                                 metric['metric'],
                                                 int(request.args[b'from'][0]),
                                                 int(request.args[b'to'][0]),
@@ -1646,6 +1684,34 @@ class MaasMock(object):
                        for state in maas_store.latest_alarm_states_for_entity(entity.id)]}
                   for entity in entities.values()]
 
+        metadata = {'count': len(values),
+                    'marker': None,
+                    'next_marker': None,
+                    'limit': 1000,
+                    'next_href': None}
+
+        request.setResponseCode(200)
+        return json.dumps({'values': values, 'metadata': metadata})
+
+    @app.route('/v1.0/<string:tenant_id>/changelogs/alarms', methods=['GET'])
+    def change_logs(self, request, tenant_id):
+        """
+        Gets entities, checks and alarms grouped with their latest alarm states.
+        """
+        all_alarm_states = self._entity_cache_for_tenant(
+            tenant_id).maas_store.alarm_states
+
+        values = [{'id': text_type(uuid4()),  # probably "correct" would be each_alarm_state.id
+                   'timestamp': int(1000 * self._session_store.clock.seconds()),
+                   'entity_id': each_alarm_state.entity_id,
+                   'alarm_id': each_alarm_state.alarm_id,
+                   'check_id': each_alarm_state.check_id,
+                   'status': each_alarm_state.status,
+                   'state': each_alarm_state.state,
+                   'previous_state': each_alarm_state.previous_state,
+                   'observation': each_alarm_state.status,
+                   'analyzed_by_monitoring_zone_id': each_alarm_state.analyzed_by_monitoring_zone_id}
+                  for each_alarm_state in all_alarm_states]
         metadata = {'count': len(values),
                     'marker': None,
                     'next_marker': None,
@@ -1715,7 +1781,8 @@ class MaasController(object):
         """
         Sets the test-alarm response for a given entity.
         """
-        test_responses = self._entity_cache_for_tenant(tenant_id).test_alarm_responses
+        test_responses = self._entity_cache_for_tenant(
+            tenant_id).test_alarm_responses
         dummy_response = json_from_request(request)
         test_responses[entity_id] = []
         for response_block in dummy_response:
@@ -1733,7 +1800,8 @@ class MaasController(object):
         Creates a new error response that will be returned from the
         test-alarm API the next time it is called for this entity.
         """
-        test_alarm_errors = self._entity_cache_for_tenant(tenant_id).test_alarm_errors
+        test_alarm_errors = self._entity_cache_for_tenant(
+            tenant_id).test_alarm_errors
         request_body = json_from_request(request)
 
         if entity_id not in test_alarm_errors:
@@ -1753,7 +1821,8 @@ class MaasController(object):
         """
         Clears the test-alarm response and restores normal behavior.
         """
-        test_responses = self._entity_cache_for_tenant(tenant_id).test_alarm_responses
+        test_responses = self._entity_cache_for_tenant(
+            tenant_id).test_alarm_responses
         del test_responses[entity_id]
         request.setResponseCode(204)
         return b''
@@ -1773,12 +1842,14 @@ class MaasController(object):
 
         for override in overrides:
             if 'available' in override:
-                check_type_ins.test_check_available[ench_key] = override['available']
+                check_type_ins.test_check_available[
+                    ench_key] = override['available']
             if 'status' in override:
                 check_type_ins.test_check_status[ench_key] = override['status']
             metrics_dict = override.get('metrics', {})
             for metric_name in metrics_dict:
-                test_check_metric = check_type_ins.get_metric_by_name(metric_name)
+                test_check_metric = check_type_ins.get_metric_by_name(
+                    metric_name)
                 kwargs = {'entity_id': entity_id,
                           'check_id': check_id,
                           'override_fn': lambda _: metrics_dict[metric_name]['data']}
@@ -1825,7 +1896,8 @@ class MaasController(object):
         if len(alarm_states_same_entity_and_alarm) > 0:
             previous_state = alarm_states_same_entity_and_alarm[-1].state
 
-        monitoring_zone_id = request_body.get('analyzed_by_monitoring_zone_id', u'mzord')
+        monitoring_zone_id = request_body.get(
+            'analyzed_by_monitoring_zone_id', u'mzord')
 
         new_state = None
         try:
@@ -1870,7 +1942,8 @@ class MaasController(object):
             return json.dumps(e.to_json())
 
         maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
-        metric = maas_store.check_types[check.type].get_metric_by_name(metric_name)
+        metric = maas_store.check_types[
+            check.type].get_metric_by_name(metric_name)
         request_body = json_from_request(request)
         monitoring_zones = request_body.get('monitoring_zones', ['__AGENT__'])
         override_type = request_body['type']

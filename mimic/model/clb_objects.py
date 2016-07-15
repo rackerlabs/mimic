@@ -61,7 +61,7 @@ class Node(object):
         default="ENABLED")
     id = attr.ib(validator=attr.validators.instance_of(int),
                  default=attr.Factory(lambda: randrange(999999)))
-    status = attr.ib(validator=attr.validators.instance_of(text_type),
+    status = attr.ib(validator=one_of_validator("ONLINE", "OFFLINE"),
                      default="ONLINE")
     feed_events = attr.ib(default=[])
 
@@ -107,6 +107,7 @@ class CLB(object):
     """
     _json = attr.ib()
     nodes = attr.ib(default=attr.Factory(list))
+    health_monitor = attr.ib(default=attr.Factory(dict))
 
     def __getitem__(self, key):
         """
@@ -337,6 +338,36 @@ class RegionalCLBCollection(object):
             return {'loadBalancer': self.lbs[lb_id].full_json()}, 200
         return not_found_response("loadbalancer"), 404
 
+    def get_health_monitor(self, lb_id):
+        """
+        Return LB's health monitor setting
+        """
+        if lb_id not in self.lbs:
+            return not_found_response("loadbalancer"), 404
+
+        self._verify_and_update_lb_state(lb_id, False, self.clock.seconds())
+        return {"healthMonitor": self.lbs[lb_id].health_monitor}, 200
+
+    def update_health_monitor(self, lb_id, health_monitor):
+        """
+        Update LB's health monitor setting
+        """
+        if lb_id not in self.lbs:
+            return not_found_response("loadbalancer"), 404
+
+        self.lbs[lb_id].health_monitor = health_monitor["healthMonitor"]
+        return EMPTY_RESPONSE, 202
+
+    def delete_health_monitor(self, lb_id):
+        """
+        Delete LB's health monitor configuration
+        """
+        if lb_id not in self.lbs:
+            return not_found_response("loadbalancer"), 404
+
+        self.lbs[lb_id].health_monitor = {}
+        return EMPTY_RESPONSE, 202
+
     def get_node(self, lb_id, node_id):
         """
         Returns the node on the load balancer
@@ -533,6 +564,12 @@ class RegionalCLBCollection(object):
                     "Nodes must not exceed {0} "
                     "per load balancer.".format(self.node_limit), 413)
                 return (resource, 413)
+
+            # Node status will be OFFLINE if health monitor is enabled in CLB
+            # ONLINE if health monitor is disabled
+            if self.lbs[lb_id].health_monitor != {}:
+                for node in nodes:
+                    node.status = "OFFLINE"
 
             self._verify_and_update_lb_state(
                 lb_id, current_timestamp=current_timestamp)

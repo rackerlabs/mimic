@@ -5,10 +5,13 @@ Defines get token, impersonation
 
 from __future__ import absolute_import, division, unicode_literals
 
+import binascii
 import json
+import os
 import time
 
 import attr
+from six import text_type
 
 from twisted.python.urlpath import URLPath
 
@@ -16,7 +19,8 @@ from mimic.canned_responses.auth import (
     get_token,
     get_endpoints,
     format_timestamp,
-    impersonator_user_role)
+    impersonator_user_role,
+    get_version_v2)
 from mimic.canned_responses.mimic_presets import get_presets
 from mimic.core import MimicCore
 from mimic.model.behaviors import make_behavior_api
@@ -186,11 +190,33 @@ class IdentityApi(object):
     :ivar core: an instance of :class:`mimic.core.MimicCore`
     :ivar registry_collection: an instance of
         :class:`mimic.model.behaviors.BehaviorRegistryCollection`
+    :ivar apikey_length: the string length of any generated apikeys
     """
     core = attr.ib(validator=attr.validators.instance_of(MimicCore))
     registry_collection = attr.ib(
         validator=attr.validators.instance_of(BehaviorRegistryCollection))
     app = MimicApp()
+
+    apikey_length = 32
+
+    @classmethod
+    def make_apikey(cls):
+        """
+        Generate an API key
+        """
+        # length of the final APIKey value
+        generation_length = int(cls.apikey_length / 2)
+        return text_type(
+            binascii.hexlify(os.urandom(generation_length)).decode('utf-8')
+        )
+
+    @app.route('/v2.0', methods=['GET'])
+    def get_version(self, request):
+        """
+        Returns keystone version.
+        """
+        base_uri = base_uri_from_request(request)
+        return json.dumps(get_version_v2(base_uri))
 
     @app.route('/v2.0/tokens', methods=['POST'])
     def get_token_and_service_catalog(self, request):
@@ -250,6 +276,36 @@ class IdentityApi(object):
             "updated": seconds_to_timestamp(time.time())
         }))
 
+    @app.route('/v2.0/users/<string:user_id>/OS-KSADM/credentials',
+               methods=['GET'])
+    def get_user_credentials_osksadm(self, request, user_id):
+        """
+        Support, such as it is, for the credentials call.
+
+        reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
+            #listCredentials
+        """
+        if user_id in self.core.sessions._userid_to_session:
+            username = self.core.sessions._userid_to_session[user_id].username
+            apikey = self.make_apikey()
+            return json.dumps(
+                {
+                    'credentials': [
+                        {
+                            'RAX-KSKEY:apiKeyCredentials': {
+                                'username': username,
+                                'apiKey': apikey
+                            }
+                        }
+                    ],
+                    "credentials_links": []
+                }
+            )
+        else:
+            request.setResponseCode(404)
+            return json.dumps({'itemNotFound':
+                              {'code': 404, 'message': 'User ' + user_id + ' not found'}})
+
     @app.route('/v2.0/users/<string:user_id>/OS-KSADM/credentials/RAX-KSKEY:apiKeyCredentials',
                methods=['GET'])
     def rax_kskey_apikeycredentials(self, request, user_id):
@@ -258,7 +314,7 @@ class IdentityApi(object):
         """
         if user_id in self.core.sessions._userid_to_session:
             username = self.core.sessions._userid_to_session[user_id].username
-            apikey = '7fc56270e7a70fa81a5935b72eacbe29'  # echo -n A | md5sum
+            apikey = self.make_apikey()
             return json.dumps({'RAX-KSKEY:apiKeyCredentials': {'username': username,
                                                                'apiKey': apikey}})
         else:
@@ -294,13 +350,25 @@ class IdentityApi(object):
         """
         Creates a new session for the given tenant_id and token_id
         and always returns response code 200.
-        Docs: http://developer.openstack.org/api-ref-identity-v2.html#admin-tokens
+        Docs: http://developer.openstack.org/api-ref-identity-admin-v2.html#admin-validateToken  # noqa
         """
         request.setResponseCode(200)
+        session = None
+
+        # Attempt to get the session based on tenant_id+token if the optional
+        # tenant_id is provided; if tenant_id is not provided, then just look
+        # it up based on the token.
         tenant_id = request.args.get(b'belongsTo')
         if tenant_id is not None:
             tenant_id = tenant_id[0].decode("utf-8")
-        session = self.core.sessions.session_for_tenant_id(tenant_id, token_id)
+            session = self.core.sessions.session_for_tenant_id(
+                tenant_id, token_id)
+
+        else:
+            session = self.core.sessions.session_for_token(
+                token_id
+            )
+
         response = get_token(
             session.tenant_id,
             response_token=session.token,

@@ -55,7 +55,12 @@ def impersonator_user_role(id, name):
             {"id": "10000005",
              "serviceId": "test-d4614b87411e141fe8109099bc4f",
              "description": "Role to access Customer service as an Admin",
-             "name": "customer:admin"}],
+             "name": "customer:admin"},
+            {"id": "10000006",
+             "serviceId": "test-eabb70a0e702a4626977c331d5c4",
+             "description": "Service admin role for Cloud Backup access. Assign only to service users",
+             "name": "cloudbackup:service-admin"},
+        ],
         "name": name
     }
 
@@ -143,3 +148,30 @@ def get_endpoints(tenant_id, entry_generator, prefix_for_endpoint):
                 "id": endpoint.endpoint_id,
             })
     return {"endpoints": result}
+
+
+def get_version_v2(base_uri):
+    """
+    Canned response for keystone v2 version.
+
+    Cf: http://developer.openstack.org/api-ref-identity-v2.html#listVersions-v2
+    """
+    return {
+        "version": {
+            "status": "stable",
+            "updated": "2014-04-17T00:00:00Z",
+            "media-types": [{
+                "base": "application/json",
+                "type": "application/vnd.openstack.identity-v2.0+json"
+            }],
+            "id": "v2.0",
+            "links": [{
+                "href": base_uri.rstrip("/") + "/identity/v2.0",
+                "rel": "self"
+            }, {
+                "href": "http://docs.openstack.org/",
+                "type": "text/html",
+                "rel": "describedby"
+            }]
+        }
+    }
