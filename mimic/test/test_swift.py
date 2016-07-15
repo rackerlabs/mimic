@@ -468,8 +468,12 @@ class SwiftObjectTests(SwiftTestBase):
 
     def setUp(self):
         """
+        Configure for the test
         """
         super(SwiftObjectTests, self).setUp()
+
+        # in most of the tests we want to have an existing
+        # container. Those that do not need it can remove it.
         self.put_container()
 
     def test_get_object(self):
@@ -692,7 +696,7 @@ class SwiftObjectTests(SwiftTestBase):
         """
         PUT object - attempt to put an object to a non-existent container
         """
-        # delete the existing container
+        # setUp() auto-creates a container, so delete it first
         self.delete_container()
 
         # put an object
@@ -795,6 +799,8 @@ class SwiftObjectTests(SwiftTestBase):
         """
         HEADing a non-existing object in a non-existent container.
         """
+        # setUp() auto-creates a container, so delete it first
+        self.delete_container()
         # head the object
         self.head_object(expected_result=404, with_body=False)
 
@@ -909,7 +915,7 @@ class SwiftObjectTests(SwiftTestBase):
         """
         DELTE object - remove non-existent object from non-existent container
         """
-        # remove the existing container
+        # setUp() auto-creates a container, so delete it first
         self.delete_container()
 
         # remove the object
