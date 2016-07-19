@@ -9,7 +9,6 @@ import binascii
 import json
 import os
 import time
-import uuid
 
 import attr
 from six import text_type
@@ -31,12 +30,7 @@ from mimic.model.identity import (
     PasswordCredentials,
     TokenCredentials)
 from mimic.model.identity_objects import (
-    bad_request,
-    conflict,
     not_found,
-    unauthorized,
-    ExternalApiStore,
-    EndpointTemplateStore
 )
 from mimic.rest.mimicapp import MimicApp
 from mimic.session import NonMatchingTenantError
