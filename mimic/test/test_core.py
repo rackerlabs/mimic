@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, unicode_literals
 
 import sys
+import uuid
 
 from zope.interface import implementer
 
@@ -164,6 +165,9 @@ class CoreApiBuildingTests(SynchronousTestCase):
             self,
             name=self.eeapi_name
         )
+        # Note: make_example_external_api makes the UUID
+        # to be uuid-<name> so we need to change it for eeapi2
+        eeapi2.uuid_key = str(uuid.uuid4())
 
         with self.assertRaises(ValueError):
             MimicCore(Clock(), [eeapi, eeapi2])

@@ -3,13 +3,38 @@ from __future__ import absolute_import, division, unicode_literals
 from twisted.trial.unittest import SynchronousTestCase
 
 from mimic.model.identity_objects import (
-    EndpointTemplateStore
+    EndpointTemplateStore,
+    bad_request,
+    conflict,
+    not_found,
+    unauthorized,
 )
 from mimic.test.dummy import (
     ExampleEndpointTemplate,
-    make_example_external_api
+    make_example_external_api,
 )
 from mimic.test.helpers import get_template_id
+
+
+class YetToBeDone(SynchronousTestCase):
+    """
+    Test that are a placeholder for necessary functionality that will be needed
+    when the full functionality is implemented.
+    """
+
+    def test_stuff_todo(self):
+        """
+        Temporary for code-coverage until endpoints are implemented that will
+        actually use these.
+        """
+        class reqMock(object):
+            def setResponseCode(self, code):
+                pass
+
+        bad_request("testing bad request", reqMock())
+        conflict("testing conflict", reqMock())
+        not_found("testing not-found", reqMock())
+        unauthorized("testing unauthorized", reqMock())
 
 
 class EndpointTemplateInstanceTests(SynchronousTestCase):
@@ -352,6 +377,29 @@ class EndpointTemplatesTests(SynchronousTestCase):
         eeapi.add_template(new_eeapi_template)
 
         # second time fails
+        with self.assertRaises(ValueError):
+            eeapi.add_template(new_eeapi_template)
+
+    def test_add_template_with_mismatching_service_type(self):
+        """
+        Validate that adding a template the service type must match
+        """
+        eeapi = make_example_external_api(
+            self,
+            name=self.eeapi_name,
+            set_enabled=True
+        )
+        new_url = "https://api.new_region.example.com:9090"
+        new_region = "NEW_REGION"
+        new_eeapi_template_id = u"uuid-alternate-endpoint-template"
+        new_eeapi_template = ExampleEndpointTemplate(
+            name=self.eeapi_name,
+            uuid=new_eeapi_template_id,
+            region=new_region,
+            url=new_url
+        )
+        new_eeapi_template.type_key = "random-type"
+
         with self.assertRaises(ValueError):
             eeapi.add_template(new_eeapi_template)
 
