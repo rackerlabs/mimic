@@ -53,7 +53,9 @@ class Endpoint(object):
         :param boolean internal_url: whether or not to provide the Internal or
             Public URL. If True, provide the internal URL.
 
-        Note: internal_url is only honored by External APIs, e.g `external` is
+        .. note::
+
+            internal_url is only honored by External APIs, e.g `external` is
             set to `True`. For internally hosted APIs the internal_url and
             public_url should be the same.
 

@@ -143,7 +143,9 @@ class MimicCore(object):
         """
         Access an API instance for an external API.
 
-        Note: Internally hosted APIs are not modifiable at run-time
+        .. note::
+
+            Internally hosted APIs are not modifiable at run-time
             so this only returns access to the Externally hosted API.
 
         :param text_type api_id: the id of the API instance
