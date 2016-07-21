@@ -1,5 +1,7 @@
 from __future__ import absolute_import, division, unicode_literals
 
+import ddt
+
 from twisted.trial.unittest import SynchronousTestCase
 
 from mimic.model.identity_objects import (
@@ -16,13 +18,20 @@ from mimic.test.dummy import (
 from mimic.test.helpers import get_template_id
 
 
+@ddt.ddt
 class YetToBeDone(SynchronousTestCase):
     """
     Test that are a placeholder for necessary functionality that will be needed
     when the full functionality is implemented.
     """
 
-    def test_stuff_todo(self):
+    @ddt.data(
+        bad_request,
+        conflict,
+        not_found,
+        unauthorized
+    )
+    def test_stuff_todo(self, cls_http_response):
         """
         Temporary for code-coverage until endpoints are implemented that will
         actually use these.
@@ -31,12 +40,10 @@ class YetToBeDone(SynchronousTestCase):
             def setResponseCode(self, code):
                 pass
 
-        bad_request("testing bad request", reqMock())
-        conflict("testing conflict", reqMock())
-        not_found("testing not-found", reqMock())
-        unauthorized("testing unauthorized", reqMock())
+        cls_http_response("testing {0}".format(cls_http_response.__name__), reqMock())
 
 
+@ddt.ddt
 class EndpointTemplateInstanceTests(SynchronousTestCase):
     """
     Validate the :obj:`EndpointTemplateStore`
@@ -107,7 +114,14 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
         self.assertIsNone(epts.version_info)
         self.assertIsNone(epts.version_list)
 
-    def test_basic_with_minimal_dict(self):
+    @ddt.data(
+        "id",
+        "region",
+        "type",
+        "name",
+        None
+    )
+    def test_basic_with_minimal_dict(self, key_to_remove):
         """
         Check setting up the template with the minimal mappings.
         """
@@ -117,20 +131,15 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
             "type": "some-type",
             "name": "some-name"
         }
-        epts = EndpointTemplateStore(data)
-        self.validate_mapping(epts, data, True)
-
-    def test_deserialize_minimal_invalid(self):
-        """
-        Check missing one of the minimal values will raise an exception.
-        """
-        data = {
-            "id": "some-id",
-            "type": "some-type",
-            "name": "some-name"
-        }
-        with self.assertRaises(KeyError):
-            EndpointTemplateStore(data)
+        if key_to_remove is None:
+            # validate it matches
+            epts = EndpointTemplateStore(data)
+            self.validate_mapping(epts, data, True)
+        else:
+            # validate that the keys must be present
+            del data[key_to_remove]
+            with self.assertRaises(KeyError):
+                EndpointTemplateStore(data)
 
     def test_deserialization(self):
         """
@@ -229,7 +238,12 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
         serialized_data = epts.serialize(tenant_id=tenant_id)
         self.assertEqual(expected_result, serialized_data)
 
-    def test_replace_tenant_id_default_replacement(self):
+    @ddt.data(
+        ("%tenant_id%", None),
+        ("{{tenant_id}}", "{{tenant_id}}")
+    )
+    @ddt.unpack
+    def test_replace_tenant_id(self, tid_template, spec_value):
         """
         Serializing for a tenant with the default tenantid spec will result
         in the correct URLs being generated.
@@ -244,50 +258,10 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
             "type": "some-type",
             "name": "some-name",
             "enabled": True,
-            "publicURL": "http://public.url/%tenant_id%",
-            "internalURL": "http://internal.url/%tenant_id%",
+            "publicURL": "http://public.url/" + tid_template,
+            "internalURL": "http://internal.url/" + tid_template,
             "adminURL": None,
-            "RAX-AUTH:tenantAlias": None,
-            "versionId": "http://some.url/version",
-            "versionInfo": "http://some.url/version/info",
-            "versionList": "http://some.url/version/list"
-        }
-
-        epts = EndpointTemplateStore(data)
-        self.assertEqual(
-            final_public_url,
-            epts.get_url(
-                epts.public_url,
-                tenant_id
-            )
-        )
-        self.assertEqual(
-            final_internal_url,
-            epts.get_url(
-                epts.internal_url,
-                tenant_id
-            )
-        )
-
-    def test_replace_tenant_id_user_replacement(self):
-        """
-        Serializing for a tenant with a user specified tenantid spec will
-        result in the correct URLs being generated.
-        """
-        tenant_id = "some-tenant"
-        final_public_url = "http://public.url/" + tenant_id
-        final_internal_url = "http://internal.url/" + tenant_id
-
-        data = {
-            "id": "some-id",
-            "region": "some-region",
-            "type": "some-type",
-            "name": "some-name",
-            "enabled": True,
-            "publicURL": "http://public.url/{{tenant_id}}",
-            "internalURL": "http://internal.url/{{tenant_id}}",
-            "adminURL": None,
-            "RAX-AUTH:tenantAlias": "{{tenant_id}}",
+            "RAX-AUTH:tenantAlias": spec_value,
             "versionId": "http://some.url/version",
             "versionInfo": "http://some.url/version/info",
             "versionList": "http://some.url/version/list"
@@ -310,6 +284,7 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
         )
 
 
+@ddt.ddt
 class EndpointTemplatesTests(SynchronousTestCase):
     """
     Test Endpoint Template Functionality: list, add, has, update, remove.
@@ -578,19 +553,11 @@ class EndpointTemplatesTests(SynchronousTestCase):
         with self.assertRaises(ValueError):
             eeapi.update_template(new_eeapi_template)
 
-    def test_has_endpoint_template_invalid(self):
-        """
-        Validate that :obj:`ExternalApiStore` will return False if it
-        does not have the template id
-        """
-        eeapi = make_example_external_api(
-            self
-        )
-        self.assertFalse(
-            eeapi.has_template('some-template-id')
-        )
-
-    def test_has_endpoint_template(self):
+    @ddt.data(
+        True,
+        False
+    )
+    def test_has_endpoint_template(self, should_have_template):
         """
         Validate that :obj:`ExternalApiStore` will return True if it
         does have the template id
@@ -598,46 +565,47 @@ class EndpointTemplatesTests(SynchronousTestCase):
         eeapi = make_example_external_api(
             self
         )
-        ept_template_id = get_template_id(self, eeapi)
-        self.assertTrue(
-            eeapi.has_template(ept_template_id)
+        ept_template_id = 'some-template-id'
+        if should_have_template:
+            ept_template_id = get_template_id(self, eeapi)
+
+        self.assertEqual(
+            eeapi.has_template(ept_template_id),
+            should_have_template
         )
 
-    def test_remove_endpoint_template_invalid(self):
-        """
-        Validate that :obj:`ExternalApiStore` will raise the `IndexError`
-        exception if the template id is not found when trying to remove a
-        template id that does not exist.
-        """
-        eeapi = make_example_external_api(
-            self,
-            name=self.eeapi_name,
-            set_enabled=True,
-        )
-
-        with self.assertRaises(IndexError):
-            eeapi.remove_template("some-invalid-template-id")
-
-    def test_remove_endpoint_template(self):
+    @ddt.data(
+        True,
+        False
+    )
+    def test_remove_endpoint_template(self, template_is_valid):
         """
         Validate that an endpoint template can be removed from the
         :obj:`ExternalApiStore`.
         """
         eeapi_template_id = u"uuid-alternate-endpoint-template"
-        eeapi_template = ExampleEndpointTemplate(
-            name=self.eeapi_name,
-            uuid=eeapi_template_id
-        )
+        eeapi_template = None
+        if template_is_valid:
+            eeapi_template = [
+                ExampleEndpointTemplate(
+                    name=self.eeapi_name,
+                    uuid=eeapi_template_id
+                )
+            ]
         eeapi = make_example_external_api(
             self,
             name=self.eeapi_name,
             set_enabled=True,
-            endpoint_templates=[eeapi_template]
+            endpoint_templates=eeapi_template
         )
 
-        self.assertIn(eeapi_template_id, eeapi.endpoint_templates)
-        eeapi.remove_template(eeapi_template_id)
-        self.assertNotIn(eeapi_template_id, eeapi.endpoint_templates)
+        if template_is_valid:
+            self.assertIn(eeapi_template_id, eeapi.endpoint_templates)
+            eeapi.remove_template(eeapi_template_id)
+            self.assertNotIn(eeapi_template_id, eeapi.endpoint_templates)
+        else:
+            with self.assertRaises(IndexError):
+                eeapi.remove_template(eeapi_template_id)
 
     def test_remove_endpoint_template_with_user_registration(self):
         """
