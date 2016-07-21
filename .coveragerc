@@ -1,3 +1,6 @@
+[report]
+precision = 2
+
 [run]
 branch = True
 
