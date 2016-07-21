@@ -126,10 +126,8 @@ class MimicCore(object):
 
             if len(api.list_templates()) == 0:
                 del self._uuid_to_api_external[api_id]
-
             else:
                 raise ValueError("API still has endpoint templates")
-
         else:
             raise IndexError(api_id + " is not a valid external API")
 

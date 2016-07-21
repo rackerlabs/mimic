@@ -189,7 +189,7 @@ def make_example_external_api(case, name=u"example",
     :param boolean or None set_enabled: If none, the endpoint templates
         are used AS-IS. If a boolean type, then it sets all the templates
         to have the same default accessibility for all tenants.
-    :param text_type service_type: type of the service. If noe, the type
+    :param text_type service_type: type of the service. If none, the type
         is extracted from the first entry in the endpoint_template list.
 
     Note: The service-type of the first endpoint template is used as the
@@ -202,20 +202,23 @@ def make_example_external_api(case, name=u"example",
     """
     if endpoint_templates is None:
         endpoint_templates = [ExampleEndpointTemplate()]
+        # if service type was specified then set it in order
+        # to satisfy the check in the loop below
+        if service_type is not None:
+            endpoint_templates[0].type_key = service_type
 
     if service_type is None:
         # default parameter value, take the template type from the first
         # endpoint template in the list
         service_type = endpoint_templates[0].type_key
 
-    elif len(endpoint_templates) == 1:
-        # service_type was specified and most likely endpoint_templates
-        # was left to its default value thereby creating an example
-        # template that must now be updated.
-        endpoint_templates[0].type_key = service_type
-
+    # Validate that the provided templates will be usable by the
+    # :obj:`ExternalApiStore` being created.
     for ept in endpoint_templates:
+        # the name is in the parameter, so just set it
         ept.name_key = name
+
+        # validate that the service type matches
         if ept.type_key != service_type:
             raise ValueError(
                 'Service Types do not match. {0} != {1}'.format(

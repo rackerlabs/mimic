@@ -143,6 +143,10 @@ class CoreApiBuildingTests(SynchronousTestCase):
             MimicCore(Clock(), [brokenApiMock()])
 
     def test_load_duplicate_api_uuid(self):
+        """
+        Adding an API with the same UUID as an existing API will generate a
+        ValueError exception.
+        """
         eeapi = make_example_external_api(
             self,
             name=self.eeapi_name,
@@ -157,6 +161,10 @@ class CoreApiBuildingTests(SynchronousTestCase):
             MimicCore(Clock(), [eeapi, eeapi2])
 
     def test_load_duplicate_api_name(self):
+        """
+        Adding an API with the same Name as an existing API will generate a
+        ValueError exception.
+        """
         eeapi = make_example_external_api(
             self,
             name=self.eeapi_name,
@@ -174,7 +182,7 @@ class CoreApiBuildingTests(SynchronousTestCase):
 
     def test_remove_api(self):
         """
-        Validate that an API can be removed
+        Removing an API.
         """
         eeapi = make_example_external_api(
             self,

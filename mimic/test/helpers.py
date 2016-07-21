@@ -248,7 +248,14 @@ def validate_link_json(testCase, json_containing_links):
 
 def get_template_id(case, eeapi):
     """
-    Retrieve the template id.
+    Get the template id from the template stored in the :obj:`ExternalApiStore`
+    Normally there is only a single template id when this function is called.
+
+    :param TestCase case: a test case to call assertions on
+    :param object eeapi: an instance of the :obj:`ExternalApiStore` containing
+        a template
+    :rtype: text_type
+    :returns: template id value
     """
     id_key = None
     for k in eeapi.endpoint_templates.keys():

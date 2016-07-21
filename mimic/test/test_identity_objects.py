@@ -43,11 +43,18 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
     """
     @staticmethod
     def get_optional_mapping_value(epts, attribute_name):
-        for tname, name, value in epts.optional_mapping:
-            if name == attribute_name:
-                return (value, tname)
+        """
+        Access default value and template name in the optional
+        mappings in the provided endoint template.
+        """
+        for m in epts.optional_mapping:
+            if m.attr_name == attribute_name:
+                return (m.default_value, m.spec_key)
 
     def validate_mapping(self, epts, data, use_defaults):
+        """
+        Validate that the template matches the expected data.
+        """
         self.assertEqual(data, epts._template_data)
         self.assertEqual(data['id'], epts.id_key)
         self.assertEqual(data['region'], epts.region_key)
@@ -82,6 +89,9 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
                 )
 
     def test_basic_no_dict(self):
+        """
+        Check the default state where all values should be set to `None`.
+        """
         epts = EndpointTemplateStore()
         self.assertIsNone(epts._template_data)
         self.assertIsNone(epts.id_key)
@@ -98,6 +108,9 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
         self.assertIsNone(epts.version_list)
 
     def test_basic_with_minimal_dict(self):
+        """
+        Check setting up the template with the minimal mappings.
+        """
         data = {
             "id": "some-id",
             "region": "some-region",
@@ -108,6 +121,9 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
         self.validate_mapping(epts, data, True)
 
     def test_deserialize_minimal_invalid(self):
+        """
+        Check missing one of the minimal values will raise an exception.
+        """
         data = {
             "id": "some-id",
             "type": "some-type",
@@ -117,6 +133,9 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
             EndpointTemplateStore(data)
 
     def test_deserialization(self):
+        """
+        Check deserialization correctly maps the values to the object.
+        """
         data = {
             "id": "some-id",
             "region": "some-region",
@@ -135,6 +154,9 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
         self.validate_mapping(epts, data, False)
 
     def test_serialize_basic(self):
+        """
+        Serializing the minimal data will result in the correct dict object.
+        """
         data = {
             "id": "some-id",
             "region": "some-region",
@@ -154,6 +176,9 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
                 self.assertEqual(v, data[k])
 
     def test_serialize_complete(self):
+        """
+        Serializing the full data will result in the correct dict object.
+        """
         data = {
             "id": "some-id",
             "region": "some-region",
@@ -173,6 +198,9 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
         self.assertEqual(data, serialized_data)
 
     def test_serialize_tenant(self):
+        """
+        Serializing for a tenant with the full data will give the dict object.
+        """
         tenant_id = "some-tenant"
         data = {
             "id": "some-id",
@@ -202,6 +230,10 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
         self.assertEqual(expected_result, serialized_data)
 
     def test_replace_tenant_id_default_replacement(self):
+        """
+        Serializing for a tenant with the default tenantid spec will result
+        in the correct URLs being generated.
+        """
         tenant_id = "some-tenant"
         final_public_url = "http://public.url/" + tenant_id
         final_internal_url = "http://internal.url/" + tenant_id
@@ -238,6 +270,10 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
         )
 
     def test_replace_tenant_id_user_replacement(self):
+        """
+        Serializing for a tenant with a user specified tenantid spec will
+        result in the correct URLs being generated.
+        """
         tenant_id = "some-tenant"
         final_public_url = "http://public.url/" + tenant_id
         final_internal_url = "http://internal.url/" + tenant_id
@@ -282,6 +318,10 @@ class EndpointTemplatesTests(SynchronousTestCase):
         self.eeapi_name = u"externalServiceName"
 
     def test_listing_templates(self):
+        """
+        Listing templates provides entries and changes as expected.
+        Template status is not dependant on whether or not the template is enabled.
+        """
         eeapi_template_id = 'some-template-id'
         eeapi_template = ExampleEndpointTemplate(
             name=self.eeapi_name,
@@ -298,6 +338,11 @@ class EndpointTemplatesTests(SynchronousTestCase):
         self.assertEqual(len(eeapi.list_templates()), 0)
 
     def test_listing_templates_tenant(self):
+        """
+        Listing templates for a tenant provides entries and changes as expected.
+        Template status is dependant on whether or not the template is enabled;
+        this test works the same as the global test.
+        """
         tenant_id = 'some-tenant'
         eeapi_template_id = 'some-template-id'
         eeapi_template = ExampleEndpointTemplate(
@@ -318,6 +363,11 @@ class EndpointTemplatesTests(SynchronousTestCase):
         self.assertEqual(len(new_listing), 0)
 
     def test_listing_templates_tenant_with_specific_enabled(self):
+        """
+        Listing templates for a tenant provides entries and changes as expected.
+        Template status is dependant on whether or not the template is enabled;
+        this disables the template instead of removing it.
+        """
         tenant_id = 'some-tenant'
         eeapi_template_id = 'some-template-id'
         eeapi_template = ExampleEndpointTemplate(
@@ -530,7 +580,7 @@ class EndpointTemplatesTests(SynchronousTestCase):
 
     def test_has_endpoint_template_invalid(self):
         """
-        Validate taht :obj:`ExternalApiStore` will return False if it
+        Validate that :obj:`ExternalApiStore` will return False if it
         does not have the template id
         """
         eeapi = make_example_external_api(
@@ -542,7 +592,7 @@ class EndpointTemplatesTests(SynchronousTestCase):
 
     def test_has_endpoint_template(self):
         """
-        Validate taht :obj:`ExternalApiStore` will return True if it
+        Validate that :obj:`ExternalApiStore` will return True if it
         does have the template id
         """
         eeapi = make_example_external_api(

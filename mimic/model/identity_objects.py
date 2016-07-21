@@ -4,6 +4,8 @@ Model objects for the Identity mimic.
 
 from __future__ import absolute_import, division, unicode_literals
 
+import attr
+
 from zope.interface import implementer
 
 from twisted.plugin import IPlugin
@@ -93,18 +95,34 @@ def unauthorized(message, request):
     return _identity_error_message("unauthorized", message, UNAUTHORIZED, request)
 
 
+@attr.s
+class MapInfo(object):
+    """
+    Mapping information for Endpoint Template JSON serialization
+    and deserialization capabilities.
+
+    :ivar spec_key: JSON Key in the OpenStack Identity Template Spec
+    :ivar attr_key: Attribute Name of the :obj:`EndpointTemplateStore`
+    :ivar default_value: optional default values
+    """
+    spec_key = attr.ib()
+    attr_name = attr.ib()
+    default_value = attr.ib(default=None)
+
+
 @implementer(IEndpointTemplate, IPlugin)
 class EndpointTemplateStore(object):
     """
-    A :obj"`EndpointTemplateStore` is an object whiich provides the
-    functionality to integrate an Endpoint Template instance. It is only
-    meant to work with a single Endpoint Template. Use :obj:`ExternalApiStore`
-    to manage multiple Endpoint Templates.
+    A :obj"`EndpointTemplateStore` is an internal representation of the
+    OSKS-Catalog Extension's Endpoint Template.
 
-    :ivar list required_mapping: list of entries in the template that are
+    :cvar list required_mapping: list of entries in the template that are
         required to be present for a valid template
-    :ivar list optional_mapping: list of entries in the template that are
+    :cvar list optional_mapping: list of entries in the template that are
         optionally present in a valid template, along with a default value.
+    :cvar list tenant_mapping: list of entries in the template that are
+        required to be present for a valid template for a specific
+        tenant
 
 
     Note: The OpenStack documentation[0] does not specify any required
@@ -115,45 +133,40 @@ class EndpointTemplateStore(object):
         the `id` and `region` fields are used by the :obj:`ExternalApiStore`
         for managing the templates.
 
-    [0] http://developer.openstack.org/api-ref-identity-v2-ext.html
+    `The OpenStack documentation <http://developer.openstack.org/api-ref-identity-v2-ext.html>`
     """
 
-    """
-    The following lists of tuples are for mapping the template defined by
-    the OpenStack documentation to the internal strucutre for several uses.
-    The tuples have the following meaning:
-
-        Index   Meaning
-        -----   ------------------------------------------------
-        0       JSON Key in the OpenStack Identity Template Spec
-        1       Attribute Name of the :obj:`EndpointTemplateStore`
-        2       default value (only for optional_mapping)
-    """
     required_mapping = [
-        ('id', 'id_key'),
-        ('region', 'region_key'),
-        ('type', 'type_key'),
-        ('name', 'name_key'),
+        MapInfo(*value) for value in [
+            ('id', 'id_key'),
+            ('region', 'region_key'),
+            ('type', 'type_key'),
+            ('name', 'name_key'),
+        ]
     ]
 
     optional_mapping = [
-        ('enabled', 'enabled_key', False),
-        ('publicURL', 'public_url', u""),
-        ('internalURL', 'internal_url', u""),
-        ('adminURL', 'admin_url', u""),
-        ('RAX-AUTH:tenantAlias', 'tenant_alias', "%tenant_id%"),
-        ('versionId', 'version_id', u""),
-        ('versionInfo', 'version_info', u""),
-        ('versionList', 'version_list', u"")
+        MapInfo(*value) for value in [
+            ('enabled', 'enabled_key', False),
+            ('publicURL', 'public_url', u""),
+            ('internalURL', 'internal_url', u""),
+            ('adminURL', 'admin_url', u""),
+            ('RAX-AUTH:tenantAlias', 'tenant_alias', "%tenant_id%"),
+            ('versionId', 'version_id', u""),
+            ('versionInfo', 'version_info', u""),
+            ('versionList', 'version_list', u"")
+        ]
     ]
 
     tenant_mapping = [
-        ('id', 'id_key'),
-        ('region', 'region_key'),
-        ('type', 'type_key'),
-        ('publicURL', 'public_url'),
-        ('internalURL', 'internal_url'),
-        ('adminURL', 'admin_url'),
+        MapInfo(*value) for value in [
+            ('id', 'id_key'),
+            ('region', 'region_key'),
+            ('type', 'type_key'),
+            ('publicURL', 'public_url'),
+            ('internalURL', 'internal_url'),
+            ('adminURL', 'admin_url'),
+        ]
     ]
 
     def __init__(self, template_dict=None):
@@ -204,20 +217,20 @@ class EndpointTemplateStore(object):
         """
         data = {}
         if tenant_id is None:
-            for template_key, local_attribute in self.required_mapping:
-                data[template_key] = getattr(self, local_attribute)
+            for m in self.required_mapping:
+                data[m.spec_key] = getattr(self, m.attr_name)
 
-            for template_key, local_attribute, _ in self.optional_mapping:
-                value = getattr(self, local_attribute)
+            for m in self.optional_mapping:
+                value = getattr(self, m.attr_name)
                 if value is not None:
-                    data[template_key] = value
+                    data[m.spec_key] = value
             return data
         else:
             data['tenantId'] = tenant_id
-            for template_key, local_attribute in self.tenant_mapping:
-                value = getattr(self, local_attribute)
+            for m in self.tenant_mapping:
+                value = getattr(self, m.attr_name)
                 if value is not None:
-                    data[template_key] = value
+                    data[m.spec_key] = value
             return data
 
     def deserialize(self, data):
@@ -227,17 +240,17 @@ class EndpointTemplateStore(object):
         :param dict data: a dictionary of values to import the template data
             from.
         """
-        for template_key, local_attribute in self.required_mapping:
-            if template_key not in data:
-                raise KeyError('Missing required value ' + template_key)
+        for m in self.required_mapping:
+            if m.spec_key not in data:
+                raise KeyError('Missing required value ' + m.spec_key)
 
-            setattr(self, local_attribute, data[template_key])
+            setattr(self, m.attr_name, data[m.spec_key])
 
-        for template_key, local_attribute, default in self.optional_mapping:
-            value = default
-            if template_key in data:
-                value = data[template_key]
-            setattr(self, local_attribute, value)
+        for m in self.optional_mapping:
+            value = m.default_value
+            if m.spec_key in data:
+                value = data[m.spec_key]
+            setattr(self, m.attr_name, value)
 
 
 @implementer(IExternalAPIMock, IPlugin)
