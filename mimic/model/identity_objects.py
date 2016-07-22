@@ -111,6 +111,7 @@ class MapInfo(object):
 
 
 @implementer(IEndpointTemplate, IPlugin)
+@attr.s
 class EndpointTemplateStore(object):
     """
     A :obj"`EndpointTemplateStore` is an internal representation of the
@@ -169,30 +170,19 @@ class EndpointTemplateStore(object):
         ]
     ]
 
-    def __init__(self, template_dict=None):
-        """
-        Create an :obj:`EndpointTemplateStore`
-
-        :param dict template_dict (optional): optional dictionary to load the
-            Endpoint Template data from. The dictionary is simply passed to the
-            deserializer.
-        """
-        self._template_data = template_dict
-        self.id_key = None
-        self.region_key = None
-        self.type_key = None
-        self.name_key = None
-        self.enabled_key = None
-        self.public_url = None
-        self.internal_url = None
-        self.admin_url = None
-        self.tenant_alias = None
-        self.version_id = None
-        self.version_info = None
-        self.version_list = None
-
-        if self._template_data is not None:
-            self.deserialize(self._template_data)
+    _template_data = attr.ib(default=None)
+    id_key = attr.ib(default=None)
+    region_key = attr.ib(default=None)
+    type_key = attr.ib(default=None)
+    name_key = attr.ib(default=None)
+    enabled_key = attr.ib(default=None)
+    public_url = attr.ib(default=None)
+    internal_url = attr.ib(default=None)
+    admin_url = attr.ib(default=None)
+    tenant_alias = attr.ib(default=None)
+    version_id = attr.ib(default=None)
+    version_info = attr.ib(default=None)
+    version_list = attr.ib(default=None)
 
     def get_url(self, url, tenant_id):
         """
@@ -233,24 +223,32 @@ class EndpointTemplateStore(object):
                     data[m.spec_key] = value
             return data
 
-    def deserialize(self, data):
+    @classmethod
+    def deserialize(cls, data):
         """
         Deserialize the endpoint template from a dictionary.
 
         :param dict data: a dictionary of values to import the template data
             from.
+        :rtype: EndpointTemplateStore
+        :returns: instance of :obj:`EndpointTemplateStore` with the
+            instantiated against the template data
         """
-        for m in self.required_mapping:
+        epts = cls()
+        epts._template_data = data
+        for m in cls.required_mapping:
             if m.spec_key not in data:
                 raise KeyError('Missing required value ' + m.spec_key)
 
-            setattr(self, m.attr_name, data[m.spec_key])
+            setattr(epts, m.attr_name, data[m.spec_key])
 
-        for m in self.optional_mapping:
+        for m in cls.optional_mapping:
             value = m.default_value
             if m.spec_key in data:
                 value = data[m.spec_key]
-            setattr(self, m.attr_name, value)
+            setattr(epts, m.attr_name, value)
+
+        return epts
 
 
 @implementer(IExternalAPIMock, IPlugin)

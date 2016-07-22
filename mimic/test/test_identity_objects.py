@@ -133,13 +133,13 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
         }
         if key_to_remove is None:
             # validate it matches
-            epts = EndpointTemplateStore(data)
+            epts = EndpointTemplateStore.deserialize(data)
             self.validate_mapping(epts, data, True)
         else:
             # validate that the keys must be present
             del data[key_to_remove]
             with self.assertRaises(KeyError):
-                EndpointTemplateStore(data)
+                EndpointTemplateStore.deserialize(data)
 
     def test_deserialization(self):
         """
@@ -159,7 +159,7 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
             "versionInfo": "http://some.url/version/info",
             "versionList": "http://some.url/version/list"
         }
-        epts = EndpointTemplateStore(data)
+        epts = EndpointTemplateStore.deserialize(data)
         self.validate_mapping(epts, data, False)
 
     def test_serialize_basic(self):
@@ -202,7 +202,7 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
             "versionInfo": "http://some.url/version/info",
             "versionList": "http://some.url/version/list"
         }
-        epts = EndpointTemplateStore(data)
+        epts = EndpointTemplateStore.deserialize(data)
         serialized_data = epts.serialize()
         self.assertEqual(data, serialized_data)
 
@@ -234,7 +234,7 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
             "internalURL": data['internalURL'],
         }
 
-        epts = EndpointTemplateStore(data)
+        epts = EndpointTemplateStore.deserialize(data)
         serialized_data = epts.serialize(tenant_id=tenant_id)
         self.assertEqual(expected_result, serialized_data)
 
@@ -267,7 +267,7 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
             "versionList": "http://some.url/version/list"
         }
 
-        epts = EndpointTemplateStore(data)
+        epts = EndpointTemplateStore.deserialize(data)
         self.assertEqual(
             final_public_url,
             epts.get_url(

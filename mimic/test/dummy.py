@@ -15,7 +15,7 @@ from twisted.web.resource import Resource
 
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
-from mimic.imimic import IAPIMock, IAPIDomainMock, IEndpointTemplate
+from mimic.imimic import IAPIMock, IAPIDomainMock
 from mimic.model.identity_objects import (
     ExternalApiStore,
     EndpointTemplateStore
@@ -101,63 +101,61 @@ class ExampleDomainAPI(object):
         return example_resource
 
 
-@implementer(IEndpointTemplate)
-class ExampleEndpointTemplate(EndpointTemplateStore):
+def ExampleEndpointTemplate(name=u"example", region="EXTERNAL", version="v1",
+                            url="https://api.external.example.com:8080",
+                            public_url=None, internal_url=None, admin_url=None,
+                            version_info_url=None, version_list_url=None,
+                            type_id=u"example", enabled=False,
+                            uuid=text_type(uuid.uuid4()),
+                            tenantid_alias="%tenant_id%"):
     """
-    Example External Endpoint Template
+    Create an instance of the :obj:`EndpointTemplateStore` in a usable form for
+    testing.
+
+    :param text_type name: name of the service provided, e.g Cloud Files.
+    :param text_type region: region the service is provided in, e.g ORD.
+    :param text_type version: version of the service, e.g v1.
+    :param text_type url: basic URL of the service in the region.
+    :param text_type public_url: public URL of the service in the region.
+    :param text_type internal_url: internal URL of the service in
+        the region.
+    :param text_type admin_url: administrative URL for the service in
+        the region.
+    :param text_type version_info_url: URL to get the version information
+        of the service.
+    :param text_type version_list_url: URL to get the list of supported
+        versions by the service.
+    :param text_type type_id: service type, e.g object-store
+    :param boolean enabled: whether or not the service is enabled
+        for all users. Services can be disabled for all tenants but still
+        be enabled on a per-tenant basis.
+    :param text_type uuid: unique ID for the endpoint within the service.
+    :param text_type tenantid_alias: by default the system uses the text
+        '%tenant_id%' for what to replace in the URLs with the tenantid.
+        This value allows the service adminstrator to use a different
+        textual value. Note: This is not presently used by Mimic which
+        just appends the tenant-id for internally hosted services, and
+        simply uses the URLs as is for externally hosted services.
+    :rtype: :obj:`EndpointTemplateStore`
     """
-
-    def __init__(self, name=u"example", region="EXTERNAL", version="v1",
-                 url="https://api.external.example.com:8080",
-                 public_url=None, internal_url=None, admin_url=None,
-                 version_info_url=None, version_list_url=None,
-                 type_id=u"example", enabled=False,
-                 uuid=text_type(uuid.uuid4()), tenantid_alias="%tenant_id%"
-                 ):
-        """
-        Create an :obj:`ExampleEndpointTemplate`.
-
-        :param text_type name: name of the service provided, e.g Cloud Files.
-        :param text_type region: region the service is provided in, e.g ORD.
-        :param text_type version: version of the service, e.g v1.
-        :param text_type url: basic URL of the service in the region.
-        :param text_type public_url: public URL of the service in the region.
-        :param text_type internal_url: internal URL of the service in
-            the region.
-        :param text_type admin_url: administrative URL for the service in
-            the region.
-        :param text_type version_info_url: URL to get the version information
-            of the service.
-        :param text_type version_list_url: URL to get the list of supported
-            versions by the service.
-        :param text_type type_id: service type, e.g object-store
-        :param boolean enabled: whether or not the service is enabled
-            for all users. Services can be disabled for all tenants but still
-            be enabled on a per-tenant basis.
-        :param text_type uuid: unique ID for the endpoint within the service.
-        :param text_type tenantid_alias: by default the system uses the text
-            '%tenant_id%' for what to replace in the URLs with the tenantid.
-            This value allows the service adminstrator to use a different
-            textual value. Note: This is not presently used by Mimic which
-            just appends the tenant-id for internally hosted services, and
-            simply uses the URLs as is for externally hosted services.
-        """
-        self.id_key = uuid
-        self.region_key = region
-        self.type_key = type_id
-        self.name_key = name
-        self.enabled_key = enabled
-        self.public_url = public_url if public_url is not None else url
-        self.internal_url = internal_url if internal_url is not None else url
-        self.admin_url = admin_url if admin_url is not None else url
-        self.tenant_alias = tenantid_alias
-        self.version_id = version
-        self.version_info = (version_info_url
-                             if version_info_url is not None
-                             else url + '/versionInfo')
-        self.version_list = (version_list_url
-                             if version_list_url is not None
-                             else url + '/versions')
+    epts = EndpointTemplateStore()
+    epts.id_key = uuid
+    epts.region_key = region
+    epts.type_key = type_id
+    epts.name_key = name
+    epts.enabled_key = enabled
+    epts.public_url = public_url if public_url is not None else url
+    epts.internal_url = internal_url if internal_url is not None else url
+    epts.admin_url = admin_url if admin_url is not None else url
+    epts.tenant_alias = tenantid_alias
+    epts.version_id = version
+    epts.version_info = (version_info_url
+                         if version_info_url is not None
+                         else url + '/versionInfo')
+    epts.version_list = (version_list_url
+                         if version_list_url is not None
+                         else url + '/versions')
+    return epts
 
 
 def make_example_internal_api(case, response_message="default message",
