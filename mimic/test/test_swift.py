@@ -2,6 +2,8 @@ from __future__ import absolute_import, division, unicode_literals
 
 from json import loads, dumps
 
+import ddt
+
 from twisted.trial.unittest import SynchronousTestCase
 from twisted.internet.task import Clock
 
@@ -66,24 +68,12 @@ class SwiftTestBase(SynchronousTestCase):
         self.object_data = b'some bytes'
         self.object_size = len(self.object_data)
 
-    def put_container(self, expected_result=201):
-        """
-        PUT a container - create a container
-        """
-        create_container = request(self, self.root, b"PUT", self.uri)
-        create_container_response = self.successResultOf(create_container)
-        self.assertEqual(create_container_response.code, expected_result)
-        self.assertEqual(
-            self.successResultOf(treq.content(create_container_response)),
-            b"",
-        )
-
-    def head_container(self, expected_result=204, with_body=True):
+    def head_account(self, expected_result=204, with_body=True):
         """
         HEAD a container - retrieve the meta-data on the container
         """
         container_response = self.successResultOf(
-            request(self, self.root, b"HEAD", self.uri)
+            request(self, self.root, b"HEAD", self.swift_uri)
         )
         self.assertEqual(container_response.code, expected_result)
 
@@ -95,12 +85,49 @@ class SwiftTestBase(SynchronousTestCase):
 
         return (container_response, container_contents)
 
-    def get_container(self, expected_result=200, with_body=True):
+    def put_container(self, container_path=None, expected_result=201):
+        """
+        PUT a container - create a container
+        """
+        container_uri = (
+            container_path if container_path is not None else self.uri)
+        create_container = request(self, self.root, b"PUT", container_uri)
+        create_container_response = self.successResultOf(create_container)
+        self.assertEqual(create_container_response.code, expected_result)
+        self.assertEqual(
+            self.successResultOf(treq.content(create_container_response)),
+            b"",
+        )
+
+    def head_container(self, container_path=None, expected_result=204,
+                       with_body=True):
+        """
+        HEAD a container - retrieve the meta-data on the container
+        """
+        container_uri = (
+            container_path if container_path is not None else self.uri)
+        container_response = self.successResultOf(
+            request(self, self.root, b"HEAD", container_uri)
+        )
+        self.assertEqual(container_response.code, expected_result)
+
+        container_contents = None
+        if with_body:
+            container_contents = self.successResultOf(
+                treq.content(container_response)
+            )
+
+        return (container_response, container_contents)
+
+    def get_container(self, container_path=None, expected_result=200,
+                      with_body=True):
         """
         GET a container - retrieve the listing of objects in the container
         """
+        container_uri = (
+            container_path if container_path is not None else self.uri)
         container_response = self.successResultOf(
-            request(self, self.root, b"GET", self.uri)
+            request(self, self.root, b"GET", container_uri)
         )
         self.assertEqual(container_response.code, expected_result)
 
@@ -112,12 +139,14 @@ class SwiftTestBase(SynchronousTestCase):
 
         return (container_response, container_contents)
 
-    def delete_container(self, expected_result=204):
+    def delete_container(self, container_path=None, expected_result=204):
         """
         DELETE a container.
         """
+        container_uri = (
+            container_path if container_path is not None else self.uri)
         container_response = self.successResultOf(
-            request(self, self.root, b"DELETE", self.uri)
+            request(self, self.root, b"DELETE", container_uri)
         )
         self.assertEqual(container_response.code, expected_result)
         return container_response
@@ -241,6 +270,56 @@ class SwiftGenericTests(SwiftTestBase):
                ['endpoints'][0]['publicURL'])
         self.assertIn("/fun_tenant", url)
         self.assertNotIn("/MossoCloudFS_", url)
+
+
+@ddt.ddt
+class SwiftAccountTests(SwiftTestBase):
+    """
+    Swift Account Tests.
+    """
+
+    @ddt.data(
+        (0, 0),
+        (1, 0),
+        (2, 5),
+    )
+    @ddt.unpack
+    def test_head_account(self, container_count, object_count):
+        """
+        Validate that Heading an account reports the correct data.
+        """
+        # Add containers and objects per parameters
+        for container_index in range(container_count):
+            container_uri = (
+                self.swift_uri +
+                "/container{0}".format(container_index))
+            self.put_container(container_path=container_uri)
+
+            for object_index in range(object_count):
+                object_uri = (
+                    container_uri +
+                    "/object{0}".format(object_index))
+                self.put_object(object_path=object_uri)
+
+        # now try to head the account
+        head_response, head_content = self.head_account()
+
+        total_objects = object_count * container_count
+        total_bytes = total_objects * self.object_size
+
+        # validate the headers
+        self.assertEqual(
+            head_response.headers.getRawHeaders(
+                b"X-Account-Container-Count")[0],
+                "{0}".format(container_count).encode("utf-8"))
+        self.assertEqual(
+            head_response.headers.getRawHeaders(
+                b"X-Account-Object-Count")[0],
+                "{0}".format(total_objects).encode("utf-8"))
+        self.assertEqual(
+            head_response.headers.getRawHeaders(
+                b"X-Account-Bytes-Used")[0],
+                "{0}".format(total_bytes).encode("utf-8"))
 
 
 class SwiftContainerTests(SwiftTestBase):
