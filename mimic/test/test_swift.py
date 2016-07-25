@@ -85,6 +85,23 @@ class SwiftTestBase(SynchronousTestCase):
 
         return (container_response, container_contents)
 
+    def post_account(self, expected_result=204, with_body=True, headers=None):
+        """
+        POST an account - create metadata on an account
+        """
+        container_response = self.successResultOf(
+            request(self, self.root, b"POST", self.swift_uri, headers=headers)
+        )
+        self.assertEqual(container_response.code, expected_result)
+
+        container_contents = None
+        if with_body:
+            container_contents = self.successResultOf(
+                treq.content(container_response)
+            )
+
+        return (container_response, container_contents)
+
     def put_container(self, container_path=None, expected_result=201):
         """
         PUT a container - create a container
@@ -311,15 +328,44 @@ class SwiftAccountTests(SwiftTestBase):
         self.assertEqual(
             head_response.headers.getRawHeaders(
                 b"X-Account-Container-Count")[0],
-                "{0}".format(container_count).encode("utf-8"))
+            "{0}".format(container_count).encode("utf-8"))
         self.assertEqual(
             head_response.headers.getRawHeaders(
                 b"X-Account-Object-Count")[0],
-                "{0}".format(total_objects).encode("utf-8"))
+            "{0}".format(total_objects).encode("utf-8"))
         self.assertEqual(
             head_response.headers.getRawHeaders(
                 b"X-Account-Bytes-Used")[0],
-                "{0}".format(total_bytes).encode("utf-8"))
+            "{0}".format(total_bytes).encode("utf-8"))
+
+    @ddt.data(
+        True,
+        False
+    )
+    def test_post_account_metadata(self, post_metadata):
+        """
+        """
+        headers = None
+        if post_metadata:
+            headers = {
+                b"X-Account-Meta-MockTest": [b"HelloWorld"],
+                b"x-account-meta-field": [b"WorldWide"]
+            }
+
+        post_response, post_content = self.post_account(headers=headers)
+
+        # validate via a HEAD operation
+        head_response, head_content = self.head_account()
+
+        if headers is not None:
+            for k, v in headers.items():
+                self.assertEqual(
+                    head_response.headers.getRawHeaders(k),
+                    v)
+        else:
+            for k, _ in head_response.headers.getAllRawHeaders():
+                key = k.decode("utf-8").lower()
+                self.assertFalse(key.startswith("x-account-meta-"))
 
 
 class SwiftContainerTests(SwiftTestBase):
