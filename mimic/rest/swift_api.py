@@ -19,8 +19,21 @@ from twisted.web.http import CREATED, ACCEPTED, OK
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.rest.mimicapp import MimicApp
-from twisted.web.resource import NoResource
+from twisted.web.http import CONFLICT
+from twisted.web.resource import ErrorPage, NoResource
 from zope.interface import implementer
+
+
+class Conlict(ErrorPage):
+    """
+    HTTP 409 Conflict
+    """
+
+    def __init__(self, message="Sorry, Conflict prevents operation"):
+        """
+        Construct an object that will return an HTTP 409 Conflict message.
+        """
+        ErrorPage.__init__(self, CONFLICT, "Conflict", message)
 
 
 def normal_tenant_id_to_crazy_mosso_id(normal_tenant_id):
@@ -112,7 +125,19 @@ class Object(object):
     """
     name = attr.ib()
     content_type = attr.ib()
+    content_encoding = attr.ib()
+    etag = attr.ib()
+    object_manifest = attr.ib()
+    object_meta_name = attr.ib()
+
     data = attr.ib()
+
+    @property
+    def length(self):
+        """
+        Return the length of the data
+        """
+        return len(self.data)
 
     def as_json(self):
         """
@@ -122,7 +147,7 @@ class Object(object):
         return {
             "name": self.name,
             "content_type": self.content_type,
-            "bytes": len(self.data),
+            "bytes": self.length,
         }
 
 
@@ -133,6 +158,23 @@ class Container(object):
     """
     name = attr.ib()
     objects = attr.ib(default=attr.Factory(dict))
+
+    @property
+    def object_count(self):
+        """
+        Return the number of objects in the container
+        """
+        return len(self.objects)
+
+    @property
+    def byte_count(self):
+        """
+        Return the sum of data of all the objects in the container
+        """
+        byte_count = 0
+        for obj in self.objects.values():
+            byte_count += obj.length
+        return byte_count
 
 
 class SwiftTenantInRegion(object):
@@ -162,6 +204,27 @@ class SwiftTenantInRegion(object):
             request.setResponseCode(ACCEPTED)
         return b""
 
+    @app.route("/<string:container_name>", methods=["HEAD"])
+    def head_container(self, request, container_name):
+        """
+        Api call to get the meta-data regarding a container
+        """
+        if container_name in self.containers:
+            container = self.containers[container_name]
+            object_count = "{0}".format(container.object_count).encode("utf-8")
+            byte_count = "{0}".format(container.byte_count).encode("utf-8")
+            request.responseHeaders.setRawHeaders(b"content-type",
+                                                  [b"application/json"])
+            request.responseHeaders.setRawHeaders(b"x-container-object-count",
+                                                  [object_count])
+            request.responseHeaders.setRawHeaders(b"x-container-bytes-used",
+                                                  [byte_count])
+            request.setResponseCode(204)
+            return b""
+
+        else:
+            return NoResource("No such container")
+
     @app.route("/<string:container_name>", methods=["GET"])
     def get_container(self, request, container_name):
         """
@@ -169,40 +232,156 @@ class SwiftTenantInRegion(object):
         status code of 200 when such a container exists, 404 if not.
         """
         if container_name in self.containers:
+            container = self.containers[container_name]
+            object_count = "{0}".format(container.object_count).encode("utf-8")
+            byte_count = "{0}".format(container.byte_count).encode("utf-8")
             request.responseHeaders.setRawHeaders(b"content-type",
                                                   [b"application/json"])
             request.responseHeaders.setRawHeaders(b"x-container-object-count",
-                                                  [b"0"])
+                                                  [object_count])
             request.responseHeaders.setRawHeaders(b"x-container-bytes-used",
-                                                  [b"0"])
+                                                  [byte_count])
             request.setResponseCode(OK)
             return dumps([
                 obj.as_json() for obj in
                 self.containers[container_name].objects.values()
             ])
         else:
-            return NoResource()
+            return NoResource("No such container")
 
-    @app.route("/<string:container_name>/<string:object_name>",
+    @app.route("/<string:container_name>", methods=["DELETE"])
+    def delete_container(self, request, container_name):
+        """
+        Api call to remove a container
+        """
+        if container_name in self.containers:
+            if len(self.containers[container_name].objects) == 0:
+                del self.containers[container_name]
+
+                request.setResponseCode(204)
+                return b""
+
+            else:
+                return Conlict("Container not empty")
+
+        else:
+            return NoResource("No such container")
+
+    @app.route("/<string:container_name>/<path:object_name>",
+               methods=["HEAD"])
+    def head_object(self, request, container_name, object_name):
+        """
+        Get an object from a container.
+        """
+        if container_name in self.containers:
+            container = self.containers[container_name]
+            if object_name in container.objects:
+                obj = container.objects[object_name]
+
+                def set_header_if_not_none(header_key, obj_value):
+                    if obj_value is not None:
+                        request.responseHeaders.setRawHeaders(
+                            header_key, [obj_value.encode("ascii")])
+
+                set_header_if_not_none(
+                    b"content-type",
+                    obj.content_type if obj.content_type is not None else
+                    u"application/octet-stream")
+                set_header_if_not_none(b"content-encoding", obj.content_encoding)
+                set_header_if_not_none(b"etag", obj.etag)
+                set_header_if_not_none(b"x-object-manifest", obj.object_manifest)
+                set_header_if_not_none(b"x-object-meta-name", obj.object_meta_name)
+
+                # return 200 since it actually "touches" the object
+                # while non-standard, this is how the Swift API works :(
+                request.setResponseCode(200)
+                return b""
+            else:
+                return NoResource("No such object in container")
+        else:
+            return NoResource("No such container")
+
+    @app.route("/<string:container_name>/<path:object_name>",
                methods=["GET"])
     def get_object(self, request, container_name, object_name):
         """
         Get an object from a container.
         """
-        return self.containers[container_name].objects[object_name].data
+        if container_name in self.containers:
+            container = self.containers[container_name]
+            if object_name in container.objects:
+                obj = container.objects[object_name]
 
-    @app.route("/<string:container_name>/<string:object_name>",
+                def set_header_if_not_none(header_key, obj_value):
+                    if obj_value is not None:
+                        request.responseHeaders.setRawHeaders(
+                            header_key, [obj_value.encode("ascii")])
+
+                set_header_if_not_none(
+                    b"content-type",
+                    obj.content_type if obj.content_type is not None else
+                    u"application/octet-stream")
+                set_header_if_not_none(b"content-encoding", obj.content_encoding)
+                set_header_if_not_none(b"etag", obj.etag)
+                set_header_if_not_none(b"x-object-manifest", obj.object_manifest)
+                set_header_if_not_none(b"x-object-meta-name", obj.object_meta_name)
+
+                request.setResponseCode(200)
+                return container.objects[object_name].data
+            else:
+                return NoResource("No such object in container")
+        else:
+            return NoResource("No such container")
+
+    @app.route("/<string:container_name>/<path:object_name>",
                methods=["PUT"])
     def put_object(self, request, container_name, object_name):
         """
         Create or update an object in a container.
         """
-        request.setResponseCode(201)
-        container = self.containers[container_name]
-        content_type = (request.requestHeaders
-                        .getRawHeaders(b'content-type')[0].decode("ascii"))
-        container.objects[object_name] = Object(
-            name=object_name, data=request.content.read(),
-            content_type=content_type
-        )
-        return b''
+        if container_name in self.containers:
+            container = self.containers[container_name]
+
+            def get_header_value(header_key):
+                value = request.requestHeaders.getRawHeaders(header_key)
+                if value is not None:
+                    return value[0].decode("ascii")
+                else:
+                    return None
+
+            content_type = get_header_value(b"content-type")
+            content_encoding = get_header_value(b"content-encoding")
+            etag = get_header_value(b"etag")
+            object_manifest = get_header_value(b"x-object-manifest")
+            object_meta_name = get_header_value(b"x-object-meta-name")
+
+            container.objects[object_name] = Object(
+                name=object_name,
+                content_encoding=content_encoding,
+                content_type=content_type,
+                etag=etag,
+                object_manifest=object_manifest,
+                object_meta_name=object_meta_name,
+                data=request.content.read()
+            )
+            request.setResponseCode(201)
+            return b""
+        else:
+            return NoResource("No such container")
+
+    @app.route("/<string:container_name>/<path:object_name>",
+               methods=["DELETE"])
+    def delete_object(self, request, container_name, object_name):
+        """
+        Delete an object in a container.
+        """
+        if container_name in self.containers:
+            container = self.containers[container_name]
+            if object_name in container.objects:
+                del container.objects[object_name]
+                request.setResponseCode(204)
+                return b""
+            else:
+                return NoResource("No such object in container")
+        else:
+            return NoResource("No such container")
