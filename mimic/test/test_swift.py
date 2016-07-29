@@ -303,7 +303,8 @@ class SwiftAccountTests(SwiftTestBase):
     @ddt.unpack
     def test_head_account(self, container_count, object_count):
         """
-        Validate that Heading an account reports the correct data.
+        HEADing an account correctly reports the container count,
+        object count, and number of bytes used.
         """
         # Add containers and objects per parameters
         for container_index in range(container_count):
@@ -344,9 +345,17 @@ class SwiftAccountTests(SwiftTestBase):
     )
     def test_post_account_metadata(self, post_metadata):
         """
+        POSTing an account correctly saves metadata to the account.
+
+        :param bool post_metadata: whether or not to include metadata
+            in the POST request.
+
+        Note: uses HEAD to verify the data was saved.
         """
         headers = None
         if post_metadata:
+            # Add customer headers that should be returne in the HEAD
+            # operation.
             headers = {
                 b"X-Account-Meta-MockTest": [b"HelloWorld"],
                 b"x-account-meta-field": [b"WorldWide"]
@@ -358,11 +367,15 @@ class SwiftAccountTests(SwiftTestBase):
         head_response, head_content = self.head_account()
 
         if headers is not None:
+            # Verify each header that was posted to the account was
+            # returned in the HEAD request.
             for k, v in headers.items():
                 self.assertEqual(
                     head_response.headers.getRawHeaders(k),
                     v)
         else:
+            # Verify that there are no headers present that start with
+            # the magic prefix of X-Account-Meta-
             for k, _ in head_response.headers.getAllRawHeaders():
                 key = k.decode("utf-8").lower()
                 self.assertFalse(key.startswith("x-account-meta-"))
@@ -405,6 +418,7 @@ class SwiftContainerTests(SwiftTestBase):
 
     def test_delete_container_non_empty(self):
         """
+        DELETE'ing a non-empty container returns 409 Conflict.
         """
         # create a container
         self.put_container()
