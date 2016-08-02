@@ -14,4 +14,4 @@ six==1.10.0
 snowballstemmer==1.2.1
 Sphinx==1.4.5
 sphinx-rtd-theme==0.1.9
-stevedore==1.16.0
+stevedore==1.17.0
