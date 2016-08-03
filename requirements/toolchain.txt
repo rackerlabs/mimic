@@ -2,7 +2,7 @@
 
 detox==0.10.0
 eventlet==0.19.0
-greenlet==0.4.9
+greenlet==0.4.10
 pluggy==0.3.1
 py==1.4.31
 tox==2.3.1
