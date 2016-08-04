@@ -190,6 +190,51 @@ class SwiftTenantInRegion(object):
         Initialize a tenant with some containers.
         """
         self.containers = {}
+        self.metadata = {}
+
+    @app.route("/", methods=["POST"])
+    def create_account_metadata(self, request):
+        """
+        Save the meta-data
+        """
+        for k, v in request.requestHeaders.getAllRawHeaders():
+            key = k.decode("utf-8")
+            key_compare = key.lower()
+            if key_compare.startswith("x-account-meta-"):
+                metakey_name = key[len("x-account-meta-"):]
+                self.metadata[metakey_name] = v
+        request.setResponseCode(204)
+        return b""
+
+    @app.route("/", methods=["HEAD"])
+    def head_account(self, request):
+        """
+        Api call to get the meta-data regarding all containers for a tenant
+        """
+        total_containers = len(self.containers)
+        total_objects = 0
+        total_bytes = 0
+        for container in self.containers.values():
+            total_objects += container.object_count
+            total_bytes += container.byte_count
+        container_count = "{0}".format(total_containers).encode("utf-8")
+        object_count = "{0}".format(total_objects).encode("utf-8")
+        byte_count = "{0}".format(total_bytes).encode("utf-8")
+        request.responseHeaders.setRawHeaders(b"content-type",
+                                              [b"application/json"])
+        request.responseHeaders.setRawHeaders(b"x-account-container-count",
+                                              [container_count])
+        request.responseHeaders.setRawHeaders(b"x-account-object-count",
+                                              [object_count])
+        request.responseHeaders.setRawHeaders(b"x-account-bytes-used",
+                                              [byte_count])
+        for k, v in self.metadata.items():
+            request.responseHeaders.setRawHeaders(
+                "X-Account-Meta-{0}".format(k).encode("utf-8"),
+                v)
+
+        request.setResponseCode(204)
+        return b""
 
     @app.route("/<string:container_name>", methods=["PUT"])
     def create_container(self, request, container_name):
