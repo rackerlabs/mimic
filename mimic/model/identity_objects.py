@@ -346,8 +346,8 @@ class ExternalApiStore(object):
         List the tenant specific endpoints.
 
         :param text_type tenant_id: tenant id to operate on
-        :returns: an iterable of the endpoints available for the specified
-            tenant id
+        :returns: an iterable of the endpoint templates available for the
+            specified tenant id
         """
         # List of template IDs that should be provided for a template
         # regardless of the enabled/disabled status of the template itself

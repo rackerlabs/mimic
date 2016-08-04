@@ -17,7 +17,7 @@ from mimic.plugins import (nova_plugin, loadbalancer_plugin, swift_plugin,
                            glance_plugin, cloudfeeds_plugin, heat_plugin,
                            neutron_plugin, dns_plugin, cinder_plugin)
 from mimic.test.dummy import (
-    ExampleEndpointTemplate,
+    exampleEndpointTemplate,
     make_example_internal_api,
     make_example_external_api
 )
@@ -508,9 +508,9 @@ class CoreApiBuildingTests(SynchronousTestCase):
         )
         eeapi2_name = "alternate-external-api"
         eeapi2_template_id = u"uuid-alternate-endpoint-template"
-        eeapi2_template = ExampleEndpointTemplate(
+        eeapi2_template = exampleEndpointTemplate(
             name=eeapi2_name,
-            uuid=eeapi2_template_id,
+            endpoint_uuid=eeapi2_template_id,
             region=u"NEW_REGION",
             url=u"https://api.new_region.example.com:9090"
         )

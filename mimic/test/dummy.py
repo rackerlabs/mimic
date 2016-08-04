@@ -101,12 +101,12 @@ class ExampleDomainAPI(object):
         return example_resource
 
 
-def ExampleEndpointTemplate(name=u"example", region="EXTERNAL", version="v1",
+def exampleEndpointTemplate(name=u"example", region="EXTERNAL", version="v1",
                             url="https://api.external.example.com:8080",
                             public_url=None, internal_url=None, admin_url=None,
                             version_info_url=None, version_list_url=None,
                             type_id=u"example", enabled=False,
-                            uuid=text_type(uuid.uuid4()),
+                            endpoint_uuid=None,
                             tenantid_alias="%tenant_id%"):
     """
     Create an instance of the :obj:`EndpointTemplateStore` in a usable form for
@@ -129,7 +129,8 @@ def ExampleEndpointTemplate(name=u"example", region="EXTERNAL", version="v1",
     :param boolean enabled: whether or not the service is enabled
         for all users. Services can be disabled for all tenants but still
         be enabled on a per-tenant basis.
-    :param text_type uuid: unique ID for the endpoint within the service.
+    :param text_type endpoint_uuid: unique ID for the endpoint within the
+        service.
     :param text_type tenantid_alias: by default the system uses the text
         '%tenant_id%' for what to replace in the URLs with the tenantid.
         This value allows the service adminstrator to use a different
@@ -138,24 +139,25 @@ def ExampleEndpointTemplate(name=u"example", region="EXTERNAL", version="v1",
         simply uses the URLs as is for externally hosted services.
     :rtype: :obj:`EndpointTemplateStore`
     """
-    epts = EndpointTemplateStore()
-    epts.id_key = uuid
-    epts.region_key = region
-    epts.type_key = type_id
-    epts.name_key = name
-    epts.enabled_key = enabled
-    epts.public_url = public_url if public_url is not None else url
-    epts.internal_url = internal_url if internal_url is not None else url
-    epts.admin_url = admin_url if admin_url is not None else url
-    epts.tenant_alias = tenantid_alias
-    epts.version_id = version
-    epts.version_info = (version_info_url
-                         if version_info_url is not None
-                         else url + '/versionInfo')
-    epts.version_list = (version_list_url
-                         if version_list_url is not None
-                         else url + '/versions')
-    return epts
+    return EndpointTemplateStore(
+        id_key=(endpoint_uuid
+                if endpoint_uuid is not None
+                else text_type(uuid.uuid4())),
+        region_key=region,
+        type_key=type_id,
+        name_key=name,
+        enabled_key=enabled,
+        public_url=public_url if public_url is not None else url,
+        internal_url=internal_url if internal_url is not None else url,
+        admin_url=admin_url if admin_url is not None else url,
+        tenant_alias=tenantid_alias,
+        version_id=version,
+        version_info=(version_info_url
+                      if version_info_url is not None
+                      else url + '/versionInfo'),
+        version_list=(version_list_url
+                      if version_list_url is not None
+                      else url + '/versions'))
 
 
 def make_example_internal_api(case, response_message="default message",
@@ -199,7 +201,7 @@ def make_example_external_api(case, name=u"example",
         endpoint templates.
     """
     if endpoint_templates is None:
-        endpoint_templates = [ExampleEndpointTemplate()]
+        endpoint_templates = [exampleEndpointTemplate()]
         # if service type was specified then set it in order
         # to satisfy the check in the loop below
         if service_type is not None:

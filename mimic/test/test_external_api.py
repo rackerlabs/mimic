@@ -6,7 +6,7 @@ from twisted.trial.unittest import SynchronousTestCase
 
 from mimic.imimic import IExternalAPIMock
 from mimic.test.dummy import (
-    ExampleEndpointTemplate,
+    exampleEndpointTemplate,
     make_example_internal_api,
     make_example_external_api
 )
@@ -111,9 +111,9 @@ class TestTenantSpecificAPIs(SynchronousTestCase):
     def setUp(self):
         self.eeapi_name = u"externalServiceName"
         self.eeapi_template_id = u"uuid-endpoint-template"
-        self.eeapi_template = ExampleEndpointTemplate(
+        self.eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
-            uuid=self.eeapi_template_id
+            endpoint_uuid=self.eeapi_template_id
         )
         self.eeapi = make_example_external_api(
             self,
@@ -175,9 +175,9 @@ class TestTenantSpecificAPIs(SynchronousTestCase):
         new_url = "https://api.new_region.example.com:9090"
         new_region = "NEW_REGION"
         new_eeapi_template_id = u"uuid-alternate-endpoint-template"
-        new_eeapi_template = ExampleEndpointTemplate(
+        new_eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
-            uuid=new_eeapi_template_id,
+            endpoint_uuid=new_eeapi_template_id,
             region=new_region,
             url=new_url
         )
@@ -208,9 +208,9 @@ class TestTenantSpecificAPIs(SynchronousTestCase):
         new_url = "https://api.new_region.example.com:9090"
         new_region = "NEW_REGION"
         new_eeapi_template_id = u"uuid-alternate-endpoint-template"
-        new_eeapi_template = ExampleEndpointTemplate(
+        new_eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
-            uuid=new_eeapi_template_id,
+            endpoint_uuid=new_eeapi_template_id,
             region=new_region,
             url=new_url
         )

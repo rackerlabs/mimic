@@ -385,7 +385,8 @@ class IdentityApi(object):
                 impersonator_session.username)
 
         if token_id in get_presets["identity"]["token_fail_to_auth"]:
-            # weird mix between an unauthorized (401) and not_found (404)
+            # This is returning a 401 Unauthorized message but in a 404 not_found
+            # JSON data format. Is there a reason for this? An old OpenStack bug?
             request.setResponseCode(401)
             return json.dumps({'itemNotFound':
                               {'code': 401, 'message': 'Invalid auth token'}})

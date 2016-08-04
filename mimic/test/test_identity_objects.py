@@ -12,7 +12,7 @@ from mimic.model.identity_objects import (
     unauthorized,
 )
 from mimic.test.dummy import (
-    ExampleEndpointTemplate,
+    exampleEndpointTemplate,
     make_example_external_api,
 )
 from mimic.test.helpers import get_template_id
@@ -298,9 +298,9 @@ class EndpointTemplatesTests(SynchronousTestCase):
         Template status is not dependant on whether or not the template is enabled.
         """
         eeapi_template_id = 'some-template-id'
-        eeapi_template = ExampleEndpointTemplate(
+        eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
-            uuid=eeapi_template_id,
+            endpoint_uuid=eeapi_template_id,
         )
         eeapi = make_example_external_api(
             self,
@@ -320,9 +320,9 @@ class EndpointTemplatesTests(SynchronousTestCase):
         """
         tenant_id = 'some-tenant'
         eeapi_template_id = 'some-template-id'
-        eeapi_template = ExampleEndpointTemplate(
+        eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
-            uuid=eeapi_template_id,
+            endpoint_uuid=eeapi_template_id,
         )
         eeapi = make_example_external_api(
             self,
@@ -345,9 +345,9 @@ class EndpointTemplatesTests(SynchronousTestCase):
         """
         tenant_id = 'some-tenant'
         eeapi_template_id = 'some-template-id'
-        eeapi_template = ExampleEndpointTemplate(
+        eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
-            uuid=eeapi_template_id,
+            endpoint_uuid=eeapi_template_id,
         )
         eeapi = make_example_external_api(
             self,
@@ -391,9 +391,9 @@ class EndpointTemplatesTests(SynchronousTestCase):
         new_url = "https://api.new_region.example.com:9090"
         new_region = "NEW_REGION"
         new_eeapi_template_id = u"uuid-alternate-endpoint-template"
-        new_eeapi_template = ExampleEndpointTemplate(
+        new_eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
-            uuid=new_eeapi_template_id,
+            endpoint_uuid=new_eeapi_template_id,
             region=new_region,
             url=new_url
         )
@@ -417,9 +417,9 @@ class EndpointTemplatesTests(SynchronousTestCase):
         new_url = "https://api.new_region.example.com:9090"
         new_region = "NEW_REGION"
         new_eeapi_template_id = u"uuid-alternate-endpoint-template"
-        new_eeapi_template = ExampleEndpointTemplate(
+        new_eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
-            uuid=new_eeapi_template_id,
+            endpoint_uuid=new_eeapi_template_id,
             region=new_region,
             url=new_url
         )
@@ -454,14 +454,14 @@ class EndpointTemplatesTests(SynchronousTestCase):
 
         new_url = "https://api.new_region.example.com:9090"
         new_region = "NEW_REGION"
-        old_eeapi_template = ExampleEndpointTemplate(
+        old_eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
-            uuid=eeapi_template_id,
+            endpoint_uuid=eeapi_template_id,
             region=new_region,
         )
-        new_eeapi_template = ExampleEndpointTemplate(
+        new_eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
-            uuid=eeapi_template_id,
+            endpoint_uuid=eeapi_template_id,
             region=new_region,
             url=new_url
         )
@@ -487,9 +487,9 @@ class EndpointTemplatesTests(SynchronousTestCase):
         new_url = "https://api.new_region.example.com:9090"
         new_region = "NEW_REGION"
         new_eeapi_template_id = u"uuid-alternate-endpoint-template"
-        new_eeapi_template = ExampleEndpointTemplate(
+        new_eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
-            uuid=new_eeapi_template_id,
+            endpoint_uuid=new_eeapi_template_id,
             region=new_region,
             url=new_url
         )
@@ -515,9 +515,9 @@ class EndpointTemplatesTests(SynchronousTestCase):
             name=self.eeapi_name,
             set_enabled=True,
         )
-        new_eeapi_template = ExampleEndpointTemplate(
+        new_eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
-            uuid=get_template_id(self, eeapi),
+            endpoint_uuid=get_template_id(self, eeapi),
             region=new_region,
             url=new_url
         )
@@ -541,9 +541,9 @@ class EndpointTemplatesTests(SynchronousTestCase):
         )
         old_eeapi_template_id = get_template_id(self, eeapi)
         new_eeapi_template_id = u"uuid-alternate-endpoint-template"
-        new_eeapi_template = ExampleEndpointTemplate(
+        new_eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
-            uuid=old_eeapi_template_id,
+            endpoint_uuid=old_eeapi_template_id,
             region=new_region,
             url=new_url
         )
@@ -587,9 +587,9 @@ class EndpointTemplatesTests(SynchronousTestCase):
         eeapi_template = None
         if template_is_valid:
             eeapi_template = [
-                ExampleEndpointTemplate(
+                exampleEndpointTemplate(
                     name=self.eeapi_name,
-                    uuid=eeapi_template_id
+                    endpoint_uuid=eeapi_template_id
                 )
             ]
         eeapi = make_example_external_api(
@@ -613,9 +613,9 @@ class EndpointTemplatesTests(SynchronousTestCase):
         for a specific tenant.
         """
         eeapi_template_id = u"uuid-alternate-endpoint-template"
-        eeapi_template = ExampleEndpointTemplate(
+        eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
-            uuid=eeapi_template_id
+            endpoint_uuid=eeapi_template_id
         )
         eeapi = make_example_external_api(
             self,
@@ -639,13 +639,13 @@ class EndpointTemplatesTests(SynchronousTestCase):
         """
         eeapi_template_id = u"uuid-alternate-endpoint-template"
         alternate_eeapi_template_id = u"uuid-alternate-endpoint-template-alt"
-        eeapi_template = ExampleEndpointTemplate(
+        eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
-            uuid=eeapi_template_id
+            endpoint_uuid=eeapi_template_id
         )
-        alternate_eeapi_template = ExampleEndpointTemplate(
+        alternate_eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
-            uuid=alternate_eeapi_template_id
+            endpoint_uuid=alternate_eeapi_template_id
         )
         eeapi = make_example_external_api(
             self,
@@ -721,9 +721,9 @@ class EndpointsForTenantsTests(SynchronousTestCase):
         new_url = "https://api.new_region.example.com:9090"
         new_region = "NEW_REGION"
         new_eeapi_template_id = u"uuid-alternate-endpoint-template"
-        new_eeapi_template = ExampleEndpointTemplate(
+        new_eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
-            uuid=new_eeapi_template_id,
+            endpoint_uuid=new_eeapi_template_id,
             region=new_region,
             url=new_url
         )
