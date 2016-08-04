@@ -6,6 +6,7 @@ attrs==16.0.0
 cffi==1.7.0
 coverage==4.2
 cryptography==1.4
+ddt==1.1.0
 enum34==1.1.6
 extras==1.0.0
 idna==2.1
