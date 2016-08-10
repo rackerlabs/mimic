@@ -42,7 +42,7 @@ if [[ "${TOXENV}" == "pypy" ]]; then
 
         # Set up build environment so we can create Cryptography wheels if
         # necessary.
-        local kegpath="$(brew --prefix)/opt/openssl";
+        kegpath="$(brew --prefix)/opt/openssl";
         export LDFLAGS="-L${kegpath}/lib $LDFLAGS";
         export CPPFLAGS="-I${kegpath}/include $CPPFLAGS";
         export CFLAGS="${LDFLAGS} ${CPPFLAGS} ${CFLAGS}";
