@@ -29,6 +29,9 @@ from mimic.model.identity import (
     ImpersonationCredentials,
     PasswordCredentials,
     TokenCredentials)
+from mimic.model.identity_objects import (
+    not_found,
+)
 from mimic.rest.mimicapp import MimicApp
 from mimic.session import NonMatchingTenantError
 from mimic.util.helper import (
@@ -318,9 +321,9 @@ class IdentityApi(object):
             return json.dumps({'RAX-KSKEY:apiKeyCredentials': {'username': username,
                                                                'apiKey': apikey}})
         else:
-            request.setResponseCode(404)
-            return json.dumps({'itemNotFound':
-                              {'code': 404, 'message': 'User ' + user_id + ' not found'}})
+            return json.dumps(not_found(
+                              'User ' + user_id + ' not found',
+                              request))
 
     @app.route('/v2.0/RAX-AUTH/impersonation-tokens', methods=['POST'])
     def get_impersonation_token(self, request):
@@ -382,6 +385,8 @@ class IdentityApi(object):
                 impersonator_session.username)
 
         if token_id in get_presets["identity"]["token_fail_to_auth"]:
+            # This is returning a 401 Unauthorized message but in a 404 not_found
+            # JSON data format. Is there a reason for this? An old OpenStack bug?
             request.setResponseCode(401)
             return json.dumps({'itemNotFound':
                               {'code': 401, 'message': 'Invalid auth token'}})

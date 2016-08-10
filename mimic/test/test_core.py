@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, unicode_literals
 
 import sys
+import uuid
 
 from zope.interface import implementer
 
@@ -16,7 +17,7 @@ from mimic.plugins import (nova_plugin, loadbalancer_plugin, swift_plugin,
                            glance_plugin, cloudfeeds_plugin, heat_plugin,
                            neutron_plugin, dns_plugin, cinder_plugin)
 from mimic.test.dummy import (
-    ExampleEndpointTemplate,
+    exampleEndpointTemplate,
     make_example_internal_api,
     make_example_external_api
 )
@@ -141,6 +142,110 @@ class CoreApiBuildingTests(SynchronousTestCase):
         with self.assertRaises(TypeError):
             MimicCore(Clock(), [brokenApiMock()])
 
+    def test_load_duplicate_api_uuid(self):
+        """
+        Adding an API with the same UUID as an existing API will generate a
+        ValueError exception.
+        """
+        eeapi = make_example_external_api(
+            self,
+            name=self.eeapi_name,
+        )
+        eeapi2 = make_example_external_api(
+            self,
+            name="alternate " + self.eeapi_name
+        )
+        eeapi2.uuid_key = eeapi.uuid_key
+
+        with self.assertRaises(ValueError):
+            MimicCore(Clock(), [eeapi, eeapi2])
+
+    def test_load_duplicate_api_name(self):
+        """
+        Adding an API with the same Name as an existing API will generate a
+        ValueError exception.
+        """
+        eeapi = make_example_external_api(
+            self,
+            name=self.eeapi_name,
+        )
+        eeapi2 = make_example_external_api(
+            self,
+            name=self.eeapi_name
+        )
+        # Note: make_example_external_api makes the UUID
+        # to be uuid-<name> so we need to change it for eeapi2
+        eeapi2.uuid_key = str(uuid.uuid4())
+
+        with self.assertRaises(ValueError):
+            MimicCore(Clock(), [eeapi, eeapi2])
+
+    def test_remove_api(self):
+        """
+        Removing an API.
+        """
+        eeapi = make_example_external_api(
+            self,
+            name=self.eeapi_name,
+            set_enabled=True
+        )
+        self.assertIsNotNone(eeapi)
+
+        template_ids = [ept.id_key for ept in eeapi.list_templates()]
+        for template_id in template_ids:
+            eeapi.remove_template(template_id)
+
+        core = MimicCore(Clock(), [eeapi])
+        core.remove_external_api(
+            eeapi.uuid_key
+        )
+
+    def test_remove_api_invalid(self):
+        """
+        Validate API removal fails when it does not find the
+        api name in the listing
+        """
+        core = MimicCore(Clock(), [])
+        with self.assertRaises(IndexError):
+            core.remove_external_api(
+                'some-id'
+            )
+
+    def test_remove_api_with_endpoints(self):
+        """
+        Validate an API cannot be removed if it still has
+        endpoints assigned to it
+        """
+        eeapi = make_example_external_api(
+            self,
+            name=self.eeapi_name,
+            set_enabled=True
+        )
+        self.assertIsNotNone(eeapi)
+        core = MimicCore(Clock(), [eeapi])
+        with self.assertRaises(ValueError):
+            core.remove_external_api(
+                eeapi.uuid_key
+            )
+
+    def test_get_external_apis(self):
+        """
+        Validate retrieving the list of external APIs
+        """
+        eeapi = make_example_external_api(
+            self,
+            name=self.eeapi_name,
+            set_enabled=True
+        )
+
+        core = MimicCore(Clock(), [])
+        self.assertEqual(len(core.get_external_apis()), 0)
+
+        core.add_api(eeapi)
+        api_list = core.get_external_apis()
+        self.assertEqual(len(api_list), 1)
+        self.assertEqual(list(api_list), [eeapi.uuid_key])
+
     def test_get_external_api(self):
         """
         Validate retrieving an external API.
@@ -153,7 +258,7 @@ class CoreApiBuildingTests(SynchronousTestCase):
 
         core = MimicCore(Clock(), [eeapi])
         api_from_core = core.get_external_api(
-            self.eeapi_name
+            eeapi.uuid_key
         )
         self.assertEqual(eeapi, api_from_core)
 
@@ -267,6 +372,54 @@ class CoreApiBuildingTests(SynchronousTestCase):
         self.assertEqual(catalog_entries[0].tenant_id, "some-tenant")
         self.assertEqual(len(catalog_entries[0].endpoints), 1)
 
+    def test_entries_for_tenant_external_with_tenantid_replacement(self):
+        """
+        Validate that the external API shows up in the service catalog for a
+        given tenant and the tenant id is in the URL.
+        """
+        eeapi = make_example_external_api(
+            self,
+            name=self.eeapi_name,
+            set_enabled=True
+        )
+
+        tenant_id = 'some-tenant-other'
+
+        ept_internal_url = "http://internal.url/v1/" + tenant_id
+        ept_public_url = "http://public.url/v1/" + tenant_id
+        for ept in eeapi.endpoint_templates.values():
+            ept.internal_url = "http://internal.url/v1/%tenant_id%"
+            ept.public_url = "http://public.url/v1/%tenant_id%"
+
+        core = MimicCore(Clock(), [eeapi])
+
+        prefix_map = {}
+        base_uri = "http://some/random/prefix"
+        catalog_entries = [
+            entry
+            for entry in core.entries_for_tenant(
+                tenant_id,
+                prefix_map,
+                base_uri
+            )
+        ]
+
+        self.assertEqual(len(core._uuid_to_api_internal), 0)
+        self.assertEqual(len(core._uuid_to_api_external), 1)
+        self.assertEqual(len(catalog_entries), 1)
+        self.assertEqual(catalog_entries[0].type, eeapi.type_key)
+        self.assertEqual(catalog_entries[0].name, eeapi.name_key)
+        self.assertEqual(catalog_entries[0].tenant_id, tenant_id)
+        self.assertEqual(len(catalog_entries[0].endpoints), 1)
+        self.assertEqual(
+            catalog_entries[0].endpoints[0].internal_url,
+            ept_internal_url
+        )
+        self.assertEqual(
+            catalog_entries[0].endpoints[0].complete_url,
+            ept_public_url
+        )
+
     def test_entries_for_tenant_internal(self):
         """
         Validate that the internal API shows up in the service catalog for a
@@ -355,9 +508,9 @@ class CoreApiBuildingTests(SynchronousTestCase):
         )
         eeapi2_name = "alternate-external-api"
         eeapi2_template_id = u"uuid-alternate-endpoint-template"
-        eeapi2_template = ExampleEndpointTemplate(
+        eeapi2_template = exampleEndpointTemplate(
             name=eeapi2_name,
-            uuid=eeapi2_template_id,
+            endpoint_uuid=eeapi2_template_id,
             region=u"NEW_REGION",
             url=u"https://api.new_region.example.com:9090"
         )

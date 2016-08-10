@@ -6,7 +6,7 @@ from twisted.trial.unittest import SynchronousTestCase
 
 from mimic.imimic import IExternalAPIMock
 from mimic.test.dummy import (
-    ExampleEndpointTemplate,
+    exampleEndpointTemplate,
     make_example_internal_api,
     make_example_external_api
 )
@@ -75,9 +75,32 @@ class TestExternalApiMock(SynchronousTestCase):
         tenant_data = TenantAuthentication(self, self.root, "other", "other")
         service_endpoint = tenant_data.get_service_endpoint(
             "externalServiceName", "EXTERNAL")
-        self.assertTrue(
-            service_endpoint.startswith(
-                'https://api.external.example.com:8080'))
+        self.assertEqual(
+            service_endpoint,
+            'https://api.external.example.com:8080'
+        )
+
+    def test_external_api_mock_in_service_catalog_with_tenantid(self):
+        """
+        validate that the external API shows up in the service catalog
+        when enabled globally and taht the tenantid will be properly
+        in the URL.
+        """
+        for ept in self.eeapi.endpoint_templates.values():
+            ept.internal_url = "http://internal.url/v1/%tenant_id%"
+            ept.public_url = "http://public.url/v1/%tenant_id%"
+
+        tenant_data = TenantAuthentication(self, self.root, "other", "other")
+
+        ept_public_url = (
+            "http://public.url/v1/" + tenant_data.get_tenant_id()
+        )
+        service_endpoint = tenant_data.get_service_endpoint(
+            "externalServiceName", "EXTERNAL")
+        self.assertEqual(
+            service_endpoint,
+            ept_public_url
+        )
 
 
 class TestTenantSpecificAPIs(SynchronousTestCase):
@@ -88,9 +111,9 @@ class TestTenantSpecificAPIs(SynchronousTestCase):
     def setUp(self):
         self.eeapi_name = u"externalServiceName"
         self.eeapi_template_id = u"uuid-endpoint-template"
-        self.eeapi_template = ExampleEndpointTemplate(
+        self.eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
-            uuid=self.eeapi_template_id
+            endpoint_uuid=self.eeapi_template_id
         )
         self.eeapi = make_example_external_api(
             self,
@@ -152,9 +175,9 @@ class TestTenantSpecificAPIs(SynchronousTestCase):
         new_url = "https://api.new_region.example.com:9090"
         new_region = "NEW_REGION"
         new_eeapi_template_id = u"uuid-alternate-endpoint-template"
-        new_eeapi_template = ExampleEndpointTemplate(
+        new_eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
-            uuid=new_eeapi_template_id,
+            endpoint_uuid=new_eeapi_template_id,
             region=new_region,
             url=new_url
         )
@@ -185,9 +208,9 @@ class TestTenantSpecificAPIs(SynchronousTestCase):
         new_url = "https://api.new_region.example.com:9090"
         new_region = "NEW_REGION"
         new_eeapi_template_id = u"uuid-alternate-endpoint-template"
-        new_eeapi_template = ExampleEndpointTemplate(
+        new_eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
-            uuid=new_eeapi_template_id,
+            endpoint_uuid=new_eeapi_template_id,
             region=new_region,
             url=new_url
         )

@@ -4,10 +4,17 @@ Model objects for the Identity mimic.
 
 from __future__ import absolute_import, division, unicode_literals
 
+import attr
+
 from zope.interface import implementer
 
 from twisted.plugin import IPlugin
-from twisted.web.http import BAD_REQUEST, FORBIDDEN, NOT_FOUND
+from twisted.web.http import (
+    BAD_REQUEST,
+    CONFLICT,
+    NOT_FOUND,
+    UNAUTHORIZED,
+)
 
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
@@ -49,6 +56,19 @@ def bad_request(message, request):
     return _identity_error_message("badRequest", message, BAD_REQUEST, request)
 
 
+def conflict(message, request):
+    """
+    Return a 409 error body associated with a Identity bad request error.
+    Also sets the response code on the request.
+
+    :param str message: The message to include in the bad request body.
+    :param request: The request on which to set the response code.
+
+    :return: dictionary representing the error body.
+    """
+    return _identity_error_message("conflict", message, CONFLICT, request)
+
+
 def not_found(message, request):
     """
     Return a 404 error body associated with a Identity not found error.
@@ -62,9 +82,9 @@ def not_found(message, request):
     return _identity_error_message("itemNotFound", message, NOT_FOUND, request)
 
 
-def forbidden(message, request):
+def unauthorized(message, request):
     """
-    Return a 403 error body associated with a Identity forbidden error.
+    Return a 401 error body associated with a Identity unauthoriazed error.
     Also sets the response code on the request.
 
     :param str message: The message to include in the bad request body.
@@ -72,7 +92,163 @@ def forbidden(message, request):
 
     :return: dictionary representing the error body.
     """
-    return _identity_error_message("forbidden", message, FORBIDDEN, request)
+    return _identity_error_message("unauthorized", message, UNAUTHORIZED, request)
+
+
+@attr.s
+class MapInfo(object):
+    """
+    Mapping information for Endpoint Template JSON serialization
+    and deserialization capabilities.
+
+    :ivar spec_key: JSON Key in the OpenStack Identity Template Spec
+    :ivar attr_key: Attribute Name of the :obj:`EndpointTemplateStore`
+    :ivar default_value: optional default values
+    """
+    spec_key = attr.ib()
+    attr_name = attr.ib()
+    default_value = attr.ib(default=None)
+
+
+@implementer(IEndpointTemplate, IPlugin)
+@attr.s
+class EndpointTemplateStore(object):
+    """
+    A :obj"`EndpointTemplateStore` is an internal representation of the
+    OSKS-Catalog Extension's Endpoint Template.
+
+    :cvar list required_mapping: list of entries in the template that are
+        required to be present for a valid template
+    :cvar list optional_mapping: list of entries in the template that are
+        optionally present in a valid template, along with a default value.
+    :cvar list tenant_mapping: list of entries in the template that are
+        required to be present for a valid template for a specific
+        tenant
+
+
+    Note: The OpenStack documentation[0] does not specify any required
+        parameters. For this implementation, the `id`, `region`, `type`,
+        and `name` fields are required. The `name` and `type` fields
+        are used for creating an instance of the :obj:`ExternalApiStore`
+        that will enable the listing to be put into the Service Catalog;
+        the `id` and `region` fields are used by the :obj:`ExternalApiStore`
+        for managing the templates.
+
+    `The OpenStack documentation <http://developer.openstack.org/api-ref-identity-v2-ext.html>`
+    """
+
+    required_mapping = [
+        MapInfo(*value) for value in [
+            ('id', 'id_key'),
+            ('region', 'region_key'),
+            ('type', 'type_key'),
+            ('name', 'name_key'),
+        ]
+    ]
+
+    optional_mapping = [
+        MapInfo(*value) for value in [
+            ('enabled', 'enabled_key', False),
+            ('publicURL', 'public_url', u""),
+            ('internalURL', 'internal_url', u""),
+            ('adminURL', 'admin_url', u""),
+            ('RAX-AUTH:tenantAlias', 'tenant_alias', "%tenant_id%"),
+            ('versionId', 'version_id', u""),
+            ('versionInfo', 'version_info', u""),
+            ('versionList', 'version_list', u"")
+        ]
+    ]
+
+    tenant_mapping = [
+        MapInfo(*value) for value in [
+            ('id', 'id_key'),
+            ('region', 'region_key'),
+            ('type', 'type_key'),
+            ('publicURL', 'public_url'),
+            ('internalURL', 'internal_url'),
+            ('adminURL', 'admin_url'),
+        ]
+    ]
+
+    _template_data = attr.ib(default=None)
+    id_key = attr.ib(default=None)
+    region_key = attr.ib(default=None)
+    type_key = attr.ib(default=None)
+    name_key = attr.ib(default=None)
+    enabled_key = attr.ib(default=None)
+    public_url = attr.ib(default=None)
+    internal_url = attr.ib(default=None)
+    admin_url = attr.ib(default=None)
+    tenant_alias = attr.ib(default=None)
+    version_id = attr.ib(default=None)
+    version_info = attr.ib(default=None)
+    version_list = attr.ib(default=None)
+
+    def get_url(self, url, tenant_id):
+        """
+        Apply the tenant_id replacement to the URL.
+
+        :param text_type url: the URL to do the replacement on.
+        :param text_type tenant_id: the tenant-id to insert into the URL.
+        """
+        value_to_replace = self.tenant_alias
+        if value_to_replace is None:
+            value_to_replace = '%tenant_id%'
+
+        return url.replace(value_to_replace, tenant_id)
+
+    def serialize(self, tenant_id=None):
+        """
+        Serialize the endpoint template to a dictionary.
+
+        :param text_type tenant_id: an optional parameter to limit the
+            serialization to only values to a subset for tenant-specific
+            template information.
+        """
+        data = {}
+        if tenant_id is None:
+            for m in self.required_mapping:
+                data[m.spec_key] = getattr(self, m.attr_name)
+
+            for m in self.optional_mapping:
+                value = getattr(self, m.attr_name)
+                if value is not None:
+                    data[m.spec_key] = value
+            return data
+        else:
+            data['tenantId'] = tenant_id
+            for m in self.tenant_mapping:
+                value = getattr(self, m.attr_name)
+                if value is not None:
+                    data[m.spec_key] = value
+            return data
+
+    @classmethod
+    def deserialize(cls, data):
+        """
+        Deserialize the endpoint template from a dictionary.
+
+        :param dict data: a dictionary of values to import the template data
+            from.
+        :rtype: EndpointTemplateStore
+        :returns: instance of :obj:`EndpointTemplateStore` with the
+            instantiated against the template data
+        """
+        epts = cls()
+        epts._template_data = data
+        for m in cls.required_mapping:
+            if m.spec_key not in data:
+                raise KeyError('Missing required value ' + m.spec_key)
+
+            setattr(epts, m.attr_name, data[m.spec_key])
+
+        for m in cls.optional_mapping:
+            value = m.default_value
+            if m.spec_key in data:
+                value = data[m.spec_key]
+            setattr(epts, m.attr_name, value)
+
+        return epts
 
 
 @implementer(IExternalAPIMock, IPlugin)
@@ -93,7 +269,8 @@ class ExternalApiStore(object):
     Work-In-Progress: Implementation is unstable and subject to change.
     """
 
-    def __init__(self, service_uuid, service_name, service_type, api_templates=[]):
+    def __init__(self, service_uuid, service_name, service_type,
+                 api_templates=[], description="External API"):
         """
         Initialize an :obj:`ExternalApiStore` for a given service.
 
@@ -108,6 +285,7 @@ class ExternalApiStore(object):
         self.name_key = service_name
         self.type_key = service_type
         self.uuid_key = service_uuid
+        self.description = description
 
         # Listing of tenant-specific endpoints
         # tenant-id is the key
@@ -151,10 +329,40 @@ class ExternalApiStore(object):
                         endpoint_template.id_key,
                         endpoint_template.version_id,
                         external=True,
-                        complete_url=endpoint_template.public_url
+                        complete_url=endpoint_template.get_url(
+                            endpoint_template.public_url,
+                            tenant_id
+                        ),
+                        internal_url=endpoint_template.get_url(
+                            endpoint_template.internal_url,
+                            tenant_id
+                        )
                     )
                 )
         return endpoints
+
+    def list_tenant_templates(self, tenant_id):
+        """
+        List the tenant specific endpoints.
+
+        :param text_type tenant_id: tenant id to operate on
+        :returns: an iterable of the endpoint templates available for the
+            specified tenant id
+        """
+        # List of template IDs that should be provided for a template
+        # regardless of the enabled/disabled status of the template itself
+        tenant_specific_templates = []
+        if tenant_id in self.endpoints_for_tenants:
+            for template_id in self.endpoints_for_tenants[tenant_id]:
+                tenant_specific_templates.append(template_id)
+
+        # provide an Endpoint Entry for every template that is either
+        # (a) enabled or (b) in the list of endpoints specifically
+        # enabled for the tenant
+        for _, endpoint_template in self.endpoint_templates.items():
+            if (endpoint_template.enabled_key or
+                    endpoint_template.id_key in tenant_specific_templates):
+                yield endpoint_template
 
     def enable_endpoint_for_tenant(self, tenant_id, template_id):
         """
@@ -219,6 +427,9 @@ class ExternalApiStore(object):
             if key in self.endpoint_templates:
                 raise ValueError(key + " already exists. Please call update.")
 
+            if endpoint_template.type_key != self.type_key:
+                raise ValueError("template does not match the service type.")
+
             self.endpoint_templates[key] = endpoint_template
         else:
             raise TypeError(
@@ -246,6 +457,15 @@ class ExternalApiStore(object):
                     "template must first be added before it can be updated"
                 )
 
+            if endpoint_template.type_key != self.type_key:
+                raise ValueError("template does not match the service type.")
+
+            if self.endpoint_templates[key].id_key != endpoint_template.id_key:
+                raise ValueError(
+                    "template id must match the id of the template it is "
+                    "updating"
+                )
+
             self.endpoint_templates[key] = endpoint_template
 
         else:
@@ -254,6 +474,16 @@ class ExternalApiStore(object):
                 endpoint_template.__class__.__name__ +
                 " does not implement IEndpointTemplate"
             )
+
+    def has_template(self, template_id):
+        """
+        Determine whether or not this :obj:`ExternalApiStore` instance owns a
+        template with the id `template_id`.
+        """
+        if template_id in self.endpoint_templates:
+            return True
+
+        return False
 
     def remove_template(self, template_id):
         """

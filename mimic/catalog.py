@@ -23,7 +23,7 @@ class Endpoint(object):
         is external to Mimic.
     """
     def __init__(self, tenant_id, region, endpoint_id, prefix=None,
-                 external=False, complete_url=None):
+                 external=False, complete_url=None, internal_url=None):
         """
         Create an endpoint for a service catalog entry.
         """
@@ -33,6 +33,10 @@ class Endpoint(object):
         self.prefix = prefix
         self.external = external
         self.complete_url = complete_url
+        if internal_url is None:
+            self.internal_url = complete_url
+        else:
+            self.internal_url = internal_url
 
         # Gate Check complete_url
         if self.external and self.complete_url is None:
@@ -40,15 +44,31 @@ class Endpoint(object):
                 'complete_url must be specified when API is external'
             )
 
-    def url_with_prefix(self, uri_prefix):
+    def url_with_prefix(self, uri_prefix, internal_url=False):
         """
         Generate a URL to this endpoint, given the URI prefix for the service.
+
+        :param text_type uri_prefix: prefix to start the URL with, e.g the
+            Request's Base URL
+        :param boolean internal_url: whether or not to provide the Internal or
+            Public URL. If True, provide the internal URL.
+
+        .. note::
+
+            internal_url is only honored by External APIs, e.g `external` is
+            set to `True`. For internally hosted APIs the internal_url and
+            public_url should be the same.
 
         :rtype: unicode
         """
         if self.external and self.complete_url is not None:
-            return self.complete_url
+            if internal_url:
+                return self.internal_url
+            else:
+                return self.complete_url
         else:
+            # internal_url is ignored as anything hosted internally in
+            # mimic will always use the same URL.
             postfix = self.tenant_id
             segments = [uri_prefix.rstrip(u"/")]
             if self.prefix is not None:

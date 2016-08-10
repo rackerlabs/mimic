@@ -53,8 +53,11 @@ class ExampleCatalogEndpoint(object):
         return "{tenant}_{num}".format(tenant=self._tenant,
                                        num=self._num)
 
-    def url_with_prefix(self, prefix):
-        return "http://ok_{num}".format(num=self._num)
+    def url_with_prefix(self, prefix, internal_url=False):
+        if internal_url:
+            return "http://internal.ok_{num}".format(num=self._num)
+        else:
+            return "http://ok_{num}".format(num=self._num)
 
 
 class ExampleCatalogEntry(object):
@@ -131,11 +134,13 @@ class CatalogGenerationTests(SynchronousTestCase):
                                 {
                                     "region": "EXAMPLE_1",
                                     "tenantId": "abcdefg_1",
+                                    "internalURL": "http://internal.ok_1",
                                     "publicURL": "http://ok_1"
                                 },
                                 {
                                     "region": "EXAMPLE_2",
                                     "tenantId": "abcdefg_2",
+                                    "internalURL": "http://internal.ok_2",
                                     "publicURL": "http://ok_2"
                                 }
                             ]
@@ -147,11 +152,13 @@ class CatalogGenerationTests(SynchronousTestCase):
                                 {
                                     "region": "EXAMPLE_1",
                                     "tenantId": "abcdefg_1",
+                                    "internalURL": "http://internal.ok_1",
                                     "publicURL": "http://ok_1"
                                 },
                                 {
                                     "region": "EXAMPLE_2",
                                     "tenantId": "abcdefg_2",
+                                    "internalURL": "http://internal.ok_2",
                                     "publicURL": "http://ok_2"
                                 }
                             ]
@@ -195,6 +202,7 @@ class CatalogGenerationTests(SynchronousTestCase):
                     {
                         "region": "EXAMPLE_1",
                         "tenantId": "abcdefg_1",
+                        "internalURL": "http://internal.ok_1",
                         "publicURL": "http://ok_1",
                         "name": "something",
                         "type": "compute",
@@ -203,6 +211,7 @@ class CatalogGenerationTests(SynchronousTestCase):
                     {
                         "region": "EXAMPLE_2",
                         "tenantId": "abcdefg_2",
+                        "internalURL": "http://internal.ok_2",
                         "publicURL": "http://ok_2",
                         "name": "something",
                         "type": "compute",
@@ -211,6 +220,7 @@ class CatalogGenerationTests(SynchronousTestCase):
                     {
                         "region": "EXAMPLE_1",
                         "tenantId": "abcdefg_1",
+                        "internalURL": "http://internal.ok_1",
                         "publicURL": "http://ok_1",
                         "name": "something_else",
                         "type": "compute",
@@ -219,6 +229,7 @@ class CatalogGenerationTests(SynchronousTestCase):
                     {
                         "region": "EXAMPLE_2",
                         "tenantId": "abcdefg_2",
+                        "internalURL": "http://internal.ok_2",
                         "publicURL": "http://ok_2",
                         "name": "something_else",
                         "type": "compute",
@@ -254,6 +265,7 @@ class CatalogGenerationTests(SynchronousTestCase):
                         "type": "compute",
                         "region": "None",
                         "tenantId": "1234",
+                        "internalURL": "http://prefix/1234",
                         "publicURL": "http://prefix/1234"
                     }
                 ]
