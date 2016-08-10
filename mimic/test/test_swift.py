@@ -303,8 +303,18 @@ class SwiftAccountTests(SwiftTestBase):
     @ddt.unpack
     def test_head_account(self, container_count, object_count):
         """
-        HEADing an account correctly reports the container count,
-        object count, and number of bytes used.
+        HEAD an account reports the container count, object count,
+        and number of bytes used.
+
+        :param container_count: number of containers under the
+            account.
+        :param object_count: number of objects in each container.
+
+        .. note:: the test will add the specified the number of
+            containers with the specified of objects. These
+            values are directly used. However, the objects are
+            a constant size set by SwiftTestBase.setUp() which is
+            indirectly used for the total bytes calculation.
         """
         # Add containers and objects per parameters
         for container_index in range(container_count):
@@ -345,12 +355,12 @@ class SwiftAccountTests(SwiftTestBase):
     )
     def test_post_account_metadata(self, post_metadata):
         """
-        POSTing an account correctly saves metadata to the account.
+        POST an account saves metadata to the account.
 
         :param bool post_metadata: whether or not to include metadata
             in the POST request.
 
-        Note: uses HEAD to verify the data was saved.
+        .. note:: uses HEAD to verify the data was saved.
         """
         headers = None
         if post_metadata:
@@ -388,7 +398,7 @@ class SwiftContainerTests(SwiftTestBase):
 
     def test_create_container(self):
         """
-        Test to verify create container using :obj:`SwiftMock`
+        PUT container creates a container.
         """
         self.put_container(expected_result=201)
 
@@ -402,7 +412,7 @@ class SwiftContainerTests(SwiftTestBase):
 
     def test_delete_container(self):
         """
-        DELETEing a container
+        DELETEing a container.
         """
         # create a container
         self.put_container()
@@ -412,13 +422,13 @@ class SwiftContainerTests(SwiftTestBase):
 
     def test_delete_container_non_existent(self):
         """
-        DELETEing a non-existent container
+        DELETE a non-existent container.
         """
         self.delete_container(expected_result=404)
 
     def test_delete_container_non_empty(self):
         """
-        DELETE'ing a non-empty container returns 409 Conflict.
+        DELETE a non-empty container returns 409 Conflict.
         """
         # create a container
         self.put_container()
@@ -454,7 +464,7 @@ class SwiftContainerTests(SwiftTestBase):
 
     def test_get_container_non_existent(self):
         """
-        GETing a container that has not been created results in a 404.
+        GET a container that has not been created results in a 404.
         """
         # create a container
         container_response, _ = self.get_container(
@@ -472,7 +482,7 @@ class SwiftContainerTests(SwiftTestBase):
 
     def test_get_container_non_empty(self):
         """
-        Test retrieving a non-empty container
+        GET a non-empty container.
         """
         # create a container
         self.put_container()
@@ -502,7 +512,7 @@ class SwiftContainerTests(SwiftTestBase):
 
     def test_head_container(self):
         """
-        Validate the HEAD operation on a container.
+        HEAD a container.
         """
         # create a container
         self.put_container()
@@ -558,7 +568,7 @@ class SwiftContainerTests(SwiftTestBase):
 
     def test_head_container_non_existent(self):
         """
-        HEADing a container that has not been created results in a 404.
+        HEAD a container that has not been created results in a 404.
         """
         # head a container
         container_response, _ = self.head_container(
@@ -576,7 +586,7 @@ class SwiftContainerTests(SwiftTestBase):
 
     def test_head_container_non_empty(self):
         """
-        Test retrieving a non-empty container
+        HEAD a non-empty container
         """
         # create a container
         self.put_container()
@@ -617,7 +627,7 @@ class SwiftObjectTests(SwiftTestBase):
 
     def test_get_object(self):
         """
-        GET object - basic test
+        GET object - basic test.
         """
         # put an object
         self.put_object(headers={b"content-type": [b"text/plain"]})
@@ -630,7 +640,7 @@ class SwiftObjectTests(SwiftTestBase):
 
     def test_get_object_path_based_name(self):
         """
-        GET object - object name is a path instead of a simple string
+        GET object - object name is a path instead of a simple string.
         """
         # generate some paths with depth, swift's object name field is greedy
         # and consumes everything, including slashes, after the container name
@@ -659,7 +669,7 @@ class SwiftObjectTests(SwiftTestBase):
 
     def test_get_object_non_existent_container_non_existent_object(self):
         """
-        GET object - container doesn't exist, object doesn't exist
+        GET object - container doesn't exist, object doesn't exist.
         """
         # setUp() auto-creates a container, so delete it first
         self.delete_container()
@@ -669,14 +679,14 @@ class SwiftObjectTests(SwiftTestBase):
 
     def test_get_object_non_existent_object(self):
         """
-        GET object - get a non-existent object from the existing container
+        GET object - get a non-existent object from the existing container.
         """
         # now try to get the object
         self.get_object(expected_result=404)
 
     def test_get_object_with_properties(self):
         """
-        GET object - get an object with additional properties set
+        GET object - get an object with additional properties set.
         """
         property_values = {
             b"content-type": [b"application/test-value"],
@@ -708,7 +718,7 @@ class SwiftObjectTests(SwiftTestBase):
 
     def test_get_object_without_properties(self):
         """
-        GET object - get an object without any additional properties set
+        GET object - get an object without any additional properties set.
         """
         # put the object
         self.put_object()
@@ -735,7 +745,7 @@ class SwiftObjectTests(SwiftTestBase):
 
     def test_put_object(self):
         """
-        PUTting an object into a container causes the container to list that
+        PUT an object into a container causes the container to list that
         object.
         """
         # put the object
@@ -768,7 +778,7 @@ class SwiftObjectTests(SwiftTestBase):
 
     def test_put_object_path_based_name(self):
         """
-        PUT object - object name is a path instead of a simple string
+        PUT object - object name is a path instead of a simple string.
         """
         # generate some paths with depth, swift's object name field is greedy
         # and consumes everything, including slashes, after the container name
@@ -820,7 +830,7 @@ class SwiftObjectTests(SwiftTestBase):
     def test_put_object_updates_object(self):
         """
         PUT object - put objects can update the container while leaving other
-        data alone if the object already existed
+        data alone if the object already existed.
         """
         self.put_object()
 
@@ -833,7 +843,7 @@ class SwiftObjectTests(SwiftTestBase):
 
     def test_put_object_non_existent_container(self):
         """
-        PUT object - attempt to put an object to a non-existent container
+        PUT object - attempt to put an object to a non-existent container.
         """
         # setUp() auto-creates a container, so delete it first
         self.delete_container()
@@ -843,7 +853,7 @@ class SwiftObjectTests(SwiftTestBase):
 
     def test_put_object_with_properties(self):
         """
-        PUT object - add an object with extraneous properties
+        PUT object - add an object with extraneous properties.
         """
         property_values = {
             b"content-type": [b"application/test-value"],
@@ -873,7 +883,7 @@ class SwiftObjectTests(SwiftTestBase):
 
     def test_put_object_without_properties(self):
         """
-        PUT object - add an object without any extraneous properties
+        PUT object - add an object without any extraneous properties.
         """
         # put the object
         self.put_object()
@@ -898,7 +908,7 @@ class SwiftObjectTests(SwiftTestBase):
 
     def test_head_object(self):
         """
-        HEAD object - HEAD an object in storage
+        HEAD object - HEAD an object in storage.
         """
         # put the object
         self.put_object()
@@ -909,7 +919,7 @@ class SwiftObjectTests(SwiftTestBase):
 
     def test_head_object_path_based_name(self):
         """
-        HEAD object - object name is a path instead of a simple string
+        HEAD object - object name is a path instead of a simple string.
         """
         object_paths = [
             self.object_path,
@@ -936,7 +946,7 @@ class SwiftObjectTests(SwiftTestBase):
 
     def test_head_object_non_existent_container_non_existent_object(self):
         """
-        HEADing a non-existing object in a non-existent container.
+        HEAD a non-existing object in a non-existent container.
         """
         # setUp() auto-creates a container, so delete it first
         self.delete_container()
@@ -945,14 +955,14 @@ class SwiftObjectTests(SwiftTestBase):
 
     def test_head_object_non_existent_object(self):
         """
-        HEADing a non-existing object in a container.
+        HEAD a non-existing object in a container.
         """
         # head the object
         self.head_object(expected_result=404, with_body=False)
 
     def test_head_object_with_properties(self):
         """
-        HEADing a object in a container but without the extra properties being
+        HEAD a object in a container but without the extra properties being
         assigned during the PUT operation.
         """
         property_values = {
@@ -985,7 +995,7 @@ class SwiftObjectTests(SwiftTestBase):
 
     def test_head_object_without_properties(self):
         """
-        HEADing a object in a container but without the extra properties being
+        HEAD a object in a container but without the extra properties being
         assigned during the PUT operation.
         """
         # put the object
@@ -1010,7 +1020,7 @@ class SwiftObjectTests(SwiftTestBase):
 
     def test_delete_object(self):
         """
-        Deleting an object from a container.
+        DELETE an object from a container.
         """
         # put the object
         self.put_object(headers={b"content-type": [b"text/plain"]})
@@ -1028,7 +1038,7 @@ class SwiftObjectTests(SwiftTestBase):
 
     def test_delete_object_path_based_name(self):
         """
-        DELETE object - object name is a path instead of a simple string
+        DELETE object - object name is a path instead of a simple string.
         """
         object_paths = [
             self.object_path,
@@ -1052,7 +1062,7 @@ class SwiftObjectTests(SwiftTestBase):
 
     def test_delete_object_non_existent_container_non_existent_object(self):
         """
-        DELTE object - remove non-existent object from non-existent container
+        DELETE object - remove non-existent object from non-existent container.
         """
         # setUp() auto-creates a container, so delete it first
         self.delete_container()
@@ -1062,7 +1072,7 @@ class SwiftObjectTests(SwiftTestBase):
 
     def test_delete_object_non_existent_object(self):
         """
-        DELETE object - non-existent object in existing container
+        DELETE object - non-existent object in existing container.
         """
         # remove the object
         self.delete_object(expected_result=404)
