@@ -3,12 +3,23 @@
 set -e
 set -x
 
+UPDATED_BREW="false";
+
+function _brew_update () {
+    if "${UPDATED_BREW}"; then
+        return 0;
+    else
+        UPDATED_BREW=true;
+        brew update;
+    fi;
+}
+
 if [[ "${MACAPP_ENV}" == "system" ]]; then
     # If we are testing the mac app environment, it's a bit of a special case;
     # the only setup we need to do is to ensure that homebrew python is the
     # default.
 
-    brew update;
+    _brew_update;
     brew install python;
     exit 0;
 fi;
@@ -19,11 +30,24 @@ else
     DARWIN="false";
 fi
 
+
 # Do we need to use a Python from pyenv, or will the system one suffice?
 PYENV_PYTHON="";
 
 if [[ "${TOXENV}" == "pypy" ]]; then
     PYENV_PYTHON="pypy-4.0.1";
+    if [[ "$DARWIN" == "true" ]]; then
+        _brew_update;
+        brew install openssl;
+
+        # Set up build environment so we can create Cryptography wheels if
+        # necessary.
+        kegpath="$(brew --prefix)/opt/openssl";
+        export LDFLAGS="-L${kegpath}/lib $LDFLAGS";
+        export CPPFLAGS="-I${kegpath}/include $CPPFLAGS";
+        export CFLAGS="${LDFLAGS} ${CPPFLAGS} ${CFLAGS}";
+        export PATH="${kegpath}/bin:$PATH";
+    fi;
 fi;
 
 # If we need a python not available in Travis's environment, install pyenv in a
@@ -31,7 +55,7 @@ fi;
 
 if [[ -n "${PYENV_PYTHON}" ]]; then
     if [[ "$DARWIN" == "true" ]]; then
-        brew update;
+        _brew_update;
         brew install pyenv || brew upgrade pyenv;
     else
         git clone https://github.com/yyuu/pyenv.git ~/.pyenv;
