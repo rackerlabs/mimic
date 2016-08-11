@@ -669,6 +669,123 @@ class IdentityApi(object):
                 'message': ("No valid token provided. Please use the 'X-Auth-Token'"
                             " header with a valid token.")}})
 
+    @app.route('/v2.0/services', methods=['GET'])
+    def list_external_api_services(self, request):
+        """
+        List the available external services that endpoint templates
+        may be added to.
+
+        Note: Part of the OS-KSADM extension.
+        Note: Does not implement the limits or markers.
+        """
+        x_auth_token = request.getHeader(b"x-auth-token")
+        if x_auth_token is None:
+            return json.dumps(unauthorized("Authentication required", request))
+
+        request.setResponseCode(200)
+        return json.dumps({
+            "OS-KSADM:services": [
+                {
+                    "name": api.name_key,
+                    "type": api.type_key,
+                    "id": api.uuid_key,
+                    "description": api.description
+                }
+                for api in [
+                    self.core.get_external_api(api_id)
+                    for api_id in self.core.get_external_apis()]]})
+
+    @app.route('/v2.0/services', methods=['POST'])
+    def create_external_api_service(self, request):
+        """
+        Create a new external api service that endpoint templates
+        may be added to.
+
+        Note: Part of the OS-KSADM extensions.
+        Note: Only requires 'name' and 'type' fields in the JSON. If the 'id'
+            or 'description' fields are present, then they will be used;
+            otherwise a UUID4 will be assigned to the 'id' field and the
+            'description' will be given a generic value.
+        """
+        x_auth_token = request.getHeader(b"x-auth-token")
+        if x_auth_token is None:
+            return json.dumps(unauthorized("Authentication required", request))
+
+        try:
+            content = json_from_request(request)
+        except ValueError:
+            return json.dumps(bad_request("Invalid JSON request body", request))
+
+        try:
+            service_name = content['name']
+            service_type = content['type']
+        except KeyError:
+            return json.dumps(
+                bad_request(
+                    "Invalid Content. 'name' and 'type' fields are required.",
+                    request))
+
+        try:
+            service_id = content['id']
+        except KeyError:
+            service_id = text_type(uuid.uuid4())
+
+        try:
+            service_description = content['description']
+        except KeyError:
+            service_description = u"External API referenced by Mimic"
+
+        if service_id in self.core.get_external_apis():
+            return json.dumps(
+                conflict(
+                    "Conflict: Service with the same uuid already exists.",
+                    request))
+
+        try:
+            self.core.add_api(ExternalApiStore(
+                service_id,
+                service_name,
+                service_type,
+                description=service_description))
+        except ValueError:
+            return json.dumps(
+                conflict(
+                    "Conflict: Service with the same name already exists.",
+                    request))
+        else:
+            request.setResponseCode(201)
+            return b''
+
+    @app.route('/v2.0/services/<string:service_id>', methods=['DELETE'])
+    def delete_external_api_service(self, request, service_id):
+        """
+        Delete/Remove an existing  external service api. It must not have
+        any endpoint templates assigned to it for success.
+
+        Note: Part of the OS-KSADM extension.
+        """
+        x_auth_token = request.getHeader(b"x-auth-token")
+        if x_auth_token is None:
+            return json.dumps(unauthorized("Authentication required", request))
+
+        try:
+            self.core.remove_external_api(
+                service_id
+            )
+        except IndexError:
+            return json.dumps(
+                not_found(
+                    "Service not found. Unable to remove.",
+                    request))
+        except ValueError:
+            return json.dumps(
+                conflict(
+                    "Service still has endpoint templates.",
+                    request))
+        else:
+            request.setResponseCode(204)
+            return b''
+
 
 def base_uri_from_request(request):
     """
