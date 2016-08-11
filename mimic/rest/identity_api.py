@@ -786,6 +786,407 @@ class IdentityApi(object):
             request.setResponseCode(204)
             return b''
 
+    @app.route('/v2.0/OS-KSCATALOG/endpointTemplates', methods=['GET'])
+    def list_endpoint_templates(self, request):
+        """
+        List the available endpoint templates.
+
+        Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
+
+        Note: Marker/Limit capability not implemented here.
+        """
+        x_auth_token = request.getHeader(b"x-auth-token")
+        if x_auth_token is None:
+            return json.dumps(unauthorized("Authentication required", request))
+
+        # caller may provide a specific API to list by setting the
+        # serviceid header
+        external_apis_to_list = []
+        service_id = request.getHeader(b'serviceid')
+        if service_id is not None:
+            external_apis_to_list = [service_id.decode('utf-8')]
+        else:
+            external_apis_to_list = [
+                api_id
+                for api_id in self.core.get_external_apis()
+            ]
+
+        try:
+            data = []
+            request.setResponseCode(200)
+            for api_id in external_apis_to_list:
+                api = self.core.get_external_api(api_id)
+                for endpoint_template in api.list_templates():
+                    data.append(endpoint_template.serialize())
+
+            return json.dumps(
+                {
+                    "OS-KSCATALOG": data,
+                    "OS-KSCATALOG:endpointsTemplates_links": []
+                }
+            )
+        except IndexError:
+            request.setResponseCode(404)
+            return json.dumps(not_found(
+                "Unable to find the requested API",
+                request))
+
+    @app.route('/v2.0/OS-KSCATALOG/endpointTemplates', methods=['POST'])
+    def add_endpoint_templates(self, request):
+        """
+        Add an API endpoint template to the system. By default the API
+        described by the template will disabled for all users.
+
+        Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
+
+        Note: Either the service-id must be specified in the header or
+            a Service Name by the same name must already exist. Otherwise
+            a Not Found (404) will be returned.
+
+        Note: A template has certain required parametes. For Mimic the
+            id, name, type, and region parameters are required. See
+            EndpointTemplateStore.required_mapping for details. Other
+            implementations may have different requirements.
+        """
+        x_auth_token = request.getHeader(b"x-auth-token")
+        if x_auth_token is None:
+            return json.dumps(unauthorized("Authentication required", request))
+
+        try:
+            content = json_from_request(request)
+        except ValueError:
+            return json.dumps(
+                bad_request("Invalid JSON request body", request)
+            )
+
+        try:
+            endpoint_template_instance = EndpointTemplateStore(
+                template_dict=content
+            )
+        except KeyError:
+            return json.dumps(
+                bad_request(
+                    "JSON body does not contain the required parameters: "
+                    + text_type(
+                        [key
+                         for key, _ in EndpointTemplateStore.required_mapping]
+                    ),
+                    request
+                )
+            )
+
+        # Access the Service ID that tells which External API
+        # is to support this template.
+        service_id = request.getHeader(b'serviceid')
+        if service_id is not None:
+            service_id = service_id.decode('utf-8')
+
+        # Check all existing External APIs for the API ID
+        # to ensure that none of them contain it already. The
+        # value must be unique.
+        for api_id in self.core.get_external_apis():
+            api = self.core.get_external_api(api_id)
+            if api.has_template(endpoint_template_instance.id_key):
+                return json.dumps(
+                    conflict(
+                        "ID value is already assigned to an existing template",
+                        request
+                    )
+                )
+
+            # While we're at it, if we need to look up the service ID
+            # and find the External API that will ultimately provide it
+            # then grab that too instead of repeating the search.
+            elif api.name_key == endpoint_template_instance.name_key:
+                if service_id is None:
+                    service_id = api.uuid_key
+
+        try:
+            service = self.core.get_external_api(service_id)
+        except IndexError:
+            return json.dumps(
+                not_found(
+                    "Service API for endoint template not found",
+                    request
+                )
+            )
+
+        try:
+            service.add_template(endpoint_template_instance)
+        except ValueError:
+            return json.dumps(
+                conflict(
+                    "Endpoint already exists or service type does not match.",
+                    request
+                )
+            )
+        else:
+            request.setResponseCode(201)
+            return b''
+
+    @app.route('/v2.0/OS-KSCATALOG/endpointTemplates/<string:template_id>',
+               methods=['PUT'])
+    def update_endpoint_templates(self, request, template_id):
+        """
+        Update an API endpoint template already in the system.
+
+        Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
+
+        Note: A template by the same id must already exist in the system.
+
+        Note: Either the service-id must be specified in the header or
+            a Service Name by the same name must already exist. Otherwise
+            a Not Found (404) will be returned.
+        """
+        x_auth_token = request.getHeader(b"x-auth-token")
+        if x_auth_token is None:
+            return json.dumps(unauthorized("Authentication required", request))
+
+        try:
+            content = json_from_request(request)
+        except ValueError:
+            return json.dumps(
+                bad_request("Invalid JSON request body", request)
+            )
+
+        try:
+            if content['id'] != template_id:
+                return json.dumps(
+                    conflict(
+                        "Template ID in URL does not match that of the JSON body",
+                        request
+                    )
+                )
+
+            endpoint_template_instance = EndpointTemplateStore(
+                template_dict=content
+            )
+        except KeyError:
+            return json.dumps(
+                bad_request(
+                    "JSON body does not contain the required parameters: "
+                    + text_type(
+                        [key
+                         for key, _ in EndpointTemplateStore.required_mapping]
+                    ),
+                    request
+                )
+            )
+
+        service_id = request.getHeader(b'serviceid')
+        if service_id is None:
+            for api_id in self.core.get_external_apis():
+                api = self.core.get_external_api(api_id)
+                if api.has_template(template_id):
+                    service_id = api.uuid_key
+        else:
+            service_id = service_id.decode('utf-8')
+
+        try:
+            service = self.core.get_external_api(service_id)
+        except IndexError:
+            return json.dumps(
+                not_found(
+                    "Service API for endoint template not found",
+                    request
+                )
+            )
+
+        try:
+            service.update_template(endpoint_template_instance)
+        except ValueError:
+            return json.dumps(
+                conflict(
+                    "Endpoint already exists and service id or service type "
+                    "does not match.",
+                    request
+                )
+            )
+        except IndexError:
+            return json.dumps(
+                not_found(
+                    "Unable to update non-existent template. Template must "
+                    "first be added before it can be updated.",
+                    request
+                )
+            )
+        else:
+            request.setResponseCode(201)
+            return b''
+
+    @app.route('/v2.0/OS-KSCATALOG/endpointTemplates/<string:template_id>',
+               methods=['DELETE'])
+    def delete_endpoint_templates(self, request, template_id):
+        """
+        Delete an endpoint API template from the system.
+
+        Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
+
+        Note: Either the service-id must be specified in the header or
+            a Service Name by the same name must already exist. Otherwise
+            a Not Found (404) will be returned.
+        """
+        x_auth_token = request.getHeader(b"x-auth-token")
+        if x_auth_token is None:
+            return json.dumps(unauthorized("Authentication required", request))
+
+        service_id = request.getHeader(b'serviceid')
+        if service_id is not None:
+            api = self.core.get_external_api(service_id.decode('utf-8'))
+            if api.has_template(template_id):
+                api.remove_template(template_id)
+                request.setResponseCode(204)
+                return b''
+        else:
+            for api_id in self.core.get_external_apis():
+                api = self.core.get_external_api(api_id)
+                if api.has_template(template_id):
+                    api.remove_template(template_id)
+                    request.setResponseCode(204)
+                    return b''
+
+        return json.dumps(
+            not_found(
+                "Unable to locate an External API with the given Template ID.",
+                request
+            )
+        )
+
+    @app.route('/v2.0/tenants/<string:tenant_id>/OS-KSCATALOG/endpoints',
+               methods=['GET'])
+    def list_endpoints_for_tenant(self, request, tenant_id):
+        """
+        List the available endpoints for a given tenant-id.
+
+        Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
+
+        Note: Marker/Limit capability not implemented here.
+        """
+        x_auth_token = request.getHeader(b"x-auth-token")
+        if x_auth_token is None:
+            return json.dumps(unauthorized("Authentication required", request))
+
+        # caller may provide a specific API to list by setting the
+        # serviceid header
+        external_apis_to_list = []
+        service_id = request.getHeader(b'serviceid')
+        if service_id is not None:
+            external_apis_to_list = [service_id.decode('utf-8')]
+        else:
+            external_apis_to_list = [
+                api_id
+                for api_id in self.core.get_external_apis()
+            ]
+
+        try:
+            data = []
+            request.setResponseCode(200)
+            for api_id in external_apis_to_list:
+                api = self.core.get_external_api(api_id)
+                for endpoint_template in api.list_tenant_templates(tenant_id):
+                    data.append(
+                        endpoint_template.serialize(
+                            tenant_id
+                        )
+                    )
+
+            return json.dumps(
+                {
+                    "endpoints": data,
+                    "endpoints_links": []
+                }
+            )
+        except IndexError:
+            request.setResponseCode(404)
+            return json.dumps(not_found(
+                "Unable to find the requested API",
+                request))
+
+    @app.route('/v2.0/tenants/<string:tenant_id>/OS-KSCATALOG/endpoints',
+               methods=['POST'])
+    def create_endpoint_for_tenant(self, request, tenant_id):
+        """
+        Enable a given endpoint template for a given tenantid.
+
+        Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
+        """
+        x_auth_token = request.getHeader(b"x-auth-token")
+        if x_auth_token is None:
+            return json.dumps(unauthorized("Authentication required", request))
+
+        try:
+            content = json_from_request(request)
+        except ValueError:
+            return json.dumps(
+                bad_request("Invalid JSON request body", request)
+            )
+
+        try:
+            template_id = content['OS-KSCATALOG:endpointTemplate']['id']
+        except KeyError:
+            return json.dumps(
+                bad_request(
+                    "Invalid Content. OS-KSCATALOG:endpointTemplate:id is "
+                    "required.",
+                    request))
+
+        for api_id in self.core.get_external_apis():
+            api = self.core.get_external_api(api_id)
+            if api.has_template(template_id):
+                api.enable_endpoint_for_tenant(
+                    tenant_id,
+                    template_id
+                )
+                request.setResponseCode(201)
+                return b''
+
+        return json.dumps(
+            not_found(
+                "Unable to locate an External API with the given Template ID.",
+                request
+            )
+        )
+
+    @app.route('/v2.0/tenants/<string:tenant_id>/OS-KSCATALOG/endpoints/'
+               '<string:template_id>', methods=['DELETE'])
+    def remove_endpoint_for_tenant(self, request, tenant_id, template_id):
+        """
+        Disable a given endpoint template for a given tenantid if it's been
+        enabled. This does not affect an endpoint template that has been
+        globally enabled.
+
+        Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
+        """
+        x_auth_token = request.getHeader(b"x-auth-token")
+        if x_auth_token is None:
+            return json.dumps(unauthorized("Authentication required", request))
+
+        for api_id in self.core.get_external_apis():
+            api = self.core.get_external_api(api_id)
+            if api.has_template(template_id):
+                try:
+                    api.disable_endpoint_for_tenant(
+                        tenant_id,
+                        template_id
+                    )
+                except ValueError:
+                    return json.dumps(
+                        not_found(
+                            "Template not enabled for tenant",
+                            request
+                        )
+                    )
+                else:
+                    request.setResponseCode(204)
+                    return b''
+
+        return json.dumps(
+            not_found(
+                "Unable to locate an External API with the given Template ID.",
+                request
+            )
+        )
+
 
 def base_uri_from_request(request):
     """
