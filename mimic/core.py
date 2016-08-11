@@ -10,7 +10,11 @@ from twisted.python.urlpath import URLPath
 from twisted.plugin import getPlugins
 from mimic import plugins
 
-from mimic.imimic import IAPIMock, IExternalAPIMock, IAPIDomainMock
+from mimic.imimic import (
+    IAPIMock,
+    IAPIDomainMock,
+    IExternalAPIMock
+)
 from mimic.session import SessionStore
 from mimic.util.helper import random_hex_generator
 from mimic.model.mailgun_objects import MessageStore
@@ -81,10 +85,25 @@ class MimicCore(object):
         # Gate check the API to make sure it implements one of the
         # supported interfaces
         if IExternalAPIMock.providedBy(api):
-            this_api_id = ((api.name_key) + '-' +
-                           random_hex_generator(3))
+            # External APIs need to be able to be easily managed by
+            # the same object so long as they have the same uuid
+            this_api_id = api.uuid_key
+
+            if this_api_id in self._uuid_to_api_external:
+                raise ValueError(
+                    'An Existing API already exists with the given UUID'
+                )
+
+            for existing_api in self._uuid_to_api_external.values():
+                if existing_api.name_key == api.name_key:
+                    raise ValueError(
+                        'An Existing API with UUID ' + existing_api.uuid_key +
+                        ' is already using that name'
+                    )
             self._uuid_to_api_external[this_api_id] = api
         elif IAPIMock.providedBy(api):
+            # Internal APIs can be added easily on the fly since
+            # they also provide the resource for implementing the API
             this_api_id = ((api.__class__.__name__) + '-' +
                            random_hex_generator(3))
             self._uuid_to_api_internal[this_api_id] = api
@@ -93,6 +112,53 @@ class MimicCore(object):
                 api.__class__.__module__ + '/' +
                 api.__class__.__name__ +
                 " does not implement IAPIMock or IExternalAPIMock"
+            )
+
+    def remove_external_api(self, api_id):
+        """
+        Remove an External API from the listing.
+
+        :param text_type api_id: the id of the API instance
+            e.g 3845-39583, cloudfiles-mimic
+        """
+        if api_id in self._uuid_to_api_external:
+            api = self._uuid_to_api_external[api_id]
+
+            if len(api.list_templates()) == 0:
+                del self._uuid_to_api_external[api_id]
+            else:
+                raise ValueError("API still has endpoint templates")
+        else:
+            raise IndexError(api_id + " is not a valid external API")
+
+    def get_external_apis(self):
+        """
+        Return the list of external API names
+
+        :returns: iterable of service ids for the external APIs
+        """
+        return self._uuid_to_api_external.keys()
+
+    def get_external_api(self, api_id):
+        """
+        Access an API instance for an external API.
+
+        .. note::
+
+            Internally hosted APIs are not modifiable at run-time
+            so this only returns access to the Externally hosted API.
+
+        :param text_type api_id: the id of the API instance
+        :returns: The :obj:`IExternalAPIMock` instance supporting the
+            externally hosted API.
+        :raises: IndexError if it is unable to find an API by the given
+            name.
+        """
+        if api_id in self._uuid_to_api_external:
+            return self._uuid_to_api_external[api_id]
+        else:
+            raise IndexError(
+                "Unable to locate an API  the id" + str(api_id)
             )
 
     def service_with_region(self, region_name, service_id, base_uri):

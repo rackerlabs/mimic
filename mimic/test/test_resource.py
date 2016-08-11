@@ -23,7 +23,7 @@ except ImportError:
 from mimic.canned_responses.mimic_presets import get_presets
 from mimic.core import MimicCore
 from mimic.resource import MimicRoot, get_site
-from mimic.test.dummy import ExampleAPI
+from mimic.test.dummy import make_example_internal_api
 from mimic.test import helpers
 
 json_request = helpers.json_request
@@ -61,7 +61,7 @@ class ServiceResourceTests(SynchronousTestCase):
         back to the plugin when
         :func:`mimic.imimic.IAPMock.resource_for_region` is called.
         """
-        example = ExampleAPI()
+        example = make_example_internal_api(self)
 
         core = MimicCore(Clock(), [example])
         root = MimicRoot(core).app.resource()
@@ -84,7 +84,7 @@ class ServiceResourceTests(SynchronousTestCase):
         wrong service ID, a 404 is returned and the resource for the service
         is accessed.
         """
-        example = ExampleAPI()
+        example = make_example_internal_api(self)
 
         core = MimicCore(Clock(), [example])
         root = MimicRoot(core).app.resource()
@@ -105,7 +105,7 @@ class ServiceResourceTests(SynchronousTestCase):
         but wrong service ID, a 404 is returned and the resource for the
         service is accessed.
         """
-        example = ExampleAPI()
+        example = make_example_internal_api(self)
 
         core = MimicCore(Clock(), [example])
         root = MimicRoot(core).app.resource()
@@ -126,7 +126,7 @@ class ServiceResourceTests(SynchronousTestCase):
         and right region, the service's resource is used to respond to the
         request.
         """
-        core = MimicCore(Clock(), [ExampleAPI(b'response!')])
+        core = MimicCore(Clock(), [make_example_internal_api(self, b'response!')])
         root = MimicRoot(core).app.resource()
 
         # get the region and service id registered for the example API
@@ -239,7 +239,7 @@ class RequestTests(SynchronousTestCase):
         """
         Make a request and return the response.
         """
-        core = MimicCore(Clock(), [ExampleAPI(b'response!')])
+        core = MimicCore(Clock(), [make_example_internal_api(self, b'response!')])
         root = MimicRoot(core).app.resource()
 
         # get the region and service id registered for the example API
