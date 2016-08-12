@@ -13,7 +13,7 @@ from twisted.internet.task import Clock
 from mimic.canned_responses.auth import (
     get_token, HARD_CODED_TOKEN, HARD_CODED_USER_ID,
     HARD_CODED_USER_NAME, HARD_CODED_ROLES,
-    get_endpoints
+    HARD_CODED_DEFAULT_REGION, get_endpoints
 )
 from mimic.canned_responses.mimic_presets import get_presets
 from mimic.catalog import Entry, Endpoint
@@ -165,6 +165,7 @@ class CatalogGenerationTests(SynchronousTestCase):
                         }
                     ],
                     "user": {
+                        "RAX-AUTH:defaultRegion": HARD_CODED_DEFAULT_REGION,
                         "id": HARD_CODED_USER_ID,
                         "name": HARD_CODED_USER_NAME,
                         "roles": HARD_CODED_ROLES,
