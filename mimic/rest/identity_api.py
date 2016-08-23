@@ -9,6 +9,7 @@ import binascii
 import json
 import os
 import time
+import uuid
 
 import attr
 from six import text_type
@@ -30,7 +31,12 @@ from mimic.model.identity import (
     PasswordCredentials,
     TokenCredentials)
 from mimic.model.identity_objects import (
+    bad_request,
+    conflict,
+    EndpointTemplateStore,
+    ExternalApiStore,
     not_found,
+    unauthorized
 )
 from mimic.rest.mimicapp import MimicApp
 from mimic.session import NonMatchingTenantError
@@ -860,17 +866,14 @@ class IdentityApi(object):
             )
 
         try:
-            endpoint_template_instance = EndpointTemplateStore(
-                template_dict=content
+            endpoint_template_instance = EndpointTemplateStore.deserialize(
+                content
             )
-        except KeyError:
+        except KeyError as ex:
             return json.dumps(
                 bad_request(
                     "JSON body does not contain the required parameters: "
-                    + text_type(
-                        [key
-                         for key, _ in EndpointTemplateStore.required_mapping]
-                    ),
+                    + text_type(ex),
                     request
                 )
             )
@@ -958,17 +961,14 @@ class IdentityApi(object):
                     )
                 )
 
-            endpoint_template_instance = EndpointTemplateStore(
-                template_dict=content
+            endpoint_template_instance = EndpointTemplateStore.deserialize(
+                content
             )
-        except KeyError:
+        except KeyError as ex:
             return json.dumps(
                 bad_request(
                     "JSON body does not contain the required parameters: "
-                    + text_type(
-                        [key
-                         for key, _ in EndpointTemplateStore.required_mapping]
-                    ),
+                    + text_type(ex),
                     request
                 )
             )

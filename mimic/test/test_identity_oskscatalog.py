@@ -309,7 +309,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
         eeapi2.id_key = '0'
 
         # ensure only one instance of the API has the template
-        eeapi2.remove_template(get_template_id(self, self.eeapi))
+        eeapi2.remove_template(get_template_id(self, eeapi2))
         self.core.add_api(eeapi2)
         self.core.add_api(self.eeapi)
 
@@ -400,7 +400,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
             name=self.eeapi_name + text_type(uuid.uuid4()),
             service_type='service-' + text_type(uuid.uuid4())
         )
-        eeapi2.remove_template(id_key)
+        eeapi2.remove_template(get_template_id(self, eeapi2))
         self.core.add_api(eeapi2)
 
         data = {
@@ -432,7 +432,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
             name=self.eeapi_name + text_type(uuid.uuid4()),
             service_type='service-' + text_type(uuid.uuid4())
         )
-        eeapi2.remove_template(id_key)
+        eeapi2.remove_template(get_template_id(self, eeapi2))
         self.core.add_api(eeapi2)
 
         data = {
@@ -660,7 +660,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
             name=self.eeapi_name + text_type(uuid.uuid4()),
             service_type='service-' + text_type(uuid.uuid4())
         )
-        eeapi2.remove_template(id_key)
+        eeapi2.remove_template(get_template_id(self, eeapi2))
         self.core.add_api(eeapi2)
 
         data = {
@@ -726,7 +726,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
             name=self.eeapi_name + text_type(uuid.uuid4()),
             service_type='service-' + text_type(uuid.uuid4())
         )
-        eeapi2.remove_template(id_key)
+        eeapi2.remove_template(get_template_id(self, eeapi2))
         self.core.add_api(eeapi2)
 
         data = {
@@ -756,7 +756,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
             name=self.eeapi_name + text_type(uuid.uuid4()),
             service_type='service-' + text_type(uuid.uuid4())
         )
-        eeapi2.remove_template(id_key)
+        eeapi2.remove_template(get_template_id(self, eeapi2))
         self.core.add_api(eeapi2)
 
         data = {
