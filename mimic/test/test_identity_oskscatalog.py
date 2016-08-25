@@ -7,6 +7,7 @@ from __future__ import absolute_import, division, unicode_literals
 import json
 import uuid
 
+import ddt
 from six import text_type
 
 from twisted.trial.unittest import SynchronousTestCase
@@ -43,7 +44,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase):
 
     def test_auth_fail(self):
         """
-        Validate X-Auth-Token required to access endpoint.
+        GET with no X-Auth-Token header results in 401.
         """
         (response, json_body) = self.successResultOf(
             json_request(self, self.root, self.verb,
@@ -54,8 +55,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase):
 
     def test_invalid_service_id(self):
         """
-        Validate a service-id that does not map to an actual service generates
-        a 404 failure.
+        GET must have a valid service id otherwise 404.
         """
         self.headers.update({
             'serviceid': [b'some-id']
@@ -70,8 +70,8 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase):
 
     def test_list_only_internal_apis_available(self):
         """
-        Validate that if only Internal APIs are available that no templates are
-        listed; only an empty list is returned.
+        GET will return an empty listing when there are no External API
+        endpoint templates.
         """
         self.core.add_api(make_example_internal_api(self))
         (response, json_body) = self.successResultOf(
@@ -87,8 +87,8 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase):
 
     def test_list_single_template(self):
         """
-        Validate that if an external API is present that its template will show
-        up in the listing.
+        GET will return a endpoint template when there are External API
+        endpoint templates.
         """
         self.core.add_api(self.eeapi)
 
@@ -105,8 +105,9 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase):
 
     def test_list_single_template_external_and_internal_apis(self):
         """
-        Validate that if both an internal and and external API are present that
-        only the External API shows up in the template listing.
+        GET will only return the External API endpoint templates when they
+        are available,
+        even if there are also Internal APIs.
         """
         self.core.add_api(self.eeapi)
         self.core.add_api(make_example_internal_api(self))
@@ -124,6 +125,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase):
 
     def test_multiple_external_apis(self):
         """
+        GET can retrieve numerous External APIs that have External API Templates.
         """
         api_list = [self.eeapi]
         for _ in range(10):
@@ -145,9 +147,6 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase):
                          self.uri,
                          headers=self.headers))
 
-        def get_header(header_name):
-            return response.headers.getRawHeaders(header_name)[0].decode("utf-8")
-
         self.assertEqual(response.code, 200)
 
         self.assertEqual(len(json_body['OS-KSCATALOG']),
@@ -157,6 +156,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase):
             0)
 
 
+@ddt.ddt
 class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
     """
     Tests for ``/identity/v2.0/OS-KSCATALOG/endpointTemplates``, provided by
@@ -179,7 +179,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
 
     def test_auth_fail(self):
         """
-        Validate X-Auth-Token required to access endpoint.
+        POST with no X-Auth-Token header results in 401.
         """
         (response, json_body) = self.successResultOf(
             json_request(self, self.root, self.verb,
@@ -190,7 +190,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
 
     def test_invalid_json_body(self):
         """
-        Validate that a JSON message body is required.
+        POST requires a valid JSON message body.
         """
         (response, json_body) = self.successResultOf(
             json_request(self, self.root, self.verb,
@@ -203,38 +203,20 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
         self.assertEqual(json_body['badRequest']['message'],
                          'Invalid JSON request body')
 
-    def test_json_body_missing_required_field_name(self):
+    @ddt.data(
+        'name', 'id', 'type', 'region'
+    )
+    def test_json_body_missing_required_field(self, remove_field):
         """
-        Validate that the name field in the JSON body is required.
+        POST - required fields must be present otherwise 400 is generated.
         """
         data = {
             'id': text_type(uuid.uuid4()),
-            'type': 'some-type',
-            'region': 'some-region'
-        }
-        (response, json_body) = self.successResultOf(
-            json_request(self, self.root, self.verb,
-                         self.uri,
-                         body=data,
-                         headers=self.headers))
-
-        self.assertEqual(response.code, 400)
-        self.assertEqual(json_body['badRequest']['code'], 400)
-        self.assertTrue(
-            json_body['badRequest']['message'].startswith(
-                "JSON body does not contain the required parameters:"
-            )
-        )
-
-    def test_json_body_missing_required_field_id(self):
-        """
-        Validate that the id field in the JSON body is required.
-        """
-        data = {
             'name': 'some-name',
             'type': 'some-type',
             'region': 'some-region'
         }
+        del data[remove_field]
         (response, json_body) = self.successResultOf(
             json_request(self, self.root, self.verb,
                          self.uri,
@@ -249,56 +231,9 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
             )
         )
 
-    def test_json_body_missing_required_field_type(self):
+    def test_invalid_service_id(self):
         """
-        Validate that the type field in the JSON body is required.
-        """
-        data = {
-            'id': text_type(uuid.uuid4()),
-            'name': 'some-name',
-            'region': 'some-region'
-        }
-        (response, json_body) = self.successResultOf(
-            json_request(self, self.root, self.verb,
-                         self.uri,
-                         body=data,
-                         headers=self.headers))
-
-        self.assertEqual(response.code, 400)
-        self.assertEqual(json_body['badRequest']['code'], 400)
-        self.assertTrue(
-            json_body['badRequest']['message'].startswith(
-                "JSON body does not contain the required parameters:"
-            )
-        )
-
-    def test_json_body_missing_required_field_region(self):
-        """
-        Validate that the region field in the JSON body is required.
-        """
-        data = {
-            'id': text_type(uuid.uuid4()),
-            'name': 'some-name',
-            'type': 'some-type'
-        }
-        (response, json_body) = self.successResultOf(
-            json_request(self, self.root, self.verb,
-                         self.uri,
-                         body=data,
-                         headers=self.headers))
-
-        self.assertEqual(response.code, 400)
-        self.assertEqual(json_body['badRequest']['code'], 400)
-        self.assertTrue(
-            json_body['badRequest']['message'].startswith(
-                "JSON body does not contain the required parameters:"
-            )
-        )
-
-    def test_invalid_service_name(self):
-        """
-        Validate a service-id that does not map to an actual service
-        generates a 404 failure.
+        POST - Service ID must be valid, otherwise results in 404.
         """
         # Add a second API
         eeapi2 = make_example_external_api(
@@ -308,7 +243,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
         )
         eeapi2.id_key = '0'
 
-        # ensure only one instance of the API has the template
+        # ensure only one instance of the API has the endpoint template
         eeapi2.remove_template(get_template_id(self, eeapi2))
         self.core.add_api(eeapi2)
         self.core.add_api(self.eeapi)
@@ -334,8 +269,8 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
 
     def test_existing_endpoint_template(self):
         """
-        Validate adding an endpoint template that matches an existing
-        endpoint template generates a 409 failure.
+        POST does not overwrite an existing endpoint template, 409 is
+        generated instead.
         """
         self.core.add_api(self.eeapi)
         id_key = get_template_id(self, self.eeapi)
@@ -361,8 +296,8 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
 
     def test_new_endpoint_template_wrong_service_type(self):
         """
-        Validate that the service type must match between
-        the service and the endpoint template.
+        POST requires that the endpoint template and service have the same
+        service types.
         """
         self.core.add_api(self.eeapi)
         id_key = get_template_id(self, self.eeapi)
@@ -387,42 +322,13 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
             "Endpoint already exists or service type does not match."
         )
 
-    def test_new_endpoint_template(self):
+    @ddt.data(
+        True, False
+    )
+    def test_new_endpoint_template(self, has_service_header):
         """
-        Validate that a new endpoint template can be added without
-        the service-id header field specified.
-        """
-        self.core.add_api(self.eeapi)
-        id_key = get_template_id(self, self.eeapi)
-
-        eeapi2 = make_example_external_api(
-            self,
-            name=self.eeapi_name + text_type(uuid.uuid4()),
-            service_type='service-' + text_type(uuid.uuid4())
-        )
-        eeapi2.remove_template(get_template_id(self, eeapi2))
-        self.core.add_api(eeapi2)
-
-        data = {
-            'id': text_type(uuid.uuid4()),
-            'name': self.eeapi_name,
-            'type': self.eeapi.type_key,
-            'region': 'some-region'
-        }
-        self.assertNotEqual(id_key, data['id'])
-
-        req = request(self, self.root, self.verb,
-                      self.uri,
-                      body=json.dumps(data).encode("utf-8"),
-                      headers=self.headers)
-
-        response = self.successResultOf(req)
-        self.assertEqual(response.code, 201)
-
-    def test_new_endpoint_template_with_service_id_header(self):
-        """
-        Validate that a new endpoint template can be added with
-        the service-id header field specified.
+        POST to add a endpoint template results in 201, service-id header is
+        optional.
         """
         self.core.add_api(self.eeapi)
         id_key = get_template_id(self, self.eeapi)
@@ -443,7 +349,8 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
         }
         self.assertNotEqual(id_key, data['id'])
 
-        self.headers[b'serviceid'] = [self.eeapi.uuid_key.encode('utf8')]
+        if has_service_header:
+            self.headers[b'serviceid'] = [self.eeapi.uuid_key.encode('utf8')]
 
         req = request(self, self.root, self.verb,
                       self.uri,
@@ -454,6 +361,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
         self.assertEqual(response.code, 201)
 
 
+@ddt.ddt
 class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
     """
     Tests for ``/identity/v2.0/OS-KSCATALOG/endpointTemplates``, provided by
@@ -480,7 +388,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
 
     def test_auth_fail(self):
         """
-        Validate X-Auth-Token required to access endpoint
+        PUT with no X-Auth-Token header results in 401.
         """
         (response, json_body) = self.successResultOf(
             json_request(self, self.root, self.verb,
@@ -491,7 +399,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
 
     def test_invalid_json_body(self):
         """
-        Validate that a JSON message body is required.
+        POST will generate 400 when an invalid JSON body is provided.
         """
         (response, json_body) = self.successResultOf(
             json_request(self, self.root, self.verb,
@@ -504,84 +412,21 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
         self.assertEqual(json_body['badRequest']['message'],
                          'Invalid JSON request body')
 
-    def test_json_body_missing_required_field_name(self):
+    @ddt.data(
+        'id', 'name', 'type', 'region'
+    )
+    def test_json_body_missing_required_field_name(self, remove_field):
         """
-        Validate that the name field in the JSON body is required.
+        PUT - required fields must be present otherwise 400 is generated.
         """
         data = {
             'id': self.ept_template_id,
-            'type': 'some-type',
-            'region': 'some-region'
-        }
-        (response, json_body) = self.successResultOf(
-            json_request(self, self.root, self.verb,
-                         self.uri,
-                         body=data,
-                         headers=self.headers))
-
-        self.assertEqual(response.code, 400)
-        self.assertEqual(json_body['badRequest']['code'], 400)
-        self.assertTrue(
-            json_body['badRequest']['message'].startswith(
-                "JSON body does not contain the required parameters:"
-            )
-        )
-
-    def test_json_body_missing_required_field_id(self):
-        """
-        Validate that the id field in the JSON body is required.
-        """
-        data = {
             'name': 'some-name',
             'type': 'some-type',
             'region': 'some-region'
         }
-        (response, json_body) = self.successResultOf(
-            json_request(self, self.root, self.verb,
-                         self.uri,
-                         body=data,
-                         headers=self.headers))
+        del data[remove_field]
 
-        self.assertEqual(response.code, 400)
-        self.assertEqual(json_body['badRequest']['code'], 400)
-        self.assertTrue(
-            json_body['badRequest']['message'].startswith(
-                "JSON body does not contain the required parameters:"
-            )
-        )
-
-    def test_json_body_missing_required_field_type(self):
-        """
-        Validate that the type field in the JSON body is required.
-        """
-        data = {
-            'id': self.ept_template_id,
-            'name': 'some-name',
-            'region': 'some-region'
-        }
-        (response, json_body) = self.successResultOf(
-            json_request(self, self.root, self.verb,
-                         self.uri,
-                         body=data,
-                         headers=self.headers))
-
-        self.assertEqual(response.code, 400)
-        self.assertEqual(json_body['badRequest']['code'], 400)
-        self.assertTrue(
-            json_body['badRequest']['message'].startswith(
-                "JSON body does not contain the required parameters:"
-            )
-        )
-
-    def test_json_body_missing_required_field_region(self):
-        """
-        Validate that the region field in the JSON body is required.
-        """
-        data = {
-            'id': self.ept_template_id,
-            'name': 'some-name',
-            'type': 'some-type'
-        }
         (response, json_body) = self.successResultOf(
             json_request(self, self.root, self.verb,
                          self.uri,
@@ -598,8 +443,8 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
 
     def test_invalid_service_id(self):
         """
-        Validate a service-id that does not map to an actual service
-        generates a 404 failure.
+        PUT requires that the service id map to an existing service,
+        otherwise results in a 404.
         """
         data = {
             'id': self.ept_template_id,
@@ -622,8 +467,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
 
     def test_new_endpoint_template_wrong_service_type(self):
         """
-        Validate that the service type must match between
-        the service and the endpoint template.
+        PUT requires that the service matches, otherwise results in 409.
         """
         self.core.add_api(self.eeapi)
 
@@ -649,11 +493,10 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
 
     def test_json_body_id_value_not_matching_url(self):
         """
-        Validate that the template id in the URL and the
-        template ID in the JSON body must match
+        PUT requires that the endpoint template id in the URL and JSON data
+        match, otherwise results in 409.
         """
         self.core.add_api(self.eeapi)
-        id_key = get_template_id(self, self.eeapi)
 
         eeapi2 = make_example_external_api(
             self,
@@ -685,7 +528,8 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
 
     def test_invalid_template_id(self):
         """
-        Validate that a new endpoint template can be updated.
+        PUT requires the endpoint template id to match an existing endpoint
+        template, otherwise results in 404.
         """
         self.core.add_api(self.eeapi)
         id_key = get_template_id(self, self.eeapi)
@@ -714,39 +558,13 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
             "first be added before it can be updated.",
         )
 
-    def test_update_endpoint_template(self):
+    @ddt.data(
+        True, False
+    )
+    def test_update_endpoint_template(self, has_service_header):
         """
-        Validate that a new endpoint template can be updated.
-        """
-        self.core.add_api(self.eeapi)
-        id_key = get_template_id(self, self.eeapi)
-
-        eeapi2 = make_example_external_api(
-            self,
-            name=self.eeapi_name + text_type(uuid.uuid4()),
-            service_type='service-' + text_type(uuid.uuid4())
-        )
-        eeapi2.remove_template(get_template_id(self, eeapi2))
-        self.core.add_api(eeapi2)
-
-        data = {
-            'id': id_key,
-            'name': self.eeapi_name,
-            'type': self.eeapi.type_key,
-            'region': 'some-region'
-        }
-
-        req = request(self, self.root, self.verb,
-                      self.uri,
-                      body=json.dumps(data).encode("utf-8"),
-                      headers=self.headers)
-
-        response = self.successResultOf(req)
-        self.assertEqual(response.code, 201)
-
-    def test_update_endpoint_template_with_serviceid_header(self):
-        """
-        Validate that a new endpoint template can be updated.
+        PUT to update an endpoint template results in 201, service-id
+        header is optional.
         """
         self.core.add_api(self.eeapi)
         id_key = get_template_id(self, self.eeapi)
@@ -766,7 +584,8 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
             'region': 'some-region'
         }
 
-        self.headers[b'serviceid'] = [self.eeapi.uuid_key.encode('utf8')]
+        if has_service_header:
+            self.headers[b'serviceid'] = [self.eeapi.uuid_key.encode('utf8')]
 
         req = request(self, self.root, self.verb,
                       self.uri,
@@ -777,6 +596,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
         self.assertEqual(response.code, 201)
 
 
+@ddt.ddt
 class TestIdentityOSKSCatalogAdminEndpointTemplatesDelete(SynchronousTestCase):
     """
     Tests for ``/identity/v2.0/OS-KSCATALOG/endpointTemplates``, provided by
@@ -803,7 +623,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesDelete(SynchronousTestCase):
 
     def test_auth_fail(self):
         """
-        Validate X-Auth-Token required to access endpoint.
+        DELETE with no X-Auth-Token header results in 401.
         """
         (response, json_body) = self.successResultOf(
             json_request(self, self.root, self.verb,
@@ -814,8 +634,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesDelete(SynchronousTestCase):
 
     def test_invalid_template_id(self):
         """
-        Validate that removing a non-existent template will
-        return a 404.
+        DELTE requires a valid endpoint template id, otherwise results in 404.
         """
         self.eeapi.remove_template(self.ept_template_id)
         self.core.add_api(self.eeapi)
@@ -833,8 +652,8 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesDelete(SynchronousTestCase):
 
     def test_invalid_template_id_with_service_header(self):
         """
-        Validate that removing a non-existent template will
-        return a 404.
+        DELETE requires the endpoint template to exist, otherwise results
+        in 404.
         """
         self.eeapi.remove_template(self.ept_template_id)
         self.core.add_api(self.eeapi)
@@ -851,23 +670,17 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesDelete(SynchronousTestCase):
             "Unable to locate an External API with the given Template ID."
         )
 
-    def test_remove_template_id(self):
+    @ddt.data(
+        True, False
+    )
+    def test_remove_template_id(self, has_service_header):
         """
-        Validate removing an existing template will return a 204.
-        """
-        self.core.add_api(self.eeapi)
-        req = request(self, self.root, self.verb,
-                      self.uri,
-                      headers=self.headers)
-        response = self.successResultOf(req)
-        self.assertEqual(response.code, 204)
-
-    def test_remove_template_id_with_service_header(self):
-        """
-        Validate removing an existing template will return a 204.
+        DELETE removes an existing endpoint template, service id header is
+        optional.
         """
         self.core.add_api(self.eeapi)
-        self.headers[b'serviceid'] = [self.eeapi.uuid_key.encode('utf8')]
+        if has_service_header:
+            self.headers[b'serviceid'] = [self.eeapi.uuid_key.encode('utf8')]
         req = request(self, self.root, self.verb,
                       self.uri,
                       headers=self.headers)

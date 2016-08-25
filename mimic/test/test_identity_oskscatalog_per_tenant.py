@@ -47,7 +47,7 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesList(SynchronousTestCas
 
     def test_auth_fail(self):
         """
-        Validate X-Auth-Token required to access endpoint.
+        GET with no X-Auth-Token header results in 401.
         """
         (response, json_body) = self.successResultOf(
             json_request(self, self.root, self.verb,
@@ -58,8 +58,8 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesList(SynchronousTestCas
 
     def test_invalid_service_id(self):
         """
-        Validate a service-id that does not map to an actual service generates
-        a 404 failure.
+        GET with service-id must map to an actual service otherwise
+        results in 404.
         """
         self.headers.update({
             'serviceid': [b'some-id']
@@ -74,8 +74,7 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesList(SynchronousTestCas
 
     def test_list_only_internal_apis_available(self):
         """
-        Validate that if only Internal APIs are available that no templates are
-        listed; only an empty list is returned.
+        GET will not list Internal APIs.
         """
         self.core.add_api(make_example_internal_api(self))
         (response, json_body) = self.successResultOf(
@@ -89,8 +88,7 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesList(SynchronousTestCas
 
     def test_list_single_template(self):
         """
-        Validate that if an external API is present that its template will show
-        up in the listing.
+        GET will list an external API if it has a endpoint template.
         """
         self.core.add_api(self.eeapi)
 
@@ -105,8 +103,7 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesList(SynchronousTestCas
 
     def test_list_template_all_disabled(self):
         """
-        Validate that if an external API is present that its template will show
-        up in the listing only if it is enabled.
+        GET will not list endpoint templates that are disabled.
         """
         self.core.add_api(self.eeapi)
         id_key = get_template_id(self, self.eeapi)
@@ -123,8 +120,7 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesList(SynchronousTestCas
 
     def test_list_single_template_external_and_internal_apis(self):
         """
-        Validate that if both an internal and and external API are present that
-        only the External API shows up in the template listing.
+        GET will only list external API endpoint templates.
         """
         self.core.add_api(self.eeapi)
         self.core.add_api(make_example_internal_api(self))
@@ -140,6 +136,7 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesList(SynchronousTestCas
 
     def test_multiple_external_apis(self):
         """
+        GET will list multiple external APIs.
         """
         api_list = [self.eeapi]
         for _ in range(10):
@@ -198,7 +195,7 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesCreate(SynchronousTestC
 
     def test_auth_fail(self):
         """
-        Validate X-Auth-Token required to access endpoint.
+        POST with no X-Auth-Token header results in 401.
         """
         (response, json_body) = self.successResultOf(
             json_request(self, self.root, self.verb,
@@ -209,7 +206,7 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesCreate(SynchronousTestC
 
     def test_invalid_json_body(self):
         """
-        Validate that a JSON message body is required.
+        POST will generate 400 when an invalid JSON body is provided.
         """
         (response, json_body) = self.successResultOf(
             json_request(self, self.root, self.verb,
@@ -224,7 +221,8 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesCreate(SynchronousTestC
 
     def test_json_body_missing_required_field_oskscatalog(self):
         """
-        Validate that the name field in the JSON body is required.
+        POST with the OS-KSCATALOG:endointTemplate body entirely missing
+        results in 400.
         """
         data = {
             'id': text_type(uuid.uuid4()),
@@ -246,7 +244,8 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesCreate(SynchronousTestC
 
     def test_json_body_missing_required_field_template_id(self):
         """
-        Validate that the name field in the JSON body is required.
+        POST with the OS-KSCATALOG:endointTemplate body  missing it's content
+        results in 400.
         """
         data = {
             "OS-KSCATALOG:endpointTemplate": {
@@ -269,7 +268,7 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesCreate(SynchronousTestC
 
     def test_invalid_template_id(self):
         """
-        Validate that the name field in the JSON body is required.
+        POST with invalid endpointTemplate ID results in 404.
         """
         self.core.add_api(self.eeapi)
         data = {
@@ -293,7 +292,7 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesCreate(SynchronousTestC
 
     def test_enable_template(self):
         """
-        Validate that a new endpoint template can be updated.
+        POST can update an existing endpoint template resulting in a 201.
         """
         self.core.add_api(self.eeapi)
         id_key = get_template_id(self, self.eeapi)
@@ -339,7 +338,7 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesDelete(SynchronousTestC
 
     def test_auth_fail(self):
         """
-        Validate X-Auth-Token required to access endpoint.
+        DELETE with no X-Auth-Token header results in 401.
         """
         (response, json_body) = self.successResultOf(
             json_request(self, self.root, self.verb,
@@ -350,9 +349,10 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesDelete(SynchronousTestC
 
     def test_invalid_template_id(self):
         """
-        Validate that the name field in the JSON body is required.
+        DELETE with an invalid endpoint template id results in 404.
         """
         self.eeapi.remove_template(self.template_id)
+        self.core.add_api(self.eeapi)
         (response, json_body) = self.successResultOf(
             json_request(self, self.root, self.verb,
                          self.uri,
@@ -368,7 +368,8 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesDelete(SynchronousTestC
 
     def test_template_id_not_enabled_for_tenant(self):
         """
-        Validate that the name field in the JSON body is required.
+        DELETE for endpoint template not enabled for a tenant or globally
+        results in 404.
         """
         self.core.add_api(self.eeapi)
         (response, json_body) = self.successResultOf(
@@ -385,7 +386,7 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesDelete(SynchronousTestC
 
     def test_disable_template(self):
         """
-        Validate that a new endpoint template can be updated.
+        DELETE for endpoint template enabled for tenant results in 204.
         """
         self.core.add_api(self.eeapi)
         self.eeapi.enable_endpoint_for_tenant(
