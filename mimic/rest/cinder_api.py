@@ -3,6 +3,7 @@
 Defines a mock for Cinder
 """
 
+from __future__ import absolute_import, division, print_function, unicode_literals
 import json
 from uuid import uuid4
 from six import text_type
