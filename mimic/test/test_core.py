@@ -63,7 +63,7 @@ class CoreBuildingPluginsTests(SynchronousTestCase):
             dns_plugin.dns,
             cinder_plugin.cinder
         ))
-        # all plugsin should be on the internal listing
+        # all plugins should be on the internal listing
         self.assertEqual(
             plugin_apis,
             set(core._uuid_to_api_internal.values()))
@@ -71,10 +71,6 @@ class CoreBuildingPluginsTests(SynchronousTestCase):
         self.assertEqual(
             set([]),
             set(core._uuid_to_api_external.values()))
-        self.assertEqual(
-            len(plugin_apis),
-            len(list(core.entries_for_tenant('any_tenant', {},
-                                             'http://mimic'))))
 
     def test_load_domain_plugin_includes_all_domain_plugins(self):
         """
