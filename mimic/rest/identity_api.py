@@ -23,13 +23,26 @@ from mimic.canned_responses.auth import (
     impersonator_user_role,
     get_version_v2)
 from mimic.canned_responses.mimic_presets import get_presets
-from mimic.core import MimicCore
+from mimic.core import (
+    MimicCore,
+    ServiceDoesNotExist,
+    ServiceHasTemplates,
+    ServiceNameExists
+)
 from mimic.model.behaviors import make_behavior_api
 from mimic.model.identity import (
     APIKeyCredentials,
     ImpersonationCredentials,
     PasswordCredentials,
     TokenCredentials)
+from mimic.model.identity_errors import (
+    EndpointTemplateAlreadyExists,
+    EndpointTemplateDisabledForTenant,
+    EndpointTemplateDoesNotExist,
+    InvalidEndpointTemplateId,
+    InvalidEndpointTemplateMissingKey,
+    InvalidEndpointTemplateServiceType
+)
 from mimic.model.identity_objects import (
     bad_request,
     conflict,
@@ -753,7 +766,7 @@ class IdentityApi(object):
                 service_name,
                 service_type,
                 description=service_description))
-        except ValueError:
+        except ServiceNameExists:
             return json.dumps(
                 conflict(
                     "Conflict: Service with the same name already exists.",
@@ -778,12 +791,12 @@ class IdentityApi(object):
             self.core.remove_external_api(
                 service_id
             )
-        except IndexError:
+        except ServiceDoesNotExist:
             return json.dumps(
                 not_found(
                     "Service not found. Unable to remove.",
                     request))
-        except ValueError:
+        except ServiceHasTemplates:
             return json.dumps(
                 conflict(
                     "Service still has endpoint templates.",
@@ -831,7 +844,7 @@ class IdentityApi(object):
                     "OS-KSCATALOG:endpointsTemplates_links": []
                 }
             )
-        except IndexError:
+        except ServiceDoesNotExist:
             request.setResponseCode(404)
             return json.dumps(not_found(
                 "Unable to find the requested API",
@@ -869,7 +882,7 @@ class IdentityApi(object):
             endpoint_template_instance = EndpointTemplateStore.deserialize(
                 content
             )
-        except KeyError as ex:
+        except InvalidEndpointTemplateMissingKey as ex:
             return json.dumps(
                 bad_request(
                     "JSON body does not contain the required parameters: "
@@ -906,7 +919,7 @@ class IdentityApi(object):
 
         try:
             service = self.core.get_external_api(service_id)
-        except IndexError:
+        except ServiceDoesNotExist:
             return json.dumps(
                 not_found(
                     "Service API for endoint template not found",
@@ -916,7 +929,8 @@ class IdentityApi(object):
 
         try:
             service.add_template(endpoint_template_instance)
-        except ValueError:
+        except (EndpointTemplateAlreadyExists,
+                InvalidEndpointTemplateServiceType):
             return json.dumps(
                 conflict(
                     "Endpoint already exists or service type does not match.",
@@ -964,7 +978,7 @@ class IdentityApi(object):
             endpoint_template_instance = EndpointTemplateStore.deserialize(
                 content
             )
-        except KeyError as ex:
+        except (InvalidEndpointTemplateMissingKey, KeyError) as ex:
             return json.dumps(
                 bad_request(
                     "JSON body does not contain the required parameters: "
@@ -984,7 +998,7 @@ class IdentityApi(object):
 
         try:
             service = self.core.get_external_api(service_id)
-        except IndexError:
+        except ServiceDoesNotExist:
             return json.dumps(
                 not_found(
                     "Service API for endoint template not found",
@@ -994,7 +1008,8 @@ class IdentityApi(object):
 
         try:
             service.update_template(endpoint_template_instance)
-        except ValueError:
+        except (InvalidEndpointTemplateServiceType,
+                InvalidEndpointTemplateId):
             return json.dumps(
                 conflict(
                     "Endpoint already exists and service id or service type "
@@ -1002,7 +1017,7 @@ class IdentityApi(object):
                     request
                 )
             )
-        except IndexError:
+        except EndpointTemplateDoesNotExist:
             return json.dumps(
                 not_found(
                     "Unable to update non-existent template. Template must "
@@ -1096,7 +1111,7 @@ class IdentityApi(object):
                     "endpoints_links": []
                 }
             )
-        except IndexError:
+        except ServiceDoesNotExist:
             request.setResponseCode(404)
             return json.dumps(not_found(
                 "Unable to find the requested API",
@@ -1169,7 +1184,7 @@ class IdentityApi(object):
                         tenant_id,
                         template_id
                     )
-                except ValueError:
+                except EndpointTemplateDisabledForTenant:
                     return json.dumps(
                         not_found(
                             "Template not enabled for tenant",

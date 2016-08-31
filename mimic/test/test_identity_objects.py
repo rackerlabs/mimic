@@ -4,6 +4,15 @@ import ddt
 
 from twisted.trial.unittest import SynchronousTestCase
 
+from mimic.model.identity_errors import (
+    EndpointTemplateAlreadyExists,
+    EndpointTemplateDisabledForTenant,
+    EndpointTemplateDoesNotExist,
+    InvalidEndpointTemplateId,
+    InvalidEndpointTemplateInterface,
+    InvalidEndpointTemplateMissingKey,
+    InvalidEndpointTemplateServiceType
+)
 from mimic.model.identity_objects import (
     EndpointTemplateStore,
     bad_request,
@@ -138,7 +147,7 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
         else:
             # validate that the keys must be present
             del data[key_to_remove]
-            with self.assertRaises(KeyError):
+            with self.assertRaises(InvalidEndpointTemplateMissingKey):
                 EndpointTemplateStore.deserialize(data)
 
     def test_deserialization(self):
@@ -375,7 +384,7 @@ class EndpointTemplatesTests(SynchronousTestCase):
         class InvalidTemplate(object):
             pass
 
-        with self.assertRaises(TypeError):
+        with self.assertRaises(InvalidEndpointTemplateInterface):
             eeapi.add_template(InvalidTemplate())
 
     def test_duplicate_api_insertion_fails(self):
@@ -402,7 +411,7 @@ class EndpointTemplatesTests(SynchronousTestCase):
         eeapi.add_template(new_eeapi_template)
 
         # second time fails
-        with self.assertRaises(ValueError):
+        with self.assertRaises(EndpointTemplateAlreadyExists):
             eeapi.add_template(new_eeapi_template)
 
     def test_add_template_with_mismatching_service_type(self):
@@ -425,7 +434,7 @@ class EndpointTemplatesTests(SynchronousTestCase):
         )
         new_eeapi_template.type_key = "random-type"
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidEndpointTemplateServiceType):
             eeapi.add_template(new_eeapi_template)
 
     def test_update_with_invalid_template(self):
@@ -442,7 +451,7 @@ class EndpointTemplatesTests(SynchronousTestCase):
             set_enabled=True,
         )
 
-        with self.assertRaises(TypeError):
+        with self.assertRaises(InvalidEndpointTemplateInterface):
             eeapi.update_template(InvalidTemplate())
 
     def test_update_endpoint_template(self):
@@ -499,7 +508,7 @@ class EndpointTemplatesTests(SynchronousTestCase):
             set_enabled=True,
         )
 
-        with self.assertRaises(IndexError):
+        with self.assertRaises(EndpointTemplateDoesNotExist):
             eeapi.update_template(new_eeapi_template)
 
     def test_update_endpoint_template_invalid_type_value(self):
@@ -523,7 +532,7 @@ class EndpointTemplatesTests(SynchronousTestCase):
         )
         new_eeapi_template.type_key = "some-other-type"
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidEndpointTemplateServiceType):
             eeapi.update_template(new_eeapi_template)
 
     def test_update_endpoint_template_invalid_id_value(self):
@@ -550,7 +559,7 @@ class EndpointTemplatesTests(SynchronousTestCase):
         eeapi.endpoint_templates[old_eeapi_template_id].id_key = \
             new_eeapi_template_id
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidEndpointTemplateId):
             eeapi.update_template(new_eeapi_template)
 
     @ddt.data(
@@ -604,7 +613,7 @@ class EndpointTemplatesTests(SynchronousTestCase):
             eeapi.remove_template(eeapi_template_id)
             self.assertNotIn(eeapi_template_id, eeapi.endpoint_templates)
         else:
-            with self.assertRaises(IndexError):
+            with self.assertRaises(InvalidEndpointTemplateId):
                 eeapi.remove_template(eeapi_template_id)
 
     def test_remove_endpoint_template_with_user_registration(self):
@@ -690,7 +699,7 @@ class EndpointsForTenantsTests(SynchronousTestCase):
             set_enabled=True
         )
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidEndpointTemplateId):
             eeapi.enable_endpoint_for_tenant(
                 'some_tenant',
                 'some-invalid-template-id'
@@ -707,7 +716,7 @@ class EndpointsForTenantsTests(SynchronousTestCase):
             set_enabled=True
         )
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(EndpointTemplateDisabledForTenant):
             eeapi.disable_endpoint_for_tenant(
                 'some_tenant',
                 'some-invalid-template-id'
