@@ -30,4 +30,4 @@ unittest2==1.1.0
 Werkzeug==0.11.10
 wheel==0.29.0
 xmltodict==0.10.2
-zope.interface==4.3.0
+zope.interface==4.3.1
