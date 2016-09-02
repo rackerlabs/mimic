@@ -979,6 +979,7 @@ class IdentityApi(object):
                 content
             )
         except (InvalidEndpointTemplateMissingKey, KeyError) as ex:
+            # KeyError is for the content['id'] line
             return json.dumps(
                 bad_request(
                     "JSON body does not contain the required parameters: "

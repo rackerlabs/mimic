@@ -511,35 +511,15 @@ class EndpointTemplatesTests(SynchronousTestCase):
         with self.assertRaises(EndpointTemplateDoesNotExist):
             eeapi.update_template(new_eeapi_template)
 
-    def test_update_endpoint_template_invalid_type_value(self):
+    @ddt.data(
+        ('type', InvalidEndpointTemplateServiceType),
+        ('id', InvalidEndpointTemplateId)
+    )
+    @ddt.unpack
+    def test_update_endpoint_template_invalid_data(self, invalid_data, expected_exception):
         """
-        Validate that the :obj:`ExternalApiStore` will raise the `IndexError`
-        exception if the template id is not found when doing an update; in
-        otherwords, update != (update or add).
-        """
-        new_url = "https://api.new_region.example.com:9090"
-        new_region = "NEW_REGION"
-        eeapi = make_example_external_api(
-            self,
-            name=self.eeapi_name,
-            set_enabled=True,
-        )
-        new_eeapi_template = exampleEndpointTemplate(
-            name=self.eeapi_name,
-            endpoint_uuid=get_template_id(self, eeapi),
-            region=new_region,
-            url=new_url
-        )
-        new_eeapi_template.type_key = "some-other-type"
-
-        with self.assertRaises(InvalidEndpointTemplateServiceType):
-            eeapi.update_template(new_eeapi_template)
-
-    def test_update_endpoint_template_invalid_id_value(self):
-        """
-        Validate that the :obj:`ExternalApiStore` will raise the `IndexError`
-        exception if the template id is not found when doing an update; in
-        otherwords, update != (update or add).
+        :obj:`ExternalApiStore` will raise the appropriate exception when
+        given fields are missing from the endpoint template during the update.
         """
         new_url = "https://api.new_region.example.com:9090"
         new_region = "NEW_REGION"
@@ -548,18 +528,20 @@ class EndpointTemplatesTests(SynchronousTestCase):
             name=self.eeapi_name,
             set_enabled=True,
         )
-        old_eeapi_template_id = get_template_id(self, eeapi)
-        new_eeapi_template_id = u"uuid-alternate-endpoint-template"
+        new_id = get_template_id(self, eeapi)
         new_eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
-            endpoint_uuid=old_eeapi_template_id,
+            endpoint_uuid=new_id,
             region=new_region,
             url=new_url
         )
-        eeapi.endpoint_templates[old_eeapi_template_id].id_key = \
-            new_eeapi_template_id
+        if invalid_data == 'type':
+            new_eeapi_template.type_key = "some-other-type"
+        elif invalid_data == 'id':
+            eeapi.endpoint_templates[new_id].id_key = \
+                u"uuid-alternate-endpoint-template"
 
-        with self.assertRaises(InvalidEndpointTemplateId):
+        with self.assertRaises(expected_exception):
             eeapi.update_template(new_eeapi_template)
 
     @ddt.data(

@@ -17,10 +17,11 @@ from mimic.core import MimicCore
 from mimic.resource import MimicRoot
 from mimic.test.dummy import make_example_external_api, ExternalApiStore
 from mimic.test.helpers import json_request, request
+from mimic.test.mixins import IdentityAuthMixin, InvalidJsonMixin
 
 
 @ddt.ddt
-class TestIdentityMimicOSKSCatalogAdminListExternalServices(SynchronousTestCase):
+class TestIdentityMimicOSKSCatalogAdminListExternalServices(SynchronousTestCase, IdentityAuthMixin):
     """
     Tests for ``/identity/v2.0/services``, provided by
     :obj:`mimic.rest.idenity_api.IdentityApi`
@@ -35,17 +36,6 @@ class TestIdentityMimicOSKSCatalogAdminListExternalServices(SynchronousTestCase)
         }
         self.verb = b"GET"
 
-    def test_auth_fail(self):
-        """
-        GET with no X-Auth-Token header results in 401.
-        """
-        (response, json_body) = self.successResultOf(
-            json_request(self, self.root, self.verb,
-                         self.uri))
-
-        self.assertEqual(response.code, 401)
-        self.assertEqual(json_body['unauthorized']['code'], 401)
-
     @ddt.data(
         0, 1, 10
     )
@@ -53,17 +43,15 @@ class TestIdentityMimicOSKSCatalogAdminListExternalServices(SynchronousTestCase)
         """
         GET will list the registered services.
         """
-        api_list = []
-
         # create the desired number of services per test parameter
-        for _ in range(api_entry_count):
-            api_list.append(
-                ExternalApiStore(
-                    text_type(uuid.uuid4()),
-                    self.eeapi_name + text_type(uuid.uuid4()),
-                    'service-' + text_type(uuid.uuid4()),
-                )
+        api_list = [
+            ExternalApiStore(
+                text_type(uuid.uuid4()),
+                self.eeapi_name + text_type(uuid.uuid4()),
+                'service-' + text_type(uuid.uuid4()),
             )
+            for ignored in range(api_entry_count)
+        ]
 
         # add the services
         for api in api_list:
@@ -79,19 +67,14 @@ class TestIdentityMimicOSKSCatalogAdminListExternalServices(SynchronousTestCase)
             """
             Lookup the API in the test's set of APIs  and match the values
             """
-            for api in api_list:
-                if api.uuid_key == api_id:
-                    # service found, check values and return
-                    self.assertEqual(api_id, api.uuid_key)
-                    self.assertEqual(api_type, api.type_key)
-                    self.assertEqual(api_name, api.name_key)
-                    return
-
-            # no service found, raise assertion error
-            self.assertFalse(
-                True,
-                "Unknown service: {0} - {1} - {2}".format(
-                    api_id, api_type, api_name))
+            matching_apis = [
+                api for api in api_list if api.uuid_key == api_id
+            ]
+            self.assertEqual(len(matching_apis), 1)
+            [matching_api] = matching_apis
+            self.assertEqual(api_id, matching_api.uuid_key)
+            self.assertEqual(api_type, matching_api.type_key)
+            self.assertEqual(api_name, matching_api.name_key)
 
         self.assertEqual(response.code, 200)
         self.assertEqual(len(json_body["OS-KSADM:services"]), len(api_list))
@@ -102,7 +85,8 @@ class TestIdentityMimicOSKSCatalogAdminListExternalServices(SynchronousTestCase)
 
 
 @ddt.ddt
-class TestIdentityMimicOSKSCatalogAdminCreateExternalService(SynchronousTestCase):
+class TestIdentityMimicOSKSCatalogAdminCreateExternalService(
+        SynchronousTestCase, IdentityAuthMixin, InvalidJsonMixin):
     """
     Tests for ``/identity/v2.0/services``, provided by
     :obj:`mimic.rest.idenity_api.IdentityApi`
@@ -121,32 +105,6 @@ class TestIdentityMimicOSKSCatalogAdminCreateExternalService(SynchronousTestCase
             b'X-Auth-Token': [b'ABCDEF987654321']
         }
         self.verb = b"POST"
-
-    def test_auth_fail(self):
-        """
-        POST with no X-Auth-Token header results in 401.
-        """
-        (response, json_body) = self.successResultOf(
-            json_request(self, self.root, self.verb,
-                         self.uri))
-
-        self.assertEqual(response.code, 401)
-        self.assertEqual(json_body['unauthorized']['code'], 401)
-
-    def test_invalid_json_body(self):
-        """
-        POST will generate 400 when an invalid JSON body is provided.
-        """
-        (response, json_body) = self.successResultOf(
-            json_request(self, self.root, self.verb,
-                         self.uri,
-                         body=b'<xml>ensure json failure',
-                         headers=self.headers))
-
-        self.assertEqual(response.code, 400)
-        self.assertEqual(json_body['badRequest']['code'], 400)
-        self.assertEqual(json_body['badRequest']['message'],
-                         'Invalid JSON request body')
 
     @ddt.data(
         'type', 'name'
@@ -263,7 +221,7 @@ class TestIdentityMimicOSKSCatalogAdminCreateExternalService(SynchronousTestCase
         self.assertEqual(response.code, 201)
 
 
-class TestIdentityMimicOSKSCatalogAdminDeleteExternalService(SynchronousTestCase):
+class TestIdentityMimicOSKSCatalogAdminDeleteExternalService(SynchronousTestCase, IdentityAuthMixin):
     """
     Tests for ``/identity/v2.0/services/<service-id>``, provided by
     :obj:`mimic.rest.idenity_api.IdentityApi`
@@ -288,17 +246,6 @@ class TestIdentityMimicOSKSCatalogAdminDeleteExternalService(SynchronousTestCase
             b'X-Auth-Token': [b'ABCDEF987654321']
         }
         self.verb = b"DELETE"
-
-    def test_auth_fail(self):
-        """
-        DELETE with no X-Auth-Token header results in 401.
-        """
-        (response, json_body) = self.successResultOf(
-            json_request(self, self.root, self.verb,
-                         self.uri))
-
-        self.assertEqual(response.code, 401)
-        self.assertEqual(json_body['unauthorized']['code'], 401)
 
     def test_invalid_service(self):
         """

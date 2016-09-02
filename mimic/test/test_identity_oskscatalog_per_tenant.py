@@ -19,9 +19,10 @@ from mimic.test.dummy import (
     make_example_external_api
 )
 from mimic.test.helpers import json_request, request, get_template_id
+from mimic.test.mixins import IdentityAuthMixin, InvalidJsonMixin
 
 
-class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesList(SynchronousTestCase):
+class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesList(SynchronousTestCase, IdentityAuthMixin):
     """
     Tests for ``/identity/v2.0/<tenant-id>/OS-KSCATALOG/endpointTemplates``,
     provided by :obj:`mimic.rest.idenity_api.IdentityApi`
@@ -44,17 +45,6 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesList(SynchronousTestCas
             b'X-Auth-Token': [b'ABCDEF987654321']
         }
         self.verb = b"GET"
-
-    def test_auth_fail(self):
-        """
-        GET with no X-Auth-Token header results in 401.
-        """
-        (response, json_body) = self.successResultOf(
-            json_request(self, self.root, self.verb,
-                         self.uri))
-
-        self.assertEqual(response.code, 401)
-        self.assertEqual(json_body['unauthorized']['code'], 401)
 
     def test_invalid_service_id(self):
         """
@@ -138,16 +128,18 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesList(SynchronousTestCas
         """
         GET will list multiple external APIs.
         """
-        api_list = [self.eeapi]
-        for _ in range(10):
-            api_list.append(
-                make_example_external_api(
-                    self,
-                    name=self.eeapi_name + text_type(uuid.uuid4()),
-                    service_type='service-' + text_type(uuid.uuid4()),
-                    set_enabled=True
-                )
+        api_list = [
+            make_example_external_api(
+                self,
+                name=self.eeapi_name + text_type(uuid.uuid4()),
+                service_type='service-' + text_type(uuid.uuid4()),
+                set_enabled=True
             )
+            for ignored in range(10)
+        ]
+        # eeapi should be the first entry in the list
+        api_list.insert(0, self.eeapi)
+
         for api in api_list:
             self.core.add_api(api)
 
@@ -169,7 +161,8 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesList(SynchronousTestCas
         self.assertEqual(len(json_body['endpoints_links']), 0)
 
 
-class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesCreate(SynchronousTestCase):
+class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesCreate(
+        SynchronousTestCase, IdentityAuthMixin, InvalidJsonMixin):
     """
     Tests for ``/identity/v2.0/<tenant-id>/OS-KSCATALOG/endpointTemplates``,
     provided by :obj:`mimic.rest.idenity_api.IdentityApi`
@@ -192,32 +185,6 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesCreate(SynchronousTestC
             b'X-Auth-Token': [b'ABCDEF987654321']
         }
         self.verb = b"POST"
-
-    def test_auth_fail(self):
-        """
-        POST with no X-Auth-Token header results in 401.
-        """
-        (response, json_body) = self.successResultOf(
-            json_request(self, self.root, self.verb,
-                         self.uri))
-
-        self.assertEqual(response.code, 401)
-        self.assertEqual(json_body['unauthorized']['code'], 401)
-
-    def test_invalid_json_body(self):
-        """
-        POST will generate 400 when an invalid JSON body is provided.
-        """
-        (response, json_body) = self.successResultOf(
-            json_request(self, self.root, self.verb,
-                         self.uri,
-                         body=b'<xml>ensure json failure',
-                         headers=self.headers))
-
-        self.assertEqual(response.code, 400)
-        self.assertEqual(json_body['badRequest']['code'], 400)
-        self.assertEqual(json_body['badRequest']['message'],
-                         'Invalid JSON request body')
 
     def test_json_body_missing_required_field_oskscatalog(self):
         """
@@ -311,7 +278,7 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesCreate(SynchronousTestC
         self.assertEqual(response.code, 201)
 
 
-class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesDelete(SynchronousTestCase):
+class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesDelete(SynchronousTestCase, IdentityAuthMixin):
     """
     Tests for ``/identity/v2.0/<tenant-id>/OS-KSCATALOG/endpointTemplates``,
     provided by :obj:`mimic.rest.idenity_api.IdentityApi`
@@ -335,17 +302,6 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesDelete(SynchronousTestC
             b'X-Auth-Token': [b'ABCDEF987654321']
         }
         self.verb = b"DELETE"
-
-    def test_auth_fail(self):
-        """
-        DELETE with no X-Auth-Token header results in 401.
-        """
-        (response, json_body) = self.successResultOf(
-            json_request(self, self.root, self.verb,
-                         self.uri))
-
-        self.assertEqual(response.code, 401)
-        self.assertEqual(json_body['unauthorized']['code'], 401)
 
     def test_invalid_template_id(self):
         """

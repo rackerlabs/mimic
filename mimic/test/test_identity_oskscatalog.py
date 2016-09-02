@@ -20,9 +20,10 @@ from mimic.test.dummy import (
     make_example_external_api
 )
 from mimic.test.helpers import json_request, request, get_template_id
+from mimic.test.mixins import IdentityAuthMixin, InvalidJsonMixin
 
 
-class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase):
+class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase, IdentityAuthMixin):
     """
     Tests for ``/identity/v2.0/OS-KSCATALOG/endpointTemplates``, provided by
     :obj:`mimic.rest.idenity_api.IdentityApi`
@@ -41,17 +42,6 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase):
             b'X-Auth-Token': [b'ABCDEF987654321']
         }
         self.verb = b"GET"
-
-    def test_auth_fail(self):
-        """
-        GET with no X-Auth-Token header results in 401.
-        """
-        (response, json_body) = self.successResultOf(
-            json_request(self, self.root, self.verb,
-                         self.uri))
-
-        self.assertEqual(response.code, 401)
-        self.assertEqual(json_body['unauthorized']['code'], 401)
 
     def test_invalid_service_id(self):
         """
@@ -127,15 +117,16 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase):
         """
         GET can retrieve numerous External APIs that have External API Templates.
         """
-        api_list = [self.eeapi]
-        for _ in range(10):
-            api_list.append(
-                make_example_external_api(
-                    self,
-                    name=self.eeapi_name + text_type(uuid.uuid4()),
-                    service_type='service-' + text_type(uuid.uuid4())
-                )
+        api_list = [
+            make_example_external_api(
+                self,
+                name=self.eeapi_name + text_type(uuid.uuid4()),
+                service_type='service-' + text_type(uuid.uuid4())
             )
+            for ignored in range(10)
+        ]
+        #  eeapi needs to be the first in the list
+        api_list.insert(0, self.eeapi)
         for api in api_list:
             self.core.add_api(api)
 
@@ -157,7 +148,8 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase):
 
 
 @ddt.ddt
-class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
+class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(
+        SynchronousTestCase, IdentityAuthMixin, InvalidJsonMixin):
     """
     Tests for ``/identity/v2.0/OS-KSCATALOG/endpointTemplates``, provided by
     :obj:`mimic.rest.idenity_api.IdentityApi`
@@ -176,32 +168,6 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
             b'X-Auth-Token': [b'ABCDEF987654321']
         }
         self.verb = b"POST"
-
-    def test_auth_fail(self):
-        """
-        POST with no X-Auth-Token header results in 401.
-        """
-        (response, json_body) = self.successResultOf(
-            json_request(self, self.root, self.verb,
-                         self.uri))
-
-        self.assertEqual(response.code, 401)
-        self.assertEqual(json_body['unauthorized']['code'], 401)
-
-    def test_invalid_json_body(self):
-        """
-        POST requires a valid JSON message body.
-        """
-        (response, json_body) = self.successResultOf(
-            json_request(self, self.root, self.verb,
-                         self.uri,
-                         body=b'<xml>ensure json failure',
-                         headers=self.headers))
-
-        self.assertEqual(response.code, 400)
-        self.assertEqual(json_body['badRequest']['code'], 400)
-        self.assertEqual(json_body['badRequest']['message'],
-                         'Invalid JSON request body')
 
     @ddt.data(
         'name', 'id', 'type', 'region'
@@ -362,7 +328,8 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(SynchronousTestCase):
 
 
 @ddt.ddt
-class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
+class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(
+        SynchronousTestCase, IdentityAuthMixin, InvalidJsonMixin):
     """
     Tests for ``/identity/v2.0/OS-KSCATALOG/endpointTemplates``, provided by
     :obj:`mimic.rest.idenity_api.IdentityApi`
@@ -385,32 +352,6 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
             "/identity/v2.0/OS-KSCATALOG/endpointTemplates/" +
             self.ept_template_id
         )
-
-    def test_auth_fail(self):
-        """
-        PUT with no X-Auth-Token header results in 401.
-        """
-        (response, json_body) = self.successResultOf(
-            json_request(self, self.root, self.verb,
-                         self.uri))
-
-        self.assertEqual(response.code, 401)
-        self.assertEqual(json_body['unauthorized']['code'], 401)
-
-    def test_invalid_json_body(self):
-        """
-        POST will generate 400 when an invalid JSON body is provided.
-        """
-        (response, json_body) = self.successResultOf(
-            json_request(self, self.root, self.verb,
-                         self.uri,
-                         body=b'<xml>ensure json failure',
-                         headers=self.headers))
-
-        self.assertEqual(response.code, 400)
-        self.assertEqual(json_body['badRequest']['code'], 400)
-        self.assertEqual(json_body['badRequest']['message'],
-                         'Invalid JSON request body')
 
     @ddt.data(
         'id', 'name', 'type', 'region'
@@ -597,7 +538,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(SynchronousTestCase):
 
 
 @ddt.ddt
-class TestIdentityOSKSCatalogAdminEndpointTemplatesDelete(SynchronousTestCase):
+class TestIdentityOSKSCatalogAdminEndpointTemplatesDelete(SynchronousTestCase, IdentityAuthMixin):
     """
     Tests for ``/identity/v2.0/OS-KSCATALOG/endpointTemplates``, provided by
     :obj:`mimic.rest.idenity_api.IdentityApi`
@@ -620,17 +561,6 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesDelete(SynchronousTestCase):
             "/identity/v2.0/OS-KSCATALOG/endpointTemplates/" +
             self.ept_template_id
         )
-
-    def test_auth_fail(self):
-        """
-        DELETE with no X-Auth-Token header results in 401.
-        """
-        (response, json_body) = self.successResultOf(
-            json_request(self, self.root, self.verb,
-                         self.uri))
-
-        self.assertEqual(response.code, 401)
-        self.assertEqual(json_body['unauthorized']['code'], 401)
 
     def test_invalid_template_id(self):
         """
