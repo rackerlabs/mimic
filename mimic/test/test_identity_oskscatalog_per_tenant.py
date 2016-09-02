@@ -19,10 +19,11 @@ from mimic.test.dummy import (
     make_example_external_api
 )
 from mimic.test.helpers import json_request, request, get_template_id
-from mimic.test.mixins import IdentityAuthMixin, InvalidJsonMixin
+from mimic.test.mixins import IdentityAuthMixin, InvalidJsonMixin, ServiceIdHeaderMixin
 
 
-class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesList(SynchronousTestCase, IdentityAuthMixin):
+class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesList(
+        SynchronousTestCase, IdentityAuthMixin, ServiceIdHeaderMixin):
     """
     Tests for ``/identity/v2.0/<tenant-id>/OS-KSCATALOG/endpointTemplates``,
     provided by :obj:`mimic.rest.idenity_api.IdentityApi`
@@ -45,22 +46,6 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesList(SynchronousTestCas
             b'X-Auth-Token': [b'ABCDEF987654321']
         }
         self.verb = b"GET"
-
-    def test_invalid_service_id(self):
-        """
-        GET with service-id must map to an actual service otherwise
-        results in 404.
-        """
-        self.headers.update({
-            'serviceid': [b'some-id']
-        })
-        (response, json_body) = self.successResultOf(
-            json_request(self, self.root, self.verb,
-                         self.uri,
-                         headers=self.headers))
-
-        self.assertEqual(response.code, 404)
-        self.assertEqual(json_body['itemNotFound']['code'], 404)
 
     def test_list_only_internal_apis_available(self):
         """

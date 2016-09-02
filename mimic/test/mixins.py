@@ -40,3 +40,24 @@ class InvalidJsonMixin(object):
         self.assertEqual(json_body['badRequest']['code'], 400)
         self.assertEqual(json_body['badRequest']['message'],
                          'Invalid JSON request body')
+
+
+class ServiceIdHeaderMixin(object):
+    """
+    Common Tests for the Service-ID Header
+    """
+
+    def test_invalid_service_id(self):
+        """
+        HTTP Verb must have a valid service id otherwise 404.
+        """
+        self.headers.update({
+            'serviceid': [b'some-id']
+        })
+        (response, json_body) = self.successResultOf(
+            json_request(self, self.root, self.verb,
+                         self.uri,
+                         headers=self.headers))
+
+        self.assertEqual(response.code, 404)
+        self.assertEqual(json_body['itemNotFound']['code'], 404)

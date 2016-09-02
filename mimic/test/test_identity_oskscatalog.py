@@ -20,10 +20,11 @@ from mimic.test.dummy import (
     make_example_external_api
 )
 from mimic.test.helpers import json_request, request, get_template_id
-from mimic.test.mixins import IdentityAuthMixin, InvalidJsonMixin
+from mimic.test.mixins import IdentityAuthMixin, InvalidJsonMixin, ServiceIdHeaderMixin
 
 
-class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase, IdentityAuthMixin):
+class TestIdentityOSKSCatalogAdminEndpointTemplatesList(
+        SynchronousTestCase, IdentityAuthMixin, ServiceIdHeaderMixin):
     """
     Tests for ``/identity/v2.0/OS-KSCATALOG/endpointTemplates``, provided by
     :obj:`mimic.rest.idenity_api.IdentityApi`
@@ -42,21 +43,6 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesList(SynchronousTestCase, Ide
             b'X-Auth-Token': [b'ABCDEF987654321']
         }
         self.verb = b"GET"
-
-    def test_invalid_service_id(self):
-        """
-        GET must have a valid service id otherwise 404.
-        """
-        self.headers.update({
-            'serviceid': [b'some-id']
-        })
-        (response, json_body) = self.successResultOf(
-            json_request(self, self.root, self.verb,
-                         self.uri,
-                         headers=self.headers))
-
-        self.assertEqual(response.code, 404)
-        self.assertEqual(json_body['itemNotFound']['code'], 404)
 
     def test_list_only_internal_apis_available(self):
         """
@@ -197,7 +183,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(
             )
         )
 
-    def test_invalid_service_id(self):
+    def test_invalid_service_id_in_json_body(self):
         """
         POST - Service ID must be valid, otherwise results in 404.
         """
@@ -382,7 +368,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(
             )
         )
 
-    def test_invalid_service_id(self):
+    def test_invalid_service_id_in_json_body(self):
         """
         PUT requires that the service id map to an existing service,
         otherwise results in a 404.

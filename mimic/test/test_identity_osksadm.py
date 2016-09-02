@@ -135,14 +135,19 @@ class TestIdentityMimicOSKSCatalogAdminCreateExternalService(
                          "Invalid Content. 'name' and 'type' fields are "
                          "required.")
 
-    def test_service_uuid_already_exists(self):
+    @ddt.data(
+        (True, False, "Conflict: Service with the same name already exists."),
+        (False, True, "Conflict: Service with the same uuid already exists."),
+    )
+    @ddt.unpack
+    def test_service_name_or_id_already_exists(self, name_exists, id_exists, msg):
         """
         POST requires a unique UUID for the Service ID.
         """
         self.core.add_api(self.eeapi)
         data = {
-            'id': self.eeapi.uuid_key,
-            'name': self.eeapi.name_key,
+            'id': self.eeapi.uuid_key if id_exists else text_type(uuid.uuid4()),
+            'name': self.eeapi.name_key if name_exists else "some-other-name",
             'type': self.eeapi.type_key
         }
         (response, json_body) = self.successResultOf(
@@ -154,35 +159,16 @@ class TestIdentityMimicOSKSCatalogAdminCreateExternalService(
         self.assertEqual(response.code, 409)
         self.assertEqual(json_body['conflict']['code'], 409)
         self.assertEqual(json_body['conflict']['message'],
-                         "Conflict: Service with the same uuid already "
-                         "exists.")
-
-    def test_service_name_already_exists(self):
-        """
-        POST requires a unique name for the service Name.
-        """
-        self.core.add_api(self.eeapi)
-        data = {
-            'id': str(uuid.uuid4()),
-            'name': self.eeapi.name_key,
-            'type': self.eeapi.type_key
-        }
-        (response, json_body) = self.successResultOf(
-            json_request(self, self.root, self.verb,
-                         self.uri,
-                         body=data,
-                         headers=self.headers))
-
-        self.assertEqual(response.code, 409)
-        self.assertEqual(json_body['conflict']['code'], 409)
-        self.assertEqual(json_body['conflict']['message'],
-                         "Conflict: Service with the same name already "
-                         "exists.")
+                         msg)
 
     @ddt.data(
-        True, False
+        (True, True),
+        (True, False),
+        (False, True),
+        (False, False)
     )
-    def test_successfully_add_service(self, has_id_field):
+    @ddt.unpack
+    def test_successfully_add_service(self, has_id_field, has_description):
         """
         POST accepts the service type and name regardless of whether
         an ID field is provided.
@@ -190,30 +176,16 @@ class TestIdentityMimicOSKSCatalogAdminCreateExternalService(
         data = {
             'name': self.eeapi.name_key,
             'type': self.eeapi.type_key,
-            'id': text_type(uuid.uuid4())
+            'id': text_type(uuid.uuid4()),
+            'description': 'testing external API'
         }
         if not has_id_field:
             del data['id']
+        if not has_description:
+            del data['description']
 
         req = request(self, self.root, self.verb,
                       "/identity/v2.0/services",
-                      body=json.dumps(data).encode("utf-8"),
-                      headers=self.headers)
-
-        response = self.successResultOf(req)
-        self.assertEqual(response.code, 201)
-
-    def test_successfully_add_service_with_description(self):
-        """
-        POST accepts a Service Description.
-        """
-        data = {
-            'name': self.eeapi.name_key,
-            'type': self.eeapi.type_key,
-            'description': 'testing external API'
-        }
-        req = request(self, self.root, self.verb,
-                      self.uri,
                       body=json.dumps(data).encode("utf-8"),
                       headers=self.headers)
 
