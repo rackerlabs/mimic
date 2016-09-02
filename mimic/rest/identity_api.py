@@ -694,8 +694,8 @@ class IdentityApi(object):
         List the available external services that endpoint templates
         may be added to.
 
-        Note: Part of the OS-KSADM extension.
-        Note: Does not implement the limits or markers.
+        .. note:: Part of the OS-KSADM extension.
+        .. note:: Does not implement the limits or markers.
         """
         x_auth_token = request.getHeader(b"x-auth-token")
         if x_auth_token is None:
@@ -720,8 +720,8 @@ class IdentityApi(object):
         Create a new external api service that endpoint templates
         may be added to.
 
-        Note: Part of the OS-KSADM extensions.
-        Note: Only requires 'name' and 'type' fields in the JSON. If the 'id'
+        .. note:: Part of the OS-KSADM extensions.
+        .. note:: Only requires 'name' and 'type' fields in the JSON. If the 'id'
             or 'description' fields are present, then they will be used;
             otherwise a UUID4 will be assigned to the 'id' field and the
             'description' will be given a generic value.
@@ -781,7 +781,7 @@ class IdentityApi(object):
         Delete/Remove an existing  external service api. It must not have
         any endpoint templates assigned to it for success.
 
-        Note: Part of the OS-KSADM extension.
+        .. note:: Part of the OS-KSADM extension.
         """
         x_auth_token = request.getHeader(b"x-auth-token")
         if x_auth_token is None:
@@ -812,7 +812,7 @@ class IdentityApi(object):
 
         Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
 
-        Note: Marker/Limit capability not implemented here.
+        .. note:: Marker/Limit capability not implemented here.
         """
         x_auth_token = request.getHeader(b"x-auth-token")
         if x_auth_token is None:
@@ -858,11 +858,11 @@ class IdentityApi(object):
 
         Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
 
-        Note: Either the service-id must be specified in the header or
+        .. note:: Either the service-id must be specified in the header or
             a Service Name by the same name must already exist. Otherwise
             a Not Found (404) will be returned.
 
-        Note: A template has certain required parametes. For Mimic the
+        .. note:: A template has certain required parametes. For Mimic the
             id, name, type, and region parameters are required. See
             EndpointTemplateStore.required_mapping for details. Other
             implementations may have different requirements.
@@ -949,9 +949,9 @@ class IdentityApi(object):
 
         Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
 
-        Note: A template by the same id must already exist in the system.
+        .. note:: A template by the same id must already exist in the system.
 
-        Note: Either the service-id must be specified in the header or
+        .. note:: Either the service-id must be specified in the header or
             a Service Name by the same name must already exist. Otherwise
             a Not Found (404) will be returned.
         """
@@ -1038,7 +1038,7 @@ class IdentityApi(object):
 
         Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
 
-        Note: Either the service-id must be specified in the header or
+        .. note:: Either the service-id must be specified in the header or
             a Service Name by the same name must already exist. Otherwise
             a Not Found (404) will be returned.
         """
@@ -1076,7 +1076,7 @@ class IdentityApi(object):
 
         Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
 
-        Note: Marker/Limit capability not implemented here.
+        .. note:: Marker/Limit capability not implemented here.
         """
         x_auth_token = request.getHeader(b"x-auth-token")
         if x_auth_token is None:

@@ -135,7 +135,7 @@ class EndpointTemplateStore(object):
         tenant
 
 
-    Note: The OpenStack documentation[0] does not specify any required
+    .. note:: The OpenStack documentation[0] does not specify any required
         parameters. For this implementation, the `id`, `region`, `type`,
         and `name` fields are required. The `name` and `type` fields
         are used for creating an instance of the :obj:`ExternalApiStore`
@@ -274,7 +274,7 @@ class ExternalApiStore(object):
     services of the same service type (e.g object-store) but with different
     service names (e.g Cloud Files, OpenStack Swift).
 
-    Note: An endpoint template typically maps to a region.
+    .. note:: An endpoint template typically maps to a region.
 
     Work-In-Progress: Implementation is unstable and subject to change.
     """
@@ -546,7 +546,7 @@ class ExternalApiStore(object):
         """
         Return the URI for the service in the given region.
 
-        Note: This only returns the public URL at present to match
+        .. note:: This only returns the public URL at present to match
             the rest of Mimic's implementation. Supporting multiple
             URL types (public vs snet vs admin) is left for another
             feature addition.

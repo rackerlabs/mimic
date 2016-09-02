@@ -180,7 +180,7 @@ class CoreApiBuildingTests(SynchronousTestCase):
             self,
             name=self.eeapi_name
         )
-        # Note: make_example_external_api makes the UUID
+        # .. note:: make_example_external_api makes the UUID
         # to be uuid-<name> so we need to change it for eeapi2
         eeapi2.uuid_key = str(uuid.uuid4())
 

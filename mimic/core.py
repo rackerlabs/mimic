@@ -24,34 +24,31 @@ from mimic.model.glance_objects import GlanceAdminImageStore
 from mimic.model.valkyrie_objects import ValkyrieStore
 
 
-class MimicCoreExceptions(Exception):
+class MimicCoreException(Exception):
     """
     Parent for all Exceptions related to MimicCore
     """
-    pass
 
 
-class ServiceBadInterface(MimicCoreExceptions):
+class ServiceBadInterface(MimicCoreException):
     """
     Service does not implement the required interface.
     """
-    pass
 
 
-class ServiceExistenceErrors(MimicCoreExceptions):
+class ServiceExistenceError(MimicCoreException):
     """
     Exceptions related to Service Existence
     """
 
 
-class ServiceDoesNotExist(ServiceExistenceErrors):
+class ServiceDoesNotExist(ServiceExistenceError):
     """
     API does not exist
     """
-    pass
 
 
-class ServiceExists(ServiceExistenceErrors):
+class ServiceExists(ServiceExistenceError):
     """
     API Already Exists
     """
@@ -61,21 +58,18 @@ class ServiceIdExists(ServiceExists):
     """
     API with the same ID already exists.
     """
-    pass
 
 
 class ServiceNameExists(ServiceExists):
     """
     API with the same name already exists.
     """
-    pass
 
 
-class ServiceStateError(MimicCoreExceptions):
+class ServiceStateError(MimicCoreException):
     """
     Exceptions related to Service States
     """
-    pass
 
 
 class ServiceHasTemplates(ServiceStateError):

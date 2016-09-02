@@ -3,14 +3,14 @@ Errors for the Identity Models
 """
 
 
-class EndpointTemplateExceptions(Exception):
+class EndpointTemplateException(Exception):
     """
     Parent for all Identity Endpoint Template Exceptions
     """
     pass
 
 
-class InvalidEndpointTemplateException(EndpointTemplateExceptions):
+class InvalidEndpointTemplateException(EndpointTemplateException):
     """
     Parent for all Endpoint Template Validation Exceptions.
     """
@@ -46,28 +46,28 @@ class InvalidEndpointTemplateServiceType(InvalidEndpointTemplateException):
     pass
 
 
-class EndpointTemplateDisabledForTenant(EndpointTemplateExceptions):
+class EndpointTemplateDisabledForTenant(EndpointTemplateException):
     """
     Specified endpoint template is disabled for the tenant.
     """
     pass
 
 
-class EndpointTemplateExistenceExceptions(EndpointTemplateExceptions):
+class EndpointTemplateExistenceException(EndpointTemplateException):
     """
     Parent of template existence exceptions.
     """
     pass
 
 
-class EndpointTemplateAlreadyExists(EndpointTemplateExistenceExceptions):
+class EndpointTemplateAlreadyExists(EndpointTemplateExistenceException):
     """
     Endpoint Template already exists.
     """
     pass
 
 
-class EndpointTemplateDoesNotExist(EndpointTemplateExistenceExceptions):
+class EndpointTemplateDoesNotExist(EndpointTemplateExistenceException):
     """
     Endpoint Template does not exist.
     """
