@@ -15,41 +15,12 @@ from mimic.model.identity_errors import (
 )
 from mimic.model.identity_objects import (
     EndpointTemplateStore,
-    bad_request,
-    conflict,
-    not_found,
-    unauthorized,
 )
 from mimic.test.dummy import (
     exampleEndpointTemplate,
     make_example_external_api,
 )
 from mimic.test.helpers import get_template_id
-
-
-@ddt.ddt
-class YetToBeDone(SynchronousTestCase):
-    """
-    Test that are a placeholder for necessary functionality that will be needed
-    when the full functionality is implemented.
-    """
-
-    @ddt.data(
-        bad_request,
-        conflict,
-        not_found,
-        unauthorized
-    )
-    def test_stuff_todo(self, cls_http_response):
-        """
-        Temporary for code-coverage until endpoints are implemented that will
-        actually use these.
-        """
-        class reqMock(object):
-            def setResponseCode(self, code):
-                pass
-
-        cls_http_response("testing {0}".format(cls_http_response.__name__), reqMock())
 
 
 @ddt.ddt
