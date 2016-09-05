@@ -8,8 +8,6 @@ Submitting patches
   fork is also nice because that will you can work on more than one PR at a
   time.
 * Patches should be small to facilitate easier review.
-* New features and significant bug fixes should be documented in the
-  :doc:`/changelog`.
 
 Code
 ----
@@ -27,28 +25,38 @@ You can check if your code meets our automated requirements by running
 
 `Write comments as complete sentences.`_
 
-Every code file must start with the boilerplate notice of the Apache License.
-Additionally, every Python code file must contain
+Every Python code file must contain:
 
 .. code-block:: python
 
-    from __future__ import absolute_import, division, print_function
+    from __future__ import absolute_import, division
 
 
 Tests
 -----
 
-All code changes must be accompanied by unit tests with 100% code coverage (as
-measured by the tool `coverage`_.  To test coverage, use our ``tox`` job:
+All code changes must be accompanied by unit tests with 100% code coverage
+(as measured by the tool `coverage`_.)
+
+To test code coverage you'll need to install `detox`_ and `coverage`_.
+They can be installed by running:
 
 .. code-block:: console
 
-    $ tox -e cover
-    Name                                   Stmts   Miss  Cover   Missing
-    --------------------------------------------------------------------
-    ...
-      cover: commands succeeded
-      congratulations :)
+   pip install --user requirements/toolchain.txt
+
+(Or you may prefer to install those requirements in a ``virtualenv``.)
+
+Then run:
+
+.. code-block:: console
+
+    $ coverage erase \
+      && detox \
+      && coverage combine \
+      && coverage html
+
+And open ``htmlcov/index.html`` in your web browser.
 
 Documentation
 -------------
@@ -65,6 +73,10 @@ run our ``tox`` job to lint docs.  We also provide a spell-check job for docs:
 
     $ tox -e docs-spellcheck
       docs-spellcheck: commands succeeded
+      congratulations :)
+
+    $ tox -e docs-linkcheck
+      docs-linkcheck: commands succeeded
       congratulations :)
 
 The spell-check can catch jargon or abbreviations - if you are sure it is not
@@ -107,5 +119,6 @@ The same job that lints code also lints docstrings:
 .. _`Write comments as complete sentences.`: http://nedbatchelder.com/blog/201401/comments_should_be_sentences.html
 .. _`syntax`: http://sphinx-doc.org/domains.html#info-field-lists
 .. _`doc8`: https://github.com/stackforge/doc8
+.. _`detox`: https://pypi.python.org/pypi/detox
 .. _`coverage`: https://pypi.python.org/pypi/coverage
 .. _`pep257`: http://legacy.python.org/dev/peps/pep-0257/
