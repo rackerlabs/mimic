@@ -304,8 +304,8 @@ class IdentityApi(object):
         """
         Support, such as it is, for the credentials call.
 
-        reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
-            #listCredentials
+        `OpenStack Identity v2 Extension List Credentials
+        <http://developer.openstack.org/api-ref-identity-v2-ext.html#listCredentials>`_
         """
         if user_id in self.core.sessions._userid_to_session:
             username = self.core.sessions._userid_to_session[user_id].username
@@ -333,6 +333,8 @@ class IdentityApi(object):
     def rax_kskey_apikeycredentials(self, request, user_id):
         """
         Support, such as it is, for the apiKeysCredentials call.
+
+        reference: https://developer.rackspace.com/docs/cloud-identity/v2/api-reference/users-operations/#get-user-credentials  # noqa
         """
         if user_id in self.core.sessions._userid_to_session:
             username = self.core.sessions._userid_to_session[user_id].username
@@ -372,7 +374,8 @@ class IdentityApi(object):
         """
         Creates a new session for the given tenant_id and token_id
         and always returns response code 200.
-        Docs: http://developer.openstack.org/api-ref-identity-admin-v2.html#admin-validateToken  # noqa
+        `OpenStack Identity v2 Admin Validate Token
+        <http://developer.openstack.org/api-ref-identity-admin-v2.html#admin-validateToken>`_
         """
         request.setResponseCode(200)
         session = None
@@ -648,6 +651,9 @@ class IdentityApi(object):
         """
         Return a service catalog consisting of nova and load balancer mocked
         endpoints.
+
+        `OpenStack Identity v2 Admin Endpoints for Token
+        <http://developer.openstack.org/api-ref/identity/v2-admin/#list-endoints-for-token>`_
         """
         # FIXME: TEST
         request.setResponseCode(200)
@@ -694,8 +700,9 @@ class IdentityApi(object):
         List the available external services that endpoint templates
         may be added to.
 
-        .. note:: Part of the OS-KSADM extension.
         .. note:: Does not implement the limits or markers.
+        `OpenStack Identity v2 OS-KSADM List Services
+        <http://developer.openstack.org/api-ref/identity/v2-ext/index.html#list-services-admin-extension>`_
         """
         x_auth_token = request.getHeader(b"x-auth-token")
         if x_auth_token is None:
@@ -720,11 +727,12 @@ class IdentityApi(object):
         Create a new external api service that endpoint templates
         may be added to.
 
-        .. note:: Part of the OS-KSADM extensions.
         .. note:: Only requires 'name' and 'type' fields in the JSON. If the 'id'
             or 'description' fields are present, then they will be used;
             otherwise a UUID4 will be assigned to the 'id' field and the
             'description' will be given a generic value.
+        `OpenStack Identity v2 OS-KSADM Create Service
+        <http://developer.openstack.org/api-ref/identity/v2-ext/index.html#create-service-admin-extension>`_
         """
         x_auth_token = request.getHeader(b"x-auth-token")
         if x_auth_token is None:
@@ -781,7 +789,8 @@ class IdentityApi(object):
         Delete/Remove an existing  external service api. It must not have
         any endpoint templates assigned to it for success.
 
-        .. note:: Part of the OS-KSADM extension.
+        `OpenStack Identity v2 OS-KSADM Delete Service
+        <http://developer.openstack.org/api-ref/identity/v2-ext/index.html#delete-service-admin-extension>`_
         """
         x_auth_token = request.getHeader(b"x-auth-token")
         if x_auth_token is None:
@@ -810,9 +819,10 @@ class IdentityApi(object):
         """
         List the available endpoint templates.
 
-        Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
-
         .. note:: Marker/Limit capability not implemented here.
+
+        `OpenStack Identity v2 OS-KSCATALOG List Endpoint Templates
+        <http://developer.openstack.org/api-ref-identity-v2-ext.html>`_
         """
         x_auth_token = request.getHeader(b"x-auth-token")
         if x_auth_token is None:
@@ -856,8 +866,6 @@ class IdentityApi(object):
         Add an API endpoint template to the system. By default the API
         described by the template will disabled for all users.
 
-        Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
-
         .. note:: Either the service-id must be specified in the header or
             a Service Name by the same name must already exist. Otherwise
             a Not Found (404) will be returned.
@@ -866,6 +874,9 @@ class IdentityApi(object):
             id, name, type, and region parameters are required. See
             EndpointTemplateStore.required_mapping for details. Other
             implementations may have different requirements.
+
+        `OpenStack Identity v2 OS-KSCATALOG Create Endpoint Template
+        <http://developer.openstack.org/api-ref-identity-v2-ext.html>`_
         """
         x_auth_token = request.getHeader(b"x-auth-token")
         if x_auth_token is None:
@@ -947,13 +958,14 @@ class IdentityApi(object):
         """
         Update an API endpoint template already in the system.
 
-        Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
-
         .. note:: A template by the same id must already exist in the system.
 
         .. note:: Either the service-id must be specified in the header or
             a Service Name by the same name must already exist. Otherwise
             a Not Found (404) will be returned.
+
+        `OpenStack Identity v2 OS-KSCATALOG Update Endpoint Template
+        <http://developer.openstack.org/api-ref-identity-v2-ext.html>`_
         """
         x_auth_token = request.getHeader(b"x-auth-token")
         if x_auth_token is None:
@@ -1036,11 +1048,12 @@ class IdentityApi(object):
         """
         Delete an endpoint API template from the system.
 
-        Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
-
         .. note:: Either the service-id must be specified in the header or
             a Service Name by the same name must already exist. Otherwise
             a Not Found (404) will be returned.
+
+        `OpenStack Identity v2 OS-KSCATALOG Delete Endpoint Template
+        <http://developer.openstack.org/api-ref-identity-v2-ext.html>`_
         """
         x_auth_token = request.getHeader(b"x-auth-token")
         if x_auth_token is None:
@@ -1074,9 +1087,10 @@ class IdentityApi(object):
         """
         List the available endpoints for a given tenant-id.
 
-        Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
-
         .. note:: Marker/Limit capability not implemented here.
+
+        `OpenStack Identity v2 OS-KSCATALOG List Endpoints for Tenant
+        <http://developer.openstack.org/api-ref-identity-v2-ext.html>`_
         """
         x_auth_token = request.getHeader(b"x-auth-token")
         if x_auth_token is None:
@@ -1124,7 +1138,8 @@ class IdentityApi(object):
         """
         Enable a given endpoint template for a given tenantid.
 
-        Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
+        `OpenStack Identity v2 OS-KSCATALOG Create Endpoint for Tenant
+        <http://developer.openstack.org/api-ref-identity-v2-ext.html>`_
         """
         x_auth_token = request.getHeader(b"x-auth-token")
         if x_auth_token is None:
@@ -1171,7 +1186,8 @@ class IdentityApi(object):
         enabled. This does not affect an endpoint template that has been
         globally enabled.
 
-        Reference: http://developer.openstack.org/api-ref-identity-v2-ext.html
+        `OpenStack Identity v2 OS-KSCATALOG Delete Endpoint for Tenant
+        <http://developer.openstack.org/api-ref-identity-v2-ext.html>`_
         """
         x_auth_token = request.getHeader(b"x-auth-token")
         if x_auth_token is None:
