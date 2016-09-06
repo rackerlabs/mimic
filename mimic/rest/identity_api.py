@@ -48,9 +48,9 @@ from mimic.model.identity_objects import (
     conflict,
     EndpointTemplateStore,
     ExternalApiStore,
-    not_found,
-    unauthorized
+    not_found
 )
+from mimic.rest.decorators import require_auth_token
 from mimic.rest.mimicapp import MimicApp
 from mimic.session import NonMatchingTenantError
 from mimic.util.helper import (
@@ -695,6 +695,7 @@ class IdentityApi(object):
                             " header with a valid token.")}})
 
     @app.route('/v2.0/services', methods=['GET'])
+    @require_auth_token
     def list_external_api_services(self, request):
         """
         List the available external services that endpoint templates
@@ -704,10 +705,6 @@ class IdentityApi(object):
         `OpenStack Identity v2 OS-KSADM List Services
         <http://developer.openstack.org/api-ref/identity/v2-ext/index.html#list-services-admin-extension>`_
         """
-        x_auth_token = request.getHeader(b"x-auth-token")
-        if x_auth_token is None:
-            return json.dumps(unauthorized("Authentication required", request))
-
         request.setResponseCode(200)
         return json.dumps({
             "OS-KSADM:services": [
@@ -722,6 +719,7 @@ class IdentityApi(object):
                     for api_id in self.core.get_external_apis()]]})
 
     @app.route('/v2.0/services', methods=['POST'])
+    @require_auth_token
     def create_external_api_service(self, request):
         """
         Create a new external api service that endpoint templates
@@ -734,10 +732,6 @@ class IdentityApi(object):
         `OpenStack Identity v2 OS-KSADM Create Service
         <http://developer.openstack.org/api-ref/identity/v2-ext/index.html#create-service-admin-extension>`_
         """
-        x_auth_token = request.getHeader(b"x-auth-token")
-        if x_auth_token is None:
-            return json.dumps(unauthorized("Authentication required", request))
-
         try:
             content = json_from_request(request)
         except ValueError:
@@ -784,6 +778,7 @@ class IdentityApi(object):
             return b''
 
     @app.route('/v2.0/services/<string:service_id>', methods=['DELETE'])
+    @require_auth_token
     def delete_external_api_service(self, request, service_id):
         """
         Delete/Remove an existing  external service api. It must not have
@@ -792,10 +787,6 @@ class IdentityApi(object):
         `OpenStack Identity v2 OS-KSADM Delete Service
         <http://developer.openstack.org/api-ref/identity/v2-ext/index.html#delete-service-admin-extension>`_
         """
-        x_auth_token = request.getHeader(b"x-auth-token")
-        if x_auth_token is None:
-            return json.dumps(unauthorized("Authentication required", request))
-
         try:
             self.core.remove_external_api(
                 service_id
@@ -815,6 +806,7 @@ class IdentityApi(object):
             return b''
 
     @app.route('/v2.0/OS-KSCATALOG/endpointTemplates', methods=['GET'])
+    @require_auth_token
     def list_endpoint_templates(self, request):
         """
         List the available endpoint templates.
@@ -824,10 +816,6 @@ class IdentityApi(object):
         `OpenStack Identity v2 OS-KSCATALOG List Endpoint Templates
         <http://developer.openstack.org/api-ref-identity-v2-ext.html>`_
         """
-        x_auth_token = request.getHeader(b"x-auth-token")
-        if x_auth_token is None:
-            return json.dumps(unauthorized("Authentication required", request))
-
         # caller may provide a specific API to list by setting the
         # serviceid header
         external_apis_to_list = []
@@ -861,6 +849,7 @@ class IdentityApi(object):
                 request))
 
     @app.route('/v2.0/OS-KSCATALOG/endpointTemplates', methods=['POST'])
+    @require_auth_token
     def add_endpoint_templates(self, request):
         """
         Add an API endpoint template to the system. By default the API
@@ -878,10 +867,6 @@ class IdentityApi(object):
         `OpenStack Identity v2 OS-KSCATALOG Create Endpoint Template
         <http://developer.openstack.org/api-ref-identity-v2-ext.html>`_
         """
-        x_auth_token = request.getHeader(b"x-auth-token")
-        if x_auth_token is None:
-            return json.dumps(unauthorized("Authentication required", request))
-
         try:
             content = json_from_request(request)
         except ValueError:
@@ -954,6 +939,7 @@ class IdentityApi(object):
 
     @app.route('/v2.0/OS-KSCATALOG/endpointTemplates/<string:template_id>',
                methods=['PUT'])
+    @require_auth_token
     def update_endpoint_templates(self, request, template_id):
         """
         Update an API endpoint template already in the system.
@@ -967,10 +953,6 @@ class IdentityApi(object):
         `OpenStack Identity v2 OS-KSCATALOG Update Endpoint Template
         <http://developer.openstack.org/api-ref-identity-v2-ext.html>`_
         """
-        x_auth_token = request.getHeader(b"x-auth-token")
-        if x_auth_token is None:
-            return json.dumps(unauthorized("Authentication required", request))
-
         try:
             content = json_from_request(request)
         except ValueError:
@@ -1044,6 +1026,7 @@ class IdentityApi(object):
 
     @app.route('/v2.0/OS-KSCATALOG/endpointTemplates/<string:template_id>',
                methods=['DELETE'])
+    @require_auth_token
     def delete_endpoint_templates(self, request, template_id):
         """
         Delete an endpoint API template from the system.
@@ -1055,10 +1038,6 @@ class IdentityApi(object):
         `OpenStack Identity v2 OS-KSCATALOG Delete Endpoint Template
         <http://developer.openstack.org/api-ref-identity-v2-ext.html>`_
         """
-        x_auth_token = request.getHeader(b"x-auth-token")
-        if x_auth_token is None:
-            return json.dumps(unauthorized("Authentication required", request))
-
         service_id = request.getHeader(b'serviceid')
         if service_id is not None:
             api = self.core.get_external_api(service_id.decode('utf-8'))
@@ -1083,6 +1062,7 @@ class IdentityApi(object):
 
     @app.route('/v2.0/tenants/<string:tenant_id>/OS-KSCATALOG/endpoints',
                methods=['GET'])
+    @require_auth_token
     def list_endpoints_for_tenant(self, request, tenant_id):
         """
         List the available endpoints for a given tenant-id.
@@ -1092,10 +1072,6 @@ class IdentityApi(object):
         `OpenStack Identity v2 OS-KSCATALOG List Endpoints for Tenant
         <http://developer.openstack.org/api-ref-identity-v2-ext.html>`_
         """
-        x_auth_token = request.getHeader(b"x-auth-token")
-        if x_auth_token is None:
-            return json.dumps(unauthorized("Authentication required", request))
-
         # caller may provide a specific API to list by setting the
         # serviceid header
         external_apis_to_list = []
@@ -1134,6 +1110,7 @@ class IdentityApi(object):
 
     @app.route('/v2.0/tenants/<string:tenant_id>/OS-KSCATALOG/endpoints',
                methods=['POST'])
+    @require_auth_token
     def create_endpoint_for_tenant(self, request, tenant_id):
         """
         Enable a given endpoint template for a given tenantid.
@@ -1141,10 +1118,6 @@ class IdentityApi(object):
         `OpenStack Identity v2 OS-KSCATALOG Create Endpoint for Tenant
         <http://developer.openstack.org/api-ref-identity-v2-ext.html>`_
         """
-        x_auth_token = request.getHeader(b"x-auth-token")
-        if x_auth_token is None:
-            return json.dumps(unauthorized("Authentication required", request))
-
         try:
             content = json_from_request(request)
         except ValueError:
@@ -1180,6 +1153,7 @@ class IdentityApi(object):
 
     @app.route('/v2.0/tenants/<string:tenant_id>/OS-KSCATALOG/endpoints/'
                '<string:template_id>', methods=['DELETE'])
+    @require_auth_token
     def remove_endpoint_for_tenant(self, request, tenant_id, template_id):
         """
         Disable a given endpoint template for a given tenantid if it's been
@@ -1189,10 +1163,6 @@ class IdentityApi(object):
         `OpenStack Identity v2 OS-KSCATALOG Delete Endpoint for Tenant
         <http://developer.openstack.org/api-ref-identity-v2-ext.html>`_
         """
-        x_auth_token = request.getHeader(b"x-auth-token")
-        if x_auth_token is None:
-            return json.dumps(unauthorized("Authentication required", request))
-
         for api_id in self.core.get_external_apis():
             api = self.core.get_external_api(api_id)
             if api.has_template(template_id):
