@@ -48,14 +48,14 @@ class RequireAuthTokenTest(SynchronousTestCase):
         """
         Request mock without auth_token in arg spec
         """
-        return json.dumps({ 'msg': 'hello'})
+        return json.dumps({'msg': 'hello'})
 
     @require_auth_token
     def with_keyword_parameter(self, request, auth_token=None):
         """
         Request mock with auth_token in arg spec
         """
-        return json.dumps({ 'msg': 'hello', 'token': auth_token})
+        return json.dumps({'msg': 'hello', 'token': auth_token})
 
     @ddt.data(
         b'Some Value',
