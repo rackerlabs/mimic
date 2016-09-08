@@ -937,7 +937,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
         provided using the argument `belongsTo` and a different token
         is provided via the `x-auth-token` header.
 
-        Note: This is how authentication validators like Repose operate.
+        .. note:: This is how authentication validators like Repose operate.
         """
         core, root = core_and_root([make_example_internal_api(self)])
 
