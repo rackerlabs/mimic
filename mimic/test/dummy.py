@@ -192,7 +192,7 @@ def make_example_external_api(case, name=u"example",
     :param text_type service_type: type of the service. If none, the type
         is extracted from the first entry in the endpoint_template list.
 
-    Note: The service-type of the first endpoint template is used as the
+    .. note:: The service-type of the first endpoint template is used as the
         service type for the entire :obj:`ExternalApiStore`, and is enforced
         that all endpoint templates have the same service-type.
 
