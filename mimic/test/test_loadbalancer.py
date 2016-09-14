@@ -1136,6 +1136,33 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         remaining = [node['id'] for node in self._get_nodes(self.lb_id)]
         self.assertEquals(remaining, [self.node[0]['id']])
 
+    def test_bulk_delete_above_batch_limit(self):
+        """
+        Bulk-deleting nodes > 10 returns 400 with specific type of
+        validation errors JSON
+        """
+        response, body = _bulk_delete(
+            self, self.root, self.uri, self.lb_id, range(1, 12))
+        self.assertEqual(response.code, 400)
+        self.assertEqual(
+            body,
+            {
+                "validationErrors": {
+                    "messages": [
+                        "Request to delete 11 nodes exceeds the account limit "
+                        "BATCH_DELETE_LIMIT of 10 please attempt to delete fewer "
+                        "then 10 nodes"
+                    ]
+                },
+                "message": "Validation Failure",
+                "code": 400,
+                "details": "The object is not valid"
+            }
+        )
+        # Existing nodes are not touched
+        remaining = [node['id'] for node in self._get_nodes(self.lb_id)]
+        self.assertEquals(remaining, [self.node[0]['id']])
+
     def test_updating_node_invalid_json(self):
         """
         When updating a node, if invalid JSON is provided (both actually not

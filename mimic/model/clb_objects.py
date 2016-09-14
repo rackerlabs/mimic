@@ -19,13 +19,16 @@ from twisted.python import log
 
 from mimic.canned_responses.loadbalancer import load_balancer_example
 from mimic.model.clb_errors import (
+    batch_delete_limit_error,
     considered_immutable_error,
     invalid_json_schema,
+    invalid_node_ids_error,
     loadbalancer_not_found,
     lb_deleted_xml,
     node_not_found,
     not_found_xml,
-    updating_node_validation_error
+    updating_node_validation_error,
+    validation_errors
 )
 from mimic.util.helper import (EMPTY_RESPONSE,
                                invalid_resource,
@@ -212,6 +215,9 @@ class RegionalCLBCollection(object):
                          validator=attr.validators.instance_of(int))
     lbs = attr.ib(default=attr.Factory(dict))
     meta = attr.ib(default=attr.Factory(dict))
+    # Current default limit for batch delete is 10 as per
+    # https://developer.rackspace.com/docs/cloud-load-balancers/v1/api-reference/nodes/#bulk-delete-nodes
+    batch_delete_limit = 10
 
     def lb_in_region(self, clb_id):
         """
@@ -490,6 +496,10 @@ class RegionalCLBCollection(object):
         if lb_id not in self.lbs:
             return not_found_response("loadbalancer"), 404
 
+        if len(node_ids) > self.batch_delete_limit:
+            err = batch_delete_limit_error(len(node_ids), self.batch_delete_limit)
+            return validation_errors([err])
+
         current_timestamp = self.clock.seconds()
         self._verify_and_update_lb_state(lb_id, False, current_timestamp)
 
@@ -504,17 +514,7 @@ class RegionalCLBCollection(object):
         all_ids = [node.id for node in self.lbs[lb_id].nodes]
         non_nodes = set(node_ids).difference(all_ids)
         if non_nodes:
-            nodes = ','.join(map(str, sorted(non_nodes)))
-            resp = {
-                "validationErrors": {
-                    "messages": [
-                        "Node ids {0} are not a part of your loadbalancer".format(nodes)
-                    ]
-                },
-                "message": "Validation Failure",
-                "code": 400,
-                "details": "The object is not valid"}
-            return resp, 400
+            return validation_errors([invalid_node_ids_error(non_nodes)])
 
         for node_id in node_ids:
             # It should not be possible for this to fail, since we've already
