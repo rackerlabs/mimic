@@ -3,6 +3,7 @@
 Defines a mock for Cinder
 """
 
+from __future__ import absolute_import, division, print_function, unicode_literals
 import json
 from uuid import uuid4
 from six import text_type
@@ -49,7 +50,7 @@ class CinderApi(object):
 
 class CinderMock(object):
     """
-    DNS Mock
+    Cinder Mock
     """
     def __init__(self, api_mock, uri_prefix, session_store, name):
         """
@@ -65,8 +66,19 @@ class CinderMock(object):
     @app.route('/v2/<string:tenant_id>/volumes', methods=['GET'])
     def get_volumes(self, request, tenant_id):
         """
-        Lists summary information for all Block Storage volumes that the tenant can access.
-        http://developer.openstack.org/api-ref-blockstorage-v2.html#getVolumesSimple
+        Lists summary information for all Block Storage volumes that the tenant
+        can access.
+        http://developer.openstack.org/api-ref-blockstorage-v2.html#listVolumes
+        """
+        request.setResponseCode(200)
+        return json.dumps({'volumes': []})
+
+    @app.route('/v2/<string:tenant_id>/volumes/detail', methods=['GET'])
+    def get_volumes_detail(self, request, tenant_id):
+        """
+        Lists detailed information for all Block Storage volumes that the
+        tenant can access.
+        http://developer.openstack.org/api-ref-blockstorage-v2.html#listVolumesDetail
         """
         request.setResponseCode(200)
         return json.dumps({'volumes': []})
