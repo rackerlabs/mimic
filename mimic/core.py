@@ -24,6 +24,60 @@ from mimic.model.glance_objects import GlanceAdminImageStore
 from mimic.model.valkyrie_objects import ValkyrieStore
 
 
+class MimicCoreException(Exception):
+    """
+    Parent for all Exceptions related to MimicCore
+    """
+
+
+class ServiceBadInterface(MimicCoreException):
+    """
+    Service does not implement the required interface.
+    """
+
+
+class ServiceExistenceError(MimicCoreException):
+    """
+    Exceptions related to Service Existence
+    """
+
+
+class ServiceDoesNotExist(ServiceExistenceError):
+    """
+    API does not exist
+    """
+
+
+class ServiceExists(ServiceExistenceError):
+    """
+    API Already Exists
+    """
+
+
+class ServiceIdExists(ServiceExists):
+    """
+    API with the same ID already exists.
+    """
+
+
+class ServiceNameExists(ServiceExists):
+    """
+    API with the same name already exists.
+    """
+
+
+class ServiceStateError(MimicCoreException):
+    """
+    Exceptions related to Service States
+    """
+
+
+class ServiceHasTemplates(ServiceStateError):
+    """
+    Service still has assigned templates.
+    """
+
+
 class MimicCore(object):
     """
     A MimicCore contains a mapping from URI prefixes to particular service
@@ -90,13 +144,13 @@ class MimicCore(object):
             this_api_id = api.uuid_key
 
             if this_api_id in self._uuid_to_api_external:
-                raise ValueError(
+                raise ServiceIdExists(
                     'An Existing API already exists with the given UUID'
                 )
 
             for existing_api in self._uuid_to_api_external.values():
                 if existing_api.name_key == api.name_key:
-                    raise ValueError(
+                    raise ServiceNameExists(
                         'An Existing API with UUID ' + existing_api.uuid_key +
                         ' is already using that name'
                     )
@@ -108,7 +162,7 @@ class MimicCore(object):
                            random_hex_generator(3))
             self._uuid_to_api_internal[this_api_id] = api
         else:
-            raise TypeError(
+            raise ServiceBadInterface(
                 api.__class__.__module__ + '/' +
                 api.__class__.__name__ +
                 " does not implement IAPIMock or IExternalAPIMock"
@@ -127,9 +181,9 @@ class MimicCore(object):
             if len(api.list_templates()) == 0:
                 del self._uuid_to_api_external[api_id]
             else:
-                raise ValueError("API still has endpoint templates")
+                raise ServiceHasTemplates("API still has endpoint templates")
         else:
-            raise IndexError(api_id + " is not a valid external API")
+            raise ServiceDoesNotExist(api_id + " is not a valid external API")
 
     def get_external_apis(self):
         """
@@ -157,7 +211,7 @@ class MimicCore(object):
         if api_id in self._uuid_to_api_external:
             return self._uuid_to_api_external[api_id]
         else:
-            raise IndexError(
+            raise ServiceDoesNotExist(
                 "Unable to locate an API  the id" + str(api_id)
             )
 
