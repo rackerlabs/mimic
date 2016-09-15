@@ -64,7 +64,7 @@ class Node(object):
     status = attr.ib(validator=one_of_validator("ONLINE", "OFFLINE"),
                      default="ONLINE")
     # List of (xml text, updated seconds since epoch) tuple
-    feed_events = attr.ib(default=[])
+    feed_events = attr.ib(default=attr.Factory(lambda: []))
 
     @classmethod
     def from_json(cls, json_blob):
@@ -572,7 +572,7 @@ class RegionalCLBCollection(object):
                 for node in nodes:
                     node.status = "OFFLINE"
 
-            self._add_node_created_feeds(self.lbs[lb_id], nodes)
+            self._add_node_created_feeds(nodes)
 
             self._verify_and_update_lb_state(
                 lb_id, current_timestamp=current_timestamp)
@@ -581,6 +581,9 @@ class RegionalCLBCollection(object):
         return not_found_response("loadbalancer"), 404
 
     def _add_node_created_feeds(self, nodes):
+        """
+        Add "Node created..." feed for each given nodes
+        """
         created_feed = (
             "Node successfully created with address: '{address}', port: '{port}', "
             "condition: '{condition}', weight: '{weight}'")

@@ -812,6 +812,32 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         self.assertEqual(create_node_response.code, 202)
         self.assertEqual(len(create_node_response_body["nodes"]), 2)
 
+    def test_add_multiple_nodes_feeds(self):
+        """
+        Ensure there are "Node created" feed for each node after creating nodes
+        """
+        node_ids = [
+            body["nodes"][0]["id"]
+            for resp, body in self._create_nodes(["1.1.1.1", "1.1.1.2"])]
+        node_feeds = [
+            ("<feed xmlns=\"http://www.w3.org/2005/Atom\"><entry>"
+             "<summary>Node successfully created with address: '1.1.1.1', "
+             "port: '80', condition: 'ENABLED', weight: '10'</summary>"
+             "<updated>1970-01-01T00:00:00.000000Z</updated></entry></feed>"),
+            ("<feed xmlns=\"http://www.w3.org/2005/Atom\"><entry>"
+             "<summary>Node successfully created with address: '1.1.1.2', "
+             "port: '80', condition: 'ENABLED', weight: '10'</summary>"
+             "<updated>1970-01-01T00:00:00.000000Z</updated></entry></feed>")
+        ]
+        for node_id, exp_node_feed in zip(node_ids, node_feeds):
+            d = request(
+                self, self.root, b"GET",
+                "{0}/loadbalancers/{1}/nodes/{2}.atom".format(self.uri, self.lb_id, node_id))
+            feed_response = self.successResultOf(d)
+            node_feed = self.successResultOf(treq.content(feed_response)).decode("utf-8")
+            self.assertEqual(feed_response.code, 200)
+            self.assertEqual(exp_node_feed, node_feed)
+
     def test_add_duplicate_node(self):
         """
         Test to verify :func: `add_node` does not allow creation of duplicate nodes.
@@ -1285,8 +1311,11 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         self.assertEqual(feed_response.code, 200)
         self.assertEqual(
             self.successResultOf(treq.content(feed_response)).decode("utf-8"),
-            ("<feed xmlns=\"http://www.w3.org/2005/Atom\"><entry>"
-             "<summary>Node successfully updated with address: '127.0.0.1', "
+            ("<feed xmlns=\"http://www.w3.org/2005/Atom\">"
+             "<entry><summary>Node successfully created with address: '127.0.0.1', "
+             "port: '80', condition: 'ENABLED', weight: '10'</summary>"
+             "<updated>1970-01-01T00:00:00.000000Z</updated></entry>"
+             "<entry><summary>Node successfully updated with address: '127.0.0.1', "
              "port: '80', weight: '100', condition: 'DISABLED'</summary>"
              "<updated>1970-01-01T00:00:00.000000Z</updated></entry></feed>"))
 
