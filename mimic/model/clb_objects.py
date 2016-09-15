@@ -502,10 +502,6 @@ class RegionalCLBCollection(object):
         if lb_id not in self.lbs:
             return not_found_response("loadbalancer"), 404
 
-        if len(node_ids) > self.batch_delete_limit:
-            err = batch_delete_limit_error(len(node_ids), self.batch_delete_limit)
-            return validation_errors([err])
-
         current_timestamp = self.clock.seconds()
         self._verify_and_update_lb_state(lb_id, False, current_timestamp)
 
@@ -521,6 +517,11 @@ class RegionalCLBCollection(object):
         non_nodes = set(node_ids).difference(all_ids)
         if non_nodes:
             return validation_errors([invalid_node_ids_error(non_nodes)])
+
+        # Allow only batch_delete_limit nodes at a time
+        if len(node_ids) > self.batch_delete_limit:
+            err = batch_delete_limit_error(len(node_ids), self.batch_delete_limit)
+            return validation_errors([err])
 
         for node_id in node_ids:
             # It should not be possible for this to fail, since we've already

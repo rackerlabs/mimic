@@ -1141,8 +1141,14 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         Bulk-deleting nodes > 10 returns 400 with specific type of
         validation errors JSON
         """
+        # Create 10 nodes as 1 node is created in setUP
+        ips = ["1.1.1.{}".format(i) for i in range(1, 11)]
+        node_ids = [
+            body["nodes"][0]["id"]
+            for resp, body in self._create_nodes(ips)]
+        node_ids = [self.node[0]["id"]] + node_ids
         response, body = _bulk_delete(
-            self, self.root, self.uri, self.lb_id, range(1, 12))
+            self, self.root, self.uri, self.lb_id, node_ids)
         self.assertEqual(response.code, 400)
         self.assertEqual(
             body,
@@ -1160,8 +1166,31 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
             }
         )
         # Existing nodes are not touched
-        remaining = [node['id'] for node in self._get_nodes(self.lb_id)]
-        self.assertEquals(remaining, [self.node[0]['id']])
+        existing = [node['id'] for node in self._get_nodes(self.lb_id)]
+        self.assertEquals(existing, node_ids)
+
+    def test_bulk_delete_limit_after_node_validation(self):
+        """
+        Bulk-deleting nodes > 10 validation is done after nodes validation.
+        i.e. nodes given should be valid before their count is checked
+        """
+        response, body = _bulk_delete(
+            self, self.root, self.uri, self.lb_id, range(1, 12))
+        self.assertEqual(response.code, 400)
+        ids = ",".join(map(str, range(1, 12)))
+        self.assertEqual(
+            body,
+            {
+                "validationErrors": {
+                    "messages": [
+                        "Node ids {} are not a part of your loadbalancer".format(ids)
+                    ]
+                },
+                "message": "Validation Failure",
+                "code": 400,
+                "details": "The object is not valid"
+            }
+        )
 
     def test_updating_node_invalid_json(self):
         """
