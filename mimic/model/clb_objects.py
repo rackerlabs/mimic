@@ -209,14 +209,20 @@ def node_feed_xml(events):
 class RegionalCLBCollection(object):
     """
     A collection of CloudLoadBalancers, in a given region, for a given tenant.
+
+    :ivar clock: :obj:`IReactorTime` provider to manage time
+    :ivar int node_limit: Maximum number of nodes in CLB
+    :ivar dict lbs: ``dict`` of :obj:`CLB` objects in this region keyed on CLB ID
+    :ivar dict meta: CLB metadata keyed on CLB ID
+    :ivar int batch_delete_limit: Maximum number of nodes that can be deleted
+        in single bulk-delete call. Currently 10 as per
+        https://developer.rackspace.com/docs/cloud-load-balancers/v1/api-reference/nodes/#bulk-delete-nodes
     """
     clock = attr.ib(validator=attr.validators.provides(IReactorTime))
     node_limit = attr.ib(default=25,
                          validator=attr.validators.instance_of(int))
     lbs = attr.ib(default=attr.Factory(dict))
     meta = attr.ib(default=attr.Factory(dict))
-    # Current default limit for batch delete is 10 as per
-    # https://developer.rackspace.com/docs/cloud-load-balancers/v1/api-reference/nodes/#bulk-delete-nodes
     batch_delete_limit = 10
 
     def lb_in_region(self, clb_id):
