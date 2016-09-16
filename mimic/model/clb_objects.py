@@ -19,13 +19,16 @@ from twisted.python import log
 
 from mimic.canned_responses.loadbalancer import load_balancer_example
 from mimic.model.clb_errors import (
+    batch_delete_limit_error,
     considered_immutable_error,
     invalid_json_schema,
+    invalid_node_ids_error,
     loadbalancer_not_found,
     lb_deleted_xml,
     node_not_found,
     not_found_xml,
-    updating_node_validation_error
+    updating_node_validation_error,
+    validation_errors
 )
 from mimic.util.helper import (EMPTY_RESPONSE,
                                invalid_resource,
@@ -207,12 +210,21 @@ def node_feed_xml(events):
 class RegionalCLBCollection(object):
     """
     A collection of CloudLoadBalancers, in a given region, for a given tenant.
+
+    :ivar clock: :obj:`IReactorTime` provider to manage time
+    :ivar int node_limit: Maximum number of nodes in CLB
+    :ivar dict lbs: ``dict`` of :obj:`CLB` objects in this region keyed on CLB ID
+    :ivar dict meta: CLB metadata keyed on CLB ID
+    :ivar int batch_delete_limit: Maximum number of nodes that can be deleted
+        in single bulk-delete call. Currently 10 as per
+        https://developer.rackspace.com/docs/cloud-load-balancers/v1/api-reference/nodes/#bulk-delete-nodes
     """
     clock = attr.ib(validator=attr.validators.provides(IReactorTime))
     node_limit = attr.ib(default=25,
                          validator=attr.validators.instance_of(int))
     lbs = attr.ib(default=attr.Factory(dict))
     meta = attr.ib(default=attr.Factory(dict))
+    batch_delete_limit = 10
 
     def lb_in_region(self, clb_id):
         """
@@ -505,17 +517,12 @@ class RegionalCLBCollection(object):
         all_ids = [node.id for node in self.lbs[lb_id].nodes]
         non_nodes = set(node_ids).difference(all_ids)
         if non_nodes:
-            nodes = ','.join(map(str, sorted(non_nodes)))
-            resp = {
-                "validationErrors": {
-                    "messages": [
-                        "Node ids {0} are not a part of your loadbalancer".format(nodes)
-                    ]
-                },
-                "message": "Validation Failure",
-                "code": 400,
-                "details": "The object is not valid"}
-            return resp, 400
+            return validation_errors([invalid_node_ids_error(non_nodes)])
+
+        # Allow only batch_delete_limit nodes at a time
+        if len(node_ids) > self.batch_delete_limit:
+            err = batch_delete_limit_error(len(node_ids), self.batch_delete_limit)
+            return validation_errors([err])
 
         for node_id in node_ids:
             # It should not be possible for this to fail, since we've already
