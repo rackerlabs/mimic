@@ -128,6 +128,52 @@ def loadbalancer_not_found():
     )
 
 
+def invalid_node_ids_error(node_ids):
+    """
+    Return validation error string given when node_ids are not part of CLB
+
+    :param ``list`` node_ids: List of int node_id
+    :rtype: ``str``
+    """
+    nodes = ','.join(map(str, sorted(node_ids)))
+    return "Node ids {0} are not a part of your loadbalancer".format(nodes)
+
+
+def batch_delete_limit_error(nodes_requested, max_limit):
+    """
+    Return validation error string given when nodes > limit are deleted
+    in a single call.
+
+    :param int nodes_requested: Number of nodes requested to be deleted
+    :param int max_limit: Maximum number of nodes allowed to be deleted
+    :rtype: ``str``
+    """
+    fmt = (
+        "Request to delete {} nodes exceeds the account limit BATCH_DELETE_LIMIT "
+        "of {} please attempt to delete fewer then 10 nodes")
+    return fmt.format(nodes_requested, max_limit)
+
+
+def validation_errors(errors):
+    """
+    Verified 2016-09-13 when trying to bulk-delete > 10 nodes
+
+    :param list errors: List of error strings
+    :return: tuple of (dict body message, 400 http status code)
+    """
+    return (
+        {
+            "validationErrors": {
+                "messages": errors
+            },
+            "message": "Validation Failure",
+            "code": 400,
+            "details": "The object is not valid"
+        },
+        400
+    )
+
+
 def not_found_xml(item):
     """
     Return XML representation of CLB item not found.
