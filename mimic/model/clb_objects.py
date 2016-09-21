@@ -590,7 +590,12 @@ class RegionalCLBCollection(object):
     def _add_node_created_feeds(self, nodes):
         """
         Add "Node created..." feed for each given nodes
+
+        :param list nodes: List of :obj:`Node` being created
         """
+        # This format is not documented publicly and was confirmed via email
+        # from CLB team. However, https://jira.rax.io/browse/CLB-132 issue
+        # has been created to make it public
         created_feed = (
             "Node successfully created with address: '{address}', port: '{port}', "
             "condition: '{condition}', weight: '{weight}'")
