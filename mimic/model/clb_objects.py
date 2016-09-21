@@ -51,8 +51,9 @@ class Node(object):
     :ivar str type: One of (PRIMARY, SECONDARY).  Defaults to PRIMARY.
     :ivar int weight: Between 1 and 100 inclusive.  Defaults to 1.
     :ivar str condition: One of (ENABLED, DISABLED, DRAINING).  Defaults to
-    :ivar str status: "Online"
         ENABLED.
+    :ivar str status: One of "ONLINE" or "OFFLINE". Defaults to ONLINE
+    :ivar list feed_events: List of (xml text, updated seconds since epoch) tuple
     """
     address = attr.ib(validator=attr.validators.instance_of(text_type))
     port = attr.ib(validator=attr.validators.instance_of(int))
@@ -66,8 +67,7 @@ class Node(object):
                  default=attr.Factory(lambda: randrange(999999)))
     status = attr.ib(validator=one_of_validator("ONLINE", "OFFLINE"),
                      default="ONLINE")
-    # List of (xml text, updated seconds since epoch) tuple
-    feed_events = attr.ib(default=attr.Factory(lambda: []))
+    feed_events = attr.ib(default=attr.Factory(list))
 
     @classmethod
     def from_json(cls, json_blob):
