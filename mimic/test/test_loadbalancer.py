@@ -812,6 +812,18 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         self.assertEqual(create_node_response.code, 202)
         self.assertEqual(len(create_node_response_body["nodes"]), 2)
 
+    def assert_node_feed(self, node_id, exp_node_feed):
+        """
+        Assert that feed of given node_id is equal to exp_node_feed
+        """
+        d = request(
+            self, self.root, b"GET",
+            "{0}/loadbalancers/{1}/nodes/{2}.atom".format(self.uri, self.lb_id, node_id))
+        feed_response = self.successResultOf(d)
+        node_feed = self.successResultOf(treq.content(feed_response)).decode("utf-8")
+        self.assertEqual(feed_response.code, 200)
+        self.assertEqual(exp_node_feed, node_feed)
+
     def test_add_multiple_nodes_feeds(self):
         """
         Ensure there are "Node created" feed for each node after creating nodes
@@ -829,14 +841,8 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
              "port: '80', condition: 'ENABLED', weight: '10'</summary>"
              "<updated>1970-01-01T00:00:00.000000Z</updated></entry></feed>")
         ]
-        for node_id, exp_node_feed in zip(node_ids, node_feeds):
-            d = request(
-                self, self.root, b"GET",
-                "{0}/loadbalancers/{1}/nodes/{2}.atom".format(self.uri, self.lb_id, node_id))
-            feed_response = self.successResultOf(d)
-            node_feed = self.successResultOf(treq.content(feed_response)).decode("utf-8")
-            self.assertEqual(feed_response.code, 200)
-            self.assertEqual(exp_node_feed, node_feed)
+        self.assert_node_feed(node_ids[0], node_feeds[0])
+        self.assert_node_feed(node_ids[1], node_feeds[1])
 
     def test_add_duplicate_node(self):
         """
