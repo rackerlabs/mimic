@@ -51,8 +51,9 @@ class Node(object):
     :ivar str type: One of (PRIMARY, SECONDARY).  Defaults to PRIMARY.
     :ivar int weight: Between 1 and 100 inclusive.  Defaults to 1.
     :ivar str condition: One of (ENABLED, DISABLED, DRAINING).  Defaults to
-    :ivar str status: "Online"
         ENABLED.
+    :ivar str status: One of "ONLINE" or "OFFLINE". Defaults to ONLINE
+    :ivar list feed_events: List of (xml text, updated seconds since epoch) tuple
     """
     address = attr.ib(validator=attr.validators.instance_of(text_type))
     port = attr.ib(validator=attr.validators.instance_of(int))
@@ -66,7 +67,7 @@ class Node(object):
                  default=attr.Factory(lambda: randrange(999999)))
     status = attr.ib(validator=one_of_validator("ONLINE", "OFFLINE"),
                      default="ONLINE")
-    feed_events = attr.ib(default=[])
+    feed_events = attr.ib(default=attr.Factory(list))
 
     @classmethod
     def from_json(cls, json_blob):
@@ -578,11 +579,30 @@ class RegionalCLBCollection(object):
                 for node in nodes:
                     node.status = "OFFLINE"
 
+            self._add_node_created_feeds(nodes)
+
             self._verify_and_update_lb_state(
                 lb_id, current_timestamp=current_timestamp)
             return {"nodes": [node.as_json() for node in nodes]}, 202
 
         return not_found_response("loadbalancer"), 404
+
+    def _add_node_created_feeds(self, nodes):
+        """
+        Add "Node created..." feed for each given nodes
+
+        :param list nodes: List of :obj:`Node` being created
+        """
+        # This format is not documented publicly and was confirmed via email
+        # from CLB team. However, https://jira.rax.io/browse/CLB-132 issue
+        # has been created to make it public
+        created_feed = (
+            "Node successfully created with address: '{address}', port: '{port}', "
+            "condition: '{condition}', weight: '{weight}'")
+        for node in nodes:
+            node.feed_events.append(
+                (created_feed.format(**node.as_json()),
+                 seconds_to_timestamp(self.clock.seconds())))
 
     def update_node(self, lb_id, node_id, node_updates):
         """
