@@ -32,7 +32,14 @@ class CinderApi(object):
         """
         return [
             Entry(
-                tenant_id, "volume", "cloudBlockStorage",
+                tenant_id, "volume", "cinder",
+                [
+                    Endpoint(tenant_id, region, text_type(uuid4()), prefix="v2")
+                    for region in self._regions
+                ]
+            ),
+            Entry(
+                tenant_id, "volumev2", "cinderv2",
                 [
                     Endpoint(tenant_id, region, text_type(uuid4()), prefix="v2")
                     for region in self._regions
