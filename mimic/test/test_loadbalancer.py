@@ -812,6 +812,38 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         self.assertEqual(create_node_response.code, 202)
         self.assertEqual(len(create_node_response_body["nodes"]), 2)
 
+    def assert_node_feed(self, node_id, exp_node_feed):
+        """
+        Assert that feed of given node_id is equal to exp_node_feed
+        """
+        d = request(
+            self, self.root, b"GET",
+            "{0}/loadbalancers/{1}/nodes/{2}.atom".format(self.uri, self.lb_id, node_id))
+        feed_response = self.successResultOf(d)
+        node_feed = self.successResultOf(treq.content(feed_response)).decode("utf-8")
+        self.assertEqual(feed_response.code, 200)
+        self.assertEqual(exp_node_feed, node_feed)
+
+    def test_add_multiple_nodes_feeds(self):
+        """
+        Ensure there are "Node created" feed for each node after creating nodes
+        """
+        node_ids = [
+            body["nodes"][0]["id"]
+            for resp, body in self._create_nodes(["1.1.1.1", "1.1.1.2"])]
+        node_feeds = [
+            ("<feed xmlns=\"http://www.w3.org/2005/Atom\"><entry>"
+             "<summary>Node successfully created with address: '1.1.1.1', "
+             "port: '80', condition: 'ENABLED', weight: '10'</summary>"
+             "<updated>1970-01-01T00:00:00.000000Z</updated></entry></feed>"),
+            ("<feed xmlns=\"http://www.w3.org/2005/Atom\"><entry>"
+             "<summary>Node successfully created with address: '1.1.1.2', "
+             "port: '80', condition: 'ENABLED', weight: '10'</summary>"
+             "<updated>1970-01-01T00:00:00.000000Z</updated></entry></feed>")
+        ]
+        self.assert_node_feed(node_ids[0], node_feeds[0])
+        self.assert_node_feed(node_ids[1], node_feeds[1])
+
     def test_add_duplicate_node(self):
         """
         Test to verify :func: `add_node` does not allow creation of duplicate nodes.
@@ -1136,6 +1168,62 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         remaining = [node['id'] for node in self._get_nodes(self.lb_id)]
         self.assertEquals(remaining, [self.node[0]['id']])
 
+    def test_bulk_delete_above_batch_limit(self):
+        """
+        Bulk-deleting nodes > 10 returns 400 with specific type of
+        validation errors JSON
+        """
+        # Create 10 nodes as 1 node is created in setUP
+        ips = ["1.1.1.{}".format(i) for i in range(1, 11)]
+        node_ids = [
+            body["nodes"][0]["id"]
+            for resp, body in self._create_nodes(ips)]
+        node_ids = [self.node[0]["id"]] + node_ids
+        response, body = _bulk_delete(
+            self, self.root, self.uri, self.lb_id, node_ids)
+        self.assertEqual(response.code, 400)
+        self.assertEqual(
+            body,
+            {
+                "validationErrors": {
+                    "messages": [
+                        "Request to delete 11 nodes exceeds the account limit "
+                        "BATCH_DELETE_LIMIT of 10 please attempt to delete fewer "
+                        "then 10 nodes"
+                    ]
+                },
+                "message": "Validation Failure",
+                "code": 400,
+                "details": "The object is not valid"
+            }
+        )
+        # Existing nodes are not touched
+        existing = [node['id'] for node in self._get_nodes(self.lb_id)]
+        self.assertEquals(existing, node_ids)
+
+    def test_bulk_delete_limit_after_node_validation(self):
+        """
+        Bulk-deleting nodes > 10 validation is done after nodes validation.
+        i.e. nodes given should be valid before their count is checked
+        """
+        response, body = _bulk_delete(
+            self, self.root, self.uri, self.lb_id, range(1, 12))
+        self.assertEqual(response.code, 400)
+        ids = ",".join(map(str, range(1, 12)))
+        self.assertEqual(
+            body,
+            {
+                "validationErrors": {
+                    "messages": [
+                        "Node ids {} are not a part of your loadbalancer".format(ids)
+                    ]
+                },
+                "message": "Validation Failure",
+                "code": 400,
+                "details": "The object is not valid"
+            }
+        )
+
     def test_updating_node_invalid_json(self):
         """
         When updating a node, if invalid JSON is provided (both actually not
@@ -1285,8 +1373,11 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         self.assertEqual(feed_response.code, 200)
         self.assertEqual(
             self.successResultOf(treq.content(feed_response)).decode("utf-8"),
-            ("<feed xmlns=\"http://www.w3.org/2005/Atom\"><entry>"
-             "<summary>Node successfully updated with address: '127.0.0.1', "
+            ("<feed xmlns=\"http://www.w3.org/2005/Atom\">"
+             "<entry><summary>Node successfully created with address: '127.0.0.1', "
+             "port: '80', condition: 'ENABLED', weight: '10'</summary>"
+             "<updated>1970-01-01T00:00:00.000000Z</updated></entry>"
+             "<entry><summary>Node successfully updated with address: '127.0.0.1', "
              "port: '80', weight: '100', condition: 'DISABLED'</summary>"
              "<updated>1970-01-01T00:00:00.000000Z</updated></entry></feed>"))
 

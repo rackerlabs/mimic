@@ -11,7 +11,14 @@ from twisted.plugin import IPlugin
 from twisted.python.filepath import FilePath
 from twisted.web.resource import IResource
 
-from mimic.core import MimicCore
+from mimic.core import (
+    MimicCore,
+    ServiceBadInterface,
+    ServiceDoesNotExist,
+    ServiceExists,
+    ServiceHasTemplates,
+    ServiceNameExists
+)
 from mimic.plugins import (nova_plugin, loadbalancer_plugin, swift_plugin,
                            queue_plugin, maas_plugin, rackconnect_v3_plugin,
                            glance_plugin, cloudfeeds_plugin, heat_plugin,
@@ -63,7 +70,7 @@ class CoreBuildingPluginsTests(SynchronousTestCase):
             dns_plugin.dns,
             cinder_plugin.cinder
         ))
-        # all plugsin should be on the internal listing
+        # all plugins should be on the internal listing
         self.assertEqual(
             plugin_apis,
             set(core._uuid_to_api_internal.values()))
@@ -71,10 +78,6 @@ class CoreBuildingPluginsTests(SynchronousTestCase):
         self.assertEqual(
             set([]),
             set(core._uuid_to_api_external.values()))
-        self.assertEqual(
-            len(plugin_apis),
-            len(list(core.entries_for_tenant('any_tenant', {},
-                                             'http://mimic'))))
 
     def test_load_domain_plugin_includes_all_domain_plugins(self):
         """
@@ -139,7 +142,7 @@ class CoreApiBuildingTests(SynchronousTestCase):
         class brokenApiMock(object):
             pass
 
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ServiceBadInterface):
             MimicCore(Clock(), [brokenApiMock()])
 
     def test_load_duplicate_api_uuid(self):
@@ -157,7 +160,7 @@ class CoreApiBuildingTests(SynchronousTestCase):
         )
         eeapi2.uuid_key = eeapi.uuid_key
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ServiceExists):
             MimicCore(Clock(), [eeapi, eeapi2])
 
     def test_load_duplicate_api_name(self):
@@ -173,11 +176,11 @@ class CoreApiBuildingTests(SynchronousTestCase):
             self,
             name=self.eeapi_name
         )
-        # Note: make_example_external_api makes the UUID
+        # .. note:: make_example_external_api makes the UUID
         # to be uuid-<name> so we need to change it for eeapi2
         eeapi2.uuid_key = str(uuid.uuid4())
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ServiceNameExists):
             MimicCore(Clock(), [eeapi, eeapi2])
 
     def test_remove_api(self):
@@ -206,7 +209,7 @@ class CoreApiBuildingTests(SynchronousTestCase):
         api name in the listing
         """
         core = MimicCore(Clock(), [])
-        with self.assertRaises(IndexError):
+        with self.assertRaises(ServiceDoesNotExist):
             core.remove_external_api(
                 'some-id'
             )
@@ -223,7 +226,7 @@ class CoreApiBuildingTests(SynchronousTestCase):
         )
         self.assertIsNotNone(eeapi)
         core = MimicCore(Clock(), [eeapi])
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ServiceHasTemplates):
             core.remove_external_api(
                 eeapi.uuid_key
             )
@@ -268,7 +271,7 @@ class CoreApiBuildingTests(SynchronousTestCase):
         `IndexError` exception.
         """
         core = MimicCore(Clock(), [])
-        with self.assertRaises(IndexError):
+        with self.assertRaises(ServiceDoesNotExist):
             core.get_external_api(self.eeapi_name)
 
     def test_service_with_region_external(self):

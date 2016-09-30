@@ -19,6 +19,15 @@ from twisted.web.http import (
 from mimic.catalog import Entry
 from mimic.catalog import Endpoint
 from mimic.imimic import IExternalAPIMock, IEndpointTemplate
+from mimic.model.identity_errors import (
+    EndpointTemplateAlreadyExists,
+    EndpointTemplateDisabledForTenant,
+    EndpointTemplateDoesNotExist,
+    InvalidEndpointTemplateId,
+    InvalidEndpointTemplateInterface,
+    InvalidEndpointTemplateMissingKey,
+    InvalidEndpointTemplateServiceType
+)
 
 
 def _identity_error_message(msg_type, message, status_code, request):
@@ -126,7 +135,7 @@ class EndpointTemplateStore(object):
         tenant
 
 
-    Note: The OpenStack documentation[0] does not specify any required
+    .. note:: The OpenStack documentation[0] does not specify any required
         parameters. For this implementation, the `id`, `region`, `type`,
         and `name` fields are required. The `name` and `type` fields
         are used for creating an instance of the :obj:`ExternalApiStore`
@@ -238,7 +247,8 @@ class EndpointTemplateStore(object):
         epts._template_data = data
         for m in cls.required_mapping:
             if m.spec_key not in data:
-                raise KeyError('Missing required value ' + m.spec_key)
+                raise InvalidEndpointTemplateMissingKey(
+                    'Missing required value ' + m.spec_key)
 
             setattr(epts, m.attr_name, data[m.spec_key])
 
@@ -264,7 +274,7 @@ class ExternalApiStore(object):
     services of the same service type (e.g object-store) but with different
     service names (e.g Cloud Files, OpenStack Swift).
 
-    Note: An endpoint template typically maps to a region.
+    .. note:: An endpoint template typically maps to a region.
 
     Work-In-Progress: Implementation is unstable and subject to change.
     """
@@ -380,7 +390,7 @@ class ExternalApiStore(object):
                 self.endpoints_for_tenants[tenant_id].append(template_id)
                 return
 
-        raise ValueError(template_id + " is not valid")
+        raise InvalidEndpointTemplateId(template_id + " is not valid")
 
     def disable_endpoint_for_tenant(self, tenant_id, template_id):
         """
@@ -397,7 +407,7 @@ class ExternalApiStore(object):
 
         # Tell the caller if the template did not exist in case the caller
         # needs to generate error messages
-        raise ValueError(
+        raise EndpointTemplateDisabledForTenant(
             "template (" + template_id + ") not enabled for tenant id ("
             + tenant_id + ")"
         )
@@ -425,14 +435,16 @@ class ExternalApiStore(object):
             key = endpoint_template.id_key
 
             if key in self.endpoint_templates:
-                raise ValueError(key + " already exists. Please call update.")
+                raise EndpointTemplateAlreadyExists(
+                    key + " already exists. Please call update.")
 
             if endpoint_template.type_key != self.type_key:
-                raise ValueError("template does not match the service type.")
+                raise InvalidEndpointTemplateServiceType(
+                    "template does not match the service type.")
 
             self.endpoint_templates[key] = endpoint_template
         else:
-            raise TypeError(
+            raise InvalidEndpointTemplateInterface(
                 endpoint_template.__class__.__module__ + "/" +
                 endpoint_template.__class__.__name__ +
                 " does not implement IEndpointTemplate"
@@ -452,16 +464,17 @@ class ExternalApiStore(object):
             key = endpoint_template.id_key
 
             if key not in self.endpoint_templates:
-                raise IndexError(
+                raise EndpointTemplateDoesNotExist(
                     "Endpoint template does not exist. Unable to update. The "
                     "template must first be added before it can be updated"
                 )
 
             if endpoint_template.type_key != self.type_key:
-                raise ValueError("template does not match the service type.")
+                raise InvalidEndpointTemplateServiceType(
+                    "template does not match the service type.")
 
             if self.endpoint_templates[key].id_key != endpoint_template.id_key:
-                raise ValueError(
+                raise InvalidEndpointTemplateId(
                     "template id must match the id of the template it is "
                     "updating"
                 )
@@ -469,7 +482,7 @@ class ExternalApiStore(object):
             self.endpoint_templates[key] = endpoint_template
 
         else:
-            raise TypeError(
+            raise InvalidEndpointTemplateInterface(
                 endpoint_template.__class__.__module__ + "/" +
                 endpoint_template.__class__.__name__ +
                 " does not implement IEndpointTemplate"
@@ -497,7 +510,7 @@ class ExternalApiStore(object):
         for tenant_id in self.endpoints_for_tenants.keys():
             try:
                 self.disable_endpoint_for_tenant(tenant_id, template_id)
-            except ValueError:
+            except EndpointTemplateDisabledForTenant:
                 # Ignore if the template is not available for the tenant
                 pass
 
@@ -508,7 +521,7 @@ class ExternalApiStore(object):
 
         # Tell the caller if the template did not exist in case the caller
         # needs to generate error messages
-        raise IndexError(
+        raise InvalidEndpointTemplateId(
             "template (" + template_id + ") does not exist"
         )
 
@@ -533,7 +546,7 @@ class ExternalApiStore(object):
         """
         Return the URI for the service in the given region.
 
-        Note: This only returns the public URL at present to match
+        .. note:: This only returns the public URL at present to match
             the rest of Mimic's implementation. Supporting multiple
             URL types (public vs snet vs admin) is left for another
             feature addition.

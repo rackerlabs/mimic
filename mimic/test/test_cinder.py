@@ -26,9 +26,20 @@ class CinderTests(SynchronousTestCase):
         """
         Requesting block storage volumes for a tenant returns 200 and an empty list
         if no volumes are available for the given tenant
-        http://developer.openstack.org/api-ref-blockstorage-v2.html#getVolumesSimple
+        http://developer.openstack.org/api-ref-blockstorage-v2.html#listVolumes
         """
         (response, content) = self.successResultOf(json_request(
             self, self.root, b"GET", self.uri + '/volumes'))
+        self.assertEqual(200, response.code)
+        self.assertEqual(content, {'volumes': []})
+
+    def test_get_blockstorage_volume_list_detail(self):
+        """
+        Requesting block storage volume details for a tenant returns 200 and an
+        empty list if no volumes are available for the given tenant
+        http://developer.openstack.org/api-ref-blockstorage-v2.html#listVolumesDetail
+        """
+        (response, content) = self.successResultOf(json_request(
+            self, self.root, b"GET", self.uri + '/volumes/detail'))
         self.assertEqual(200, response.code)
         self.assertEqual(content, {'volumes': []})
