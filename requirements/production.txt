@@ -16,7 +16,7 @@ klein==15.3.1
 linecache2==1.0.0
 pyasn1==0.1.9
 pyasn1-modules==0.0.8
-pycparser==2.16
+pycparser==2.17
 pyOpenSSL==16.2.0
 python-mimeparse==1.6.0
 requests==2.11.1
