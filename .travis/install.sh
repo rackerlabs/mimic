@@ -20,7 +20,7 @@ if [[ "${MACAPP_ENV}" == "system" ]]; then
     # default.
 
     _brew_update;
-    brew install python;
+    brew list python || brew install python;
     exit 0;
 fi;
 
@@ -35,7 +35,7 @@ fi
 PYENV_PYTHON="";
 
 if [[ "${TOXENV}" == "pypy" ]]; then
-    PYENV_PYTHON="pypy-4.0.1";
+    PYENV_PYTHON="pypy-5.4.1";
     if [[ "$DARWIN" == "true" ]]; then
         _brew_update;
         brew install openssl;
