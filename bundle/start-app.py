@@ -35,6 +35,9 @@ version, specifiers, requirements # pacify pyflakes
 from pkg_resources._vendor import pyparsing, six
 pyparsing, six # pyflakes
 
+import appdirs
+appdirs
+
 from sys import stdout
 
 # This is the port on which mimic will listen for requests. It has been
