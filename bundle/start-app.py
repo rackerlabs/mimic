@@ -32,11 +32,8 @@ version, specifiers, requirements # pacify pyflakes
 
 # these packages are imported _by_ _vendor.packaging from the "extern" package,
 # which dynamically populates its own namespace.
-from pkg_resources._vendor import pyparsing, six
-pyparsing, six # pyflakes
-
-import appdirs
-appdirs
+from pkg_resources._vendor import pyparsing, six, appdirs
+pyparsing, six, appdirs # pyflakes
 
 from sys import stdout
 
