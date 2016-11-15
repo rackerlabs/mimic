@@ -20,7 +20,7 @@ if [[ "${MACAPP_ENV}" == "system" ]]; then
     # default.
 
     _brew_update;
-    brew install python;
+    brew list python || brew install python;
     exit 0;
 fi;
 
