@@ -19,7 +19,7 @@ pyasn1-modules==0.0.8
 pycparser==2.17
 pyOpenSSL==16.2.0
 python-mimeparse==1.6.0
-requests==2.12.1
+requests==2.12.2
 service-identity==16.0.0
 six==1.10.0
 testtools==1.7.1 # rq.filter: <1.8.0
