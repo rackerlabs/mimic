@@ -7,6 +7,6 @@ modulegraph==0.12.1
 py2app==0.10
 pyobjc-core==3.2.1
 pyobjc-framework-CFNetwork==3.2.1
-pyobjc-framework-Cocoa==3.2
+pyobjc-framework-Cocoa==3.2.1
 setuptools==31.0.0
 
