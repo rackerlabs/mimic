@@ -24,6 +24,10 @@ pip install .;
 # install dependencies that are needed to build and run the mac application
 pip install -r requirements/mac-app.txt;
 
+# work around zope.interface's namespace module shenanigans
+# see https://github.com/zopefoundation/zope.interface/issues/67
+touch "$(dirname "$(dirname "$(python -c 'import zope.interface; print(zope.interface.__file__)')")")"/__init__.py
+
 # build the application using py2app
 python setup.py py2app;
 
