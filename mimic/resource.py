@@ -115,6 +115,15 @@ class MimicRoot(object):
         """
         return valkyrie_api.ValkyrieApi(self.core).app.resource()
 
+    @app.route("/customer_access_cloudfeeds", branch=True)
+    def customer_access_cloudfeeds():
+        """
+        Customer Access policy events as cloudfeeds service. This is seperarate
+        from `otter.rest.cloudfeeds` as this is not tenant specific produdct
+        events. Instead is a global list of events about all accounts
+        """
+        return CloudFeedsCAP(self.core, self.clock).app.resource()
+
     @app.route('/mimic/v1.0/presets', methods=['GET'])
     def get_mimic_presets(self, request):
         """
