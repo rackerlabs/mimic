@@ -1,17 +1,14 @@
 from __future__ import absolute_import, division, unicode_literals
 
 from uuid import uuid4
-from six import text_type
-from zope.interface import implementer
-from twisted.plugin import IPlugin
-from mimic.catalog import Endpoint, Entry
-from mimic.imimic import IAPIMock
+from urllib import urlencode
 from mimic.rest.mimicapp import MimicApp
-from mimic.core import MimicCore
+from mimic.util.helper import json_from_request, seconds_to_timestamp
 
 import attr
 
-from toolz.functoolz import compose
+from twisted.internet.interfaces import IReactorTime
+from twisted.web.template import Tag, flattenString
 
 
 @attr.s(frozen=True)
@@ -22,7 +19,12 @@ class CustomerAccessEvent(object):
     tenant_id = attr.ib()
     status = attr.ib()
     updated = attr.ib()
-    id = attr.ib(default=attr.Factory(compose(str, uuid4)))
+    id = attr.ib(default=attr.Factory(lambda: str(uuid4)))
+
+    @classmethod
+    def from_dict(cls, d, clock):
+        return CustomerAccessEvent(d["tenant_id"], d["status"],
+                                   seconds_to_timestamp(clock.seconds()))
 
 
 @attr.s
@@ -41,7 +43,7 @@ class CloudFeedsCAPRoutes(object):
     """
     This class implements routes for cloud feeds customer access events API
     """
-    core = attr.ib(validator=aiof(MimicCore))
+    core = attr.ib()
     clock = attr.ib(validator=attr.validators.provides(IReactorTime))
     # Number of entries to return if not provided
     BATCH_LIMIT = 25
@@ -64,57 +66,77 @@ class CloudFeedsCAPRoutes(object):
         NOTE: This is control API.
         """
         content = json_from_request(request)
-        events = list(map(CustomerAccessEvent.from_json, content["events"]))
-        for i, event in enumerate(events):
-            self.store.events_index[event.id] = i
+        events = [CustomerAccessEvent.from_dict(d, self.clock) for d in content["events"]]
         self.store.events = events + self.store.events
+        for i, event in enumerate(self.store.events):
+            self.store.events_index[event.id] = i
         request.setResponseCode(201)
 
     @app.route("/customer_access_policy/events", methods=["GET"])
     def get_customer_access_events(self, request):
-        marker = request.args.get("marker", [None])[0]
-        direction = request.args.get("direction", ["forward"])[0]
-        limit = request.args.get("limit", [BATCH_LIMIT])[0]
+        marker = request.args.get(u"marker", [None])[0]
+        direction = request.args.get(u"direction", [u"forward"])[0]
+        limit = request.args.get(u"limit", [self.BATCH_LIMIT])[0]
         index = self.store.events_index.get(marker, 0)
-        if direction == "forward":
+        if direction == u"forward":
             events = self.store.events[:index][:limit]
-        elif direction == "backward":
+        elif direction == u"backward":
             events = self.store.events[index:][:limit]
         else:
             raise ValueError("Unknown direction " + direction)
         request.setHeader(b"Content-Type", [b"application/atom+xml"])
-        return generate_cap_feed(events)
+        return generate_feed_xml(events)
 
 
-feed_fmt = """
-<feed xmlns="http://www.w3.org/2005/Atom">
-  <title type="text">customer_access_policy/events</title>
-  <link href="{previous}" rel="previous"/>
-  <link href="{next}" rel="next"/>
-  {entries}
-</feed>
-"""
+def feed_tag():
+    feed = Tag("feed")(xmlns="http://www.w3.org/2005/Atom")
+    feed(Tag("title")(type="text")("customer_access_policy/events"))
+    return feed
 
-entry_fmt = """
-<entry>
-  <atom:category xmlns:atom="http://www.w3.org/2005/Atom" term="tid:{tenant_id}"/>
-  <atom:category xmlns:atom="http://www.w3.org/2005/Atom" term="rgn:GLOBAL"/>
-  <atom:category xmlns:atom="http://www.w3.org/2005/Atom" term="dc:GLOBAL"/>
-  <atom:category xmlns:atom="http://www.w3.org/2005/Atom" term="customerservice.access_policy.info"/>
-  <atom:category xmlns:atom="http://www.w3.org/2005/Atom" term="type:customerservice.access_policy.info"/>
-  <title type="text">CustomerService</title>
-  <content type="application/xml">
-    <event xmlns="http://docs.rackspace.com/core/event" xmlns:ns2="http://docs.rackspace.com/event/customer/access_policy" dataCenter="GLOBAL" environment="PROD" id="{id}" region="GLOBAL" tenantId="{tenant_id}" type="INFO" version="2">
-      <ns2:product previousEvent="" serviceCode="CustomerService" status="{status}" version="1"/>
-    </event>
-  </content>
-  <updated>{updated}</updated>
-  <published>{updated}</published>
-</entry>
-"""
+#"""
+#<feed xmlns="http://www.w3.org/2005/Atom">
+#  <title type="text">customer_access_policy/events</title>
+#  <link href="{previous}" rel="previous"/>
+#  <link href="{next}" rel="next"/>
+#  {entries}
+#</feed>
+#"""
+
+def entry_tag():
+    entry = Tag("entry")
+    for term in ["rgn:GLOBAL", "dc:GLOBAL", "customerservice.access_policy.info",
+                 "type:customerservice.access_policy.info"]:
+        entry(Tag("category")(term=term))
+    entry(Tag("title")(type="text")("CustomerService"))
+    entry(Tag("content")(type="application/xml"))
+    event = Tag("event")(xmlns="http://docs.rackspace.com/core/event", dataCenter="GLOBAL",
+                         environment="PROD", region="GLOBAL", type="INFO", version="2")
+    product = Tag("product")(xmlns="http://docs.rackspace.com/event/customer/access_policy",
+                             previousEvent="", serviceCode="CustomerService", version="1")
+    event(product)
+    entry(event)
+    return entry, event, product
+
+#u"""
+#<entry>
+#  <atom:category xmlns:atom="http://www.w3.org/2005/Atom" term="tid:{tenant_id}"/>
+#  <atom:category xmlns:atom="http://www.w3.org/2005/Atom" term="rgn:GLOBAL"/>
+#  <atom:category xmlns:atom="http://www.w3.org/2005/Atom" term="dc:GLOBAL"/>
+#  <atom:category xmlns:atom="http://www.w3.org/2005/Atom" term="customerservice.access_policy.info"/>
+#  <atom:category xmlns:atom="http://www.w3.org/2005/Atom" term="type:customerservice.access_policy.info"/>
+#  <title type="text">CustomerService</title>
+#  <content type="application/xml">
+#    <event xmlns="http://docs.rackspace.com/core/event" xmlns:ns2="http://docs.rackspace.com/event/customer/access_policy" dataCenter="GLOBAL" environment="PROD" id="{id}" region="GLOBAL" tenantId="{tenant_id}" type="INFO" version="2">
+#      <ns2:product previousEvent="" serviceCode="CustomerService" status="{status}" version="1"/>
+#    </event>
+#  </content>
+#  <updated>{updated}</updated>
+#  <published>{updated}</published>
+#</entry>
+#"""
 
 
-def generate_feed(events):
+def generate_feed_xml(events):
     """
     Generate ATOM feed XML for given events
 
@@ -122,8 +144,19 @@ def generate_feed(events):
 
     :return: XML text as bytes
     """
-    root = "https://mimic-host-port"
-    prev = "{}?{}".format(root, urlencode({"marker": events[0].id, "direction": "forward"}))
-    next = "{}?{}".format(root, urlencode({"marker": events[-1].id, "direction": "backward"}))
-    entries = ''.join(entry_fmt.format(**event.asdict()) for event in events)
-    return feed_fmt.format(previous=prev, next=next, entries=entries).encode("utf-8")
+    root = u"https://mimic-host-port"
+    feed = feed_tag()
+    if events:
+        prev = "{}?{}".format(root, urlencode({u"marker": events[0].id, u"direction": u"forward"}))
+        next = "{}?{}".format(root, urlencode({u"marker": events[-1].id, u"direction": u"backward"}))
+        feed(Tag("link")(href=prev, rel="previous"))
+        feed(Tag("link")(href=next, rel="next"))
+    for event in events:
+        entry, event_tag, product = entry_tag()
+        entry(Tag("category")(term="tid:{}".format(event.tenant_id)))
+        event_tag(tenant_id=event.tenant_id)
+        product(status=event.status)
+        entry(Tag("updated")(event.updated))
+        entry(Tag("published")(event.updated))
+        feed(entry)
+    return flattenString(None, feed).result
