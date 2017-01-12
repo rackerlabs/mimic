@@ -19,12 +19,11 @@ class CustomerAccessEvent(object):
     tenant_id = attr.ib()
     status = attr.ib()
     updated = attr.ib()
-    id = attr.ib(default=attr.Factory(lambda: str(uuid4)))
+    id = attr.ib(default=attr.Factory(lambda: str(uuid4())))
 
     @classmethod
     def from_dict(cls, d, clock):
-        return CustomerAccessEvent(d["tenant_id"], d["status"],
-                                   seconds_to_timestamp(clock.seconds()))
+        return CustomerAccessEvent(d["tenant_id"], d["status"], clock.seconds())
 
 
 @attr.s
@@ -41,7 +40,7 @@ class CustomerAccessEventStore(object):
 @attr.s
 class CloudFeedsCAPRoutes(object):
     """
-    This class implements routes for cloud feeds customer access events API
+    This class implements routes for cloud feeds customer access policy events API
     """
     core = attr.ib()
     clock = attr.ib(validator=attr.validators.provides(IReactorTime))
@@ -156,7 +155,7 @@ def generate_feed_xml(events):
         entry(Tag("category")(term="tid:{}".format(event.tenant_id)))
         event_tag(tenant_id=event.tenant_id)
         product(status=event.status)
-        entry(Tag("updated")(event.updated))
-        entry(Tag("published")(event.updated))
+        entry(Tag("updated")(seconds_to_timestamp(event.updated)))
+        entry(Tag("published")(seconds_to_timestamp(event.updated)))
         feed(entry)
     return flattenString(None, feed).result
