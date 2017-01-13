@@ -41,6 +41,7 @@ def assert_has_events(testcase, xml, events, prev, next):
                 ContainsDict({
                     "event:event": ContainsDict({
                         "@tenant_id": Equals(event.tenant_id),
+                        "@id": Equals(event.id),
                         "ap:product": ContainsDict({"@status": Equals(event.status)})
                     }),
                     "updated": Equals(seconds_to_timestamp(event.updated)),

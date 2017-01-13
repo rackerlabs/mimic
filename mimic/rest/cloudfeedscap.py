@@ -156,7 +156,7 @@ def generate_feed_xml(events):
     for event in events:
         entry, event_tag, product = entry_tag()
         entry(Tag("category")(term="tid:{}".format(event.tenant_id)))
-        event_tag(tenant_id=event.tenant_id)
+        event_tag(id=event.id, tenant_id=event.tenant_id)
         product(status=event.status)
         entry(Tag("updated")(seconds_to_timestamp(event.updated)))
         entry(Tag("published")(seconds_to_timestamp(event.updated)))
