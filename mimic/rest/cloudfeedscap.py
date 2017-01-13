@@ -86,7 +86,7 @@ class CloudFeedsCAPRoutes(object):
             events = self.store.events[index:][:limit]
         else:
             raise ValueError("Unknown direction " + direction)
-        request.setHeader(b"Content-Type", [b"application/atom+xml"])
+        request.setHeader(b"Content-Type", b"application/atom+xml")
         return generate_feed_xml(events)
 
 

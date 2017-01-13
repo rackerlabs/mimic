@@ -146,6 +146,7 @@ class RoutesTests(SynchronousTestCase):
         d = request_with_content(
             self, self.root, "GET", "/cloudfeeds_cap/customer_access_policy/events")
         resp, body = self.successResultOf(d)
+        self.assertEqual(resp.headers.getRawHeaders("Content-Type"), [b"application/atom+xml"])
         self.assertEqual(body, empty_feed)
 
     def test_get_events(self):
