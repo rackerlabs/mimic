@@ -184,7 +184,7 @@ class RoutesTests(SynchronousTestCase):
         events = self.test_add_events_update()
         resp, body = self.successResultOf(request_with_content(
             self, self.root, "GET",
-            "/cloudfeeds_cap/customer_access_policy/events?marker=id1&direction=backward"))
+            "/cloudfeeds_cap/customer_access_policy/events?marker=id5&direction=backward"))
         assert_has_events(
             self, body, events[2:],
             link(dict(marker="id1", direction="forward")),

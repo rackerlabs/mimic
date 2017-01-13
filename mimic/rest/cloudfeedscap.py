@@ -83,7 +83,7 @@ class CloudFeedsCAPRoutes(object):
         if direction == u"forward":
             events = self.store.events[:index][:limit]
         elif direction == u"backward":
-            events = self.store.events[index:][:limit]
+            events = self.store.events[index + 1:][:limit]
         else:
             raise ValueError("Unknown direction " + direction)
         request.setHeader(b"Content-Type", b"application/atom+xml")
