@@ -45,7 +45,7 @@ class CloudFeedsCAPRoutes(object):
     core = attr.ib()
     clock = attr.ib(validator=attr.validators.provides(IReactorTime))
     # Number of entries to return if not provided
-    BATCH_LIMIT = 25
+    BATCH_LIMIT = 10
 
     app = MimicApp()
 
@@ -73,10 +73,13 @@ class CloudFeedsCAPRoutes(object):
 
     @app.route("/customer_access_policy/events", methods=["GET"])
     def get_customer_access_events(self, request):
+        """
+        Return customer access events atom feed format
+        """
         marker = request.args.get(u"marker", [None])[0]
         direction = request.args.get(u"direction", [u"forward"])[0]
-        limit = request.args.get(u"limit", [self.BATCH_LIMIT])[0]
-        index = self.store.events_index.get(marker, 0)
+        limit = int(request.args.get(u"limit", [self.BATCH_LIMIT])[0])
+        index = self.store.events_index.get(marker, None)
         if direction == u"forward":
             events = self.store.events[:index][:limit]
         elif direction == u"backward":
@@ -143,7 +146,7 @@ def generate_feed_xml(events):
 
     :return: XML text as bytes
     """
-    root = u"https://mimic-host-port"
+    root = u"https://mimic-host-port/cloudfeeds_cap/customer_access_events"
     feed = feed_tag()
     if events:
         prev = "{}?{}".format(root, urlencode({u"marker": events[0].id, u"direction": u"forward"}))

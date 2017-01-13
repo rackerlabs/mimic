@@ -116,7 +116,7 @@ class MimicRoot(object):
         """
         return valkyrie_api.ValkyrieApi(self.core).app.resource()
 
-    @app.route("/customer_access_cloudfeeds", branch=True)
+    @app.route("/cloudfeeds_cap", branch=True)
     def customer_access_cloudfeeds(self, request):
         """
         Customer Access policy events as cloudfeeds service. This is seperarate
