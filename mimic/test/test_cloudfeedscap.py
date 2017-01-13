@@ -25,7 +25,9 @@ empty_feed = ('<feed xmlns="http://www.w3.org/2005/Atom">'
 
 def assert_has_events(testcase, xml, events, prev, next):
     """
-    Assert that xml has given events with previous and next link
+    Assert that xml has given events with previous and next link.
+    Currently only checks if event info i.e. (tenant_id, status, links and updated) are correct.
+    Ideally, it should ideally check against XML schema also. Will probably add that later.
     """
     feed_match = MatchesDict(
         {"feed": ContainsDict({
@@ -76,8 +78,6 @@ class GenFeedTests(SynchronousTestCase):
     def test_entries(self):
         """
         Generates feed with proper next and previous link and "entry" nodes with event info in them.
-        Currently only checks if event info i.e. (tenant_id, status, links and updated) are correct.
-        Ideally, it should ideally check against XML schema also. Will probably add that later.
         """
         events = [CustomerAccessEvent("t1", "FULL", 0.0, "1"),
                   CustomerAccessEvent("t2", "TERMINATED", 100.0, "2")]
