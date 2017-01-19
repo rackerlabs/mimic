@@ -110,13 +110,14 @@ def entry_tag():
                  "type:customerservice.access_policy.info"]:
         entry(Tag("category")(term=term))
     entry(Tag("title")(type="text")("CustomerService"))
-    entry(Tag("content")(type="application/xml"))
+    content = Tag("content")(type="application/xml")
+    entry(content)
     event = Tag("event")(xmlns="http://docs.rackspace.com/core/event", dataCenter="GLOBAL",
                          environment="PROD", region="GLOBAL", type="INFO", version="2")
     product = Tag("product")(xmlns="http://docs.rackspace.com/event/customer/access_policy",
                              previousEvent="", serviceCode="CustomerService", version="1")
     event(product)
-    entry(event)
+    content(event)
     return entry, event, product
 
 #u"""
@@ -156,7 +157,7 @@ def generate_feed_xml(events):
     for event in events:
         entry, event_tag, product = entry_tag()
         entry(Tag("category")(term="tid:{}".format(event.tenant_id)))
-        event_tag(id=event.id, tenant_id=event.tenant_id)
+        event_tag(id=event.id, tenantId=event.tenant_id)
         product(status=event.status)
         entry(Tag("updated")(seconds_to_timestamp(event.updated)))
         entry(Tag("published")(seconds_to_timestamp(event.updated)))

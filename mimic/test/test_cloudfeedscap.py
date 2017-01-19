@@ -39,10 +39,12 @@ def assert_has_events(testcase, xml, events, prev, next):
             ]),
             "entry": MatchesListwise([
                 ContainsDict({
-                    "event:event": ContainsDict({
-                        "@tenant_id": Equals(event.tenant_id),
-                        "@id": Equals(event.id),
-                        "ap:product": ContainsDict({"@status": Equals(event.status)})
+                    "content": ContainsDict({
+                        "event:event": ContainsDict({
+                            "@tenantId": Equals(event.tenant_id),
+                            "@id": Equals(event.id),
+                            "ap:product": ContainsDict({"@status": Equals(event.status)})
+                        })
                     }),
                     "updated": Equals(seconds_to_timestamp(event.updated)),
                     "published": Equals(seconds_to_timestamp(event.updated))
