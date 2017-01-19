@@ -1,3 +1,6 @@
+"""
+Cloudfeeds customer access events
+"""
 from __future__ import absolute_import, division, unicode_literals
 
 from uuid import uuid4
@@ -23,6 +26,9 @@ class CustomerAccessEvent(object):
 
     @classmethod
     def from_dict(cls, d, clock):
+        """
+        Return new CustomerAccessEvent from given dict and updated from clock
+        """
         return CustomerAccessEvent(d["tenant_id"], d["status"], clock.seconds())
 
 
@@ -50,6 +56,9 @@ class CloudFeedsCAPRoutes(object):
     app = MimicApp()
 
     def __attrs_post_init__(self):
+        """
+        Cache store for easy access
+        """
         self.store = self.core.cloudfeeds_ca_store
 
     @app.route("/events", methods=["POST"])
@@ -91,20 +100,18 @@ class CloudFeedsCAPRoutes(object):
 
 
 def feed_tag():
+    """
+    Return new <feed> tag
+    """
     feed = Tag("feed")(xmlns="http://www.w3.org/2005/Atom")
     feed(Tag("title")(type="text")("customer_access_policy/events"))
     return feed
 
-#"""
-#<feed xmlns="http://www.w3.org/2005/Atom">
-#  <title type="text">customer_access_policy/events</title>
-#  <link href="{previous}" rel="previous"/>
-#  <link href="{next}" rel="next"/>
-#  {entries}
-#</feed>
-#"""
 
 def entry_tag():
+    """
+    Return new <entry>, <event> and <product> tag
+    """
     entry = Tag("entry")
     for term in ["rgn:GLOBAL", "dc:GLOBAL", "customerservice.access_policy.info",
                  "type:customerservice.access_policy.info"]:
@@ -119,24 +126,6 @@ def entry_tag():
     event(product)
     content(event)
     return entry, event, product
-
-#u"""
-#<entry>
-#  <atom:category xmlns:atom="http://www.w3.org/2005/Atom" term="tid:{tenant_id}"/>
-#  <atom:category xmlns:atom="http://www.w3.org/2005/Atom" term="rgn:GLOBAL"/>
-#  <atom:category xmlns:atom="http://www.w3.org/2005/Atom" term="dc:GLOBAL"/>
-#  <atom:category xmlns:atom="http://www.w3.org/2005/Atom" term="customerservice.access_policy.info"/>
-#  <atom:category xmlns:atom="http://www.w3.org/2005/Atom" term="type:customerservice.access_policy.info"/>
-#  <title type="text">CustomerService</title>
-#  <content type="application/xml">
-#    <event xmlns="http://docs.rackspace.com/core/event" xmlns:ns2="http://docs.rackspace.com/event/customer/access_policy" dataCenter="GLOBAL" environment="PROD" id="{id}" region="GLOBAL" tenantId="{tenant_id}" type="INFO" version="2">
-#      <ns2:product previousEvent="" serviceCode="CustomerService" status="{status}" version="1"/>
-#    </event>
-#  </content>
-#  <updated>{updated}</updated>
-#  <published>{updated}</published>
-#</entry>
-#"""
 
 
 def generate_feed_xml(events):

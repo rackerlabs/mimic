@@ -2,7 +2,6 @@
 Tests for :obj:`mimic.rest.cloudfeedscap`
 """
 import json
-from datetime import datetime
 from urllib import urlencode
 
 import xmltodict
@@ -13,14 +12,14 @@ from mimic.rest.cloudfeedscap import CustomerAccessEvent, generate_feed_xml
 from mimic.test.helpers import request, request_with_content
 from mimic.util.helper import seconds_to_timestamp
 
-from testtools.matchers import MatchesDict, MatchesListwise, Equals, Contains, ContainsDict
+from testtools.matchers import MatchesDict, MatchesListwise, Equals, ContainsDict
 
 from twisted.trial.unittest import SynchronousTestCase
 from twisted.internet.task import Clock
 
 
 empty_feed = ('<feed xmlns="http://www.w3.org/2005/Atom">'
-             '<title type="text">customer_access_policy/events</title></feed>')
+              '<title type="text">customer_access_policy/events</title></feed>')
 
 
 def assert_has_events(testcase, xml, events, prev, next):
@@ -29,8 +28,8 @@ def assert_has_events(testcase, xml, events, prev, next):
     Currently only checks if event info i.e. (tenant_id, status, links and updated) are correct.
     Ideally, it should ideally check against XML schema also. Will probably add that later.
     """
-    feed_match = MatchesDict(
-        {"feed": ContainsDict({
+    feed_match = MatchesDict({
+        "feed": ContainsDict({
             "link": MatchesListwise([
                 MatchesDict({"@href": Equals(prev),
                              "@rel": Equals("previous")}),
