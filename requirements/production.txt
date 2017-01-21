@@ -4,7 +4,7 @@
 
 attrs==16.3.0
 cffi==1.9.1
-coverage==4.3.3
+coverage==4.3.4
 cryptography==1.7.1
 ddt==1.1.1
 enum34==1.1.6
@@ -19,7 +19,7 @@ pyasn1-modules==0.0.8
 pycparser==2.17
 pyOpenSSL==16.2.0
 python-mimeparse==1.6.0
-requests==2.12.4
+requests==2.12.5
 service-identity==16.0.0
 six==1.10.0
 testtools==1.7.1 # rq.filter: <1.8.0
