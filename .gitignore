@@ -4,6 +4,7 @@
 .DS_Store
 *.pyc
 dropin.cache
+twistd.log
 twistd.pid
 docs/_build
 _tmp
