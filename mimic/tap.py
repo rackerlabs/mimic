@@ -16,7 +16,7 @@ class Options(usage.Options):
     """
     Options for Mimic
     """
-    optParameters = [['listen', 'l', '8900', 'The endpoint to listen on.']]
+    optParameters = [['listen', 'l', 'tcp:8900', 'The endpoint to listen on.']]
     optFlags = [['realtime', 'r',
                  'Make mimic advance time as real time advances; '
                  'disable the "tick" endpoint.'],
