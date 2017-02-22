@@ -2,7 +2,7 @@
 Tests for :obj:`mimic.rest.cloudfeedscap`
 """
 import json
-from urllib import urlencode
+from six.moves.urllib.parse import urlencode
 
 import xmltodict
 
@@ -13,20 +13,23 @@ from mimic.test.helpers import request, request_with_content
 from mimic.util.helper import seconds_to_timestamp
 
 from testtools.matchers import MatchesDict, MatchesListwise, Equals, ContainsDict
+from testtools.assertions import assert_that
 
 from twisted.trial.unittest import SynchronousTestCase
 from twisted.internet.task import Clock
 
 
-empty_feed = ('<feed xmlns="http://www.w3.org/2005/Atom">'
-              '<title type="text">customer_access_policy/events</title></feed>')
+empty_feed = (b'<feed xmlns="http://www.w3.org/2005/Atom">'
+              b'<title type="text">customer_access_policy/events</title>'
+              b'</feed>')
 
 
 def assert_has_events(testcase, xml, events, prev, next):
     """
-    Assert that xml has given events with previous and next link.
-    Currently only checks if event info i.e. (tenant_id, status, links and updated) are correct.
-    Ideally, it should ideally check against XML schema also. Will probably add that later.
+    Assert that xml has given events with previous and next link.  Currently
+    only checks if event info i.e. (tenant_id, status, links and updated) are
+    correct.  Ideally, it should ideally check against XML schema also.  Will
+    probably add that later.
     """
     feed_match = MatchesDict({
         "feed": ContainsDict({
@@ -56,14 +59,15 @@ def assert_has_events(testcase, xml, events, prev, next):
                   "http://docs.rackspace.com/core/event": "event",
                   "http://docs.rackspace.com/event/customer/access_policy": "ap"}
     d = xmltodict.parse(xml, process_namespaces=True, namespaces=namespaces)
-    testcase.assertIsNone(feed_match.match(d))
+    assert_that(d, feed_match)
 
 
 def link(params):
     """
     Return full URL with given query params
     """
-    return u"https://mimic-host-port/cloudfeeds_cap/customer_access_events?{}".format(urlencode(params))
+    return (u"https://mimic-host-port/cloudfeeds_cap/customer_access_events?{}"
+            .format(urlencode(sorted(params.items()))))
 
 
 class GenFeedTests(SynchronousTestCase):
@@ -107,7 +111,7 @@ class RoutesTests(SynchronousTestCase):
         """
         events = [{"tenant_id": "1234", "status": "SUSPENDED"},
                   {"tenant_id": "2345", "status": "FULL"}]
-        d = request(self, self.root, "POST", "/cloudfeeds_cap/events",
+        d = request(self, self.root, b"POST", b"/cloudfeeds_cap/events",
                     body=json.dumps({"events": events}).encode("utf-8"))
         self.assertEqual(self.successResultOf(d).code, 201)
         self.assertEqual(
@@ -127,7 +131,7 @@ class RoutesTests(SynchronousTestCase):
         self.ids = ["id5", "id4"]
         events = [{"tenant_id": "t1", "status": "TERMINATED"},
                   {"tenant_id": "t2", "status": "SUSPENDED"}]
-        d = request(self, self.root, "POST", "/cloudfeeds_cap/events",
+        d = request(self, self.root, b"POST", b"/cloudfeeds_cap/events",
                     body=json.dumps({"events": events}).encode("utf-8"))
         self.assertEqual(self.successResultOf(d).code, 201)
         exp_events = [CustomerAccessEvent(u"t1", u"TERMINATED", 200.0, u"id4"),
@@ -146,9 +150,10 @@ class RoutesTests(SynchronousTestCase):
         are no events stored. No previous and next links are provided.
         """
         d = request_with_content(
-            self, self.root, "GET", "/cloudfeeds_cap/customer_access_policy/events")
+            self, self.root, b"GET", b"/cloudfeeds_cap/customer_access_policy/events")
         resp, body = self.successResultOf(d)
-        self.assertEqual(resp.headers.getRawHeaders("Content-Type"), [b"application/atom+xml"])
+        self.assertEqual(resp.headers.getRawHeaders("Content-Type"),
+                         ["application/atom+xml"])
         self.assertEqual(body, empty_feed)
 
     def test_get_events(self):
@@ -158,7 +163,7 @@ class RoutesTests(SynchronousTestCase):
         """
         events = self.test_add_events_update()
         resp, body = self.successResultOf(request_with_content(
-            self, self.root, "GET", "/cloudfeeds_cap/customer_access_policy/events"))
+            self, self.root, b"GET", b"/cloudfeeds_cap/customer_access_policy/events"))
         assert_has_events(
             self, body, events, link(dict(marker="id4", direction="forward")),
             link(dict(marker="id2", direction="backward")))
@@ -170,8 +175,8 @@ class RoutesTests(SynchronousTestCase):
         """
         events = self.test_add_events_update()
         resp, body = self.successResultOf(request_with_content(
-            self, self.root, "GET",
-            "/cloudfeeds_cap/customer_access_policy/events?marker=id1&direction=forward"))
+            self, self.root, b"GET",
+            b"/cloudfeeds_cap/customer_access_policy/events?marker=id1&direction=forward"))
         assert_has_events(
             self, body, events[:2],
             link(dict(marker="id4", direction="forward")),
@@ -184,8 +189,8 @@ class RoutesTests(SynchronousTestCase):
         """
         events = self.test_add_events_update()
         resp, body = self.successResultOf(request_with_content(
-            self, self.root, "GET",
-            "/cloudfeeds_cap/customer_access_policy/events?marker=id5&direction=backward"))
+            self, self.root, b"GET",
+            b"/cloudfeeds_cap/customer_access_policy/events?marker=id5&direction=backward"))
         assert_has_events(
             self, body, events[2:],
             link(dict(marker="id1", direction="forward")),
@@ -197,8 +202,8 @@ class RoutesTests(SynchronousTestCase):
         """
         events = self.test_add_events_update()
         resp, body = self.successResultOf(request_with_content(
-            self, self.root, "GET",
-            "/cloudfeeds_cap/customer_access_policy/events?limit=3"))
+            self, self.root, b"GET",
+            b"/cloudfeeds_cap/customer_access_policy/events?limit=3"))
         assert_has_events(
             self, body, events[:3],
             link(dict(marker="id4", direction="forward")),

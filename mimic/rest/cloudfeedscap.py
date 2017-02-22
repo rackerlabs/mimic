@@ -4,7 +4,7 @@ Cloudfeeds customer access events
 from __future__ import absolute_import, division, unicode_literals
 
 from uuid import uuid4
-from urllib import urlencode
+from six import text_type
 from mimic.rest.mimicapp import MimicApp
 from mimic.util.helper import json_from_request, seconds_to_timestamp
 
@@ -12,6 +12,7 @@ import attr
 
 from twisted.internet.interfaces import IReactorTime
 from twisted.web.template import Tag, flattenString
+from twisted.python.url import URL
 
 
 @attr.s(frozen=True)
@@ -85,9 +86,12 @@ class CloudFeedsCAPRoutes(object):
         """
         Return customer access events atom feed format
         """
-        marker = request.args.get(u"marker", [None])[0]
-        direction = request.args.get(u"direction", [u"forward"])[0]
-        limit = int(request.args.get(u"limit", [self.BATCH_LIMIT])[0])
+        marker = request.args.get(b"marker", [b""])[0].decode("ascii") or None
+        direction = (request.args.get(b"direction", [b"forward"])[0]
+                     .decode("ascii"))
+        limit = int(request.args.get(b"limit",
+                                     [text_type(self.BATCH_LIMIT)
+                                      .encode("ascii")])[0].decode("ascii"))
         index = self.store.events_index.get(marker, None)
         if direction == u"forward":
             events = self.store.events[:index][:limit]
@@ -136,13 +140,20 @@ def generate_feed_xml(events):
 
     :return: XML text as bytes
     """
-    root = u"https://mimic-host-port/cloudfeeds_cap/customer_access_events"
+    root = URL.fromText(
+        "https://mimic-host-port/cloudfeeds_cap/customer_access_events"
+    )
     feed = feed_tag()
     if events:
-        prev = "{}?{}".format(root, urlencode({u"marker": events[0].id, u"direction": u"forward"}))
-        next = "{}?{}".format(root, urlencode({u"marker": events[-1].id, u"direction": u"backward"}))
-        feed(Tag("link")(href=prev, rel="previous"))
-        feed(Tag("link")(href=next, rel="next"))
+        feed(Tag("link")(href=root
+                         .add("direction", "forward")
+                         .add("marker", text_type(events[0].id))
+                         .asText(),
+                         rel="previous"))
+        feed(Tag("link")(href=root
+                         .add("direction", "backward")
+                         .add("marker", text_type(events[-1].id))
+                         .asText(), rel="next"))
     for event in events:
         entry, event_tag, product = entry_tag()
         entry(Tag("category")(term="tid:{}".format(event.tenant_id)))
