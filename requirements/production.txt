@@ -9,7 +9,7 @@ cryptography==1.7.2
 ddt==1.1.1
 enum34==1.1.6
 extras==1.0.0
-idna==2.2
+idna==2.3
 ipaddress==1.0.18
 iso8601==0.1.11
 klein==16.12.0
