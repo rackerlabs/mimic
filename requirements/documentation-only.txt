@@ -6,7 +6,7 @@ doc8==0.7.0
 docutils==0.13.1
 Jinja2==2.9.5
 MarkupSafe==0.23
-pbr==1.10.0
+pbr==2.0.0
 Pygments==2.2.0
 pytz==2016.10
 restructuredtext-lint==1.0.1
