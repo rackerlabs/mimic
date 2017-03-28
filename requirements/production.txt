@@ -24,7 +24,7 @@ service-identity==16.0.0
 six==1.10.0
 testtools==1.7.1 # rq.filter: <1.8.0
 traceback2==1.4.0
-treq==16.12.0
+treq==17.3.0
 Twisted==17.1.0
 unittest2==1.1.0
 Werkzeug==0.12.1
