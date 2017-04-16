@@ -16,7 +16,7 @@ class Options(usage.Options):
     """
     Options for Mimic
     """
-    optParameters = [['listen', 'l', '8900', 'The endpoint to listen on.']]
+    optParameters = [['listen', 'l', 'tcp:8900', 'The endpoint to listen on.']]
     optFlags = [['realtime', 'r',
                  'Make mimic advance time as real time advances; '
                  'disable the "tick" endpoint.'],
@@ -26,7 +26,7 @@ class Options(usage.Options):
 
 def makeService(config):
     """
-    Set up the otter-api service.
+    Set up the service.
     """
     s = MultiService()
     if config['realtime']:
@@ -36,5 +36,10 @@ def makeService(config):
     core = MimicCore.fromPlugins(clock)
     root = MimicRoot(core, clock)
     site = get_site(root.app.resource(), logging=bool(config['verbose']))
-    service(config['listen'], site).setServiceParent(s)
+
+    # The Twisted code currently (v16.6.0, 17.1.0) compares the type of
+    # this argument to 'str' in order to determine how to handle it.
+    description = str(config['listen'])
+    service(description, site).setServiceParent(s)
+
     return s
