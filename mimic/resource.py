@@ -5,6 +5,7 @@ Resources for Mimic's core application.
 from __future__ import unicode_literals
 
 import json
+import sys
 
 from io import BytesIO
 
@@ -27,6 +28,13 @@ from mimic.util.helper import json_from_request
 from mimic.util.helper import seconds_to_timestamp
 
 log = Logger("mimic").info
+
+
+if sys.version_info < (2, 7):
+    log("DEPRECATION NOTICE: You are using an outdated version of Python. "
+        "Support for Pythons < 2.7 in Mimic will be removed soon. Please "
+        "see the Github Issue for more information or to leave concerns: "
+        "https://github.com/rackerlabs/mimic/issues/318")
 
 
 class MimicRoot(object):
