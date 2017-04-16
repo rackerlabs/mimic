@@ -22,6 +22,7 @@ from mimic.model.customer_objects import ContactsStore
 from mimic.model.ironic_objects import IronicNodeStore
 from mimic.model.glance_objects import GlanceAdminImageStore
 from mimic.model.valkyrie_objects import ValkyrieStore
+from mimic.rest.cloudfeedscap import CustomerAccessEventStore
 
 
 class MimicCoreException(Exception):
@@ -112,6 +113,7 @@ class MimicCore(object):
         self.ironic_node_store = IronicNodeStore()
         self.glance_admin_image_store = GlanceAdminImageStore()
         self.valkyrie_store = ValkyrieStore()
+        self.cloudfeeds_ca_store = CustomerAccessEventStore()
         self.domains = list(domains)
 
         for api in apis:
