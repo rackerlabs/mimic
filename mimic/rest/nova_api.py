@@ -605,3 +605,28 @@ class ServerMetadata(object):
         # no matter how many keys were passed in, only the meta key is
         # returned
         return json.dumps({'meta': content['meta']})
+
+class ServerKeyPair(object):
+    """
+    routes for server key pair crud operations
+    """
+    app = MimicApp()
+
+    @app.route("/v2/<string:tenant_id>/os-keypairs", methods=['GET'])
+    def get_key_pairs(self, request, tenant_id):
+        """
+        Returns current key pairs
+        """
+        return None
+    @app.route("/v2/<string:tenant_id>/os-keypairs", methods=['POST'])
+    def create_key_pair(self, request, tenant_id):
+        """
+        Returns a newly created key pair with the specified name.
+        """
+        return None
+    @app.route("/v2/<string:tenant_id>/os-keypairs/<string:keypairname>", methods=['DELETE'])
+    def delete_key_pair(self, request, tenant_id, keypairname):
+        """
+        Removes a key by its name
+        """
+        return None
