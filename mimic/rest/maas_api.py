@@ -137,6 +137,13 @@ def _only_keys(dict_ins, keys):
     return {k: dict_ins[k] for k in dict_ins if k in keys}
 
 
+def oid_tuple(instance):
+    """
+    Makes a tuple of (instance.id, instance).
+    """
+    return (instance.id, instance)
+
+
 def create_entity(clock, params):
     """
     Returns a dictionary representing an entity
@@ -187,6 +194,22 @@ def create_alarm(clock, entity_id, params):
     params_copy['created_at'] = params_copy[
         'updated_at'] = current_time_milliseconds
     return Alarm(**params_copy)
+
+
+def create_entity_from_fixture(maas_store, clock, fixture):
+    """
+    Creates an entity from a fixture with checks and alarms.
+    """
+    entity = create_entity(clock, fixture)
+    entity.checks.update([oid_tuple(create_check(clock, check))
+                          for check in fixture.get('checks', [])])
+    entity.alarms.update([oid_tuple(create_alarm(clock, alarm))
+                          for alarm in fixture.get('alarms', [])])
+    if fixture.get('create_agent', False):
+        agent = Agent()
+        maas_store.agents[agent.id] = agent
+        entity.agent_id = agent.id
+    return entity
 
 
 def create_notification_plan(clock, params):
@@ -1995,5 +2018,66 @@ class MaasController(object):
         maas_store.agents[agent.id] = agent
         request.setResponseCode(201)
         request.setHeader(b'x-object-id', agent.id.encode('utf-8'))
+        request.setHeader(b'content-type', b'text/plain')
+        return b''
+
+    @app.route('/v1.0/<string:tenant_id>/fixtures', methods=['POST'])
+    def load_fixture(self, request, tenant_id):
+        """
+        Loads a fixture.
+
+        This operation will overwrite all entities, checks, alarms, notifications,
+        notification plans and suppressions associated with the requesting tenant.
+        Any state associated with the tenant's session will be destroyed and reset
+        to the initial state prior to applying the fixture.
+        """
+        entities = self._entity_cache_for_tenant(tenant_id).entities
+        notifications = self._entity_cache_for_tenant(tenant_id).notifications
+        notification_plans = self._entity_cache_for_tenant(tenant_id).notification_plans
+        suppressions = self._entity_cache_for_tenant(tenant_id).suppressions
+        audits_list = self._entity_cache_for_tenant(tenant_id).audits_list
+        request_body = json_from_request(request)
+
+        fix_maas_store = MaasStore(self.session_store.clock)
+        fix_entities = [
+            oid_tuple(create_entity_from_fixture(fix_maas_store, self.session_store.clock, entity))
+            for entity in request_body.get('entities', [])]
+
+        current_time_milliseconds = int(1000 * self.session_store.clock.seconds())
+        builtin_notifications = [(u'ntTechnicalContactsEmail',
+                                  Notification(id=u'ntTechnicalContactsEmail',
+                                               label=u'Email All Technical Contacts',
+                                               created_at=current_time_milliseconds,
+                                               updated_at=current_time_milliseconds,
+                                               type=u'technicalContactsEmail'))]
+
+        fix_notifications = [oid_tuple(create_notification(self.session_store.clock, notification))
+                             for notification in request_body.get('notifications', [])]
+
+        builtin_notification_plans = [(u'npTechnicalContactsEmail',
+                                       NotificationPlan(id=u'npTechnicalContactsEmail',
+                                                        label=u'Technical Contacts - Email',
+                                                        created_at=current_time_milliseconds,
+                                                        updated_at=current_time_milliseconds))]
+
+        fix_notification_plans = [
+            oid_tuple(create_notification_plan(self.session_store.clock, notification_plan))
+            for notification_plan in request_body.get('notification_plans', [])]
+
+        fix_suppressions = [oid_tuple(create_suppression(self.session_store.clock, suppression))
+                            for suppression in request_body.get('suppressions', [])]
+
+        entities.clear()
+        entities.update(fix_entities)
+        notifications.clear()
+        notifications.update(builtin_notifications + fix_notifications)
+        notification_plans.clear()
+        notification_plans.update(builtin_notification_plans + fix_notification_plans)
+        suppressions.clear()
+        suppressions.update(fix_suppressions)
+        audits_list[:] = []
+        self._entity_cache_for_tenant(tenant_id).maas_store = fix_maas_store
+
+        request.setResponseCode(201)
         request.setHeader(b'content-type', b'text/plain')
         return b''
