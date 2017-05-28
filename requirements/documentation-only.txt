@@ -12,6 +12,6 @@ pytz==2017.2
 restructuredtext-lint==1.0.1
 six==1.10.0
 snowballstemmer==1.2.1
-Sphinx==1.6.1
+Sphinx==1.6.2
 sphinx-rtd-theme==0.2.4
 stevedore==1.21.0
