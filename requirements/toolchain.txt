@@ -5,7 +5,7 @@ detox==0.11
 eventlet==0.21.0
 greenlet==0.4.12
 pluggy==0.4.0
-py==1.4.33
+py==1.4.34
 tox==2.7.0
 virtualenv==15.1.0
 
