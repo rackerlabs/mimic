@@ -19,7 +19,7 @@ pyasn1-modules==0.0.9
 pycparser==2.17
 pyOpenSSL==17.0.0
 python-mimeparse==1.6.0
-requests==2.17.3
+requests==2.18.1
 service-identity==17.0.0
 six==1.10.0
 testtools==1.7.1 # rq.filter: <1.8.0
@@ -30,4 +30,4 @@ unittest2==1.1.0
 Werkzeug==0.12.2
 wheel==0.29.0
 xmltodict==0.11.0
-zope.interface==4.4.1
+zope.interface==4.4.2
