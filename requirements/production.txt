@@ -11,7 +11,7 @@ enum34==1.1.6
 extras==1.0.0
 idna==2.5
 ipaddress==1.0.18
-iso8601==0.1.11
+iso8601==0.1.12
 klein==17.2.0
 linecache2==1.0.0
 pyasn1==0.3.1
