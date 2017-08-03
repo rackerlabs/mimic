@@ -3,7 +3,7 @@ alabaster==0.7.10
 Babel==2.4.0
 chardet==3.0.4
 doc8==0.8.0
-docutils==0.13.1
+docutils==0.14
 Jinja2==2.9.6
 MarkupSafe==1.0
 pbr==3.1.1
