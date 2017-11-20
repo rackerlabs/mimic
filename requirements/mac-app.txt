@@ -8,5 +8,5 @@ py2app==0.14
 pyobjc-core==4.0
 pyobjc-framework-CFNetwork==4.0
 pyobjc-framework-Cocoa==4.0
-setuptools==36.7.2
+setuptools==36.8.0
 
