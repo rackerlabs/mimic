@@ -2,8 +2,8 @@
 # dependencies seem to work.
 
 altgraph==0.15
-macholib==1.8
-modulegraph==0.15
+macholib==1.9
+modulegraph==0.16
 py2app==0.14
 pyobjc-core==4.0.1
 pyobjc-framework-CFNetwork==4.0.1
