@@ -3,5 +3,5 @@
 # 'documentation.txt' because this has the native dependency of 'libenchant'
 # and may cause problems for some contributors to get set up locally.
 
-pyenchant==1.6.11
+pyenchant==2.0.0
 sphinxcontrib-spelling==4.0.1
