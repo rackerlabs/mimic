@@ -5,7 +5,7 @@
 attrs==17.4.0
 cffi==1.11.5
 coverage==4.5.1
-cryptography==2.2
+cryptography==2.2.1
 ddt==1.1.2
 enum34==1.1.6
 extras==1.0.0
