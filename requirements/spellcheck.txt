@@ -4,4 +4,4 @@
 # and may cause problems for some contributors to get set up locally.
 
 pyenchant==2.0.0
-sphinxcontrib-spelling==4.1.0
+sphinxcontrib-spelling==4.2.0
