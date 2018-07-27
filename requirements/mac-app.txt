@@ -1,7 +1,7 @@
 # py2app has had a few bugs that need to be resolved this combination of
 # dependencies seem to work.
 
-altgraph==0.15
+altgraph==0.16.1
 macholib==1.9
 modulegraph==0.16
 py2app==0.14
