@@ -3,7 +3,7 @@
 
 altgraph==0.16.1
 macholib==1.9
-modulegraph==0.16
+modulegraph==0.17
 py2app==0.14
 pyobjc-core==4.2.2
 pyobjc-framework-CFNetwork==4.2.2
