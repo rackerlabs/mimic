@@ -2,7 +2,7 @@
 
 coverage==4.5.1
 detox==0.12
-eventlet==0.23.0
+eventlet==0.24.0
 greenlet==0.4.14
 pluggy==0.7.1
 py==1.5.4
