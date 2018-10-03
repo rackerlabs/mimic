@@ -1,5 +1,5 @@
 # Documentation only required deps
-alabaster==0.7.11
+alabaster==0.7.12
 Babel==2.6.0
 chardet==3.0.4
 doc8==0.8.0
