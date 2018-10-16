@@ -4,7 +4,7 @@ coverage==4.5.1
 detox==0.15
 eventlet==0.24.1
 greenlet==0.4.15
-pluggy==0.7.1
+pluggy==0.8.0
 py==1.7.0
 tox==3.5.2
 virtualenv==16.0.0
