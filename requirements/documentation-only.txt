@@ -9,7 +9,7 @@ MarkupSafe==1.1.0
 pbr==5.1.1
 Pygments==2.2.0
 pytz==2018.7
-restructuredtext-lint==1.1.3
+restructuredtext-lint==1.2.0
 six==1.11.0
 snowballstemmer==1.2.1
 Sphinx==1.8.2
