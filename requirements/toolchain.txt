@@ -1,7 +1,7 @@
 # Tools for installing and setting up the environment.
 
 coverage==4.5.2
-detox==0.18
+detox==0.19
 eventlet==0.24.1
 greenlet==0.4.15
 pluggy==0.8.1
