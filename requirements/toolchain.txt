@@ -6,7 +6,7 @@ eventlet==0.24.1
 greenlet==0.4.15
 pluggy==0.9.0
 py==1.8.0
-tox==3.8.6
+tox==3.9.0
 virtualenv==16.4.3
 
 # Allow pip to float because its command-line interface is very stable.
