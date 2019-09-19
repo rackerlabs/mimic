@@ -27,7 +27,7 @@ traceback2==1.4.0
 treq==18.6.0
 Twisted==19.7.0
 unittest2==1.1.0
-Werkzeug==0.15.6
+Werkzeug==0.16.0
 wheel==0.33.6
 xmltodict==0.12.0
 zope.interface==4.6.0
