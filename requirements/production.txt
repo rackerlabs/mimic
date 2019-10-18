@@ -10,7 +10,7 @@ ddt==1.2.1
 enum34==1.1.6
 extras==1.0.0
 idna==2.8
-ipaddress==1.0.22
+ipaddress==1.0.23
 iso8601==0.1.12
 klein==19.6.0
 linecache2==1.0.0
