@@ -5,7 +5,7 @@ altgraph==0.16.1
 macholib==1.11
 modulegraph==0.17
 py2app==0.19
-pyobjc-core==6.0
+pyobjc-core==6.0.1
 pyobjc-framework-CFNetwork==6.0
 pyobjc-framework-Cocoa==6.0
 setuptools==41.4.0
