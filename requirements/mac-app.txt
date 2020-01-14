@@ -2,7 +2,7 @@
 # dependencies seem to work.
 
 altgraph==0.17
-macholib==1.13
+macholib==1.14
 modulegraph==0.17
 py2app==0.19
 pyobjc-core==6.1
