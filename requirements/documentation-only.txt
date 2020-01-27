@@ -4,7 +4,7 @@ Babel==2.8.0
 chardet==3.0.4
 doc8==0.8.0
 docutils==0.16
-Jinja2==2.10.3
+Jinja2==2.11.0
 MarkupSafe==1.1.1
 pbr==5.4.4
 Pygments==2.5.2
