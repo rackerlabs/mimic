@@ -7,7 +7,7 @@ cffi==1.14.0
 coverage==5.0.3
 cryptography==2.8
 ddt==1.2.2
-enum34==1.1.6
+enum34==1.1.8
 extras==1.0.0
 idna==2.9
 ipaddress==1.0.23
