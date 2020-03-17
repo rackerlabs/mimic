@@ -1,6 +1,6 @@
 # Tools for installing and setting up the environment.
 
-coverage==5.0.3
+coverage==5.0.4
 detox==0.19
 eventlet==0.25.1
 greenlet==0.4.15
