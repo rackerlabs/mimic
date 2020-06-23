@@ -7,7 +7,7 @@ greenlet==0.4.16
 pluggy==0.13.1
 py==1.8.2
 tox==3.15.2
-virtualenv==20.0.24
+virtualenv==20.0.25
 
 # Allow pip to float because its command-line interface is very stable.
 pip>=7.1.2
