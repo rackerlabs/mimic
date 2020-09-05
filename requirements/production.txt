@@ -2,7 +2,7 @@
 # integration.  Update it by making a virtualenv with "pip install .", "pip
 # install coverage", and running 'pip freeze'.
 
-attrs==20.1.0
+attrs==20.2.0
 cffi==1.14.2
 coverage==5.2.1
 cryptography==3.1
