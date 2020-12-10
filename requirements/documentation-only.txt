@@ -1,7 +1,7 @@
 # Documentation only required deps
 alabaster==0.7.12
 Babel==2.9.0
-chardet==3.0.4
+chardet==4.0.0
 doc8==0.8.1
 docutils==0.16
 Jinja2==2.11.2
