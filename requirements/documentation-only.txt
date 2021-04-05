@@ -13,5 +13,5 @@ restructuredtext-lint==1.3.2
 six==1.15.0
 snowballstemmer==2.1.0
 Sphinx==3.5.3
-sphinx-rtd-theme==0.5.1
+sphinx-rtd-theme==0.5.2
 stevedore==3.3.0
