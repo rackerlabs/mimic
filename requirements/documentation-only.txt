@@ -1,6 +1,6 @@
 # Documentation only required deps
 alabaster==0.7.12
-Babel==2.9.0
+Babel==2.9.1
 chardet==4.0.0
 doc8==0.8.1
 docutils==0.17.1
