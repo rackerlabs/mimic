@@ -12,7 +12,7 @@ extras==1.0.0
 idna==3.2
 ipaddress==1.0.23
 iso8601==0.1.16
-klein==20.6.0
+klein==21.8.0
 linecache2==1.0.0
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
