@@ -25,7 +25,7 @@ six==1.10.0
 testtools==1.7.1 # rq.filter: <1.8.0
 traceback2==1.4.0
 treq==16.12.0
-Twisted==16.6.0
+Twisted==22.2.0
 unittest2==1.1.0
 Werkzeug==0.11.15
 wheel==0.29.0
