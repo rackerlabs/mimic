@@ -1,4 +1,4 @@
-from __future__ import absolute_import, division, unicode_literals
+
 
 from mimic.rest.cloudfeeds import (CloudFeedsApi, CloudFeedsControlApi)
 from mimic.test.fixtures import APIMockHelper
@@ -28,7 +28,7 @@ class TestCloudFeedsAPI(SynchronousTestCase):
             self, self.root, b"GET", self.uri,
         )
         resp = self.successResultOf(r)
-        self.assertEquals(resp.code, 404)
+        self.assertEqual(resp.code, 404)
 
     def test_control_plane_access_should_404(self):
         """
@@ -40,4 +40,4 @@ class TestCloudFeedsAPI(SynchronousTestCase):
             self, self.root, b"GET", self.ctrl_uri,
         )
         resp = self.successResultOf(r)
-        self.assertEquals(resp.code, 404)
+        self.assertEqual(resp.code, 404)

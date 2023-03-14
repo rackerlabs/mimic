@@ -3,7 +3,7 @@
 Defines get token, impersonation
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 import binascii
 import json
@@ -754,7 +754,7 @@ class IdentityApi(object):
         try:
             service_description = content['description']
         except KeyError:
-            service_description = u"External API referenced by Mimic"
+            service_description = "External API referenced by Mimic"
 
         if service_id in self.core.get_external_apis():
             return json.dumps(

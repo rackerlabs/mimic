@@ -2,7 +2,7 @@
 API domain mock for Yo.
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 import attr
 import json

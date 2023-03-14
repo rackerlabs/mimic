@@ -2,7 +2,7 @@
 MaaS API data model
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 import collections
 import random
@@ -71,13 +71,13 @@ class Entity(object):
         """
         Lists checks under this Entity.
         """
-        return [check.to_json() for check in self.checks.values()]
+        return [check.to_json() for check in list(self.checks.values())]
 
     def list_alarms(self):
         """
         Lists alarms under this Entity.
         """
-        return [alarm.to_json() for alarm in self.alarms.values()]
+        return [alarm.to_json() for alarm in list(self.alarms.values())]
 
 
 @attr.s
@@ -821,7 +821,7 @@ class MaasStore(object):
         latest_alarm_states_by_alarm = {}
         for state in alarm_states_for_entity:
             latest_alarm_states_by_alarm[state.alarm_id] = state
-        return latest_alarm_states_by_alarm.values()
+        return list(latest_alarm_states_by_alarm.values())
 
     def list_connections_for_agent(self, agent_id):
         """

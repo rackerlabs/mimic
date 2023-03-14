@@ -2,7 +2,7 @@
 Unit tests for the Rackspace RackConnect V3 API.
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 import attr
 import json
@@ -156,12 +156,12 @@ class RackConnectTestMixin(object):
         """
         Helper function to get the load balancer ids per region
         """
-        _, resp_jsons = zip(*[
+        _, resp_jsons = list(zip(*[
             self.successResultOf(json_request(
                 self, self.helper.root, b"GET",
                 self.helper.get_service_endpoint("rackconnect", region)
                 + "/load_balancer_pools"))
-            for region in self.rcv3.regions])
+            for region in self.rcv3.regions]))
 
         lb_ids = [[lb['id'] for lb in lbs] for lbs in resp_jsons]
         return lb_ids

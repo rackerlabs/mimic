@@ -53,7 +53,7 @@ class HeatAPITests(SynchronousTestCase):
         """
         Util for building a query string from a parameter mapping.
         """
-        return ('?' + '&'.join([k + '=' + v for (k, v) in query_params.items()])
+        return ('?' + '&'.join([k + '=' + v for (k, v) in list(query_params.items())])
                 if query_params else '')
 
     def list_stacks(self, query_params=None):
@@ -349,16 +349,16 @@ class HeatAPITests(SynchronousTestCase):
         requests = dict(
             (key, request(self, self.root, b"POST", self.uri + '/validate',
                           body=json.dumps(body).encode("utf-8")))
-            for (key, body) in req_bodies.items()
+            for (key, body) in list(req_bodies.items())
         )
 
         responses = dict(
-            (key, self.successResultOf(req)) for (key, req) in requests.items()
+            (key, self.successResultOf(req)) for (key, req) in list(requests.items())
         )
 
         resp_bodies = dict(
             (key, self.get_responsebody(resp))
-            for (key, resp) in responses.items() if key != 'wrong')
+            for (key, resp) in list(responses.items()) if key != 'wrong')
 
         self.assertEqual(responses['url'].code, 200)
         self.assertEqual(responses['inline'].code, 200)

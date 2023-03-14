@@ -4,7 +4,7 @@ Canned response for add/get/list/delete load balancers and
 add/get/delete/list nodes
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 from random import randrange
 

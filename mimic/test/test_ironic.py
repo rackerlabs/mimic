@@ -1,4 +1,4 @@
-from __future__ import absolute_import, division, unicode_literals
+
 
 import json
 from uuid import uuid4
@@ -89,7 +89,7 @@ class IronicAPITests(SynchronousTestCase):
         Create node returns 201 and the newly created node.
         """
         new_node = self.create_node(self.create_request)
-        for key in self.create_request.keys():
+        for key in list(self.create_request.keys()):
             self.assertEqual(self.create_request[key], new_node[key])
 
     def test_create_node_failure(self):
@@ -248,7 +248,7 @@ class IronicAPITests(SynchronousTestCase):
         for each in content['nodes']:
             if each['properties']['memory_mb']:
                 self.assertTrue(
-                    (each['extra']['flavor'] in expected_flavor_memory.keys()) and
+                    (each['extra']['flavor'] in list(expected_flavor_memory.keys())) and
                     (each['properties']['memory_mb'] == expected_flavor_memory[each['extra']['flavor']]))
 
     def _validate_provisioning(self, new_provision_state):

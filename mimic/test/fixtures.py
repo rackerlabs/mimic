@@ -2,7 +2,7 @@
 Define fixtures to provide common functionality for Mimic testing
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 from mimic.test.helpers import json_request
 from mimic.core import MimicCore

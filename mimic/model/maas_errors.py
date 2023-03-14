@@ -2,7 +2,7 @@
 Errors like the error cases from Rackspace Monitoring.
 """
 
-from __future__ import division, unicode_literals
+
 
 import attr
 from six import text_type

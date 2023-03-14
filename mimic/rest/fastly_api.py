@@ -3,7 +3,7 @@
 Defines get current customer
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 import json
 
@@ -64,7 +64,7 @@ class FastlyApi(object):
 
         https://docs.fastly.com/api/config#service_5
         """
-        url_data = text_urldata(request.args).items()
+        url_data = list(text_urldata(request.args).items())
         response = self.fastly_response.create_service(url_data)
         return json.dumps(response)
 
@@ -100,7 +100,7 @@ class FastlyApi(object):
 
         https://docs.fastly.com/api/config#domain_4
         """
-        url_data = text_urldata(request.args).items()
+        url_data = list(text_urldata(request.args).items())
         response = self.fastly_response.create_domain(url_data,
                                                       service_id, version_id)
         return json.dumps(response)
@@ -127,7 +127,7 @@ class FastlyApi(object):
 
         https://docs.fastly.com/api/config#backend_2
         """
-        url_data = text_urldata(request.args).items()
+        url_data = list(text_urldata(request.args).items())
         response = self.fastly_response.create_backend(url_data,
                                                        service_id, version_id)
         return json.dumps(response)
@@ -141,7 +141,7 @@ class FastlyApi(object):
 
         https://docs.fastly.com/api/config#condition_3
         """
-        url_data = text_urldata(request.args).items()
+        url_data = list(text_urldata(request.args).items())
         response = self.fastly_response.create_condition(url_data,
                                                          service_id, version_id)
         return json.dumps(response)
@@ -155,7 +155,7 @@ class FastlyApi(object):
 
         https://docs.fastly.com/api/config#cache_settings_3
         """
-        url_data = text_urldata(request.args).items()
+        url_data = list(text_urldata(request.args).items())
         response = self.fastly_response.create_cache_settings(url_data,
                                                               service_id, version_id)
         return json.dumps(response)
@@ -169,7 +169,7 @@ class FastlyApi(object):
 
         https://docs.fastly.com/api/config#response_object_3
         """
-        url_data = text_urldata(request.args).items()
+        url_data = list(text_urldata(request.args).items())
         response = self.fastly_response.create_response_object(url_data,
                                                                service_id, version_id)
         return json.dumps(response)
@@ -183,7 +183,7 @@ class FastlyApi(object):
 
         https://docs.fastly.com/api/config#settings_2
         """
-        url_data = text_urldata(request.args).items()
+        url_data = list(text_urldata(request.args).items())
         response = self.fastly_response.create_settings(url_data,
                                                         service_id, version_id)
         return json.dumps(response)

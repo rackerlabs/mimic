@@ -2,7 +2,7 @@
 Unit tests for :mod:`mimic.util`
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 from twisted.trial.unittest import SynchronousTestCase
 from twisted.web.resource import Resource
@@ -97,7 +97,7 @@ class TestHelperTests(SynchronousTestCase):
         is wrong.
         """
         self.failureResultOf(
-            request(self, Resource(), b"POST", b"", u"not bytes")
+            request(self, Resource(), b"POST", b"", "not bytes")
         )
 
 

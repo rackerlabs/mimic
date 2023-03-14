@@ -2,7 +2,7 @@
 Canned response for Noit
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 import time
 from mimic.canned_responses.noit_metrics_fixture import (metrics_common_template,
@@ -106,7 +106,7 @@ def get_all_checks():
         }
     }
     check_list = []
-    for key, value in noit_cache.items():
+    for key, value in list(noit_cache.items()):
         each_check = value["check"]["attributes"]
         each_check["uuid"] = key
         each_check["config"] = value["check"]["config"]

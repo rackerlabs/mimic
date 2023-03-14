@@ -4,7 +4,7 @@ API Mock for Ironic.
 http://docs.openstack.org/developer/ironic/webapi/v1.html
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 from mimic.rest.mimicapp import MimicApp
 

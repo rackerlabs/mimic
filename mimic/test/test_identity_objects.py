@@ -1,4 +1,4 @@
-from __future__ import absolute_import, division, unicode_literals
+
 
 import ddt
 
@@ -158,7 +158,7 @@ class EndpointTemplateInstanceTests(SynchronousTestCase):
         epts.type_key = data['type']
         epts.name_key = data['name']
         serialized_data = epts.serialize()
-        for k, v in serialized_data.items():
+        for k, v in list(serialized_data.items()):
             if k not in data:
                 self.assertIsNone(v)
             else:
@@ -270,7 +270,7 @@ class EndpointTemplatesTests(SynchronousTestCase):
     Test Endpoint Template Functionality: list, add, has, update, remove.
     """
     def setUp(self):
-        self.eeapi_name = u"externalServiceName"
+        self.eeapi_name = "externalServiceName"
 
     def test_listing_templates(self):
         """
@@ -370,7 +370,7 @@ class EndpointTemplatesTests(SynchronousTestCase):
         )
         new_url = "https://api.new_region.example.com:9090"
         new_region = "NEW_REGION"
-        new_eeapi_template_id = u"uuid-alternate-endpoint-template"
+        new_eeapi_template_id = "uuid-alternate-endpoint-template"
         new_eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
             endpoint_uuid=new_eeapi_template_id,
@@ -396,7 +396,7 @@ class EndpointTemplatesTests(SynchronousTestCase):
         )
         new_url = "https://api.new_region.example.com:9090"
         new_region = "NEW_REGION"
-        new_eeapi_template_id = u"uuid-alternate-endpoint-template"
+        new_eeapi_template_id = "uuid-alternate-endpoint-template"
         new_eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
             endpoint_uuid=new_eeapi_template_id,
@@ -430,7 +430,7 @@ class EndpointTemplatesTests(SynchronousTestCase):
         Validate that an endpoint template can be updated provided that
         the id field matches.
         """
-        eeapi_template_id = u"uuid-alternate-endpoint-template"
+        eeapi_template_id = "uuid-alternate-endpoint-template"
 
         new_url = "https://api.new_region.example.com:9090"
         new_region = "NEW_REGION"
@@ -466,7 +466,7 @@ class EndpointTemplatesTests(SynchronousTestCase):
         """
         new_url = "https://api.new_region.example.com:9090"
         new_region = "NEW_REGION"
-        new_eeapi_template_id = u"uuid-alternate-endpoint-template"
+        new_eeapi_template_id = "uuid-alternate-endpoint-template"
         new_eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
             endpoint_uuid=new_eeapi_template_id,
@@ -510,7 +510,7 @@ class EndpointTemplatesTests(SynchronousTestCase):
             new_eeapi_template.type_key = "some-other-type"
         elif invalid_data == 'id':
             eeapi.endpoint_templates[new_id].id_key = \
-                u"uuid-alternate-endpoint-template"
+                "uuid-alternate-endpoint-template"
 
         with self.assertRaises(expected_exception):
             eeapi.update_template(new_eeapi_template)
@@ -545,7 +545,7 @@ class EndpointTemplatesTests(SynchronousTestCase):
         Validate that an endpoint template can be removed from the
         :obj:`ExternalApiStore`.
         """
-        eeapi_template_id = u"uuid-alternate-endpoint-template"
+        eeapi_template_id = "uuid-alternate-endpoint-template"
         eeapi_template = None
         if template_is_valid:
             eeapi_template = [
@@ -574,7 +574,7 @@ class EndpointTemplatesTests(SynchronousTestCase):
         Validate that an endpoint template can be removed even if it enabled
         for a specific tenant.
         """
-        eeapi_template_id = u"uuid-alternate-endpoint-template"
+        eeapi_template_id = "uuid-alternate-endpoint-template"
         eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
             endpoint_uuid=eeapi_template_id
@@ -599,8 +599,8 @@ class EndpointTemplatesTests(SynchronousTestCase):
         Validate that only the endpoint template that is suppose to be removed
         is removed.
         """
-        eeapi_template_id = u"uuid-alternate-endpoint-template"
-        alternate_eeapi_template_id = u"uuid-alternate-endpoint-template-alt"
+        eeapi_template_id = "uuid-alternate-endpoint-template"
+        alternate_eeapi_template_id = "uuid-alternate-endpoint-template-alt"
         eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
             endpoint_uuid=eeapi_template_id
@@ -639,7 +639,7 @@ class EndpointsForTenantsTests(SynchronousTestCase):
     Tests for functionality specific to tenants
     """
     def setUp(self):
-        self.eeapi_name = u"externalServiceName"
+        self.eeapi_name = "externalServiceName"
 
     def test_invalid_template_endpoint_enable(self):
         """
@@ -682,7 +682,7 @@ class EndpointsForTenantsTests(SynchronousTestCase):
         """
         new_url = "https://api.new_region.example.com:9090"
         new_region = "NEW_REGION"
-        new_eeapi_template_id = u"uuid-alternate-endpoint-template"
+        new_eeapi_template_id = "uuid-alternate-endpoint-template"
         new_eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
             endpoint_uuid=new_eeapi_template_id,
@@ -726,7 +726,7 @@ class EndpointTemplateOperationsTests(SynchronousTestCase):
     Operational tests for endpoint templates via :obj:`ExternalApiStore`.
     """
     def setUp(self):
-        self.eeapi_name = u"externalServiceName"
+        self.eeapi_name = "externalServiceName"
 
     def test_uri_for_service_with_invalid_region(self):
         """

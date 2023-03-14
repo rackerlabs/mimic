@@ -2,7 +2,7 @@
 Tests for mimic identity :mod:`mimic.rest.identity_api`
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 import json
 import uuid
@@ -33,7 +33,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesList(
         self.core = MimicCore(Clock(), [])
         self.root = MimicRoot(self.core).app.resource()
         self.uri = "/identity/v2.0/OS-KSCATALOG/endpointTemplates"
-        self.eeapi_name = u"externalServiceName"
+        self.eeapi_name = "externalServiceName"
         self.eeapi = make_example_external_api(
             self,
             name=self.eeapi_name,
@@ -144,7 +144,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesAdd(
         self.core = MimicCore(Clock(), [])
         self.root = MimicRoot(self.core).app.resource()
         self.uri = "/identity/v2.0/OS-KSCATALOG/endpointTemplates"
-        self.eeapi_name = u"externalServiceName"
+        self.eeapi_name = "externalServiceName"
         self.eeapi = make_example_external_api(
             self,
             name=self.eeapi_name,
@@ -323,7 +323,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesUpdate(
     def setUp(self):
         self.core = MimicCore(Clock(), [])
         self.root = MimicRoot(self.core).app.resource()
-        self.eeapi_name = u"externalServiceName"
+        self.eeapi_name = "externalServiceName"
         self.eeapi = make_example_external_api(
             self,
             name=self.eeapi_name,
@@ -532,7 +532,7 @@ class TestIdentityOSKSCatalogAdminEndpointTemplatesDelete(SynchronousTestCase, I
     def setUp(self):
         self.core = MimicCore(Clock(), [])
         self.root = MimicRoot(self.core).app.resource()
-        self.eeapi_name = u"externalServiceName"
+        self.eeapi_name = "externalServiceName"
         self.eeapi = make_example_external_api(
             self,
             name=self.eeapi_name,

@@ -5,7 +5,7 @@
 attrs==16.3.0
 cffi==1.9.1
 coverage==4.3.4
-cryptography==1.7.2
+cryptography==3.2.1
 ddt==1.1.1
 enum34==1.1.6
 extras==1.0.0
@@ -30,4 +30,4 @@ unittest2==1.1.0
 Werkzeug==0.11.15
 wheel==0.29.0
 xmltodict==0.10.2
-zope.interface==4.3.3
+zope.interface==5.5.2

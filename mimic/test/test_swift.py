@@ -1,4 +1,4 @@
-from __future__ import absolute_import, division, unicode_literals
+
 
 from json import loads, dumps
 
@@ -59,7 +59,7 @@ class SwiftTestBase(SynchronousTestCase):
         self.swift_uri = self.swift_endpoint['publicURL']
 
         # container information
-        self.container_name = u"/testcontainer"
+        self.container_name = "/testcontainer"
         self.uri = (self.swift_uri + self.container_name).encode('ascii')
 
         # object information
@@ -265,7 +265,7 @@ class SwiftGenericTests(SwiftTestBase):
         self.assertEqual(self.auth_response.code, 200)
         self.assertTrue(self.json_body)
         sample_entry = self.json_body['access']['serviceCatalog'][0]
-        self.assertEqual(sample_entry['type'], u'object-store')
+        self.assertEqual(sample_entry['type'], 'object-store')
         sample_endpoint = sample_entry['endpoints'][0]
         self.assertEqual(
             sample_endpoint['tenantId'],
@@ -379,7 +379,7 @@ class SwiftAccountTests(SwiftTestBase):
         if headers is not None:
             # Verify each header that was posted to the account was
             # returned in the HEAD request.
-            for k, v in headers.items():
+            for k, v in list(headers.items()):
                 self.assertEqual(
                     head_response.headers.getRawHeaders(k),
                     v)
@@ -636,7 +636,7 @@ class SwiftObjectTests(SwiftTestBase):
         object_response, object_content = self.get_object()
 
         # validate the response
-        self.assertEquals(object_content, self.object_data)
+        self.assertEqual(object_content, self.object_data)
 
     def test_get_object_path_based_name(self):
         """
@@ -665,7 +665,7 @@ class SwiftObjectTests(SwiftTestBase):
             # Get the object
             object_response, object_body = self.get_object(
                 object_path=object_uri)
-            self.assertEquals(object_body, self.object_data)
+            self.assertEqual(object_body, self.object_data)
 
     def test_get_object_non_existent_container_non_existent_object(self):
         """
@@ -774,7 +774,7 @@ class SwiftObjectTests(SwiftTestBase):
         # Get the object
         object_response, object_body = self.get_object(
             object_path=self.object_uri)
-        self.assertEquals(object_body, self.object_data)
+        self.assertEqual(object_body, self.object_data)
 
     def test_put_object_path_based_name(self):
         """
@@ -822,7 +822,7 @@ class SwiftObjectTests(SwiftTestBase):
             # Get the object
             object_response, object_body = self.get_object(
                 object_path=object_uri)
-            self.assertEquals(object_body, self.object_data)
+            self.assertEqual(object_body, self.object_data)
 
             # clean up the object
             self.delete_object(object_path=object_uri)
@@ -839,7 +839,7 @@ class SwiftObjectTests(SwiftTestBase):
 
         # Get the object
         object_response, object_body = self.get_object()
-        self.assertEquals(object_body, new_data)
+        self.assertEqual(object_body, new_data)
 
     def test_put_object_non_existent_container(self):
         """
@@ -942,7 +942,7 @@ class SwiftObjectTests(SwiftTestBase):
             # HEAD the object
             object_response, object_body = self.head_object(
                 object_path=object_uri, with_body=True)
-            self.assertEquals(object_body, b"")
+            self.assertEqual(object_body, b"")
 
     def test_head_object_non_existent_container_non_existent_object(self):
         """

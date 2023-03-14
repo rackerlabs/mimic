@@ -2,7 +2,7 @@
 Model objects for the Nova mimic.
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 import re
 import uuid
@@ -297,7 +297,7 @@ class Server(object):
             raise LimitError(nova_message=(
                 "Maximum number of metadata items exceeds {0}"
                 .format(max_metadata_items)))
-        if not all(isinstance(v, string_types) for v in metadata.values()):
+        if not all(isinstance(v, string_types) for v in list(metadata.values())):
             raise BadRequestError(nova_message=(
                 "Invalid metadata: The input is not a string or unicode"))
 
@@ -402,7 +402,7 @@ def metadata_criterion(value):
     :type value: dict mapping unicode to unicode
     """
     def predicate(attribute):
-        for k, v in value.items():
+        for k, v in list(value.items()):
             if not re.compile(v).match(attribute.get(k, "")):
                 return False
         return True
@@ -602,11 +602,11 @@ def create_building_behavior(parameters):
 
     @default_with_hook
     def set_building(server):
-        server.update_status(u"BUILD")
+        server.update_status("BUILD")
         server.collection.clock.callLater(
             duration,
             server.update_status,
-            u"ACTIVE")
+            "ACTIVE")
     return set_building
 
 
@@ -621,7 +621,7 @@ def create_error_status_behavior(parameters=None):
     """
     @default_with_hook
     def set_error(server):
-        server.update_status(u"ERROR")
+        server.update_status("ERROR")
     return set_error
 
 
@@ -641,11 +641,11 @@ def active_then_error(parameters):
 
     @default_with_hook
     def fail_later(server):
-        server.update_status(u"ACTIVE")
+        server.update_status("ACTIVE")
         server.collection.clock.callLater(
             duration,
             server.update_status,
-            u"ERROR")
+            "ERROR")
     return fail_later
 
 
@@ -682,7 +682,7 @@ class RegionalServerCollection(object):
         Retrieve a :obj:`Server` object by its ID.
         """
         for server in self.servers:
-            if server.server_id == server_id and server.status != u"DELETED":
+            if server.server_id == server_id and server.status != "DELETED":
                 return server
 
     def request_creation(self, creation_http_request, creation_json,
@@ -732,7 +732,7 @@ class RegionalServerCollection(object):
         return dumps({"addresses": server.addresses_json()})
 
     def request_list(self, http_get_request, include_details, absolutize_url,
-                     name=u"", limit=None, marker=None, changes_since=None):
+                     name="", limit=None, marker=None, changes_since=None):
         """
         Request the list JSON for all servers.
 
@@ -771,7 +771,7 @@ class RegionalServerCollection(object):
                         if name in server.server_name]
 
         if changes_since is None:
-            to_be_listed = [s for s in to_be_listed if s.status != u"DELETED"]
+            to_be_listed = [s for s in to_be_listed if s.status != "DELETED"]
 
         if limit is not None:
             try:
@@ -833,7 +833,7 @@ class RegionalServerCollection(object):
                 http_delete_request.setResponseCode(500)
                 return b''
         http_delete_request.setResponseCode(204)
-        server.update_status(u"DELETED")
+        server.update_status("DELETED")
         return b''
 
     def request_action(self, http_action_request, server_id, absolutize_url,
@@ -906,7 +906,7 @@ class RegionalServerCollection(object):
                 server.collection.clock.callLater(
                     6.0,
                     server.update_status,
-                    u"ACTIVE")
+                    "ACTIVE")
                 return b''
             elif reboot_type == 'SOFT':
                 server.status = 'REBOOT'
@@ -914,7 +914,7 @@ class RegionalServerCollection(object):
                 server.collection.clock.callLater(
                     3.0,
                     server.update_status,
-                    u"ACTIVE")
+                    "ACTIVE")
                 return b''
             else:
                 return dumps(bad_request("Argument 'type' for reboot is not HARD or SOFT",
@@ -944,7 +944,7 @@ class RegionalServerCollection(object):
                 server.collection.clock.callLater(
                     5.0,
                     server.update_status,
-                    u"ACTIVE")
+                    "ACTIVE")
                 server_details = server.detail_json(absolutize_url)
                 server_details['adminPass'] = 'password'
                 return dumps({"server": server_details})

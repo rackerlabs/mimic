@@ -41,7 +41,7 @@ class TestDomainMock(SynchronousTestCase):
             self, root, b"GET",
             "http://mybase/domain"))
         self.assertEqual(200, response.code)
-        self.assertEqual(content, [u'api.example.com'])
+        self.assertEqual(content, ['api.example.com'])
 
     def test_domain_mock_child(self):
         """
@@ -50,7 +50,7 @@ class TestDomainMock(SynchronousTestCase):
         ``<a-domain>`` from its ``domain()`` method.
         """
         example_domain_api = ExampleDomainAPI()
-        core = MimicCore(Clock(), [], [ExampleDomainAPI(u'api2.example.com',
+        core = MimicCore(Clock(), [], [ExampleDomainAPI('api2.example.com',
                                                         b'"other-value"'),
                                        example_domain_api])
         root = MimicRoot(core).app.resource()
@@ -58,7 +58,7 @@ class TestDomainMock(SynchronousTestCase):
             self, root, b"GET",
             "http://mybase/domain/api.example.com/"))
         self.assertEqual(200, response.code)
-        self.assertEqual(content, u'test-value')
+        self.assertEqual(content, 'test-value')
 
     def test_domain_mock_no_child(self):
         """

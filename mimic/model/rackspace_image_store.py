@@ -1,7 +1,7 @@
 """
 An image store representing Rackspace specific images
 """
-from __future__ import absolute_import, division, unicode_literals
+
 import attr
 from six import iteritems
 from mimic.model.rackspace_images import (RackspaceWindowsImage,

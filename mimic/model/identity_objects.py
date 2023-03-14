@@ -2,7 +2,7 @@
 Model objects for the Identity mimic.
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 import attr
 
@@ -158,13 +158,13 @@ class EndpointTemplateStore(object):
     optional_mapping = [
         MapInfo(*value) for value in [
             ('enabled', 'enabled_key', False),
-            ('publicURL', 'public_url', u""),
-            ('internalURL', 'internal_url', u""),
-            ('adminURL', 'admin_url', u""),
+            ('publicURL', 'public_url', ""),
+            ('internalURL', 'internal_url', ""),
+            ('adminURL', 'admin_url', ""),
             ('RAX-AUTH:tenantAlias', 'tenant_alias', "%tenant_id%"),
-            ('versionId', 'version_id', u""),
-            ('versionInfo', 'version_info', u""),
-            ('versionList', 'version_list', u"")
+            ('versionId', 'version_id', ""),
+            ('versionInfo', 'version_info', ""),
+            ('versionList', 'version_list', "")
         ]
     ]
 
@@ -329,7 +329,7 @@ class ExternalApiStore(object):
         # (a) enabled or (b) in the list of endpoints specifically
         # enabled for the tenant
         endpoints = []
-        for _, endpoint_template in self.endpoint_templates.items():
+        for _, endpoint_template in list(self.endpoint_templates.items()):
             if (endpoint_template.enabled_key or
                     endpoint_template.id_key in tenant_specific_templates):
                 endpoints.append(
@@ -369,7 +369,7 @@ class ExternalApiStore(object):
         # provide an Endpoint Entry for every template that is either
         # (a) enabled or (b) in the list of endpoints specifically
         # enabled for the tenant
-        for _, endpoint_template in self.endpoint_templates.items():
+        for _, endpoint_template in list(self.endpoint_templates.items()):
             if (endpoint_template.enabled_key or
                     endpoint_template.id_key in tenant_specific_templates):
                 yield endpoint_template
@@ -385,7 +385,7 @@ class ExternalApiStore(object):
         if tenant_id not in self.endpoints_for_tenants:
             self.endpoints_for_tenants[tenant_id] = []
 
-        for key, endpoint_template in self.endpoint_templates.items():
+        for key, endpoint_template in list(self.endpoint_templates.items()):
             if endpoint_template.id_key == template_id:
                 self.endpoints_for_tenants[tenant_id].append(template_id)
                 return
@@ -419,7 +419,7 @@ class ExternalApiStore(object):
         :returns: an iterable of the endpoint templates
         :rtype: iterable
         """
-        return self.endpoint_templates.values()
+        return list(self.endpoint_templates.values())
 
     def add_template(self, endpoint_template):
         """
@@ -507,7 +507,7 @@ class ExternalApiStore(object):
         :raises: IndexError if the template does not exist
         """
         # Disable (remove) the templates for all tenants
-        for tenant_id in self.endpoints_for_tenants.keys():
+        for tenant_id in list(self.endpoints_for_tenants.keys()):
             try:
                 self.disable_endpoint_for_tenant(tenant_id, template_id)
             except EndpointTemplateDisabledForTenant:
@@ -556,7 +556,7 @@ class ExternalApiStore(object):
         :rtype: six.text_type
         """
         # key doesn't matter, region is the only interesting thing
-        for _, endpoint_template in self.endpoint_templates.items():
+        for _, endpoint_template in list(self.endpoint_templates.items()):
             if endpoint_template.region_key == region or region == '':
                 # since Mimic only utilizes the public URL
                 return endpoint_template.public_url

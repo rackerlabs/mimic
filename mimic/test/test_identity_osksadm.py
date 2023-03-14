@@ -2,7 +2,7 @@
 Tests for mimic identity :mod:`mimic.rest.identity_api`
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 import json
 import uuid
@@ -30,7 +30,7 @@ class TestIdentityMimicOSKSCatalogAdminListExternalServices(SynchronousTestCase,
         self.core = MimicCore(Clock(), [])
         self.root = MimicRoot(self.core).app.resource()
         self.uri = "/identity/v2.0/services"
-        self.eeapi_name = u"externalServiceName"
+        self.eeapi_name = "externalServiceName"
         self.headers = {
             b'X-Auth-Token': [b'ABCDEF987654321']
         }
@@ -95,7 +95,7 @@ class TestIdentityMimicOSKSCatalogAdminCreateExternalService(
         self.core = MimicCore(Clock(), [])
         self.root = MimicRoot(self.core).app.resource()
         self.uri = "/identity/v2.0/services"
-        self.eeapi_name = u"externalServiceName"
+        self.eeapi_name = "externalServiceName"
         self.eeapi = make_example_external_api(
             self,
             name=self.eeapi_name,
@@ -201,9 +201,9 @@ class TestIdentityMimicOSKSCatalogAdminDeleteExternalService(SynchronousTestCase
     def setUp(self):
         self.core = MimicCore(Clock(), [])
         self.root = MimicRoot(self.core).app.resource()
-        self.eeapi_id = u"some-id"
+        self.eeapi_id = "some-id"
         self.uri = "/identity/v2.0/services/" + self.eeapi_id
-        self.eeapi_name = u"externalServiceName"
+        self.eeapi_name = "externalServiceName"
         self.eeapi = make_example_external_api(
             self,
             name=self.eeapi_name,

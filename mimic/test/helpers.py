@@ -2,7 +2,7 @@
 Helper objects for tests, mostly to allow testing HTTP routes.
 """
 
-from __future__ import print_function, unicode_literals
+
 
 import json
 
@@ -163,7 +163,7 @@ def request(testCase, rootResource, method, uri, body=b"",
     # resource no matter what
     if headers is not None:
         headers_object = Headers()
-        for key, value in headers.items():
+        for key, value in list(headers.items()):
             headers_object.setRawHeaders(key, value)
     else:
         headers_object = None
@@ -258,7 +258,7 @@ def get_template_id(case, eeapi):
     :returns: template id value
     """
     id_key = None
-    for k in eeapi.endpoint_templates.keys():
+    for k in list(eeapi.endpoint_templates.keys()):
         id_key = k
     case.assertIsNotNone(id_key)
     return id_key

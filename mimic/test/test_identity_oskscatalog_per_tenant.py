@@ -2,7 +2,7 @@
 Tests for mimic identity :mod:`mimic.rest.identity_api`
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 import json
 import uuid
@@ -36,7 +36,7 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesList(
             "/identity/v2.0/tenants/" + self.tenant_id +
             "/OS-KSCATALOG/endpoints"
         )
-        self.eeapi_name = u"externalServiceName"
+        self.eeapi_name = "externalServiceName"
         self.eeapi = make_example_external_api(
             self,
             name=self.eeapi_name,
@@ -160,7 +160,7 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesCreate(
             "/identity/v2.0/tenants/" + self.tenant_id +
             "/OS-KSCATALOG/endpoints"
         )
-        self.eeapi_name = u"externalServiceName"
+        self.eeapi_name = "externalServiceName"
         self.eeapi = make_example_external_api(
             self,
             name=self.eeapi_name,
@@ -272,7 +272,7 @@ class TestIdentityOSKSCatalogTenantAdminEndpointTemplatesDelete(SynchronousTestC
         self.tenant_id = 'some_tenant'
         self.core = MimicCore(Clock(), [])
         self.root = MimicRoot(self.core).app.resource()
-        self.eeapi_name = u"externalServiceName"
+        self.eeapi_name = "externalServiceName"
         self.eeapi = make_example_external_api(
             self,
             name=self.eeapi_name

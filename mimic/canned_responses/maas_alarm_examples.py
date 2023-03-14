@@ -2,7 +2,7 @@
 Canned responses for MAAS alarm examples.
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 
 def alarm_examples():

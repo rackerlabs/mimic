@@ -5,7 +5,7 @@ Balancer API docs
  for more information.
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 from copy import deepcopy
 from random import randrange
@@ -431,7 +431,7 @@ class RegionalCLBCollection(object):
             self._verify_and_update_lb_state(lb_id, False, self.clock.seconds())
             log.msg(self.lbs[lb_id]["status"])
         return (
-            {'loadBalancers': [lb.short_json() for lb in self.lbs.values()]},
+            {'loadBalancers': [lb.short_json() for lb in list(self.lbs.values())]},
             200)
 
     def list_nodes(self, lb_id):

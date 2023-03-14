@@ -2,7 +2,7 @@
 MAAS Mock API
 """
 
-from __future__ import division, unicode_literals
+
 
 import json
 import collections
@@ -93,16 +93,16 @@ class MCache(object):
 
         self.entities = collections.OrderedDict()
         self.notifications = collections.OrderedDict(
-            [(u'ntTechnicalContactsEmail',
-              Notification(id=u'ntTechnicalContactsEmail',
-                           label=u'Email All Technical Contacts',
+            [('ntTechnicalContactsEmail',
+              Notification(id='ntTechnicalContactsEmail',
+                           label='Email All Technical Contacts',
                            created_at=current_time_milliseconds,
                            updated_at=current_time_milliseconds,
-                           type=u'technicalContactsEmail'))])
+                           type='technicalContactsEmail'))])
         self.notification_plans = collections.OrderedDict(
-            [(u'npTechnicalContactsEmail',
-              NotificationPlan(id=u'npTechnicalContactsEmail',
-                               label=u'Technical Contacts - Email',
+            [('npTechnicalContactsEmail',
+              NotificationPlan(id='npTechnicalContactsEmail',
+                               label='Technical Contacts - Email',
                                created_at=current_time_milliseconds,
                                updated_at=current_time_milliseconds))])
         self.notificationtypes_list = [{'id': 'webhook', 'fields': [{'name': 'url',
@@ -401,7 +401,7 @@ def _find_missing_required_key(cls, post_data, additional_keys):
     failed with a TypeError.
     """
     fields_by_name = {field.name: field for field in attr.fields(cls)}
-    specified_keys = {key for sublist in [post_data.keys(), additional_keys]
+    specified_keys = {key for sublist in [list(post_data.keys()), additional_keys]
                       for key in sublist}
     missing_keys = [key for key in fields_by_name
                     if fields_by_name[key].default is attr.NOTHING and key not in specified_keys]
@@ -443,7 +443,7 @@ def _metric_list_for_entity(maas_store, entity):
                         'label': check.label,
                         'type': check.type,
                         'metrics': _metric_list_for_check(maas_store, entity, check)}
-                       for check in entity.checks.values()]}
+                       for check in list(entity.checks.values())]}
 
 
 def _multiplot_interval(from_date, to_date, points):
@@ -547,7 +547,7 @@ class MaasMock(object):
 
     def _audit(self, app, request, tenant_id, status, content=b''):
         headers = {k.decode("utf-8"): [vv.decode("utf-8") if isinstance(vv, bytes) else vv for vv in v]
-                   for k, v in request.getAllHeaders().items()
+                   for k, v in list(request.getAllHeaders().items())
                    if k != b'x-auth-token'}
 
         record = {
@@ -1268,7 +1268,7 @@ class MaasMock(object):
                     'next_marker': None,
                     'next_href': None}
         request.setResponseCode(200)
-        return json.dumps({'values': [nt.to_json() for nt in notifications.values()],
+        return json.dumps({'values': [nt.to_json() for nt in list(notifications.values())],
                            'metadata': metadata})
 
     @app.route('/v1.0/<string:tenant_id>/notifications/<string:nt_id>', methods=['PUT'])
@@ -1341,8 +1341,8 @@ class MaasMock(object):
         """
         Get all notification plans
         """
-        np_list = self._entity_cache_for_tenant(
-            tenant_id).notification_plans.values()
+        np_list = list(self._entity_cache_for_tenant(
+            tenant_id).notification_plans.values())
         metadata = {'count': len(np_list),
                     'limit': 100,
                     'marker': None,
@@ -1397,8 +1397,8 @@ class MaasMock(object):
             tenant_id).notification_plans
         entities = self._entity_cache_for_tenant(tenant_id).entities
         alarmids_using_np = [alarm.id
-                             for entity in entities.values()
-                             for alarm in entity.alarms.values()
+                             for entity in list(entities.values())
+                             for alarm in list(entity.alarms.values())
                              if alarm.notification_plan_id == np_id]
 
         if len(alarmids_using_np):
@@ -1431,8 +1431,8 @@ class MaasMock(object):
         """
         Get the list of suppressions for this tenant.
         """
-        sp_list = self._entity_cache_for_tenant(
-            tenant_id).suppressions.values()
+        sp_list = list(self._entity_cache_for_tenant(
+            tenant_id).suppressions.values())
         metadata = {
             'count': len(sp_list),
             'limit': 100,
@@ -1558,10 +1558,10 @@ class MaasMock(object):
 
         values = [{'notification_plan_id': np.id,
                    'alarm_count': len([alarm
-                                       for entity in entities.values()
-                                       for alarm in entity.alarms.values()
+                                       for entity in list(entities.values())
+                                       for alarm in list(entity.alarms.values())
                                        if alarm.notification_plan_id == np.id])}
-                  for np in notification_plans.values()]
+                  for np in list(notification_plans.values())]
 
         metadata = {'limit': 100,
                     'marker': None,
@@ -1578,8 +1578,8 @@ class MaasMock(object):
         """
         entities = self._entity_cache_for_tenant(tenant_id).entities
         values = [alarm.to_json()
-                  for entity in entities.values()
-                  for alarm in entity.alarms.values()
+                  for entity in list(entities.values())
+                  for alarm in list(entity.alarms.values())
                   if alarm.notification_plan_id == np_id]
         metadata = {'limit': 100,
                     'marker': None,
@@ -1612,7 +1612,7 @@ class MaasMock(object):
         entities = self._entity_cache_for_tenant(tenant_id).entities
         maas_store = self._entity_cache_for_tenant(tenant_id).maas_store
         values = [_metric_list_for_entity(maas_store, entity)
-                  for entity in entities.values()]
+                  for entity in list(entities.values())]
 
         metadata = {'count': len(values),
                     'marker': None,
@@ -1637,8 +1637,8 @@ class MaasMock(object):
         requested_check_ids = set([metric['check_id']
                                    for metric in multiplot_request['metrics']])
         checks_by_id = {check.id: check
-                        for entity in entities.values()
-                        for check in entity.checks.values()
+                        for entity in list(entities.values())
+                        for check in list(entity.checks.values())
                         if check.id in requested_check_ids}
 
         for requested_metric in multiplot_request['metrics']:
@@ -1682,7 +1682,7 @@ class MaasMock(object):
                    'latest_alarm_states': [
                        state.detail_json()
                        for state in maas_store.latest_alarm_states_for_entity(entity.id)]}
-                  for entity in entities.values()]
+                  for entity in list(entities.values())]
 
         metadata = {'count': len(values),
                     'marker': None,
@@ -1889,7 +1889,7 @@ class MaasController(object):
             request.setResponseCode(e.code)
             return json.dumps(e.to_json())
 
-        previous_state = u'UNKNOWN'
+        previous_state = 'UNKNOWN'
         alarm_states_same_entity_and_alarm = [
             state for state in maas_store.alarm_states
             if state.entity_id == entity_id and state.alarm_id == alarm_id]
@@ -1897,7 +1897,7 @@ class MaasController(object):
             previous_state = alarm_states_same_entity_and_alarm[-1].state
 
         monitoring_zone_id = request_body.get(
-            'analyzed_by_monitoring_zone_id', u'mzord')
+            'analyzed_by_monitoring_zone_id', 'mzord')
 
         new_state = None
         try:
