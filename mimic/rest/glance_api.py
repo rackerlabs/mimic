@@ -3,7 +3,7 @@
 Defines a list of images from glance
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 import json
 from uuid import uuid4

@@ -2,7 +2,7 @@
 Resources for Mimic's core application.
 """
 
-from __future__ import unicode_literals
+
 
 import json
 

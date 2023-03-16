@@ -3,7 +3,7 @@
 Defines create, delete, get, list servers and get images and flavors.
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 from uuid import uuid4
 import json
@@ -311,7 +311,7 @@ class NovaRegion(object):
             self._region_collection_for_tenant(tenant_id)
             .request_list(
                 request, include_details=False, absolutize_url=self.url,
-                name=_optextarg(b'name') or u'',
+                name=_optextarg(b'name') or '',
                 limit=_optextarg(b'limit'),
                 marker=_optextarg(b'marker'),
             )
@@ -332,7 +332,7 @@ class NovaRegion(object):
             self._region_collection_for_tenant(tenant_id)
             .request_list(
                 request, include_details=True, absolutize_url=self.url,
-                name=_optextarg(b'name') or u'',
+                name=_optextarg(b'name') or '',
                 limit=_optextarg(b'limit'),
                 marker=_optextarg(b'marker'),
                 changes_since=_optextarg(b'changes-since')

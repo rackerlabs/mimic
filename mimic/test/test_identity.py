@@ -2,7 +2,7 @@
 Tests for identity model objects.
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 import json
 

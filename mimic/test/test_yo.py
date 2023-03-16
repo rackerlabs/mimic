@@ -1,4 +1,4 @@
-from __future__ import absolute_import, division, unicode_literals
+
 
 import json
 
@@ -30,8 +30,8 @@ class YoAPITests(SynchronousTestCase):
             self, self.root, b"POST", '{0}/yo/'.format(self.uri),
             json.dumps({'username': 'TESTUSER1',
                         'api_key': 'A1234567890'}).encode("utf-8")))
-        self.assertEquals(resp.code, 200)
-        self.assertEquals(data['success'], True)
+        self.assertEqual(resp.code, 200)
+        self.assertEqual(data['success'], True)
 
     def test_send_yo_to_same_username_gets_same_userid(self):
         """
@@ -42,13 +42,13 @@ class YoAPITests(SynchronousTestCase):
             self, self.root, b"POST", '{0}/yo/'.format(self.uri),
             json.dumps({'username': 'TESTUSER2',
                         'api_key': 'A1234567890'}).encode("utf-8")))
-        self.assertEquals(resp.code, 200)
+        self.assertEqual(resp.code, 200)
         (resp, data2) = self.successResultOf(json_request(
             self, self.root, b"POST", '{0}/yo/'.format(self.uri),
             json.dumps({'username': 'TESTUSER2',
                         'api_key': 'A1234567890'}).encode("utf-8")))
-        self.assertEquals(resp.code, 200)
-        self.assertEquals(data1['recipient']['user_id'], data2['recipient']['user_id'])
+        self.assertEqual(resp.code, 200)
+        self.assertEqual(data1['recipient']['user_id'], data2['recipient']['user_id'])
 
     def test_send_yo_missing_api_key_errors(self):
         """
@@ -57,8 +57,8 @@ class YoAPITests(SynchronousTestCase):
         (resp, data) = self.successResultOf(json_request(
             self, self.root, b"POST", '{0}/yo/'.format(self.uri),
             json.dumps({'username': 'TESTUSER1'}).encode("utf-8")))
-        self.assertEquals(resp.code, 401)
-        self.assertEquals(data['error'], 'User does not have permissions for this request')
+        self.assertEqual(resp.code, 401)
+        self.assertEqual(data['error'], 'User does not have permissions for this request')
 
     def test_send_yo_missing_username_errors(self):
         """
@@ -67,8 +67,8 @@ class YoAPITests(SynchronousTestCase):
         (resp, data) = self.successResultOf(json_request(
             self, self.root, b"POST", '{0}/yo/'.format(self.uri),
             json.dumps({'api_key': 'A1234567890'}).encode("utf-8")))
-        self.assertEquals(resp.code, 400)
-        self.assertEquals(data['error'], 'Can\'t send Yo without a recipient.')
+        self.assertEqual(resp.code, 400)
+        self.assertEqual(data['error'], 'Can\'t send Yo without a recipient.')
 
     def test_send_yo_with_link_and_location_errors(self):
         """
@@ -80,8 +80,8 @@ class YoAPITests(SynchronousTestCase):
                         'api_key': 'A1234567890',
                         'link': 'https://example.com/test',
                         'location': '12 3rd St'}).encode("utf-8")))
-        self.assertEquals(resp.code, 400)
-        self.assertEquals(data['error'], 'Can\'t send Yo with location and link.')
+        self.assertEqual(resp.code, 400)
+        self.assertEqual(data['error'], 'Can\'t send Yo with location and link.')
 
     def test_check_username_missing_username_errors(self):
         """
@@ -89,8 +89,8 @@ class YoAPITests(SynchronousTestCase):
         """
         (resp, data) = self.successResultOf(json_request(
             self, self.root, b"GET", '{0}/check_username/'.format(self.uri)))
-        self.assertEquals(resp.code, 400)
-        self.assertEquals(data['error'], 'Must supply username')
+        self.assertEqual(resp.code, 400)
+        self.assertEqual(data['error'], 'Must supply username')
 
     def test_check_existing_username_is_true(self):
         """
@@ -100,11 +100,11 @@ class YoAPITests(SynchronousTestCase):
             self, self.root, b"POST", '{0}/yo/'.format(self.uri),
             json.dumps({'username': 'TESTUSER4',
                         'api_key': 'A1234567890'}).encode("utf-8")))
-        self.assertEquals(resp.code, 200)
+        self.assertEqual(resp.code, 200)
         (resp, data) = self.successResultOf(json_request(
             self, self.root, b"GET", '{0}/check_username/?username=TESTUSER4'.format(self.uri)))
-        self.assertEquals(resp.code, 200)
-        self.assertEquals(data['exists'], True)
+        self.assertEqual(resp.code, 200)
+        self.assertEqual(data['exists'], True)
 
     def test_check_non_existing_username_is_false(self):
         """
@@ -112,5 +112,5 @@ class YoAPITests(SynchronousTestCase):
         """
         (resp, data) = self.successResultOf(json_request(
             self, self.root, b"GET", '{0}/check_username/?username=TESTUSER5'.format(self.uri)))
-        self.assertEquals(resp.code, 200)
-        self.assertEquals(data['exists'], False)
+        self.assertEqual(resp.code, 200)
+        self.assertEqual(data['exists'], False)

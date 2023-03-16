@@ -2,7 +2,7 @@
 Tests for :mod:`nova_api` and :mod:`nova_objects` for flavors.
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 from twisted.trial.unittest import SynchronousTestCase
 

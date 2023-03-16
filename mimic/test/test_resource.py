@@ -1,4 +1,4 @@
-from __future__ import absolute_import, division, unicode_literals
+
 
 import json
 import re
@@ -43,9 +43,9 @@ def one_api(testCase, core):
     # Since there is only 1 API it can be assumed to be either an internal
     # or external API.
     if len(core._uuid_to_api_external):
-        service_id, api = next(iter(core._uuid_to_api_external.items()))
+        service_id, api = next(iter(list(core._uuid_to_api_external.items())))
     else:
-        service_id, api = next(iter(core._uuid_to_api_internal.items()))
+        service_id, api = next(iter(list(core._uuid_to_api_internal.items())))
     region = api.catalog_entries(tenant_id=None)[0].endpoints[0].region
     return (region, service_id)
 

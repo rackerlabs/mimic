@@ -2,7 +2,7 @@
 Unit tests for the
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 import json
 import treq
@@ -763,7 +763,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         responses = [self.successResultOf(response) for response in responses]
         response_bodies = [self.successResultOf(treq.json_content(response))
                            for response in responses]
-        return zip(responses, response_bodies)
+        return list(zip(responses, response_bodies))
 
     def _get_nodes(self, lb_id):
         """Get all the nodes in a LB."""
@@ -1166,7 +1166,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         )
         # and the one valid node that we tried to delete is still there
         remaining = [node['id'] for node in self._get_nodes(self.lb_id)]
-        self.assertEquals(remaining, [self.node[0]['id']])
+        self.assertEqual(remaining, [self.node[0]['id']])
 
     def test_bulk_delete_above_batch_limit(self):
         """
@@ -1199,7 +1199,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         )
         # Existing nodes are not touched
         existing = [node['id'] for node in self._get_nodes(self.lb_id)]
-        self.assertEquals(existing, node_ids)
+        self.assertEqual(existing, node_ids)
 
     def test_bulk_delete_limit_after_node_validation(self):
         """
@@ -1207,9 +1207,9 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         i.e. nodes given should be valid before their count is checked
         """
         response, body = _bulk_delete(
-            self, self.root, self.uri, self.lb_id, range(1, 12))
+            self, self.root, self.uri, self.lb_id, list(range(1, 12)))
         self.assertEqual(response.code, 400)
-        ids = ",".join(map(str, range(1, 12)))
+        ids = ",".join(map(str, list(range(1, 12))))
         self.assertEqual(
             body,
             {
@@ -1354,7 +1354,7 @@ class LoadbalancerNodeAPITests(SynchronousTestCase):
         }
         expected.update(change)
         # sanity check to make sure we're actually changing stuff
-        self.assertTrue(all([change[k] != original[k] for k in change.keys()]))
+        self.assertTrue(all([change[k] != original[k] for k in list(change.keys())]))
         resp, body = _update_clb_node(
             self, self.helper, self.lb_id, self.node[0]["id"],
             json.dumps({"node": change}).encode("utf-8"),
@@ -1670,7 +1670,7 @@ class LoadbalancerAPINegativeTests(SynchronousTestCase):
         self.assertEqual(response.code, 422)
         self.assertEqual(
             body,
-            {u'message': u'LoadBalancer is not ACTIVE', u'code': 422})
+            {'message': 'LoadBalancer is not ACTIVE', 'code': 422})
 
     def test_updating_node_loadbalancer_state(self):
         """

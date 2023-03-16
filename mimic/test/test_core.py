@@ -1,4 +1,4 @@
-from __future__ import absolute_import, division, unicode_literals
+
 
 import sys
 import uuid
@@ -113,7 +113,7 @@ class CoreApiBuildingTests(SynchronousTestCase):
     Tests for creating a :class:`MimicCore` object with apis.
     """
     def setUp(self):
-        self.eeapi_name = u"externalServiceName"
+        self.eeapi_name = "externalServiceName"
 
     def test_load_external_api(self):
         """
@@ -289,9 +289,9 @@ class CoreApiBuildingTests(SynchronousTestCase):
 
         self.assertIsNone(
             core.service_with_region(
-                u"EXTERNAL",
-                u"some-region-name",
-                u"http://some/random/prefix"
+                "EXTERNAL",
+                "some-region-name",
+                "http://some/random/prefix"
             )
         )
 
@@ -310,9 +310,9 @@ class CoreApiBuildingTests(SynchronousTestCase):
                 service_id = a_service_id
 
         resource = core.service_with_region(
-            u"ORD",
+            "ORD",
             service_id,
-            u"http://some/random/prefix"
+            "http://some/random/prefix"
         )
         self.assertTrue(
             IResource.providedBy(resource)
@@ -335,7 +335,7 @@ class CoreApiBuildingTests(SynchronousTestCase):
         base_uri = "http://some/random/prefix"
 
         uri = core.uri_for_service(
-            u"ORD",
+            "ORD",
             service_id,
             base_uri
         )
@@ -390,7 +390,7 @@ class CoreApiBuildingTests(SynchronousTestCase):
 
         ept_internal_url = "http://internal.url/v1/" + tenant_id
         ept_public_url = "http://public.url/v1/" + tenant_id
-        for ept in eeapi.endpoint_templates.values():
+        for ept in list(eeapi.endpoint_templates.values()):
             ept.internal_url = "http://internal.url/v1/%tenant_id%"
             ept.public_url = "http://public.url/v1/%tenant_id%"
 
@@ -510,12 +510,12 @@ class CoreApiBuildingTests(SynchronousTestCase):
             set_enabled=True
         )
         eeapi2_name = "alternate-external-api"
-        eeapi2_template_id = u"uuid-alternate-endpoint-template"
+        eeapi2_template_id = "uuid-alternate-endpoint-template"
         eeapi2_template = exampleEndpointTemplate(
             name=eeapi2_name,
             endpoint_uuid=eeapi2_template_id,
-            region=u"NEW_REGION",
-            url=u"https://api.new_region.example.com:9090"
+            region="NEW_REGION",
+            url="https://api.new_region.example.com:9090"
         )
         eeapi2 = make_example_external_api(
             self,

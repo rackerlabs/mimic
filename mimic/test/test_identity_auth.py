@@ -3,7 +3,7 @@ Tests for mimic identity (:mod:`mimic.model.identity` and
 :mod:`mimic.rest.identity_api`)
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 import json
 
@@ -783,7 +783,7 @@ class GetEndpointsForTokenTests(SynchronousTestCase):
             self.assertEqual(len(credential), 1)
 
             # however, it's more compact to validate it this way:
-            for k, v in credential.items():
+            for k, v in list(credential.items()):
                 self.assertEqual(v['username'], username)
                 self.assertEqual(
                     len(v[credential_types[k]['value']]),
@@ -1359,7 +1359,7 @@ class IdentityAuthBehaviorControlPlane(object):
         Given the behavior that is expected, validate the response and body.
         """
         name, params = name_and_params
-        self.test_case.assertEquals(response.code, params['code'])
+        self.test_case.assertEqual(response.code, params['code'])
         if params['code'] == 500:
             expected = {"identityFault": {"message": "Auth failure",
                                           "code": 500}}
@@ -1367,13 +1367,13 @@ class IdentityAuthBehaviorControlPlane(object):
             expected = {"unauthorized": {"message": "Invalid creds",
                                          "code": 403}}
 
-        self.test_case.assertEquals(body, expected)
+        self.test_case.assertEqual(body, expected)
 
     def validate_default_behavior(self, response, body):
         """
         Validate the response and body of a successful server create.
         """
-        self.test_case.assertEquals(response.code, 200)
+        self.test_case.assertEqual(response.code, 200)
         self.test_case.assertIn('access', body)
 
 

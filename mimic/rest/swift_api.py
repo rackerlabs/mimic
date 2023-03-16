@@ -4,7 +4,7 @@
 API mock for OpenStack Swift / Rackspace Cloud Files.
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 from uuid import uuid4, uuid5, NAMESPACE_URL
 from six import text_type
@@ -47,12 +47,12 @@ def normal_tenant_id_to_crazy_mosso_id(normal_tenant_id):
     :return: a new tenant ID that looks like a Cloud Files tenant ID
     :rtype: unicode
     """
-    full_namespace = (u"https://github.com/rackerlabs/mimic/ns/tenant/"
+    full_namespace = ("https://github.com/rackerlabs/mimic/ns/tenant/"
                       + normal_tenant_id)
     if bytes is str:
         full_namespace = full_namespace.encode("ascii")
     uuid = uuid5(NAMESPACE_URL, full_namespace)
-    return u"MossoCloudFS_" + text_type(uuid)
+    return "MossoCloudFS_" + text_type(uuid)
 
 
 @implementer(IAPIMock, IPlugin)
@@ -172,7 +172,7 @@ class Container(object):
         Return the sum of data of all the objects in the container
         """
         byte_count = 0
-        for obj in self.objects.values():
+        for obj in list(self.objects.values()):
             byte_count += obj.length
         return byte_count
 
@@ -214,7 +214,7 @@ class SwiftTenantInRegion(object):
         total_containers = len(self.containers)
         total_objects = 0
         total_bytes = 0
-        for container in self.containers.values():
+        for container in list(self.containers.values()):
             total_objects += container.object_count
             total_bytes += container.byte_count
         container_count = "{0}".format(total_containers).encode("utf-8")
@@ -228,7 +228,7 @@ class SwiftTenantInRegion(object):
                                               [object_count])
         request.responseHeaders.setRawHeaders(b"x-account-bytes-used",
                                               [byte_count])
-        for k, v in self.metadata.items():
+        for k, v in list(self.metadata.items()):
             request.responseHeaders.setRawHeaders(
                 "X-Account-Meta-{0}".format(k).encode("utf-8"),
                 v)
@@ -289,7 +289,7 @@ class SwiftTenantInRegion(object):
             request.setResponseCode(OK)
             return dumps([
                 obj.as_json() for obj in
-                self.containers[container_name].objects.values()
+                list(self.containers[container_name].objects.values())
             ])
         else:
             return NoResource("No such container")
@@ -331,7 +331,7 @@ class SwiftTenantInRegion(object):
                 set_header_if_not_none(
                     b"content-type",
                     obj.content_type if obj.content_type is not None else
-                    u"application/octet-stream")
+                    "application/octet-stream")
                 set_header_if_not_none(b"content-encoding", obj.content_encoding)
                 set_header_if_not_none(b"etag", obj.etag)
                 set_header_if_not_none(b"x-object-manifest", obj.object_manifest)
@@ -365,7 +365,7 @@ class SwiftTenantInRegion(object):
                 set_header_if_not_none(
                     b"content-type",
                     obj.content_type if obj.content_type is not None else
-                    u"application/octet-stream")
+                    "application/octet-stream")
                 set_header_if_not_none(b"content-encoding", obj.content_encoding)
                 set_header_if_not_none(b"etag", obj.etag)
                 set_header_if_not_none(b"x-object-manifest", obj.object_manifest)

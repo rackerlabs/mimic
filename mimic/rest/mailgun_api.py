@@ -4,7 +4,7 @@ API Mock for Mail Gun.
 https://documentation.mailgun.com/api-sending.html
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 import json
 import time
@@ -41,7 +41,7 @@ class MailGunApi(object):
         content = parse_qs(request.content.read().decode("utf-8"))
         to_address = content.get('to')
         headers = {}
-        for key, value in content.items():
+        for key, value in list(content.items()):
             if key.startswith("h:") or key.startswith("v:"):
                 headers[key] = value
 

@@ -1,4 +1,4 @@
-from __future__ import absolute_import, division, unicode_literals
+
 
 from six import text_type
 
@@ -16,7 +16,7 @@ from mimic.test.fixtures import APIMockHelper, TenantAuthentication
 class TestValidationPoints(SynchronousTestCase):
 
     def setUp(self):
-        self.eeapi_name = u"externalServiceName"
+        self.eeapi_name = "externalServiceName"
 
     def test_external_api_no_service_resource(self):
         """
@@ -33,7 +33,7 @@ class TestValidationPoints(SynchronousTestCase):
 
         # Find the UUID of the registered External API
         eeapi_id = None
-        for uuid, api in self.core._uuid_to_api_external.items():
+        for uuid, api in list(self.core._uuid_to_api_external.items()):
             eeapi_id = uuid
 
         self.assertIsNotNone(eeapi_id)
@@ -49,7 +49,7 @@ class TestExternalApiMock(SynchronousTestCase):
     Test cases to verify the :obj:`IExternalAPIMock`.
     """
     def setUp(self):
-        self.eeapi_name = u"externalServiceName"
+        self.eeapi_name = "externalServiceName"
         self.eeapi = make_example_external_api(
             self,
             name=self.eeapi_name,
@@ -86,7 +86,7 @@ class TestExternalApiMock(SynchronousTestCase):
         when enabled globally and taht the tenantid will be properly
         in the URL.
         """
-        for ept in self.eeapi.endpoint_templates.values():
+        for ept in list(self.eeapi.endpoint_templates.values()):
             ept.internal_url = "http://internal.url/v1/%tenant_id%"
             ept.public_url = "http://public.url/v1/%tenant_id%"
 
@@ -109,8 +109,8 @@ class TestTenantSpecificAPIs(SynchronousTestCase):
     enabled for a specific tenant
     """
     def setUp(self):
-        self.eeapi_name = u"externalServiceName"
-        self.eeapi_template_id = u"uuid-endpoint-template"
+        self.eeapi_name = "externalServiceName"
+        self.eeapi_template_id = "uuid-endpoint-template"
         self.eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
             endpoint_uuid=self.eeapi_template_id
@@ -126,7 +126,7 @@ class TestTenantSpecificAPIs(SynchronousTestCase):
         self.root = self.helper.root
         self.uri = self.helper.uri
 
-        self.tenant_enabled_for = u"tenantWithApi"
+        self.tenant_enabled_for = "tenantWithApi"
         self.tenant_enabled_for_password = "udrowssap"
         self.tenant_data = TenantAuthentication(
             self,
@@ -174,7 +174,7 @@ class TestTenantSpecificAPIs(SynchronousTestCase):
         """
         new_url = "https://api.new_region.example.com:9090"
         new_region = "NEW_REGION"
-        new_eeapi_template_id = u"uuid-alternate-endpoint-template"
+        new_eeapi_template_id = "uuid-alternate-endpoint-template"
         new_eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
             endpoint_uuid=new_eeapi_template_id,
@@ -207,7 +207,7 @@ class TestTenantSpecificAPIs(SynchronousTestCase):
         """
         new_url = "https://api.new_region.example.com:9090"
         new_region = "NEW_REGION"
-        new_eeapi_template_id = u"uuid-alternate-endpoint-template"
+        new_eeapi_template_id = "uuid-alternate-endpoint-template"
         new_eeapi_template = exampleEndpointTemplate(
             name=self.eeapi_name,
             endpoint_uuid=new_eeapi_template_id,
@@ -231,7 +231,7 @@ class TestDualModeApiMock(SynchronousTestCase):
     Test cases to verify the :obj:`IExternalAPIMock`.
     """
     def setUp(self):
-        self.eeapi_name = u"externalServiceName"
+        self.eeapi_name = "externalServiceName"
         self.ieapi = make_example_internal_api(self)
         self.eeapi = make_example_external_api(
             self,

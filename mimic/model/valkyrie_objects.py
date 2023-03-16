@@ -2,7 +2,7 @@
 Model objects for the Valkyrie mimic.
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 import attr
 from json import dumps

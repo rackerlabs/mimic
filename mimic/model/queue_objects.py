@@ -2,7 +2,7 @@
 Models for the Queue plugin
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 import attr
 from six import text_type

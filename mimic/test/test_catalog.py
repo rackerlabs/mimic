@@ -1,4 +1,4 @@
-from __future__ import absolute_import, division, unicode_literals
+
 
 from twisted.trial.unittest import SynchronousTestCase
 
@@ -10,9 +10,9 @@ class CatalogEntry(SynchronousTestCase):
     Testing of the :class:`Entry` object
     """
     def setUp(self):
-        self.tenant = u"some-tenant"
-        self.service_type = u"some-type"
-        self.service_name = u"some-service"
+        self.tenant = "some-tenant"
+        self.service_type = "some-type"
+        self.service_name = "some-service"
 
     def test_basic(self):
         """
@@ -39,12 +39,12 @@ class CatalogEndpoint(SynchronousTestCase):
     Testing of the :class:`Endpoint` object
     """
     def setUp(self):
-        self.tenant = u"some-tenant"
-        self.region = u"some-region"
-        self.endpointid = u"some-endpoint-id"
-        self.internal_api_prefix = u"endpoint-api"
-        self.request_prefix = u"http://internal.api/prefix"
-        self.external_api_url = u"http://external.api/endpoint"
+        self.tenant = "some-tenant"
+        self.region = "some-region"
+        self.endpointid = "some-endpoint-id"
+        self.internal_api_prefix = "endpoint-api"
+        self.request_prefix = "http://internal.api/prefix"
+        self.external_api_url = "http://external.api/endpoint"
 
     def test_basic(self):
         """

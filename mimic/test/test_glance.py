@@ -1,4 +1,4 @@
-from __future__ import absolute_import, division, unicode_literals
+
 
 import treq
 import json
@@ -40,9 +40,9 @@ class GlanceAPITests(SynchronousTestCase):
         """
         req = request(self, self.root, b"GET", self.uri + '/images', b'')
         resp = self.successResultOf(req)
-        self.assertEquals(resp.code, 200)
+        self.assertEqual(resp.code, 200)
         data = self.get_responsebody(resp)
-        self.assertEquals(True, 'images' in json.dumps(data))
+        self.assertEqual(True, 'images' in json.dumps(data))
 
 
 class GlanceAdminAPITests(SynchronousTestCase):

@@ -163,7 +163,7 @@ class HeatRegion(object):
         body = json_from_request(request)
         valid_actions = ('cancel_update', 'check', 'resume', 'suspend')
 
-        if len(body.keys()) != 1 or list(body.keys())[0] not in valid_actions:
+        if len(list(body.keys())) != 1 or list(body.keys())[0] not in valid_actions:
             request.setResponseCode(400)
             return "Action in request must be one of {}".format(
                 ", ".join(valid_actions))

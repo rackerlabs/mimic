@@ -2,7 +2,7 @@
 Dummy classes that can be shared across test cases
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 import uuid
 
@@ -76,7 +76,7 @@ class ExampleDomainAPI(object):
     Example domain API the return nothing.
     """
 
-    def __init__(self, domain=u"api.example.com", response=b'"test-value"'):
+    def __init__(self, domain="api.example.com", response=b'"test-value"'):
         """
         Create an :obj:`ExampleDomainAPI`.
 
@@ -101,11 +101,11 @@ class ExampleDomainAPI(object):
         return example_resource
 
 
-def exampleEndpointTemplate(name=u"example", region="EXTERNAL", version="v1",
+def exampleEndpointTemplate(name="example", region="EXTERNAL", version="v1",
                             url="https://api.external.example.com:8080",
                             public_url=None, internal_url=None, admin_url=None,
                             version_info_url=None, version_list_url=None,
-                            type_id=u"example", enabled=False,
+                            type_id="example", enabled=False,
                             endpoint_uuid=None,
                             tenantid_alias="%tenant_id%"):
     """
@@ -176,7 +176,7 @@ def make_example_internal_api(case, response_message="default message",
     return iapi
 
 
-def make_example_external_api(case, name=u"example",
+def make_example_external_api(case, name="example",
                               endpoint_templates=None,
                               set_enabled=None,
                               service_type=None):

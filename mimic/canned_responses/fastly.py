@@ -2,7 +2,7 @@
 Canned response for fastly
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 import random
 import string
@@ -26,7 +26,7 @@ class FastlyResponse(object):
                  ("/current_customer") request.
         """
         def _random_string():
-            random_string = u''.join(random.choice(
+            random_string = ''.join(random.choice(
                 string.ascii_uppercase + string.ascii_uppercase)
                 for _ in range(20))
             return random_string
@@ -35,32 +35,32 @@ class FastlyResponse(object):
         owner_id = _random_string()
 
         current_customer = {
-            u'can_edit_matches': u'0',
-            u'can_read_public_ip_list': u'0',
-            u'can_upload_vcl': u'1',
-            u'updated_at': u'2014-11-03T23:37:44+00:00',
-            u'has_config_panel': u'1',
-            u'has_improved_ssl_config': False,
-            u'id': id,
-            u'has_historical_stats': u'1',
-            u'has_openstack_logging': u'0',
-            u'can_configure_wordpress': u'0',
-            u'has_improved_logging': u'1',
-            u'readonly': '',
-            u'ip_whitelist': u'0.0.0.0/0',
-            u'owner_id': owner_id,
-            u'phone_number': u'770-123-1749',
-            u'postal_address': None,
-            u'billing_ref': None,
-            u'can_reset_passwords': True,
-            u'has_improved_security': u'1',
-            u'stripe_account': None,
-            u'name': u'Poppy - Test',
-            u'created_at': u'2014-11-03T23:37:43+00:00',
-            u'can_stream_syslog': u'1',
-            u'pricing_plan': u'developer',
-            u'billing_contact_id': None,
-            u'has_streaming': u'1'}
+            'can_edit_matches': '0',
+            'can_read_public_ip_list': '0',
+            'can_upload_vcl': '1',
+            'updated_at': '2014-11-03T23:37:44+00:00',
+            'has_config_panel': '1',
+            'has_improved_ssl_config': False,
+            'id': id,
+            'has_historical_stats': '1',
+            'has_openstack_logging': '0',
+            'can_configure_wordpress': '0',
+            'has_improved_logging': '1',
+            'readonly': '',
+            'ip_whitelist': '0.0.0.0/0',
+            'owner_id': owner_id,
+            'phone_number': '770-123-1749',
+            'postal_address': None,
+            'billing_ref': None,
+            'can_reset_passwords': True,
+            'has_improved_security': '1',
+            'stripe_account': None,
+            'name': 'Poppy - Test',
+            'created_at': '2014-11-03T23:37:43+00:00',
+            'can_stream_syslog': '1',
+            'pricing_plan': 'developer',
+            'billing_contact_id': None,
+            'has_streaming': '1'}
         return current_customer
 
     def create_service(self, url_data):
@@ -79,42 +79,42 @@ class FastlyResponse(object):
 
         self.fastly_cache[service_name] = {
             'service_details': {
-                u'comment': '',
-                u'locked': False,
-                u'updated_at': u'2014-11-13T14:29:10+00:00',
-                u'created_at': u'2014-11-13T14:29:10+00:00',
-                u'testing': None,
-                u'number': 1,
-                u'staging': None,
-                u'active': None,
-                u'service_id': service_id,
-                u'deleted_at': None,
-                u'inherit_service_id': None,
-                u'deployed': None},
+                'comment': '',
+                'locked': False,
+                'updated_at': '2014-11-13T14:29:10+00:00',
+                'created_at': '2014-11-13T14:29:10+00:00',
+                'testing': None,
+                'number': 1,
+                'staging': None,
+                'active': None,
+                'service_id': service_id,
+                'deleted_at': None,
+                'inherit_service_id': None,
+                'deployed': None},
             'service_name': service_name
         }
         self.fastly_cache[service_id] = self.fastly_cache[service_name]
 
         create_service = {
-            u'comment': '',
-            u'publish_key': publish_key,
-            u'name': service_name,
-            u'versions': [{u'comment': '', u'locked': u'0',
-                           u'service': service_id,
-                           u'updated_at': u'2014-11-12T18:43:21',
-                           u'created_at': u'2014-11-12T18:43:21',
-                           u'testing': None, u'number': u'1',
-                           u'staging': None,
-                           u'active': None,
-                           u'service_id': service_id,
-                           u'deleted_at': None,
-                           u'inherit_service_id': None,
-                           u'deployed': None,
-                           u'backend': 0}],
-            u'created_at': u'2014-11-12T18:43:21+00:00',
-            u'updated_at': u'2014-11-12T18:43:21+00:00',
-            u'customer_id': data['customer_id'],
-            u'id': service_id}
+            'comment': '',
+            'publish_key': publish_key,
+            'name': service_name,
+            'versions': [{'comment': '', 'locked': '0',
+                           'service': service_id,
+                           'updated_at': '2014-11-12T18:43:21',
+                           'created_at': '2014-11-12T18:43:21',
+                           'testing': None, 'number': '1',
+                           'staging': None,
+                           'active': None,
+                           'service_id': service_id,
+                           'deleted_at': None,
+                           'inherit_service_id': None,
+                           'deployed': None,
+                           'backend': 0}],
+            'created_at': '2014-11-12T18:43:21+00:00',
+            'updated_at': '2014-11-12T18:43:21+00:00',
+            'customer_id': data['customer_id'],
+            'id': service_id}
         return create_service
 
     def get_service_by_name(self, service_name):
@@ -190,31 +190,31 @@ class FastlyResponse(object):
         request_dict = {k: v[0] for k, v in url_data}
 
         create_backend = {
-            u'comment': '',
-            u'shield': None,
-            u'weight': 100,
-            u'ssl_client_key': None,
-            u'first_byte_timeout': 15000,
-            u'auto_loadbalance': False,
-            u'use_ssl': request_dict['use_ssl'],
-            u'port': request_dict['port'],
-            u'ssl_hostname': None,
-            u'hostname': request_dict['name'],
-            u'error_threshold': 0,
-            u'max_conn': 20,
-            u'version': service_version,
-            u'ipv4': None,
-            u'ipv6': None,
-            u'client_cert': None,
-            u'ssl_ca_cert': None,
-            u'request_condition': '',
-            u'healthcheck': None,
-            u'address': request_dict['address'],
-            u'ssl_client_cert': None,
-            u'name': request_dict['name'],
-            u'connect_timeout': 1000,
-            u'between_bytes_timeout': 10000,
-            u'service_id': service_id}
+            'comment': '',
+            'shield': None,
+            'weight': 100,
+            'ssl_client_key': None,
+            'first_byte_timeout': 15000,
+            'auto_loadbalance': False,
+            'use_ssl': request_dict['use_ssl'],
+            'port': request_dict['port'],
+            'ssl_hostname': None,
+            'hostname': request_dict['name'],
+            'error_threshold': 0,
+            'max_conn': 20,
+            'version': service_version,
+            'ipv4': None,
+            'ipv6': None,
+            'client_cert': None,
+            'ssl_ca_cert': None,
+            'request_condition': '',
+            'healthcheck': None,
+            'address': request_dict['address'],
+            'ssl_client_cert': None,
+            'name': request_dict['name'],
+            'connect_timeout': 1000,
+            'between_bytes_timeout': 10000,
+            'service_id': service_id}
 
         if 'origin_list' not in self.fastly_cache[service_id]:
             self.fastly_cache[service_id]['origin_list'] = []
@@ -234,13 +234,13 @@ class FastlyResponse(object):
         request_dict = {k: v[0] for k, v in url_data}
 
         create_condition = {
-            u"type": "REQUEST",
-            u"comment": "",
-            u"name": "condition",
-            u"version": service_version,
-            u"service_id": service_id,
-            u"statement": request_dict['statement'],
-            u"priority": request_dict['priority']
+            "type": "REQUEST",
+            "comment": "",
+            "name": "condition",
+            "version": service_version,
+            "service_id": service_id,
+            "statement": request_dict['statement'],
+            "priority": request_dict['priority']
         }
 
         if 'condition_list' not in self.fastly_cache[service_id]:
@@ -374,14 +374,14 @@ class FastlyResponse(object):
         """
         version_details = self.fastly_cache[service_id]['service_details']
         service_details = {
-            u'id': service_id,
-            u'name': self.fastly_cache[service_id]['service_name'],
-            u'customer_id': "hTE5dRlSBICGPJxJwCH4M",
-            u'comment': "",
-            u"updated_at": "2012-06-14T21:20:19+00:00",
-            u"created_at": "2012-06-14T21:20:19+00:00",
-            u"publish_key": "xgdbdd93h5066f8d330c276fDe00f9d293abfex7",
-            u'versions': [version_details]}
+            'id': service_id,
+            'name': self.fastly_cache[service_id]['service_name'],
+            'customer_id': "hTE5dRlSBICGPJxJwCH4M",
+            'comment': "",
+            "updated_at": "2012-06-14T21:20:19+00:00",
+            "created_at": "2012-06-14T21:20:19+00:00",
+            "publish_key": "xgdbdd93h5066f8d330c276fDe00f9d293abfex7",
+            'versions': [version_details]}
 
         return service_details
 

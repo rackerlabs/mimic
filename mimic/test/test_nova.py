@@ -1,7 +1,7 @@
 """
 Tests for :mod:`nova_api` and :mod:`nova_objects`.
 """
-from __future__ import absolute_import, division, unicode_literals
+
 
 import json
 
@@ -263,7 +263,7 @@ class NovaAPITests(SynchronousTestCase):
         validate_link_json(self, server_json['flavor'])
 
         self.assertIsInstance(server_json['addresses'], dict)
-        for addresses in server_json['addresses'].values():
+        for addresses in list(server_json['addresses'].values()):
             self.assertIsInstance(addresses, list)
             for address in addresses:
                 self.assertIn('addr', address)
@@ -1121,7 +1121,7 @@ class NovaAPIChangesSinceTests(SynchronousTestCase):
         delete_server(self.helper, self.server1)
         self.clock.advance(2)
         matcher = MatchesListwise(
-            [ContainsDict({"status": Equals(u"DELETED"), "id": Equals(self.server1)})])
+            [ContainsDict({"status": Equals("DELETED"), "id": Equals(self.server1)})])
         mismatch = matcher.match(self.list_servers_detail(1.5))
         self.assertIs(mismatch, None)
 
@@ -1130,7 +1130,7 @@ class NovaAPIChangesSinceTests(SynchronousTestCase):
         Returns servers whose status has been updated since given time
         """
         self.clock.advance(1)
-        update_status(self.helper, self.control_endpoint, self.server2, u"ERROR")
+        update_status(self.helper, self.control_endpoint, self.server2, "ERROR")
         self.assertEqual(self.list_servers(1.5), [self.server2])
 
     def test_returns_updated_metadata_servers(self):
@@ -1641,7 +1641,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         """
         create_server_response, _ = create_server(
             self.helper, body_override=b"")
-        self.assertEquals(create_server_response.code, 400)
+        self.assertEqual(create_server_response.code, 400)
 
     def test_create_server_request_with_invalid_body_causes_bad_request(self):
         """
@@ -1650,7 +1650,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         """
         create_server_response, _ = create_server(
             self.helper, body_override=b'{ bad request: }')
-        self.assertEquals(create_server_response.code, 400)
+        self.assertEqual(create_server_response.code, 400)
 
     def test_create_server_failure(self):
         """
@@ -1662,11 +1662,11 @@ class NovaAPINegativeTests(SynchronousTestCase):
         metadata = {"create_server_failure": json.dumps(serverfail)}
         create_server_response, create_server_response_body = create_server(
             self.helper, metadata=metadata)
-        self.assertEquals(create_server_response.code, 500)
-        self.assertEquals(
+        self.assertEqual(create_server_response.code, 500)
+        self.assertEqual(
             create_server_response_body['specialType']['message'],
             "Create server failure")
-        self.assertEquals(
+        self.assertEqual(
             create_server_response_body['specialType']['code'], 500)
 
     def test_create_server_failure_string_type(self):
@@ -1679,8 +1679,8 @@ class NovaAPINegativeTests(SynchronousTestCase):
         metadata = {"create_server_failure": json.dumps(serverfail)}
         create_server_response, create_server_response_body = create_server(
             self.helper, metadata=metadata, request_func=request_with_content)
-        self.assertEquals(create_server_response.code, 500)
-        self.assertEquals(create_server_response_body.decode("utf-8"),
+        self.assertEqual(create_server_response.code, 500)
+        self.assertEqual(create_server_response_body.decode("utf-8"),
                           "Create server failure")
 
     def test_create_server_failure_and_list_servers(self):
@@ -1692,19 +1692,19 @@ class NovaAPINegativeTests(SynchronousTestCase):
         metadata = {"create_server_failure": json.dumps(serverfail)}
         create_server_response, create_server_response_body = create_server(
             self.helper, metadata=metadata)
-        self.assertEquals(create_server_response.code, 500)
-        self.assertEquals(
+        self.assertEqual(create_server_response.code, 500)
+        self.assertEqual(
             create_server_response_body['computeFault']['message'],
             "Create server failure")
-        self.assertEquals(
+        self.assertEqual(
             create_server_response_body['computeFault']['code'], 500)
         # List servers
         list_servers = request(self, self.root, b"GET", self.uri + '/servers')
         list_servers_response = self.successResultOf(list_servers)
-        self.assertEquals(list_servers_response.code, 200)
+        self.assertEqual(list_servers_response.code, 200)
         list_servers_response_body = self.successResultOf(
             treq.json_content(list_servers_response))
-        self.assertEquals(list_servers_response_body['servers'], [])
+        self.assertEqual(list_servers_response_body['servers'], [])
 
     def test_server_in_building_state_for_specified_time(self):
         """
@@ -1712,9 +1712,9 @@ class NovaAPINegativeTests(SynchronousTestCase):
         status for the time specified in the metadata.
         """
         self.do_timing_test(metadata={"server_building": "1"},
-                            before=u"BUILD",
+                            before="BUILD",
                             delay=2.0,
-                            after=u"ACTIVE")
+                            after="ACTIVE")
 
     def test_server_building_behavior(self):
         """
@@ -1724,9 +1724,9 @@ class NovaAPINegativeTests(SynchronousTestCase):
         """
         use_creation_behavior(self.helper, "build", {"duration": 4.0}, [])
         self.do_timing_test(metadata={},
-                            before=u"BUILD",
+                            before="BUILD",
                             delay=5.0,
-                            after=u"ACTIVE")
+                            after="ACTIVE")
 
     def test_server_active_then_error_behavior(self):
         """
@@ -1737,9 +1737,9 @@ class NovaAPINegativeTests(SynchronousTestCase):
         use_creation_behavior(
             self.helper, "active-then-error", {"duration": 7.0}, [])
         self.do_timing_test(metadata={},
-                            before=u"ACTIVE",
+                            before="ACTIVE",
                             delay=8.0,
-                            after=u"ERROR")
+                            after="ERROR")
 
     def do_timing_test(self, metadata, before, delay, after):
         """
@@ -1754,22 +1754,22 @@ class NovaAPINegativeTests(SynchronousTestCase):
             return status_of_server(self, server_id)
 
         # get server and verify status is BUILD
-        self.assertEquals(get_server_status(), before)
+        self.assertEqual(get_server_status(), before)
 
         # List servers with details and verify the server is in BUILD status
         list_servers = request(
             self, self.root, b"GET", self.uri + '/servers/detail')
         list_servers_response = self.successResultOf(list_servers)
-        self.assertEquals(list_servers_response.code, 200)
+        self.assertEqual(list_servers_response.code, 200)
         list_servers_response_body = self.successResultOf(
             treq.json_content(list_servers_response))
-        self.assertEquals(len(list_servers_response_body['servers']), 1)
+        self.assertEqual(len(list_servers_response_body['servers']), 1)
         building_server = list_servers_response_body['servers'][0]
-        self.assertEquals(building_server['status'], before)
+        self.assertEqual(building_server['status'], before)
         # Time Passes...
         self.helper.clock.advance(delay)
         # get server and verify status changed to active
-        self.assertEquals(get_server_status(), after)
+        self.assertEqual(get_server_status(), after)
 
     def test_server_in_error_state(self):
         """
@@ -1784,7 +1784,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         get_server_response = self.successResultOf(get_server)
         get_server_response_body = self.successResultOf(
             treq.json_content(get_server_response))
-        self.assertEquals(
+        self.assertEqual(
             get_server_response_body['server']['status'], "ERROR")
 
     def test_delete_server_fails_specified_number_of_times(self):
@@ -1806,7 +1806,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         get_server = request(self, self.root, b"GET", self.uri + '/servers/' +
                              server_id)
         get_server_response = self.successResultOf(get_server)
-        self.assertEquals(get_server_response.code, 200)
+        self.assertEqual(get_server_response.code, 200)
         # delete server again and verify the response
         delete_server = request(
             self, self.root, b"DELETE", self.uri + '/servers/' + server_id)
@@ -1818,7 +1818,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         get_server = request(
             self, self.root, b"GET", self.uri + '/servers/' + server_id)
         get_server_response = self.successResultOf(get_server)
-        self.assertEquals(get_server_response.code, 404)
+        self.assertEqual(get_server_response.code, 404)
 
     def test_create_server_failure_using_behaviors(self):
         """
@@ -1833,11 +1833,11 @@ class NovaAPINegativeTests(SynchronousTestCase):
         )
         create_server_response, create_server_response_body = create_server(
             self.helper, name="failing_server_name")
-        self.assertEquals(create_server_response.code, 500)
-        self.assertEquals(
+        self.assertEqual(create_server_response.code, 500)
+        self.assertEqual(
             create_server_response_body['computeFault']['message'],
             "Create server failure")
-        self.assertEquals(
+        self.assertEqual(
             create_server_response_body['computeFault']['code'], 500)
 
     def test_create_server_failure_based_on_metadata(self):
@@ -1855,7 +1855,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         )
         create_server_response, _ = create_server(
             self.helper, name="failing_server_name")
-        self.assertEquals(create_server_response.code, 202)
+        self.assertEqual(create_server_response.code, 202)
 
         failing_create_response, failing_create_response_body = create_server(
             self.helper,
@@ -1863,10 +1863,10 @@ class NovaAPINegativeTests(SynchronousTestCase):
                       "field2": "regular expression"}
         )
 
-        self.assertEquals(
+        self.assertEqual(
             failing_create_response_body['specialType']['message'],
             "Sample failure message")
-        self.assertEquals(
+        self.assertEqual(
             failing_create_response_body['specialType']['code'], 503)
 
     def _try_false_negative_failure(self, failure_type=None):
@@ -1896,7 +1896,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
             name="failing_server_name",
             request_func=request_with_content
         )
-        self.assertEquals(create_server_response.code, 500)
+        self.assertEqual(create_server_response.code, 500)
 
         # List servers with details and verify there are no servers
         resp, list_body = self.successResultOf(json_request(
@@ -1914,9 +1914,9 @@ class NovaAPINegativeTests(SynchronousTestCase):
         """
         response, body = self._try_false_negative_failure()
         body = json.loads(body.decode("utf-8"))
-        self.assertEquals(body['computeFault']['message'],
+        self.assertEqual(body['computeFault']['message'],
                           "Create server failure")
-        self.assertEquals(body['computeFault']['code'], 500)
+        self.assertEqual(body['computeFault']['code'], 500)
 
     def test_create_false_negative_failure_with_specific_type(self):
         """
@@ -1927,9 +1927,9 @@ class NovaAPINegativeTests(SynchronousTestCase):
         """
         response, body = self._try_false_negative_failure('specialType')
         body = json.loads(body.decode("utf-8"))
-        self.assertEquals(body['specialType']['message'],
+        self.assertEqual(body['specialType']['message'],
                           "Create server failure")
-        self.assertEquals(body['specialType']['code'], 500)
+        self.assertEqual(body['specialType']['code'], 500)
 
     def test_create_false_negative_failure_with_string_type(self):
         """
@@ -1939,7 +1939,7 @@ class NovaAPINegativeTests(SynchronousTestCase):
         when the type is "string".
         """
         response, body = self._try_false_negative_failure("string")
-        self.assertEquals(body, b"Create server failure")
+        self.assertEqual(body, b"Create server failure")
 
     def test_modify_status_non_existent_server(self):
         """
@@ -2011,15 +2011,15 @@ class NovaCreateServerBehaviorControlPlane(object):
         Given the behavior that is expected, validate the response and body.
         """
         name, params = name_and_params
-        self.api_helper.test_case.assertEquals(response.code, params['code'])
-        self.api_helper.test_case.assertEquals(body.decode("utf-8"),
+        self.api_helper.test_case.assertEqual(response.code, params['code'])
+        self.api_helper.test_case.assertEqual(body.decode("utf-8"),
                                                params['message'])
 
     def validate_default_behavior(self, response, body):
         """
         Validate the response and body of a successful server create.
         """
-        self.api_helper.test_case.assertEquals(response.code, 202)
+        self.api_helper.test_case.assertEqual(response.code, 202)
         body = json.loads(body.decode("utf-8"))
         self.api_helper.test_case.assertIn('server', body)
 

@@ -4,7 +4,7 @@
 Service catalog hub and integration for Mimic application objects.
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 from twisted.python.urlpath import URLPath
 from twisted.plugin import getPlugins
@@ -148,7 +148,7 @@ class MimicCore(object):
                     'An Existing API already exists with the given UUID'
                 )
 
-            for existing_api in self._uuid_to_api_external.values():
+            for existing_api in list(self._uuid_to_api_external.values()):
                 if existing_api.name_key == api.name_key:
                     raise ServiceNameExists(
                         'An Existing API with UUID ' + existing_api.uuid_key +
@@ -191,7 +191,7 @@ class MimicCore(object):
 
         :returns: iterable of service ids for the external APIs
         """
-        return self._uuid_to_api_external.keys()
+        return list(self._uuid_to_api_external.keys())
 
     def get_external_api(self, api_id):
         """
@@ -278,7 +278,7 @@ class MimicCore(object):
         :return: The full URI locating the service for that region
         """
         # Return all the external APIs
-        for service_id, api in self._uuid_to_api_external.items():
+        for service_id, api in list(self._uuid_to_api_external.items()):
             for entry in api.catalog_entries(tenant_id):
                 for endpoint in entry.endpoints:
                     prefix_map[endpoint] = api.uri_for_service(
@@ -287,7 +287,7 @@ class MimicCore(object):
                 yield entry
 
         # Return all the internal APIs
-        for service_id, api in self._uuid_to_api_internal.items():
+        for service_id, api in list(self._uuid_to_api_internal.items()):
             for entry in api.catalog_entries(tenant_id):
                 for endpoint in entry.endpoints:
                     prefix_map[endpoint] = self.uri_for_service(

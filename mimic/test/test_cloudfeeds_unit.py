@@ -1,4 +1,4 @@
-from __future__ import absolute_import, division, unicode_literals
+
 
 from mimic.model import cloudfeeds
 from twisted.trial.unittest import SynchronousTestCase
@@ -13,14 +13,14 @@ class TestCloudFeeds(SynchronousTestCase):
         """
         A new CloudFeeds plugin should have no products when created.
         """
-        self.assertEquals(len(self.cf.get_product_endpoints()), 0)
+        self.assertEqual(len(self.cf.get_product_endpoints()), 0)
 
     def test_product_registration(self):
         """
         Registering a new product should create a new ATOM feed.
         """
         self.cf.register_product(title='The hoohaw product.', href='hoohaw')
-        self.assertEquals(len(self.cf.get_product_endpoints()), 1)
+        self.assertEqual(len(self.cf.get_product_endpoints()), 1)
 
     def test_product_reregistration(self):
         """
@@ -28,9 +28,9 @@ class TestCloudFeeds(SynchronousTestCase):
         """
         self.cf.register_product(title='The hoohaw product', href='hoohaw')
         self.cf.register_product(title='The OTHER hoohaw product', href='hoohaw')
-        self.assertEquals(len(self.cf.get_product_endpoints()), 1)
+        self.assertEqual(len(self.cf.get_product_endpoints()), 1)
         p = self.cf.get_product_by_href('hoohaw')
-        self.assertEquals(p.title, 'The hoohaw product')
+        self.assertEqual(p.title, 'The hoohaw product')
 
     def test_get_products(self):
         """
@@ -40,11 +40,11 @@ class TestCloudFeeds(SynchronousTestCase):
         self.cf.register_product(title='The hoohaw product', href='hoohaw')
         self.cf.register_product(title='The goober product', href='goober')
         products = self.cf.get_product_endpoints()
-        self.assertEquals('hoohaw' in products, True)
-        self.assertEquals(products['hoohaw'].title, 'The hoohaw product')
-        self.assertEquals(products['goober'].title, 'The goober product')
-        self.assertEquals(products['hoohaw'].href, 'hoohaw')
-        self.assertEquals(products['goober'].href, 'goober')
+        self.assertEqual('hoohaw' in products, True)
+        self.assertEqual(products['hoohaw'].title, 'The hoohaw product')
+        self.assertEqual(products['goober'].title, 'The goober product')
+        self.assertEqual(products['hoohaw'].href, 'hoohaw')
+        self.assertEqual(products['goober'].href, 'goober')
 
 
 class TestCloudFeedsProduct(SynchronousTestCase):
@@ -53,7 +53,7 @@ class TestCloudFeedsProduct(SynchronousTestCase):
         A new product queue should be empty.
         """
         cfp = cloudfeeds.CloudFeedsProduct(title='title', href='href')
-        self.assertEquals(len(cfp.events), 0)
+        self.assertEqual(len(cfp.events), 0)
 
     def test_post(self):
         """
@@ -63,7 +63,7 @@ class TestCloudFeedsProduct(SynchronousTestCase):
         cfp = cloudfeeds.CloudFeedsProduct(title='title', href='href')
         cfp.post("TROLOLOLOLOL!!!")
         cfp.post("This is a totally fake event-like thing.")
-        self.assertEquals(
+        self.assertEqual(
             cfp.events,
             ["TROLOLOLOLOL!!!", "This is a totally fake event-like thing."]
         )
@@ -86,7 +86,7 @@ class TestSerialization(SynchronousTestCase):
                 "title": Equals("title"),
             }),
         })
-        self.assertEquals(productDescription.match(d), None)
+        self.assertEqual(productDescription.match(d), None)
 
     def test_json_product_list(self):
         """
@@ -117,7 +117,7 @@ class TestSerialization(SynchronousTestCase):
                 ),
             })
         })
-        self.assertEquals(
+        self.assertEqual(
             listing.match(cloudfeeds.render_product_endpoints_dict(
                 cf.get_product_endpoints()
             )),

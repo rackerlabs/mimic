@@ -2,7 +2,7 @@
 General-purpose utilities for customizing response behavior.
 """
 
-from __future__ import absolute_import, division, unicode_literals
+
 
 import json
 import re
@@ -161,7 +161,7 @@ class EventDescription(object):
         """
         def create_criteria():
             for crit_spec in request_criteria:
-                for k, v in crit_spec.items():
+                for k, v in list(crit_spec.items()):
                     yield self._criteria[k](v)
         return CriteriaCollection(criteria=list(create_criteria()))
 
@@ -256,7 +256,7 @@ def make_behavior_api(event_names_and_descriptions):
         registry_collection = attr.ib(
             validator=attr.validators.instance_of(BehaviorRegistryCollection))
 
-    for name, event in event_names_and_descriptions.items():
+    for name, event in list(event_names_and_descriptions.items()):
         @BehaviorAPI.app.route('/{0}'.format(name), methods=['POST'])
         def register_behavior(kl_self, request):
             """

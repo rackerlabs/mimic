@@ -1,4 +1,4 @@
-from __future__ import absolute_import, division, unicode_literals
+
 
 import json
 import treq
@@ -82,14 +82,14 @@ class QueueAPITests(SynchronousTestCase):
                          '{0}/queues/{1}/messages'.format(self.uri, self.queue_name),
                          [{'ttl': 60, 'body': {'text': 'Wow'}}],
                          headers={b'Client-ID': [b'client-1']}))
-        self.assertEquals(resp.code, 201)
-        self.assertEquals(len(data['resources']), 1)
+        self.assertEqual(resp.code, 201)
+        self.assertEqual(len(data['resources']), 1)
         (resp, data) = self.successResultOf(
             json_request(self, self.root, b"GET",
                          '{0}/queues/{1}/messages'.format(self.uri, self.queue_name),
                          headers={b'Client-ID': [b'client-2']}))
-        self.assertEquals(resp.code, 200)
-        self.assertEquals(data['messages'][0]['body']['text'], 'Wow')
+        self.assertEqual(resp.code, 200)
+        self.assertEqual(data['messages'][0]['body']['text'], 'Wow')
 
     def test_list_messages_nonexisting_queue(self):
         """
@@ -99,7 +99,7 @@ class QueueAPITests(SynchronousTestCase):
             request(self, self.root, b"GET",
                     '{0}/queues/does-not-exist/messages'.format(self.uri, self.queue_name),
                     headers={b'Client-ID': [b'client-2']}))
-        self.assertEquals(resp.code, 204)
+        self.assertEqual(resp.code, 204)
 
     def test_post_to_nonexisting_queue(self):
         """
@@ -110,7 +110,7 @@ class QueueAPITests(SynchronousTestCase):
                          '{0}/queues/does-not-exist/messages'.format(self.uri),
                          [{'ttl': 60, 'body': {'text': 'Wow'}}],
                          headers={b'Client-ID': [b'client-1']}))
-        self.assertEquals(resp.code, 404)
+        self.assertEqual(resp.code, 404)
 
     def test_same_client_message_is_invisible(self):
         """
@@ -121,13 +121,13 @@ class QueueAPITests(SynchronousTestCase):
                          '{0}/queues/{1}/messages'.format(self.uri, self.queue_name),
                          [{'ttl': 60, 'body': {'text': 'Wow'}}],
                          headers={b'Client-ID': [b'client-1']}))
-        self.assertEquals(resp.code, 201)
-        self.assertEquals(len(data['resources']), 1)
+        self.assertEqual(resp.code, 201)
+        self.assertEqual(len(data['resources']), 1)
         resp = self.successResultOf(
             request(self, self.root, b"GET",
                     '{0}/queues/{1}/messages'.format(self.uri, self.queue_name),
                     headers={b'Client-ID': [b'client-1']}))
-        self.assertEquals(resp.code, 204)
+        self.assertEqual(resp.code, 204)
 
     def test_same_client_message_shows_with_echo(self):
         """
@@ -138,15 +138,15 @@ class QueueAPITests(SynchronousTestCase):
                          '{0}/queues/{1}/messages'.format(self.uri, self.queue_name),
                          [{'ttl': 60, 'body': {'text': 'Wow'}}],
                          headers={b'Client-ID': [b'client-1']}))
-        self.assertEquals(resp.code, 201)
-        self.assertEquals(len(data['resources']), 1)
+        self.assertEqual(resp.code, 201)
+        self.assertEqual(len(data['resources']), 1)
         (resp, data) = self.successResultOf(
             json_request(self, self.root, b"GET",
                          '{0}/queues/{1}/messages?echo=true'.format(
                              self.uri, self.queue_name),
                          headers={b'Client-ID': [b'client-1']}))
-        self.assertEquals(resp.code, 200)
-        self.assertEquals(data['messages'][0]['body']['text'], 'Wow')
+        self.assertEqual(resp.code, 200)
+        self.assertEqual(data['messages'][0]['body']['text'], 'Wow')
 
     def test_old_messages_expire(self):
         """
@@ -157,11 +157,11 @@ class QueueAPITests(SynchronousTestCase):
                          '{0}/queues/{1}/messages'.format(self.uri, self.queue_name),
                          [{'ttl': 60, 'body': {'text': 'Wow'}}],
                          headers={b'Client-ID': [b'client-1']}))
-        self.assertEquals(resp.code, 201)
-        self.assertEquals(len(data['resources']), 1)
+        self.assertEqual(resp.code, 201)
+        self.assertEqual(len(data['resources']), 1)
         self.clock.advance(61)
         resp = self.successResultOf(request(self, self.root, b"GET",
                                             '{0}/queues/{1}/messages?echo=true'.format(
                                                 self.uri, self.queue_name),
                                             headers={b'Client-ID': [b'client-2']}))
-        self.assertEquals(resp.code, 204)
+        self.assertEqual(resp.code, 204)
